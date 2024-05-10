@@ -1,9 +1,11 @@
 <script lang="ts">
   import App from '$lib/components/App.svelte'
+  import { XRButton } from '@threlte/xr'
 </script>
 
 <div>
   <App />
+  <XRButton mode='immersive-ar' sessionInit={{ optionalFeatures: ['depth-sensing'] }} />
 </div>
 
 <style>

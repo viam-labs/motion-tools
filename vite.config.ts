@@ -5,6 +5,9 @@ import mkcert from 'vite-plugin-mkcert';
 export default defineConfig({
 	plugins: [mkcert(), sveltekit()],
 	ssr: {
-		noExternal: ['three']
-	}
+		noExternal: ['three'],
+	},
+	server: {
+		proxy: {},
+	},
 });
