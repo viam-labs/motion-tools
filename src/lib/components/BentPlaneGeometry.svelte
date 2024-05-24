@@ -3,7 +3,7 @@
   import { T } from '@threlte/core'
   import type { BufferAttribute } from 'three'
 
-  export let args: ConstructorParameters<typeof PlaneGeometry>
+  export let args: [radius: number, width?: number | undefined, height?: number | undefined, widthSegments?: number | undefined, heightSegments?: number | undefined]
 
   class BentPlaneGeometry extends PlaneGeometry {
     constructor(radius: number, ...args: ConstructorParameters<typeof PlaneGeometry>) {
