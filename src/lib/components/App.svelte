@@ -5,30 +5,24 @@
 	import { getDialConfs, loadRobots } from '$lib/modules/robots'
 	import { derived, writable } from 'svelte/store'
 	import { createPartIDContext } from '$lib/hooks/usePartID'
+	import { createResourcesContext } from '$lib/hooks/useResources'
 
 	const robots = loadRobots()
 	const connectParts = provideRobotClientsContext()
 
 	connectParts(getDialConfs(robots))
 
-	const part = writable(Object.keys(robots).at(0))
+	const part = writable(Object.keys(robots).at(1))
 
 	const partID = createPartIDContext('')
 	$: partID.set(robots[$part]?.partId ?? '')
 
 	const { client } = useRobotClient(partID)
 
-	const resources = derived(
-		client,
-		($client, set) => {
-			void $client?.resourceNames().then((unsortedResources) => {
-				set(unsortedResources)
-			})
-		},
-		[]
-	)
-
-	$: console.log($resources)
+	const resources = createResourcesContext()
+	$: void $client?.resourceNames().then((unsortedResources) => {
+		resources.set(unsortedResources)
+	})
 </script>
 
 <Canvas>

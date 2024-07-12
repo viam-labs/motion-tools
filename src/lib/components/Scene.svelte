@@ -3,10 +3,16 @@
 	import { Float, OrbitControls } from '@threlte/extras'
 	import { XR } from '@threlte/xr'
 	import CameraFeed from './CameraFeed.svelte'
+	import Controllers from './Controllers.svelte'
+	import { useResources } from '$lib/hooks/useResources'
+
+	const resources = useResources()
+	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[1])
 </script>
 
 <XR>
-	<CameraFeed />
+	<CameraFeed resourceName={camResource?.name} />
+	<Controllers />
 </XR>
 
 <T.PerspectiveCamera

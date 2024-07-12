@@ -1,11 +1,17 @@
 <script lang="ts">
-	import { T, useTask } from '@threlte/core'
+	import { T, useTask, type Props } from '@threlte/core'
 	import BentPlaneGeometry from './BentPlaneGeometry.svelte'
 	import { useHeadset } from '@threlte/xr'
-	import { Euler, Group, Vector3, Quaternion, type Mesh } from 'three'
+	import { Euler, Group, Mesh, Vector3, Quaternion, NoToneMapping, VideoTexture } from 'three'
 	import { StreamClient } from '@viamrobotics/sdk'
 	import { useRobotClient } from '$lib/modules/client'
 	import { usePartID } from '$lib/hooks/usePartID'
+
+	interface CameraFeedProps extends Props<Group> {
+		resourceName: string
+	}
+
+	let { resourceName, ...rest }: CameraFeedProps = $props()
 
 	const partID = usePartID()
 	const robot = useRobotClient(partID)
@@ -18,20 +24,17 @@
 	let streamClient = $derived($robotClient ? new StreamClient($robotClient) : undefined)
 
 	video.addEventListener('canplaythrough', () => {
-		aspect = video?.videoWidth / video?.videoHeight
+		aspect = video.videoWidth / video.videoHeight
 		video.play()
 	})
 
 	const handleTrack = (event: unknown) => {
 		const [eventStream] = (event as { streams: MediaStream[] }).streams
 
-		if (!eventStream || eventStream.id !== 'camera-1') {
+		if (!eventStream || eventStream.id !== resourceName) {
 			return
 		}
-
-		console.log(eventStream)
 		video.srcObject = eventStream
-
 		ready = true
 	}
 
@@ -41,32 +44,26 @@
 	})
 
 	$effect(() => {
-		streamClient?.getStream('camera-1')
-
-		return () => {
-			streamClient?.remove('camera-1')
-		}
+		streamClient?.getStream(resourceName)
+		return () => streamClient?.remove(resourceName)
 	})
 
 	const headset = useHeadset()
 
-	let group: Group
-	let mesh: Mesh
-
+	let group = new Group()
+	let mesh = new Mesh()
 	let euler = new Euler()
 	let quaternion = new Quaternion()
 	let direction = new Vector3()
 
 	const { start, stop } = useTask(
-		() => {
-			group.position.lerp(headset.position, 0.025)
+		(delta) => {
+			group.position.lerp(headset.position, delta * 5)
 
 			headset.getWorldDirection(direction)
 			euler.set(0, Math.atan2(direction.x, direction.z), 0)
 			quaternion.setFromEuler(euler)
-			group.quaternion.slerp(quaternion, 0.025)
-
-			mesh.material.map.update()
+			group.quaternion.slerp(quaternion, delta * 5)
 
 			mesh.lookAt(headset.position)
 		},
@@ -80,21 +77,21 @@
 			stop()
 		}
 	})
+
+	const texture = new VideoTexture(video)
 </script>
 
 {#if ready}
-	<T.Group bind:ref={group}>
-		<T.Mesh
-			bind:ref={mesh}
-			position={[0, 0, -2]}
-		>
-			<BentPlaneGeometry args={[0.1, aspect, 1, 20, 20]} />
-			<T.MeshStandardMaterial>
-				<T.VideoTexture
-					attach="map"
-					args={[video]}
-				/>
-			</T.MeshStandardMaterial>
-		</T.Mesh>
-	</T.Group>
+	<T is={group}>
+		<T.Group {...rest}>
+			<T
+				is={mesh}
+				position={[0, 0, -1.5]}
+				scale={0.7}
+			>
+				<BentPlaneGeometry args={[0.1, aspect, 1, 20, 20]} />
+				<T.MeshBasicMaterial map={texture} />
+			</T>
+		</T.Group>
+	</T>
 {/if}
