@@ -8,6 +8,8 @@
 
 	const resources = useResources()
 	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[1])
+
+	$effect(() => console.log($resources))
 </script>
 
 <XR>

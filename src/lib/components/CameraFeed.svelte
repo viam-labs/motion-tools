@@ -4,7 +4,7 @@
 	import { useHeadset } from '@threlte/xr'
 	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
 	import { StreamClient } from '@viamrobotics/sdk'
-	import { useRobotClient } from '$lib/modules/client'
+	import { useRobotClient } from '$lib/client'
 	import { usePartID } from '$lib/hooks/usePartID'
 
 	interface CameraFeedProps extends Props<Group> {
@@ -14,8 +14,8 @@
 	let { resourceName, ...rest }: CameraFeedProps = $props()
 
 	const partID = usePartID()
-	const robot = useRobotClient(partID)
-	const robotClient = robot.client
+	let robot = $derived(useRobotClient($partID))
+	let robotClient = $derived(robot.client)
 
 	let video = document.createElement('video')
 	let aspect = $state(1)

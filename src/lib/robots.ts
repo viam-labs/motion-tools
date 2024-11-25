@@ -8,6 +8,7 @@ export type PlaygroundRobotsConfig = Record<
 		apiKeyId: string
 		apiKeyValue: string
 		signalingAddress: string
+		disableSessions?: boolean
 	}
 >
 
@@ -22,16 +23,15 @@ export const loadRobots = () => {
 }
 
 export const getDialConfs = (robots: PlaygroundRobotsConfig): Record<string, DialWebRTCConf> =>
-	Object.fromEntries(
-		Object.values(robots).map((robot) => [
-			robot.partId,
-			{
-				host: robot.host,
-				credential: { type: 'api-key', payload: robot.apiKeyValue },
-				authEntity: robot.apiKeyId,
-				signalingAddress: robot.signalingAddress,
-				// Important -- otherwise firefox makes make ~100 failed reqs / sec
-				reconnectMaxAttempts: 5,
-			},
-		])
-	)
+	Object.fromEntries(Object.values(robots).map((robot) => [robot.partId, getDialConf(robot)]))
+
+export const getDialConf = (robot: PlaygroundRobotsConfig[string]): DialWebRTCConf => ({
+	host: robot.host,
+	credentials: {
+		type: 'api-key',
+		payload: robot.apiKeyValue,
+		authEntity: robot.apiKeyId,
+	},
+	signalingAddress: robot.signalingAddress,
+	disableSessions: Boolean(robot.disableSessions),
+})

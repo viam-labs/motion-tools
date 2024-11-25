@@ -39,6 +39,13 @@ const createRobotClientsContext = (): RobotClientsContext => {
   };
 };
 
+export class ClientNotConnectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ClientNotConnectedError';
+  }
+}
+
 export interface RobotClient {
   client: Readable<Client | undefined>;
   connectionStatus: Readable<MachineConnectionEvent>;
@@ -70,6 +77,11 @@ const createRobotClient = (): RobotClient => {
   };
 
   const disconnect = async () => {
+    // If currently making the initial connection, abort it.
+    if (dialConf?.reconnectAbortSignal !== undefined) {
+      dialConf.reconnectAbortSignal.abort = true;
+    }
+
     if (!current) {
       return;
     }
@@ -91,6 +103,13 @@ const createRobotClient = (): RobotClient => {
     await disconnect();
 
     connectionStatus.set(MachineConnectionEvent.CONNECTING);
+
+    // Reset the abort signal if it exists
+    if (dialConf.reconnectAbortSignal !== undefined) {
+      dialConf.reconnectAbortSignal = {
+        abort: false,
+      };
+    }
 
     try {
       // Connect the client and start listening to connection events
@@ -139,6 +158,10 @@ const updateRobotClients = (
     const client = clients[partID];
     // This should always exist because we set it above if not.
     assertExists(client, 'Missing robot client');
+    // Initialize the abort signal, which this context uses to abort initial connection
+    dialConf.reconnectAbortSignal = {
+      abort: false,
+    };
     void client.setDialConf(dialConf);
   }
 
@@ -160,7 +183,7 @@ export const provideRobotClientsContext = (
   return context.connectParts;
 };
 
-export const useRobotClient = (partID: Readable<PartID>) => {
+export const useRobotClient = (partID: PartID) => {
   const context = getContext<RobotClientsContext | undefined>(
     ROBOT_CLIENTS_CONTEXT_KEY
   );
@@ -183,8 +206,8 @@ export const useRobotClient = (partID: Readable<PartID>) => {
   // First derive the RobotClient interface, which may or may not exist in the
   // record.
   const clientWrapped = derived(
-    [partID, context.clients],
-    ([$partID, $clients]): RobotClient | undefined => getIn($clients, [$partID])
+    context.clients,
+    ($clients): RobotClient | undefined => getIn($clients, [partID])
   );
 
   // Watch the RobotClient interface, it will go between undefined and defined

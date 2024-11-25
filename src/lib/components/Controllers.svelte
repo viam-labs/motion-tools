@@ -5,8 +5,8 @@
 
 	import { BaseClient, InputControllerClient, type InputControllerEvent } from '@viamrobotics/sdk'
 
-	import { createResourceMutation, createResourceQueryKey } from '$lib/modules/api'
-	import { createResourceEntity, useRobotClient } from '$lib/modules/client'
+	import { createResourceMutation, createResourceQueryKey } from '$lib/api'
+	import { createResourceEntity, useRobotClient } from '$lib/client'
 	import { usePartID } from '$lib/hooks/usePartID'
 	import { useResources } from '$lib/hooks/useResources'
 
@@ -18,7 +18,7 @@
 
 	const partID = usePartID()
 	const resources = useResources()
-	const { client } = useRobotClient(partID)
+	const { client } = useRobotClient($partID)
 	const resource = $derived($resources.find((r) => r.subtype === 'base'))
 	const baseClient = $derived(
 		$client && resource ? new BaseClient($client, resource.name) : undefined
