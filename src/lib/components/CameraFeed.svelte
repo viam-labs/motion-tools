@@ -2,7 +2,7 @@
 	import { T, useTask, type Props } from '@threlte/core'
 	import BentPlaneGeometry from './BentPlaneGeometry.svelte'
 	import { useHeadset } from '@threlte/xr'
-	import { Euler, Group, Mesh, Vector3, Quaternion, NoToneMapping, VideoTexture } from 'three'
+	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
 	import { StreamClient } from '@viamrobotics/sdk'
 	import { useRobotClient } from '$lib/modules/client'
 	import { usePartID } from '$lib/hooks/usePartID'
