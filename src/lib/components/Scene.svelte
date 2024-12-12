@@ -4,10 +4,12 @@
 	import { XR } from '@threlte/xr'
 	import CameraFeed from './CameraFeed.svelte'
 	import Controllers from './Controllers.svelte'
+	import Hands from './Hands.svelte'
 	import { useResources } from '$lib/hooks/useResources'
+	import OriginMarker from './OriginMarker.svelte'
 
 	const resources = useResources()
-	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[1])
+	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[0])
 
 	$effect(() => console.log($resources))
 </script>
@@ -15,6 +17,9 @@
 <XR>
 	<CameraFeed resourceName={camResource?.name} />
 	<Controllers />
+	<Hands />
+
+	<OriginMarker />
 </XR>
 
 <T.PerspectiveCamera

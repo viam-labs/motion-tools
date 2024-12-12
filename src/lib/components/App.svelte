@@ -6,6 +6,7 @@
 	import { writable } from 'svelte/store'
 	import { createPartIDContext } from '$lib/hooks/usePartID'
 	import { createResourcesContext } from '$lib/hooks/useResources'
+	import { World } from '@threlte/rapier'
 
 	const robots = loadRobots()
 	const connectParts = provideRobotClientsContext()
@@ -33,5 +34,7 @@
 </script>
 
 <Canvas>
-	<Scene />
+	<World>
+		<Scene />
+	</World>
 </Canvas>
