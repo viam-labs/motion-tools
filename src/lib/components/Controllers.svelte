@@ -7,6 +7,8 @@
 	import { useRobotClient } from '$lib/client'
 	import { usePartID } from '$lib/hooks/usePartID'
 	import { useResources } from '$lib/hooks/useResources'
+	import { Collider, RigidBody } from '@threlte/rapier'
+	import HandCollider from './HandCollider.svelte'
 
 	const gamepadLeft = useGamepad({ xr: true, hand: 'left' })
 	const partID = usePartID()
@@ -48,7 +50,11 @@
 	left
 	{onselectstart}
 	{onselectend}
-></Controller>
+>
+	<RigidBody type="kinematicPosition">
+		<HandCollider />
+	</RigidBody>
+</Controller>
 
 <Controller
 	right
