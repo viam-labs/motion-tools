@@ -5,6 +5,7 @@
 	import CameraFeed from './CameraFeed.svelte'
 	import Controllers from './Controllers.svelte'
 	import { useResources } from '$lib/hooks/useResources'
+	import DetectionsPlane from './DetectionsPlane.svelte'
 
 	const resources = useResources()
 	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[1])
@@ -78,4 +79,10 @@
 		<T.IcosahedronGeometry />
 		<T.MeshStandardMaterial color="#F8EBCE" />
 	</T.Mesh>
+</Float>
+
+<Float>
+	<DetectionsPlane>
+	
+	</DetectionsPlane>
 </Float>

@@ -7,7 +7,7 @@
 			xMin: BigInt(0),
 			xMax: BigInt(1),
 			yMin: BigInt(0),
-			yMax: BigInt(1),
+			yMax: BigInt(2),
 			confidence: 0.5,
 			className: '',
 		},
