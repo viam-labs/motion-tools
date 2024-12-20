@@ -1,21 +1,16 @@
 <script lang="ts">
 	import { Controller } from '@threlte/xr'
 	import { useGamepad } from '@threlte/extras'
-	import { useQueryClient } from '@tanstack/svelte-query'
 
-	import { BaseClient, InputControllerClient, type InputControllerEvent } from '@viamrobotics/sdk'
+	import { BaseClient } from '@viamrobotics/sdk'
 
-	import { createResourceMutation, createResourceQueryKey } from '$lib/api'
-	import { createResourceEntity, useRobotClient } from '$lib/client'
+	import { useRobotClient } from '$lib/client'
 	import { usePartID } from '$lib/hooks/usePartID'
 	import { useResources } from '$lib/hooks/useResources'
+	import { Collider, RigidBody } from '@threlte/rapier'
+	import HandCollider from './HandCollider.svelte'
 
 	const gamepadLeft = useGamepad({ xr: true, hand: 'left' })
-	// const gamepadRight = useGamepad({ xr: true, hand: 'right' })
-	// const gamepad = useGamepad()
-
-	// gamepadRight.on('change', triggerEvent)
-
 	const partID = usePartID()
 	const resources = useResources()
 	const { client } = useRobotClient($partID)
@@ -31,20 +26,38 @@
 		linear.y = -event.value
 		baseClient?.setPower(linear, angular)
 	})
+
 	gamepadLeft.trigger.on('change', (event) => {
-		linear.y = event.value
-		baseClient?.setPower(linear, angular)
+		if (typeof event.value === 'number') {
+			linear.y = event.value
+			baseClient?.setPower(linear, angular)
+		}
 	})
+
 	gamepadLeft.thumbstick.on('change', (event) => {
-		angular.z = event.value.x
-		baseClient?.setPower(linear, angular)
+		if (typeof event.value === 'object') {
+			angular.z = event.value.x
+			baseClient?.setPower(linear, angular)
+		}
 	})
+
+	const onselectstart = () => {}
+
+	const onselectend = () => {}
 </script>
 
-<Controller left>
-	{#snippet children()}{/snippet}
+<Controller
+	left
+	{onselectstart}
+	{onselectend}
+>
+	<RigidBody type="kinematicPosition">
+		<HandCollider />
+	</RigidBody>
 </Controller>
 
-<Controller right>
-	{#snippet children()}{/snippet}
-</Controller>
+<Controller
+	right
+	{onselectstart}
+	{onselectend}
+></Controller>
