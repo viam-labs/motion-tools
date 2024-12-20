@@ -25,29 +25,33 @@
 
 	let entity = $derived(createResourceEntity<VisionClient>(
   		$partID,
-  		visResource, 
+  		visResource.name, 
         VisionClient
 	))
     $effect(() => console.log("entity: ", $entity))
+    $effect(() => console.log("camResource: ", camResource))
 
     // the below will need to be reformatted to call DetectionsFromCamera
     let detectionsFromCam = $derived(
         createResourceQuery(
             readable({ refetchInterval: 1000 }),
             entity, 
-            'getDetectionsFromCamera',
+            // 'getDetectionsFromCamera',
+            'captureAllFromCamera',
             readable([
-                camResource,
+                camResource.name,
+                // "realsense",
                 {
                 returnImage: true,
-                returnClassifications: false,
+                returnClassifications: true,
                 returnDetections: true,
                 returnObjectPointClouds: false,
                 },
             ] as const)
         )
     )
-    $effect(() => console.log("detectionsFromCam: ", $detectionsFromCam))
+    $effect(() => console.log("detectionsFromCam.data?.detections: ", $detectionsFromCam.data?.detections))
+    $effect(() => console.log("detectionsFromCam.err: ", $detectionsFromCam.error))
     
 
 </script>
