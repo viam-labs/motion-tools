@@ -24,12 +24,10 @@
 	let { client } = $derived(useRobotClient($partID))
 
 	const resources = createResourcesContext()
-	$effect(async () => {
+	$effect(() => {
 		$client?.resourceNames().then((unsortedResources) => {
 			resources.set(unsortedResources)
 		})
-
-		console.log('hi', await $client?.resourceNames())
 	})
 </script>
 

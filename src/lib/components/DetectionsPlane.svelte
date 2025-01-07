@@ -2,25 +2,22 @@
 	import { T } from '@threlte/core'
 	import { Detection } from '@viamrobotics/sdk'
 
-	export let detections: Detection[] = [
-		{
-			xMin: BigInt(1),
-			xMax: BigInt(2),
-			yMin: BigInt(0),
-			yMax: BigInt(2),
-			confidence: 0.5,
-			className: '',
-		},
-	]
+	export let detections: Detection[]
 </script>
 
-<T.Group>
-	{#each detections as det}
-		<T.Mesh
-			scale={[Number(det.xMax - det.xMin), Number(det.yMax - det.yMin), 1]}
-			position={[Number(det.xMin), Number(det.yMin), 0]}
-		>
-			<T.PlaneGeometry />
-		</T.Mesh>
+<T.Group scale={0.001}>
+	{#each detections as { xMin, xMax, yMin, yMax }}
+		{#if xMin !== undefined && xMax !== undefined && yMin !== undefined && yMax !== undefined}
+			<T.Mesh
+				scale={[Number(xMax - xMin), Number(yMax - yMin), 1]}
+				position={[Number(xMin), Number(yMin), 0]}
+			>
+				<T.PlaneGeometry />
+				<T.MeshStandardMaterial
+					transparent
+					opacity={0.5}
+				/>
+			</T.Mesh>
+		{/if}
 	{/each}
 </T.Group>

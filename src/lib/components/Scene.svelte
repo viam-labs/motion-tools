@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Float, OrbitControls } from '@threlte/extras'
+	import { OrbitControls } from '@threlte/extras'
 	import { XR } from '@threlte/xr'
 	import CameraFeed from './CameraFeed.svelte'
 	import Controllers from './Controllers.svelte'
 	import Hands from './Hands.svelte'
 	import { useResources } from '$lib/hooks/useResources'
-	import DetectionsPlane from './DetectionsPlane.svelte'
 	import OriginMarker from './OriginMarker.svelte'
 	import Detections from './Detections.svelte'
 
@@ -19,9 +18,7 @@
 <XR>
 	<CameraFeed resourceName={camResource?.name} />
 	<Controllers />
-	<Detections />
 	<Hands />
-
 	<OriginMarker />
 </XR>
 
@@ -45,49 +42,6 @@
 />
 <T.AmbientLight />
 
-<Float
-	floatIntensity={1}
-	floatingRange={[0, 1]}
->
-	<T.Mesh
-		position.y={1.2}
-		position.z={-0.75}
-		scale={0.1}
-	>
-		<T.BoxGeometry />
-		<T.MeshStandardMaterial color="#0059BA" />
-	</T.Mesh>
-</Float>
-
-<Float
-	floatIntensity={1}
-	floatingRange={[0, 1]}
->
-	<T.Mesh
-		position={[1.2, 1.5, 0.75]}
-		rotation.x={5}
-		rotation.y={71}
-		scale={0.1}
-	>
-		<T.TorusKnotGeometry args={[0.5, 0.15, 100, 12, 2, 3]} />
-		<T.MeshStandardMaterial color="#F85122" />
-	</T.Mesh>
-</Float>
-
-<Float
-	floatIntensity={1}
-	floatingRange={[0, 1]}
->
-	<T.Mesh
-		position={[-1.4, 1.5, 0.75]}
-		rotation={[-5, 128, 10]}
-		scale={0.1}
-	>
-		<T.IcosahedronGeometry />
-		<T.MeshStandardMaterial color="#F8EBCE" />
-	</T.Mesh>
-</Float>
-
-<Float>
-	<DetectionsPlane></DetectionsPlane>
-</Float>
+{#if $resources}
+	<Detections />
+{/if}
