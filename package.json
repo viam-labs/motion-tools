@@ -45,7 +45,7 @@
     "threlte-uikit": "^0.5.1",
     "tslib": "^2.8.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7",
+    "vite": "^6.0.9",
     "vite-plugin-mkcert": "^1.17.6",
     "vitest": "^2.1.8"
   },
