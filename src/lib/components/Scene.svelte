@@ -8,12 +8,13 @@
 	import { useResources } from '$lib/hooks/useResources.svelte'
 	import OriginMarker from './OriginMarker.svelte'
 	import Detections from './Detections.svelte'
+	import PointDistance from './PointDistance.svelte'
 
 	const resources = useResources()
-	const cameras = $derived($resources.filter((r) => r.subtype === 'camera'))
+	const cameras = $derived(resources.current.filter((r) => r.subtype === 'camera'))
 	const camResource = $derived(cameras[0])
 
-	$effect(() => console.log($resources))
+	$effect(() => console.log(resources.current))
 </script>
 
 <XR>
@@ -37,6 +38,8 @@
 />
 <T.AmbientLight />
 
-{#if $resources}
+{#if resources.current}
 	<Detections />
 {/if}
+
+<PointDistance />
