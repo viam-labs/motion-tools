@@ -5,12 +5,13 @@
 	import CameraFeed from './CameraFeed.svelte'
 	import Controllers from './Controllers.svelte'
 	import Hands from './Hands.svelte'
-	import { useResources } from '$lib/hooks/useResources'
+	import { useResources } from '$lib/hooks/useResources.svelte'
 	import OriginMarker from './OriginMarker.svelte'
 	import Detections from './Detections.svelte'
 
 	const resources = useResources()
-	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[0])
+	const cameras = $derived($resources.filter((r) => r.subtype === 'camera'))
+	const camResource = $derived(cameras[0])
 
 	$effect(() => console.log($resources))
 </script>
@@ -27,13 +28,7 @@
 	position={[-10, 10, 10]}
 	fov={15}
 >
-	<OrbitControls
-		autoRotate
-		enableZoom={false}
-		enableDamping
-		autoRotateSpeed={0.5}
-		target.y={1.5}
-	/>
+	<OrbitControls />
 </T.PerspectiveCamera>
 
 <T.DirectionalLight

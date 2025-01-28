@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useResources } from '$lib/hooks/useResources'
+	import { useResources } from '$lib/hooks/useResources.svelte'
 	import { usePartID } from '$lib/hooks/usePartID'
 	import { createResourceEntity } from '$lib/client'
 	import { VisionClient } from '@viamrobotics/sdk'
@@ -11,7 +11,7 @@
 	const resources = useResources()
 
 	// Log each resource's details
-	$resources.forEach((r) => {
+	resources.current.forEach((r) => {
 		console.log('Resource:', {
 			name: r.name,
 			type: r.type,
@@ -19,16 +19,14 @@
 		})
 	})
 
-	const camResource = $derived($resources.filter((r) => r.subtype === 'camera')[0])
-	const visResource = $derived($resources.filter((r) => r.subtype === 'vision')[0])
+	const camResource = $derived(resources.current.filter((r) => r.subtype === 'camera')[0])
+	const visResource = $derived(resources.current.filter((r) => r.subtype === 'vision')[0])
 
 	let entity = $derived(
 		visResource
 			? createResourceEntity<VisionClient>($partID, visResource.name, VisionClient)
 			: undefined
 	)
-	$effect(() => console.log('entity: ', $entity))
-	$effect(() => console.log('camResource: ', camResource))
 
 	// the below will need to be reformatted to call DetectionsFromCamera
 	let detectionsFromCam = $derived(

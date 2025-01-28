@@ -5,7 +5,7 @@
 	import { getDialConfs, loadRobots } from '$lib/robots'
 	import { writable } from 'svelte/store'
 	import { createPartIDContext } from '$lib/hooks/usePartID'
-	import { createResourcesContext } from '$lib/hooks/useResources'
+	import { createResourcesContext } from '$lib/hooks/useResources.svelte'
 	import { Debug, World } from '@threlte/rapier'
 
 	const robots = loadRobots()
@@ -26,7 +26,7 @@
 	const resources = createResourcesContext()
 	$effect(() => {
 		$client?.resourceNames().then((unsortedResources) => {
-			resources.set(unsortedResources)
+			resources.current = unsortedResources
 		})
 	})
 </script>

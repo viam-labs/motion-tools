@@ -6,7 +6,7 @@
 
 	import { useRobotClient } from '$lib/client'
 	import { usePartID } from '$lib/hooks/usePartID'
-	import { useResources } from '$lib/hooks/useResources'
+	import { useResources } from '$lib/hooks/useResources.svelte'
 	import { Collider, RigidBody } from '@threlte/rapier'
 	import HandCollider from './HandCollider.svelte'
 
@@ -14,7 +14,7 @@
 	const partID = usePartID()
 	const resources = useResources()
 	const { client } = useRobotClient($partID)
-	const resource = $derived($resources.find((r) => r.subtype === 'base'))
+	const resource = $derived(resources.current.find((r) => r.subtype === 'base'))
 	const baseClient = $derived(
 		$client && resource ? new BaseClient($client, resource.name) : undefined
 	)

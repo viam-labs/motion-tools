@@ -1,12 +1,17 @@
 import { currentWritable, type CurrentWritable } from '@threlte/core'
+import type { ResourceName } from '@viamrobotics/sdk'
 import { getContext, setContext } from 'svelte'
 
 const key = Symbol('resources-context')
 
-type Context = CurrentWritable<any[]>
+class Resources {
+	current: ResourceName[] = $state([])
+}
+
+type Context = Resources
 
 export const createResourcesContext = (): Context => {
-	const resources = currentWritable([])
+	const resources = new Resources()
 	setContext<Context>(key, resources)
 	return resources
 }
