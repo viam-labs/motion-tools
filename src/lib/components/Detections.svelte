@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useResources } from '$lib/hooks/useResources.svelte'
-	import { usePartID } from '$lib/hooks/usePartID'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { createResourceEntity } from '$lib/client'
 	import { VisionClient } from '@viamrobotics/sdk'
 	import { createResourceQuery } from '../api'
@@ -24,7 +24,7 @@
 
 	let entity = $derived(
 		visResource
-			? createResourceEntity<VisionClient>($partID, visResource.name, VisionClient)
+			? createResourceEntity<VisionClient>(partID.current, visResource.name, VisionClient)
 			: undefined
 	)
 

@@ -28,7 +28,7 @@
 </script>
 
 <T.Group position={[-1, 1, 0]}>
-	<Draggable>
+	<Draggable onPointerEnter={() => null}>
 		<T is={mesh1}>
 			<T.SphereGeometry args={[0.05]} />
 			<T.MeshStandardMaterial />

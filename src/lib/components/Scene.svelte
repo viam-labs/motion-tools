@@ -22,15 +22,17 @@
 	<Controllers />
 	<Hands />
 	<OriginMarker />
-</XR>
 
-<T.PerspectiveCamera
-	makeDefault
-	position={[-10, 10, 10]}
-	fov={15}
->
-	<OrbitControls />
-</T.PerspectiveCamera>
+	{#snippet fallback()}
+		<T.PerspectiveCamera
+			makeDefault
+			position={[-10, 10, 10]}
+			fov={15}
+		>
+			<OrbitControls />
+		</T.PerspectiveCamera>
+	{/snippet}
+</XR>
 
 <T.DirectionalLight
 	position.x={5}

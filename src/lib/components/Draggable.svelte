@@ -9,9 +9,11 @@
 
 	interface Props {
 		children: Snippet
+		onPointerEnter?: () => void
+		onPointerLeave?: () => void
 	}
 
-	let { children }: Props = $props()
+	let { onPointerEnter, onPointerLeave, children }: Props = $props()
 
 	let hovering = $state(false)
 
@@ -46,8 +48,15 @@
 	})
 	rightPad.trigger.on('up', () => (dragging = true))
 
-	const onsensorenter = () => (hovering = true)
-	const onsensorexit = () => (hovering = false)
+	const onsensorenter = () => {
+		hovering = true
+		onPointerEnter?.()
+	}
+
+	const onsensorexit = () => {
+		hovering = false
+		onPointerLeave?.()
+	}
 
 	const { start, stop } = useTask(
 		() => {

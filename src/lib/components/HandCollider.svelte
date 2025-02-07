@@ -6,8 +6,6 @@
 	const parent = useParent()
 	const rb = useRigidBody()
 
-	$inspect($parent, rb)
-
 	useTask(() => {
 		const { position } = $parent as Group
 		rb?.setNextKinematicTranslation({ x: position.x, y: position.y, z: position.z })
@@ -15,6 +13,7 @@
 </script>
 
 <Collider
+	sensor
 	shape="ball"
 	args={[0.1]}
 />

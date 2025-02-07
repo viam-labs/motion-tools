@@ -5,16 +5,16 @@
 	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
 	import { StreamClient } from '@viamrobotics/sdk'
 	import { useRobotClient } from '$lib/client'
-	import { usePartID } from '$lib/hooks/usePartID'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
-	interface CameraFeedProps extends Props<Group> {
+	interface CameraFeedProps {
 		resourceName: string
 	}
 
-	let { resourceName, ...rest }: CameraFeedProps = $props()
+	let { resourceName }: CameraFeedProps = $props()
 
 	const partID = usePartID()
-	let robot = $derived(useRobotClient($partID))
+	let robot = $derived(useRobotClient(partID.current))
 	let robotClient = $derived(robot.client)
 
 	let video = document.createElement('video')
@@ -83,7 +83,7 @@
 
 {#if ready}
 	<T is={group}>
-		<T.Group {...rest}>
+		<T.Group>
 			<T
 				is={mesh}
 				position={[0, 0, -1.5]}
