@@ -4,10 +4,8 @@
 
 	import { BaseClient } from '@viamrobotics/sdk'
 
-	import { useRobotClient } from '$lib/client'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { useResources } from '$lib/hooks/useResources.svelte'
-	import { Collider, RigidBody } from '@threlte/rapier'
+	import { useRobotClient, usePartID, useResources } from '$lib/svelte-sdk'
+	import { RigidBody } from '@threlte/rapier'
 	import HandCollider from './HandCollider.svelte'
 
 	const gamepadLeft = useGamepad({ xr: true, hand: 'left' })

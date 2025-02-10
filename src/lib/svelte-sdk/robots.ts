@@ -14,11 +14,13 @@ export type PlaygroundRobotsConfig = Record<
 
 export const loadRobots = () => {
 	const rawRobots = import.meta.env.VITE_PLAYGROUND_ROBOTS
+
 	if (!rawRobots) {
 		throw new Error(
 			'Cannot find VITE_PLAYGROUND_ROBOTS. Please read the README.md playground section for more info'
 		)
 	}
+
 	return JSON.parse(rawRobots) as PlaygroundRobotsConfig
 }
 

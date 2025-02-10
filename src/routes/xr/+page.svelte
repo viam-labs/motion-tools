@@ -2,13 +2,14 @@
 	import { T } from '@threlte/core'
 	import { OrbitControls } from '@threlte/extras'
 	import { XR } from '@threlte/xr'
-	import CameraFeed from './CameraFeed.svelte'
-	import Controllers from './Controllers.svelte'
-	import Hands from './Hands.svelte'
-	import { useResources } from '$lib/hooks/useResources.svelte'
-	import OriginMarker from './OriginMarker.svelte'
-	import Detections from './Detections.svelte'
-	import PointDistance from './PointDistance.svelte'
+	import { useResources } from '$lib/svelte-sdk'
+
+	import CameraFeed from '$lib/components/xr/CameraFeed.svelte'
+	import Controllers from '$lib/components/xr/Controllers.svelte'
+	import Hands from '$lib/components/xr/Hands.svelte'
+	import OriginMarker from '$lib/components/xr/OriginMarker.svelte'
+	import PointDistance from '$lib/components/xr/PointDistance.svelte'
+	import Detections from '$lib/components/Detections.svelte'
 
 	const resources = useResources()
 	const cameras = $derived(resources.current.filter((r) => r.subtype === 'camera'))

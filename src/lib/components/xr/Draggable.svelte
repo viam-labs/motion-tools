@@ -11,9 +11,11 @@
 		children: Snippet
 		onPointerEnter?: () => void
 		onPointerLeave?: () => void
+		onPointerDown?: () => void
+		onPointerUp?: () => void
 	}
 
-	let { onPointerEnter, onPointerLeave, children }: Props = $props()
+	let { onPointerEnter, onPointerLeave, onPointerDown, onPointerUp, children }: Props = $props()
 
 	let hovering = $state(false)
 
@@ -36,8 +38,13 @@
 		dragging = true
 		group.getWorldPosition(vec3)
 		offset.copy($left.grip.position).sub(vec3)
+		onPointerDown?.()
 	})
-	leftPad.trigger.on('up', () => (dragging = false))
+
+	leftPad.trigger.on('up', () => {
+		dragging = false
+		onPointerUp?.()
+	})
 
 	rightPad.trigger.on('down', () => {
 		if (!$right) return
@@ -45,8 +52,13 @@
 		dragging = true
 		group.getWorldPosition(vec3)
 		offset.copy($right.grip.position).sub(vec3)
+		onPointerDown?.()
 	})
-	rightPad.trigger.on('up', () => (dragging = true))
+
+	rightPad.trigger.on('up', () => {
+		dragging = true
+		onPointerUp?.()
+	})
 
 	const onsensorenter = () => {
 		hovering = true

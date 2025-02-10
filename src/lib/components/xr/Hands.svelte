@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { T } from '@threlte/core'
 	import { Hand } from '@threlte/xr'
 
 	console.log('hands')

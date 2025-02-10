@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { T, useTask, type Props } from '@threlte/core'
-	import BentPlaneGeometry from './BentPlaneGeometry.svelte'
+	import { T, useTask } from '@threlte/core'
+	import BentPlaneGeometry from '../BentPlaneGeometry.svelte'
 	import { useHeadset } from '@threlte/xr'
 	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
 	import { StreamClient } from '@viamrobotics/sdk'
-	import { useRobotClient } from '$lib/client'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { usePartID, useRobotClient } from '$lib/svelte-sdk'
 
 	interface CameraFeedProps {
 		resourceName: string

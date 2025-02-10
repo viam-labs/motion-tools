@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { useResources } from '$lib/hooks/useResources.svelte'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { createResourceEntity } from '$lib/client'
+	import { useResources, usePartID } from '$lib/svelte-sdk'
+	import { createResourceEntity } from '$lib/svelte-sdk'
 	import { VisionClient } from '@viamrobotics/sdk'
-	import { createResourceQuery } from '../api'
+	import { createResourceQuery } from '../svelte-sdk/api'
 	import { readable } from 'svelte/store'
 	import DetectionsPlane from './DetectionsPlane.svelte'
 
