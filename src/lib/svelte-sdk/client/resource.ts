@@ -1,37 +1,34 @@
-import { derived, type Readable } from 'svelte/store';
+import { derived, type Readable } from 'svelte/store'
 
-import type { Resource, RobotClient } from '@viamrobotics/sdk';
+import type { Resource, RobotClient } from '@viamrobotics/sdk'
 
-import { type PartID, useRobotClient } from '../client/robot';
+import { type PartID, useRobotClient } from '../client/robot'
 
-export type Client<T> = new (part: RobotClient, name: string) => T;
+export type Client<T> = new (part: RobotClient, name: string) => T
 
 export interface ResourceEntity<T extends Resource> {
-  name: string;
-  resource: T | undefined;
-  partID: PartID;
+	name: string
+	resource: T | undefined
+	partID: PartID
 }
 
 export const createResourceEntity = <T extends Resource>(
-  partID: string,
-  resourceName: string,
-  client: Client<T>
+	partID: string,
+	resourceName: string,
+	client: Client<T>
 ) => {
-  const { client: robotClient } = useRobotClient(partID);
+	const { client: robotClient } = useRobotClient(partID)
 
-  const entity: Readable<ResourceEntity<T>> = derived(
-    robotClient,
-    ($robotClient) => {
-      return {
-        resource: $robotClient
-          ? // eslint-disable-next-line new-cap
-            new client($robotClient, resourceName)
-          : undefined,
-        name: resourceName,
-        partID,
-      };
-    }
-  );
+	const entity: Readable<ResourceEntity<T>> = derived(robotClient, ($robotClient) => {
+		return {
+			resource: $robotClient
+				? // eslint-disable-next-line new-cap
+					new client($robotClient, resourceName)
+				: undefined,
+			name: resourceName,
+			partID,
+		}
+	})
 
-  return entity;
-};
+	return entity
+}

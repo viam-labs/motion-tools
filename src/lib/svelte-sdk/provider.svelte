@@ -4,6 +4,9 @@
 	import { createPartIDContext } from './hooks/usePartID.svelte'
 	import { getDialConfs, loadRobots } from './robots'
 	import { provideRobotClientsContext, useRobotClient } from './client'
+	import { useActiveConnectionConfig } from '$lib/hooks'
+	import { provideRobotContext } from './hooks/useRobot.svelte'
+	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 
 	interface Props {
 		children: Snippet
@@ -11,20 +14,30 @@
 
 	let { children }: Props = $props()
 
-	const robots = loadRobots()
+	const connectionConfig = useActiveConnectionConfig()
 	const connectParts = provideRobotClientsContext()
-
-	connectParts(getDialConfs(robots))
-
-	const part = $derived(Object.keys(robots).at(0))
 
 	const resources = createResourcesContext()
 	const partID = createPartIDContext()
 
+	provideRobotContext()
+	provideFrames()
+
 	let { client } = $derived(useRobotClient(partID.current))
 
 	$effect.pre(() => {
-		const id = robots[part ?? '']?.partId
+		if (partID.current && connectionConfig.current) {
+			connectParts(
+				getDialConfs({
+					robot: connectionConfig.current,
+				})
+			)
+		}
+	})
+
+	$effect.pre(() => {
+		const id = connectionConfig.current?.partId
+
 		if (id) {
 			partID.set(id)
 		}
