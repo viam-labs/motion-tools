@@ -1,6 +1,13 @@
 <script lang="ts">
 	import * as tree from '@zag-js/tree-view'
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
+	import { untrack } from 'svelte'
+
+	interface Props {
+		title?: string
+	}
+
+	let { title }: Props = $props()
 
 	interface Node {
 		id: string
@@ -41,7 +48,11 @@
 			selectionMode: 'single',
 		},
 	})
-	const api = tree.connect(state, send, normalizeProps)
+	const api = $derived(tree.connect(state, send, normalizeProps))
+
+	$effect(() => untrack(() => api.expand()))
+
+	$inspect(collection.rootNode.children)
 </script>
 
 {#snippet treeNode({ node, indexPath, api }: { node: Node; indexPath: number[]; api: tree.Api })}
@@ -52,7 +63,10 @@
 		<div {...api.getBranchProps(nodeProps)}>
 			<div {...api.getBranchControlProps(nodeProps)}>
 				<!-- <LuFolder /> -->
-				<span {...api.getBranchTextProps(nodeProps)}>{node.name}</span>
+				<span {...api.getBranchTextProps(nodeProps)}>
+					<!-- <LuFile />  -->
+					{node.name}
+				</span>
 				<span {...api.getBranchIndicatorProps(nodeProps)}>
 					<!-- <LuChevronRight /> -->
 				</span>
@@ -72,25 +86,11 @@
 	{/if}
 {/snippet}
 
-<div class="root-node fixed top-0 left-0">
+<div class="root-node">
 	<div {...api.getRootProps()}>
-		<h3 {...api.getLabelProps()}>My Documents</h3>
-
-		<div class="flex gap-2">
-			<button
-				class="treeview-trigger"
-				onclick={() => api.collapse()}
-			>
-				Collapse All
-			</button>
-
-			<button
-				class="treeview-trigger"
-				onclick={() => api.expand()}
-			>
-				Expand All
-			</button>
-		</div>
+		{#if title}
+			<h3 {...api.getLabelProps()}>{title}</h3>
+		{/if}
 
 		<div {...api.getTreeProps()}>
 			{#each collection.rootNode.children ?? [] as node, index}

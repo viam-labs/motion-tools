@@ -4,6 +4,8 @@
 	import { Root, Text } from 'threlte-uikit'
 	import type { Frame } from '$lib/hooks/useFrames.svelte'
 	import type { Snippet } from 'svelte'
+	import { OrientationVector } from '@viamrobotics/three'
+	import { Mesh } from 'three'
 
 	interface Props {
 		frame: Frame
@@ -13,10 +15,19 @@
 	let { frame, children }: Props = $props()
 
 	let hovering = $state(false)
+
+	const mesh = new Mesh()
+
+	const ov = new OrientationVector()
+	$effect.pre(() => {
+		ov.set(frame.pose.oX, frame.pose.oY, frame.pose.oZ, frame.pose.theta)
+		ov.toQuaternion(mesh.quaternion)
+	})
 </script>
 
 <Portal id={frame.parent}>
-	<T.Mesh
+	<T
+		is={mesh}
 		position.x={frame.pose.x * 0.001}
 		position.y={frame.pose.y * 0.001}
 		position.z={frame.pose.z * 0.001}
@@ -52,5 +63,5 @@
 		<PortalTarget id={frame.name} />
 
 		{@render children?.()}
-	</T.Mesh>
+	</T>
 </Portal>
