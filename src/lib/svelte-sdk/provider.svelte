@@ -7,6 +7,7 @@
 	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { provideRobotContext } from './hooks/useRobot.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
+	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 
 	interface Props {
 		children: Snippet
@@ -22,8 +23,9 @@
 
 	provideRobotContext()
 	provideFrames()
+	provideGeometries()
 
-	let { client } = $derived(useRobotClient(partID.current))
+	let robot = $derived(useRobotClient(partID))
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {
@@ -44,7 +46,7 @@
 	})
 
 	$effect.pre(() => {
-		$client?.resourceNames().then((unsortedResources) => {
+		robot.client?.resourceNames().then((unsortedResources) => {
 			resources.set(unsortedResources)
 		})
 	})

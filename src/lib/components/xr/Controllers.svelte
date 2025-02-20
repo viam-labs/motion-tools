@@ -12,10 +12,10 @@
 
 	const partID = usePartID()
 	const resources = useResources()
-	const { client } = useRobotClient(partID.current)
+	const robot = useRobotClient(partID)
 	const resource = $derived(resources.current.find((r) => r.subtype === 'base'))
 	const baseClient = $derived(
-		$client && resource ? new BaseClient($client, resource.name) : undefined
+		robot.client && resource ? new BaseClient(robot.client, resource.name) : undefined
 	)
 
 	const linear = { x: 0, y: 0, z: 0 }

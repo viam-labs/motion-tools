@@ -2,7 +2,7 @@ import { derived, type Readable } from 'svelte/store'
 
 import type { Resource, RobotClient } from '@viamrobotics/sdk'
 
-import { type PartID, useRobotClient } from '../client/robot'
+import { type PartID, useRobotClient } from './robot.svelte'
 
 export type Client<T> = new (part: RobotClient, name: string) => T
 
@@ -13,7 +13,7 @@ export interface ResourceEntity<T extends Resource> {
 }
 
 export const createResourceEntity = <T extends Resource>(
-	partID: string,
+	partID: { current: string },
 	resourceName: string,
 	client: Client<T>
 ) => {

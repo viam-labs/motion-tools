@@ -23,7 +23,7 @@
 
 	let entity = $derived(
 		visResource
-			? createResourceEntity<VisionClient>(partID.current, visResource.name, VisionClient)
+			? createResourceEntity<VisionClient>(partID, visResource.name, VisionClient)
 			: undefined
 	)
 

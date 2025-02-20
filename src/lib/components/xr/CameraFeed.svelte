@@ -13,14 +13,14 @@
 	let { resourceName }: CameraFeedProps = $props()
 
 	const partID = usePartID()
-	let robot = $derived(useRobotClient(partID.current))
+	let robot = useRobotClient(partID)
 	let robotClient = $derived(robot.client)
 
 	let video = document.createElement('video')
 	let aspect = $state(1)
 	let ready = $state(false)
 
-	let streamClient = $derived($robotClient ? new StreamClient($robotClient) : undefined)
+	let streamClient = $derived(robotClient ? new StreamClient(robotClient) : undefined)
 
 	video.addEventListener('canplaythrough', () => {
 		aspect = video.videoWidth / video.videoHeight

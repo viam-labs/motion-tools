@@ -2,24 +2,28 @@ import { getContext, setContext } from 'svelte'
 
 const key = Symbol('part-id-context')
 
-class PartID {
-	private value: string = $state('')
-
-	get current(): string {
-		return this.value
-	}
-
-	set(value: string): void {
-		this.value = value
-	}
+interface Context {
+	current: string
+	set(value: string): void
 }
 
-export const createPartIDContext = (): PartID => {
-	const context = new PartID()
-	setContext<PartID>(key, context)
+export const createPartIDContext = (): Context => {
+	let id = $state('')
+
+	const context: Context = {
+		get current() {
+			return id
+		},
+		set(value: string) {
+			id = value
+		},
+	}
+
+	setContext<Context>(key, context)
+
 	return context
 }
 
-export const usePartID = (): PartID => {
-	return getContext<PartID>(key)
+export const usePartID = (): Context => {
+	return getContext<Context>(key)
 }

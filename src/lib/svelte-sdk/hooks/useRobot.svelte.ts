@@ -1,20 +1,16 @@
+import { getContext, setContext } from 'svelte'
 import { useRobotClient } from '../client'
 import { usePartID } from './usePartID.svelte'
 
-let robot = $state<ReturnType<typeof useRobotClient>>()
+const key = Symbol('robot-context-key')
 
 export const provideRobotContext = () => {
 	const partID = usePartID()
+	const robot = useRobotClient(partID)
 
-	$effect(() => {
-		robot = useRobotClient(partID.current)
-	})
+	setContext(key, robot)
 }
 
-export const useRobot = () => {
-	return {
-		get current() {
-			return robot
-		},
-	}
+export const useRobot = (): ReturnType<typeof useRobotClient> => {
+	return getContext(key)
 }
