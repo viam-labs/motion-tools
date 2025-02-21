@@ -11,9 +11,19 @@
 <PortalTarget id="world" />
 
 {#each frames.current as frame (frame.name)}
-	<Frame {frame} />
+	<Frame
+		name={frame.name}
+		pose={frame.pose}
+		geometry={frame.physicalObject}
+		parent={frame.parent}
+	/>
 {/each}
 
 {#each geometries.current as frame (`${frame.parent}-${frame.name}`)}
-	<Frame {frame} />
+	<Frame
+		name={frame.name}
+		pose={frame.pose}
+		geometry={frame.physicalObject}
+		parent={frame.parent}
+	/>
 {/each}

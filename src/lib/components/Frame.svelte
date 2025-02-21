@@ -1,18 +1,21 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Billboard, Portal, PortalTarget } from '@threlte/extras'
 	import { Root, Text } from 'threlte-uikit'
-	import type { Frame } from '$lib/hooks/useFrames.svelte'
 	import type { Snippet } from 'svelte'
+	import { Billboard, Portal, PortalTarget } from '@threlte/extras'
 	import { OrientationVector } from '@viamrobotics/three'
-	import { Mesh } from 'three'
+	import { MathUtils, Mesh } from 'three'
+	import type { Geometry, Pose } from '@viamrobotics/sdk'
 
 	interface Props {
-		frame: Frame
+		name: string
+		parent: string
+		geometry: Geometry
+		pose: Pose
 		children?: Snippet
 	}
 
-	let { frame, children }: Props = $props()
+	let { name, pose, geometry, parent, children }: Props = $props()
 
 	let hovering = $state(false)
 
@@ -20,25 +23,26 @@
 
 	const ov = new OrientationVector()
 	$effect.pre(() => {
-		ov.set(frame.pose.oX, frame.pose.oY, frame.pose.oZ, frame.pose.theta)
+		ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
 		ov.toQuaternion(mesh.quaternion)
+	})
+
+	$effect.pre(() => {
+		mesh.position.set(pose.x, pose.y, pose.z).multiplyScalar(0.001)
 	})
 </script>
 
-<Portal id={frame.parent}>
+<Portal id={parent}>
 	<T
 		is={mesh}
-		position.x={frame.pose.x * 0.001}
-		position.y={frame.pose.y * 0.001}
-		position.z={frame.pose.z * 0.001}
 		onpointerenter={() => (hovering = true)}
 		onpointerleave={() => (hovering = false)}
 	>
-		{#if frame.physicalObject.geometryType.case === 'box'}
-			{@const dimsMm = frame.physicalObject.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
+		{#if geometry.geometryType.case === 'box'}
+			{@const dimsMm = geometry.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
 			<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
-		{:else if frame.physicalObject.geometryType.case === 'sphere'}
-			{@const radiusMm = frame.physicalObject.geometryType.value.radiusMm ?? 0}
+		{:else if geometry.geometryType.case === 'sphere'}
+			{@const radiusMm = geometry.geometryType.value.radiusMm ?? 0}
 			<T.SphereGeometry args={[radiusMm]} />
 		{:else}
 			<T.OctahedronGeometry args={[0.1]} />
@@ -54,13 +58,13 @@
 				<Root>
 					<Text
 						fontSize={10}
-						text={frame.name}
+						text={name}
 					/>
 				</Root>
 			</Billboard>
 		{/if}
 
-		<PortalTarget id={frame.name} />
+		<PortalTarget id={name} />
 
 		{@render children?.()}
 	</T>

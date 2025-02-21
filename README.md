@@ -1,38 +1,20 @@
-# sv
+## Getting started
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Install dependencies: `pnpm i`
 
-## Creating a project
+Run local server: `pnpm dev`
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Todo
 
-```bash
-# create a new project in the current directory
-npx sv create
+- Adjust point size (persist)
+- Bounding cube
+- visualize single item with trackball
+- double click to set trackball center
 
-# create a new project in my-app
-npx sv create my-app
-```
+- Draw arbitrary boxes with labels (persist)
+- Export box data as json
 
-## Developing
+- Give error logs
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- Adjust query rate
+- Query pointclouds every 5-10 sec

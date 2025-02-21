@@ -3,7 +3,7 @@
 	import { Gizmo, Grid, interactivity, OrbitControls } from '@threlte/extras'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
-	import Geometries from '$lib/components/Geometries.svelte'
+	import CameraControls from '$lib/components/CameraControls.svelte'
 
 	interactivity({ filter: (items) => items.splice(0, 1) })
 </script>
@@ -14,9 +14,9 @@
 	position={[5, 5, 5]}
 	up={[0, 0, 1]}
 >
-	<OrbitControls>
+	<CameraControls>
 		<Gizmo />
-	</OrbitControls>
+	</CameraControls>
 </T.PerspectiveCamera>
 
 <Grid
@@ -25,8 +25,6 @@
 />
 
 <Frames />
-
-<Geometries />
 
 <Pointclouds />
 
