@@ -13,7 +13,7 @@ export interface Frame {
 interface Context {
 	current: Frame[]
 	error?: Error
-	loading: boolean
+	fetching: boolean
 }
 
 const key = Symbol('frames-context')
@@ -27,7 +27,7 @@ export const provideFrames = () => {
 			queryKey: ['frame'],
 			queryFn: async () => {
 				const response = await robot.client?.robotService.frameSystemConfig({})
-				console.log(robot.client)
+
 				return (
 					response?.frameSystemConfigs.map((config) => {
 						return {
@@ -42,13 +42,13 @@ export const provideFrames = () => {
 		})
 	})
 
-	let frames = $state<Frame[]>([])
-	let error = $state<Error>()
-	let loading = $state(false)
+	let frames = $state.raw<Frame[]>([])
+	let error = $state.raw<Error>()
+	let fetching = $state.raw(false)
 
 	$effect.pre(() => {
 		return query.subscribe(($query) => {
-			loading = $query.isLoading
+			fetching = $query.isFetching
 			error = $query.error ?? undefined
 			frames = $query.data ?? []
 		})
@@ -61,24 +61,10 @@ export const provideFrames = () => {
 		get error() {
 			return error
 		},
-		get loading() {
-			return loading
+		get fetching() {
+			return fetching
 		},
 	})
-
-	// $effect.pre(() => {
-	// 	robot.client?.robotService.frameSystemConfig({}).then((value) => {
-	// 		console.log(value)
-	// 		frames = value.frameSystemConfigs.map((config) => {
-	// 			return {
-	// 				name: config.frame?.referenceFrame ?? '',
-	// 				parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
-	// 				pose: config.frame?.poseInObserverFrame?.pose ?? new Pose(),
-	// 				physicalObject: config.frame?.physicalObject ?? new Geometry(),
-	// 			}
-	// 		})
-	// 	})
-	// })
 }
 
 export const useFrames = () => {

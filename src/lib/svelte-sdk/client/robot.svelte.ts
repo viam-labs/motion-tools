@@ -59,8 +59,8 @@ export interface RobotClient {
 const createRobotClient = (): RobotClient => {
 	let connectionStatus = $state<MachineConnectionEvent>(MachineConnectionEvent.DISCONNECTED)
 
-	let current = $state<Client>()
-	let client = $state<Client>()
+	let current = $state.raw<Client>()
+	let client = $state.raw<Client>()
 
 	$effect(() => {
 		current

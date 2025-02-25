@@ -20,8 +20,8 @@
 {#if showTreeview.current}
 	<div
 		class="fixed top-0 left-0 m-2 bg-black p-2 text-xs text-white"
-		in:fly={{ duration: 500, x: -100 }}
-		out:fly={{ duration: 500, x: -100 }}
+		in:fly={{ duration: 250, x: -100 }}
+		out:fly={{ duration: 250, x: -100 }}
 	>
 		<Tree />
 	</div>

@@ -10,7 +10,7 @@ const key = Symbol('geometries-context')
 interface Context {
 	current: Frame[]
 	error?: Error
-	loading: boolean
+	fetching: boolean
 }
 
 export const provideGeometries = () => {
@@ -19,7 +19,13 @@ export const provideGeometries = () => {
 	const cameras = useResources('camera')
 
 	const clients = $derived.by(() => {
-		const armClients = arms.current.map((arm) => new ArmClient(robot.client!, arm.name))
+		const robotClient = robot.client
+
+		if (robotClient === undefined) {
+			return []
+		}
+
+		const armClients = arms.current.map((arm) => new ArmClient(robotClient, arm.name))
 		const cameraClients = cameras.current.map(
 			(camera) => new CameraClient(robot.client!, camera.name)
 		)
@@ -54,31 +60,29 @@ export const provideGeometries = () => {
 		})
 	})
 
-	let geometries = $state<Frame[]>([])
-	let error = $state<Error>()
-	let loading = $state(false)
+	let geometries = $state.raw<Frame[]>([])
+	let error = $state.raw<Error>()
+	let fetching = $state.raw(false)
 
 	$effect.pre(() => {
 		return query.subscribe(($query) => {
 			error = $query.error ?? undefined
-			loading = $query.isLoading
+			fetching = $query.isFetching
 			geometries = $query.data ?? []
 		})
 	})
 
-	const context: Context = {
+	setContext<Context>(key, {
 		get current() {
 			return geometries
 		},
 		get error() {
 			return error
 		},
-		get loading() {
-			return loading
+		get fetching() {
+			return fetching
 		},
-	}
-
-	setContext(key, context)
+	})
 }
 
 export const useGeometries = () => {

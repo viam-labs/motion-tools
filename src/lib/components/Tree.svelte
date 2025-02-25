@@ -42,17 +42,15 @@
 		},
 	})
 
-	const [state, send] = useMachine(tree.machine({ id: '1', collection }), {
-		context: {
-			expandOnClick: true,
-			selectionMode: 'single',
-		},
+	const service = useMachine(tree.machine, {
+		id: '1',
+		collection,
+		expandOnClick: true,
+		selectionMode: 'single',
 	})
-	const api = $derived(tree.connect(state, send, normalizeProps))
+	const api = $derived(tree.connect(service, normalizeProps))
 
 	$effect(() => untrack(() => api.expand()))
-
-	$inspect(collection.rootNode.children)
 </script>
 
 {#snippet treeNode({ node, indexPath, api }: { node: Node; indexPath: number[]; api: tree.Api })}

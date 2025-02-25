@@ -50,15 +50,19 @@
 
 	const { camera, dom, invalidate } = useThrelte()
 
-	ref = new CameraControls(camera.current as PerspectiveCamera, dom)
+	const controls = new CameraControls(camera.current as PerspectiveCamera, dom)
 
 	$effect.pre(() => {
-		ref.camera = $camera as PerspectiveCamera
+		controls.camera = $camera as PerspectiveCamera
+	})
+
+	$effect.pre(() => {
+		return () => controls.dispose()
 	})
 
 	useTask(
 		(delta) => {
-			if (ref.update(delta)) {
+			if (controls.update(delta)) {
 				invalidate()
 			}
 		},
@@ -66,6 +70,9 @@
 	)
 </script>
 
-<T is={ref}>
+<T
+	is={controls}
+	bind:ref
+>
 	{@render children?.()}
 </T>

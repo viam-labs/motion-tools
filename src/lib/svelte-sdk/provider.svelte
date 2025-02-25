@@ -8,6 +8,8 @@
 	import { provideRobotContext } from './hooks/useRobot.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
+	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
+	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 
 	interface Props {
 		children: Snippet
@@ -24,16 +26,19 @@
 	provideRobotContext()
 	provideFrames()
 	provideGeometries()
+	providePointclouds()
+	provideSelection()
 
 	let robot = $derived(useRobotClient(partID))
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {
-			connectParts(
-				getDialConfs({
-					robot: connectionConfig.current,
-				})
-			)
+			const robot = {
+				...$state.snapshot(connectionConfig.current),
+				disableSessions: true,
+			}
+
+			connectParts(getDialConfs({ robot }))
 		}
 	})
 

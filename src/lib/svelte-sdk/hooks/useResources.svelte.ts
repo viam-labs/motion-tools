@@ -3,36 +3,43 @@ import { getContext, setContext } from 'svelte'
 
 const key = Symbol('resources-context')
 
-class Resources {
-	private _value: ResourceName[] = $state([])
-	private _error: Error | undefined = $state()
-	private _loading: boolean = $state(false)
-
-	get current(): ResourceName[] {
-		return this._value
-	}
-
-	get error() {
-		return this._error
-	}
-
-	get loading() {
-		return this._loading
-	}
-
-	set(value: ResourceName[]): void {
-		this._value = value
-	}
+interface Context {
+	current: ResourceName[]
+	loading: boolean
+	error: Error | undefined
+	set(value: ResourceName[]): void
 }
 
-export const createResourcesContext = (): Resources => {
-	const resources = new Resources()
-	setContext<Resources>(key, resources)
-	return resources
+export const createResourcesContext = (): Context => {
+	let resources = $state.raw<ResourceName[]>([])
+	let error = $state.raw<Error>()
+	let loading = $state.raw(false)
+
+	const context = {
+		get current(): ResourceName[] {
+			return resources
+		},
+
+		get error() {
+			return error
+		},
+
+		get loading() {
+			return loading
+		},
+
+		set(value: ResourceName[]): void {
+			resources = value ?? []
+		},
+	}
+
+	setContext<Context>(key, context)
+
+	return context
 }
 
-export const useResources = (subtype?: string): Resources => {
-	const context = getContext<Resources>(key)
+export const useResources = (subtype?: string): Context => {
+	const context = getContext<Context>(key)
 
 	if (subtype) {
 		const filtered = $derived(context.current.filter((value) => value.subtype === subtype))
@@ -47,7 +54,7 @@ export const useResources = (subtype?: string): Resources => {
 			get error() {
 				return context.error
 			},
-		} as Resources
+		} as Context
 	}
 
 	return context

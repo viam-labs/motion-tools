@@ -3,9 +3,14 @@
 	import { PortalTarget } from '@threlte/extras'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
+	import { onMount } from 'svelte'
 
 	const frames = useFrames()
 	const geometries = useGeometries()
+
+	onMount(() => {
+		return () => console.log('unmount')
+	})
 </script>
 
 <PortalTarget id="world" />
