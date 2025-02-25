@@ -21,11 +21,11 @@ devDependencies:
     specifier: ^1.50.1
     version: 1.50.1
   '@skeletonlabs/skeleton':
-    specifier: 3.0.0-next.10
-    version: 3.0.0-next.10(postcss@8.5.3)(tailwindcss@4.0.9)
+    specifier: 3.0.0-next.11
+    version: 3.0.0-next.11(tailwindcss@4.0.9)
   '@skeletonlabs/skeleton-svelte':
-    specifier: 1.0.0-next.19
-    version: 1.0.0-next.19(svelte@5.20.4)
+    specifier: 1.0.0-next.20
+    version: 1.0.0-next.20(svelte@5.20.4)
   '@sveltejs/adapter-static':
     specifier: ^3.0.8
     version: 3.0.8(@sveltejs/kit@2.17.3)
@@ -944,8 +944,8 @@ packages:
     dev: true
     optional: true
 
-  /@skeletonlabs/skeleton-svelte@1.0.0-next.19(svelte@5.20.4):
-    resolution: {integrity: sha512-JMuun+uM2+gGXzf+hXFY+k0qJgTl/jtTVnBCk2upMMFolAuhaVDs2eb675CBH3VFIGIpZIBa/VRsUZh7frYBzw==}
+  /@skeletonlabs/skeleton-svelte@1.0.0-next.20(svelte@5.20.4):
+    resolution: {integrity: sha512-I2AEu+cdKzLqoBG+2/aCRTPkhKg/9pgkPjEkO2gL/Rh+QNXJgEwlp6mqmjpgLbtiqtImiKYiYeNc2hRKmYAtag==}
     peerDependencies:
       svelte: ^5.0.0
     dependencies:
@@ -968,16 +968,12 @@ packages:
       svelte: 5.20.4
     dev: true
 
-  /@skeletonlabs/skeleton@3.0.0-next.10(postcss@8.5.3)(tailwindcss@4.0.9):
-    resolution: {integrity: sha512-unxypP2fcCTCo6uSkFurO1x25Y0OJAWJrDZjQazftYr9EMs88fyWnUH5Nbe6Oj0xoKhW0dToArs5MGFdA4fdzg==}
+  /@skeletonlabs/skeleton@3.0.0-next.11(tailwindcss@4.0.9):
+    resolution: {integrity: sha512-M5cdXP1XbZpTU4kSlv5ojOIi2zAbAmcbLmJskrLyEUFjnbmI9w4R0YG4NxY0icR1quGVKH0K1qMCE5XzIEKs7w==}
     peerDependencies:
-      tailwindcss: '>=3.0.0'
+      tailwindcss: ^4.0.0
     dependencies:
-      postcss-js: 4.0.1(postcss@8.5.3)
-      postcss-selector-parser: 7.1.0
       tailwindcss: 4.0.9
-    transitivePeerDependencies:
-      - postcss
     dev: true
 
   /@sveltejs/adapter-static@3.0.8(@sveltejs/kit@2.17.3):
@@ -3591,14 +3587,6 @@ packages:
 
   /postcss-selector-parser@6.1.2:
     resolution: {integrity: sha512-Q8qQfPiZ+THO/3ZrOrO0cJJKfpYCagtMUkXbnEfmgUjwXg6z/WBeOyS9APBBPCTSiDV+s4SwQGu8yFsiMRIudg==}
-    engines: {node: '>=4'}
-    dependencies:
-      cssesc: 3.0.0
-      util-deprecate: 1.0.2
-    dev: true
-
-  /postcss-selector-parser@7.1.0:
-    resolution: {integrity: sha512-8sLjZwK0R+JlxlYcTuVnyT2v+htpdrjDOKuMcOVdYjt52Lh8hWRYpxBPoKx/Zg+bcjc3wx6fmQevMmUztS/ccA==}
     engines: {node: '>=4'}
     dependencies:
       cssesc: 3.0.0

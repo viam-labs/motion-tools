@@ -30,25 +30,26 @@
 <svelte:window {onkeydown} />
 
 <button
-	class="btn preset-filled fixed top-2 right-2 z-10 p-2"
+	class=" fixed top-0 right-0 z-10 p-2"
 	type="button"
 	onclick={() => (open.current = !open.current)}
 >
-	<Radio size="16" />
+	<Radio />
 </button>
 
 {#if open.current}
 	<dialog
 		open
-		class="z-10 flex w-full items-start justify-between bg-gray-100 p-2"
+		class="z-10 flex w-full items-start justify-between bg-white p-2"
 		in:fly={{ duration: 180, y: -100 }}
 		out:fly={{ duration: 180, y: -100 }}
 	>
 		<div class="flex flex-col gap-2">
 			{#each connectionConfigs.current as config, index}
 				<form class="flex flex-wrap items-center gap-2">
-					<label class="flex items-center gap-1.5">
+					<label class="label flex items-center gap-1.5 text-xs">
 						<input
+							class="checkbox"
 							type="checkbox"
 							checked={activeConfig.current?.partId === config.partId}
 							onchange={() => activeConfig.set(index)}
@@ -58,32 +59,32 @@
 
 					<input
 						bind:value={config.host}
-						class="input"
+						class="input max-w-72 text-xs"
 						placeholder="Host"
 					/>
 					<input
 						bind:value={config.partId}
-						class="input"
+						class="input max-w-72 text-xs"
 						placeholder="Part ID"
 					/>
 					<input
 						bind:value={config.apiKeyId}
-						class="input"
+						class="input max-w-72 text-xs"
 						placeholder="API Key ID"
 					/>
 					<input
 						bind:value={config.apiKeyValue}
-						class="input"
+						class="input max-w-72 text-xs"
 						placeholder="API Key Value"
 					/>
 					<input
 						bind:value={config.signalingAddress}
-						class="input"
+						class="input max-w-72 text-xs"
 						placeholder="Signaling Address"
 					/>
 					<button
 						type="button"
-						class="btn preset-filled p-2"
+						class="btn preset-filled p-2 text-xs"
 						onclick={() => {
 							connectionConfigs.current.splice(index, 1)
 						}}
@@ -91,6 +92,8 @@
 						Delete
 					</button>
 				</form>
+
+				<div class="mt-2 mb-4 w-full border-b border-gray-300"></div>
 			{/each}
 
 			<button

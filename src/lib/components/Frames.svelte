@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Frame from './Frame.svelte'
-	import { PortalTarget } from '@threlte/extras'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { onMount } from 'svelte'
+	import PortalTarget from './portal/PortalTarget.svelte'
 
 	const frames = useFrames()
 	const geometries = useGeometries()
@@ -26,7 +26,7 @@
 
 {#each geometries.current as frame (`${frame.parent}-${frame.name}`)}
 	<Frame
-		name={frame.name}
+		name={`${frame.parent}-${frame.name}`}
 		pose={frame.pose}
 		geometry={frame.physicalObject}
 		parent={frame.parent}

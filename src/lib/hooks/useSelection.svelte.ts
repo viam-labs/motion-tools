@@ -41,7 +41,7 @@ export const provideSelection = () => {
 			return focus
 		},
 		set(value: Selection) {
-			focus = value
+			focus = value?.clone()
 		},
 	})
 
@@ -50,7 +50,7 @@ export const provideSelection = () => {
 			return hovering
 		},
 		set(value: Selection) {
-			hovering = value?.clone()
+			hovering = value
 		},
 	})
 }

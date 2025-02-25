@@ -2,12 +2,14 @@
 	import { T } from '@threlte/core'
 	import { Fullscreen, Text } from 'threlte-uikit'
 	import type { Snippet } from 'svelte'
-	import { Billboard, Portal, PortalTarget, useCursor, useViewport } from '@threlte/extras'
+	import { Billboard, useCursor, useViewport } from '@threlte/extras'
 	import { OrientationVector } from '@viamrobotics/three'
 	import { MathUtils, Mesh } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
+	import Portal from './portal/Portal.svelte'
+	import PortalTarget from './portal/PortalTarget.svelte'
 
 	interface Props {
 		name: string
@@ -57,10 +59,12 @@
 		onpointermissed={() => {
 			selection.set(undefined)
 		}}
-		ondblclick={() => {
+		ondblclick={(event) => {
+			event.stopPropagation()
 			focus.set(mesh)
 		}}
-		onclick={() => {
+		onclick={(event) => {
+			event.stopPropagation()
 			selection.set(mesh)
 		}}
 	>

@@ -15,39 +15,47 @@
 		children?: Node[]
 	}
 
-	const collection = tree.collection<Node>({
-		nodeToValue: (node) => node.id,
-		nodeToString: (node) => node.name,
-		rootNode: {
-			id: 'ROOT',
-			name: '',
-			children: [
-				{
-					id: 'node_modules',
-					name: 'node_modules',
-					children: [
-						{ id: 'node_modules/zag-js', name: 'zag-js' },
-						{ id: 'node_modules/pandacss', name: 'panda' },
-						{
-							id: 'node_modules/@types',
-							name: '@types',
-							children: [
-								{ id: 'node_modules/@types/react', name: 'react' },
-								{ id: 'node_modules/@types/react-dom', name: 'react-dom' },
-							],
-						},
-					],
-				},
-			],
-		},
-	})
+	const collection = $state.raw(
+		tree.collection<Node>({
+			nodeToValue: (node) => node.id,
+			nodeToString: (node) => node.name,
+			rootNode: {
+				id: 'ROOT',
+				name: '',
+				children: [
+					{
+						id: 'node_modules',
+						name: 'node_modules',
+						children: [
+							{ id: 'node_modules/zag-js', name: 'zag-js' },
+							{ id: 'node_modules/pandacss', name: 'panda' },
+							{
+								id: 'node_modules/@types',
+								name: '@types',
+								children: [
+									{ id: 'node_modules/@types/react', name: 'react' },
+									{ id: 'node_modules/@types/react-dom', name: 'react-dom' },
+								],
+							},
+						],
+					},
+				],
+			},
+		})
+	)
 
-	const service = useMachine(tree.machine, {
-		id: '1',
-		collection,
-		expandOnClick: true,
-		selectionMode: 'single',
-	})
+	const service = $state.raw(
+		useMachine(tree.machine, {
+			id: '1',
+			collection: untrack(() => collection),
+			expandOnClick: true,
+			selectionMode: 'single',
+			onSelectionChange(details) {
+				console.log('selected nodes:', details)
+			},
+		})
+	)
+
 	const api = $derived(tree.connect(service, normalizeProps))
 
 	$effect(() => untrack(() => api.expand()))

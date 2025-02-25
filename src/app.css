@@ -1,6 +1,14 @@
 @import 'tailwindcss';
 @config "../tailwind.config.ts";
 
+@plugin '@tailwindcss/forms';
+
+@source '../node_modules/@skeletonlabs/skeleton-svelte';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton/optional/presets';
+@import '@skeletonlabs/skeleton/themes/cerberus';
+
 body {
 	height: 100dvh;
 }

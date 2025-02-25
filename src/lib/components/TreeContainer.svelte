@@ -3,6 +3,7 @@
 	import Tree from './Tree.svelte'
 	import { fly } from 'svelte/transition'
 	import { Keybindings } from '$lib/keybindings'
+	import { ListTree } from 'lucide-svelte'
 
 	Keybindings
 
@@ -16,6 +17,13 @@
 		}
 	}}
 />
+
+<button
+	class="fixed top-0 left-0 p-2"
+	onclick={() => (showTreeview.current = !showTreeview.current)}
+>
+	<ListTree />
+</button>
 
 {#if showTreeview.current}
 	<div

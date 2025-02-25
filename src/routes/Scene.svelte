@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Gizmo, Grid, interactivity, TrackballControls } from '@threlte/extras'
+	import { Gizmo, Grid, interactivity } from '@threlte/extras'
 	import type CC from 'camera-controls'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
@@ -37,15 +37,6 @@
 	<Selection />
 {:else}
 	<Focus />
-
-	<T.PerspectiveCamera
-		makeDefault
-		position={[0, 0, 5]}
-	>
-		<TrackballControls noRotate={false}>
-			<Gizmo />
-		</TrackballControls>
-	</T.PerspectiveCamera>
 {/if}
 
 <Grid
