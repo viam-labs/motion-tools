@@ -2,15 +2,10 @@
 	import Frame from './Frame.svelte'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
-	import { onMount } from 'svelte'
 	import PortalTarget from './portal/PortalTarget.svelte'
 
 	const frames = useFrames()
 	const geometries = useGeometries()
-
-	onMount(() => {
-		return () => console.log('unmount')
-	})
 </script>
 
 <PortalTarget id="world" />

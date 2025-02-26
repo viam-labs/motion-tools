@@ -15,8 +15,6 @@
 	const focus = useFocus()
 
 	let controls: CC
-
-	$effect(() => console.log(focus.current))
 </script>
 
 {#if focus.current === undefined}

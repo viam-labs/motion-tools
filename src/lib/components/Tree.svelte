@@ -31,7 +31,9 @@
 	const api = $derived(tree.connect(service, normalizeProps))
 
 	$effect(() => {
-		api.collection.replace([0], rootNode)
+		const col = untrack(() => api).collection
+		const path = col.getIndexPath('world')
+		col.replace(path ?? [], rootNode)
 	})
 
 	$effect(() => untrack(() => api.expand()))
@@ -52,13 +54,16 @@
 	{#if nodeState.isBranch}
 		<div {...api.getBranchProps(nodeProps)}>
 			<div {...api.getBranchControlProps(nodeProps)}>
-				<Folder />
-				<span {...api.getBranchTextProps(nodeProps)}>
-					<File />
+				<Folder size={14} />
+				<span
+					class="flex items-center"
+					{...api.getBranchTextProps(nodeProps)}
+				>
+					<File size={14} />
 					{node.name}
 				</span>
 				<span {...api.getBranchIndicatorProps(nodeProps)}>
-					<ChevronRight />
+					<ChevronRight size={14} />
 				</span>
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
@@ -70,7 +75,7 @@
 		</div>
 	{:else}
 		<div {...api.getItemProps(nodeProps)}>
-			<File />
+			<File size={14} />
 			{node.name}
 		</div>
 	{/if}

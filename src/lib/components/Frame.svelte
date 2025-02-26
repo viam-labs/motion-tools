@@ -10,6 +10,7 @@
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
 	import Portal from './portal/Portal.svelte'
 	import PortalTarget from './portal/PortalTarget.svelte'
+	import AxesHelper from './AxesHelper.svelte'
 
 	interface Props {
 		name: string
@@ -82,7 +83,10 @@
 				oncreate={(ref) => void ref.rotateX(-Math.PI / 2)}
 			/>
 		{:else}
-			<T.OctahedronGeometry args={[0.1]} />
+			<AxesHelper
+				width={5}
+				length={0.1}
+			/>
 		{/if}
 		<T.MeshToonMaterial
 			color="red"

@@ -29,16 +29,12 @@ export const providePointclouds = () => {
 
 	const query = $derived.by(() => {
 		clients
-		console.log(clients)
 		return createQuery({
 			queryKey: ['pointclouds', ...clients.map((client) => client.name)],
 			refetchInterval: 1_000,
 			queryFn: async () => {
-				console.log('start')
 				const filteredClients = clients.filter((client) => client.name.includes('realsense'))
-				console.log(filteredClients)
 				const responses = await Promise.all(filteredClients.map((client) => client.getPointCloud()))
-				console.log('hi', responses)
 				// const transformed = await Promise.all(
 				// 	responses.map((response, index) =>
 				// 		robot.client?.transformPCD(response, clients[index].name, 'world')
@@ -46,7 +42,11 @@ export const providePointclouds = () => {
 				// )
 				return responses
 					.filter((value) => value !== undefined)
-					.map((value) => loader.parse(new Uint8Array(value).buffer))
+					.map((value, index) => {
+						const points = loader.parse(new Uint8Array(value).buffer)
+						points.userData.parent = clients[index].name
+						return points
+					})
 			},
 		})
 	})
@@ -57,7 +57,6 @@ export const providePointclouds = () => {
 
 	$effect.pre(() => {
 		return query.subscribe(($query) => {
-			console.log($query)
 			error = $query.error ?? undefined
 			fetching = $query.isLoading
 			pcds = $query.data ?? []

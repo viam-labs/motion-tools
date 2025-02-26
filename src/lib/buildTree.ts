@@ -7,10 +7,12 @@ export interface TreeNode {
 	href: string
 }
 
+type FrameData = Omit<Frame, 'pose' | 'physicalObject'>
+
 /**
  * Creates a tree representing parent child / relationships from a set of frames.
  */
-export const buildTreeNodes = (frames: Frame[]): TreeNode => {
+export const buildTreeNodes = (frames: FrameData[]): TreeNode => {
 	const nodeMap = new Map<string, TreeNode>()
 	const rootNodes = []
 

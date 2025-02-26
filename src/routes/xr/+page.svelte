@@ -14,8 +14,6 @@
 	const resources = useResources()
 	const cameras = $derived(resources.current.filter((r) => r.subtype === 'camera'))
 	const camResource = $derived(cameras[0])
-
-	$effect(() => console.log(resources.current))
 </script>
 
 <XR>
