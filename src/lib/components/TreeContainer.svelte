@@ -4,10 +4,16 @@
 	import { fly } from 'svelte/transition'
 	import { Keybindings } from '$lib/keybindings'
 	import { ListTree } from 'lucide-svelte'
-
-	Keybindings
+	import { useFrames } from '$lib/hooks/useFrames.svelte'
+	import { buildTreeNodes } from '$lib/buildTree'
+	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', false)
+
+	const frames = useFrames()
+	const geometries = useGeometries()
+	const objects = $derived([...frames.current, ...geometries.current])
+	const rootNode = $derived(buildTreeNodes(objects))
 </script>
 
 <svelte:window
@@ -31,6 +37,6 @@
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
-		<Tree />
+		<Tree {rootNode} />
 	</div>
 {/if}

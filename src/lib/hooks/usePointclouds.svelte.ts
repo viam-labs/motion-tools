@@ -29,17 +29,22 @@ export const providePointclouds = () => {
 
 	const query = $derived.by(() => {
 		clients
+		console.log(clients)
 		return createQuery({
-			queryKey: ['pointclouds'],
-			refetchInterval: 10_000,
+			queryKey: ['pointclouds', ...clients.map((client) => client.name)],
+			refetchInterval: 1_000,
 			queryFn: async () => {
-				const responses = await Promise.all(clients.map((client) => client.getPointCloud()))
-				const transformed = await Promise.all(
-					responses.map((response, index) =>
-						robot.client?.transformPCD(response, clients[index].name, 'world')
-					)
-				)
-				return transformed
+				console.log('start')
+				const filteredClients = clients.filter((client) => client.name.includes('realsense'))
+				console.log(filteredClients)
+				const responses = await Promise.all(filteredClients.map((client) => client.getPointCloud()))
+				console.log('hi', responses)
+				// const transformed = await Promise.all(
+				// 	responses.map((response, index) =>
+				// 		robot.client?.transformPCD(response, clients[index].name, 'world')
+				// 	)
+				// )
+				return responses
 					.filter((value) => value !== undefined)
 					.map((value) => loader.parse(new Uint8Array(value).buffer))
 			},

@@ -3,7 +3,7 @@
 	import { TrackballControls, Gizmo } from '@threlte/extras'
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
-	import { Box3, Vector3 } from 'three'
+	import { Box3, PointsMaterial, Vector3 } from 'three'
 
 	const focus = useFocus()
 	const box = new Box3()
@@ -17,24 +17,25 @@
 			center = box.getCenter(vec).toArray()
 		}
 	})
-</script>
 
-<svelte:window
-	onkeydown={({ key }) => {
+	const onkeydown = ({ key }: KeyboardEvent) => {
 		if (key === Keybindings.ESCAPE) {
 			focus.set(undefined)
+		} else if (key === Keybindings.UP || key === Keybindings.DOWN) {
+			if (focus.current?.material instanceof PointsMaterial) {
+				focus.current.material.size += key === Keybindings.UP ? 0.001 : -0.001
+			}
 		}
-	}}
-/>
+	}
+</script>
+
+<svelte:window {onkeydown} />
 
 <T.PerspectiveCamera
 	makeDefault
-	position={[0, 0, 5]}
+	position={[0, 0, 2]}
 >
-	<TrackballControls
-		noRotate={false}
-		target={center}
-	>
+	<TrackballControls target={center}>
 		<Gizmo />
 	</TrackballControls>
 </T.PerspectiveCamera>

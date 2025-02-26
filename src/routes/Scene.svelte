@@ -23,7 +23,7 @@
 	<T.PerspectiveCamera
 		makeDefault
 		near={0.01}
-		position={[5, 5, 5]}
+		position={[3, 3, 3]}
 		up={[0, 0, 1]}
 		oncreate={(ref) => ref.lookAt(0, 0, 0)}
 	>
@@ -35,14 +35,14 @@
 	<Frames />
 	<Pointclouds />
 	<Selection />
+
+	<Grid
+		plane="xy"
+		sectionColor="grey"
+	/>
 {:else}
 	<Focus />
 {/if}
-
-<Grid
-	plane="xy"
-	sectionColor="grey"
-/>
 
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.DirectionalLight position={[-3, -3, -3]} />

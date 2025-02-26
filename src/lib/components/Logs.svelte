@@ -2,14 +2,15 @@
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
+	import { untrack } from 'svelte'
 
-	let stack = $state<string[]>([])
+	let stack = $state.raw<string[]>([])
 
 	const frames = useFrames()
 	const pcds = usePointClouds()
 	const geometries = useGeometries()
 
-	const addToStack = (name: string, items: typeof frames | typeof pcds) => {
+	const createLog = (name: string, fetching: boolean, error: Error | undefined, current: any[]) => {
 		const now = new Date()
 		const time = Intl.DateTimeFormat('en-US', {
 			hour: '2-digit',
@@ -20,35 +21,39 @@
 		const ms = now.getMilliseconds().toString().padStart(3, '0')
 		const timestamp = `${time}:${ms}`
 
-		if (items.fetching) {
-			stack.push(`${timestamp} - fetching ${name}...`)
-		} else if (items.error) {
-			stack.push(`${timestamp} - ${name} error: ${items.error.name}`)
-		} else if (items.current.length > 0) {
-			stack.push(`${timestamp} - loaded ${name}`)
+		if (fetching) {
+			return `${timestamp} - fetching ${name}...`
+		} else if (error) {
+			return `${timestamp} - ${name} error: ${error.name}`
+		} else if (current.length > 0) {
+			return `${timestamp} - loaded ${name}`
 		} else {
-			stack.push(`${timestamp} - no ${name}`)
+			return `${timestamp} - no ${name}`
 		}
 	}
 
-	$effect(() => addToStack('frames', frames))
-	$effect(() => addToStack('geometries', geometries))
-	$effect(() => addToStack('pointclouds', pcds))
+	// $effect(() => {
+	// 	console.log('hi')
+	// 	const log = createLog('frames', frames.fetching, frames.error, frames.current)
+	// 	stack = [...stack, log]
+	// })
+	// $effect(() => {
+	// 	geometries.current
+	// 	geometries.error
+	// 	geometries.fetching
+	// 	addToStack('geometries', geometries)
+	// })
+	// $effect(() => {
+	// 	pcds.current
+	// 	pcds.error
+	// 	pcds.fetching
+	// 	addToStack('pointclouds', pcds)
+	// })
 </script>
 
 <div class="fixed right-0 bottom-0 bg-gray-100 p-2">
-	{#snippet state(name: string, item: typeof frames | typeof geometries | typeof pcds)}
-		{#if item.fetching}
-			fetching {name}
-		{:else if item.error}
-			error fetching {name}: {item.error.message}
-		{:else}
-			loaded {name}
-		{/if}
-	{/snippet}
-
 	<ul class="text-xs">
-		{#each stack as stackitem (stackitem)}
+		{#each stack as stackitem}
 			<li>{stackitem}</li>
 		{/each}
 	</ul>

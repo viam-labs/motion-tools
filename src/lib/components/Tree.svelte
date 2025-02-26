@@ -2,79 +2,63 @@
 	import * as tree from '@zag-js/tree-view'
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
+	import { Folder, File, ChevronRight } from 'lucide-svelte'
+
+	import type { TreeNode } from '$lib/buildTree'
 
 	interface Props {
+		rootNode: TreeNode
 		title?: string
+		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { title }: Props = $props()
+	let { title, rootNode, onSelectionChange }: Props = $props()
 
-	interface Node {
-		id: string
-		name: string
-		children?: Node[]
-	}
+	const collection = tree.collection<TreeNode>({
+		nodeToValue: (node) => node.id,
+		nodeToString: (node) => node.name,
+		rootNode,
+	})
 
-	const collection = $state.raw(
-		tree.collection<Node>({
-			nodeToValue: (node) => node.id,
-			nodeToString: (node) => node.name,
-			rootNode: {
-				id: 'ROOT',
-				name: '',
-				children: [
-					{
-						id: 'node_modules',
-						name: 'node_modules',
-						children: [
-							{ id: 'node_modules/zag-js', name: 'zag-js' },
-							{ id: 'node_modules/pandacss', name: 'panda' },
-							{
-								id: 'node_modules/@types',
-								name: '@types',
-								children: [
-									{ id: 'node_modules/@types/react', name: 'react' },
-									{ id: 'node_modules/@types/react-dom', name: 'react-dom' },
-								],
-							},
-						],
-					},
-				],
-			},
-		})
-	)
-
-	const service = $state.raw(
-		useMachine(tree.machine, {
-			id: '1',
-			collection: untrack(() => collection),
-			expandOnClick: true,
-			selectionMode: 'single',
-			onSelectionChange(details) {
-				console.log('selected nodes:', details)
-			},
-		})
-	)
+	const service = useMachine(tree.machine, {
+		id: '1',
+		collection,
+		expandOnClick: true,
+		selectionMode: 'single',
+		onSelectionChange,
+	})
 
 	const api = $derived(tree.connect(service, normalizeProps))
+
+	$effect(() => {
+		api.collection.replace([0], rootNode)
+	})
 
 	$effect(() => untrack(() => api.expand()))
 </script>
 
-{#snippet treeNode({ node, indexPath, api }: { node: Node; indexPath: number[]; api: tree.Api })}
+{#snippet treeNode({
+	node,
+	indexPath,
+	api,
+}: {
+	node: TreeNode
+	indexPath: number[]
+	api: tree.Api
+})}
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
 
 	{#if nodeState.isBranch}
 		<div {...api.getBranchProps(nodeProps)}>
 			<div {...api.getBranchControlProps(nodeProps)}>
-				<!-- <LuFolder /> -->
+				<Folder />
 				<span {...api.getBranchTextProps(nodeProps)}>
-					<!-- <LuFile />  -->
+					<File />
 					{node.name}
 				</span>
 				<span {...api.getBranchIndicatorProps(nodeProps)}>
-					<!-- <LuChevronRight /> -->
+					<ChevronRight />
 				</span>
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
@@ -86,7 +70,7 @@
 		</div>
 	{:else}
 		<div {...api.getItemProps(nodeProps)}>
-			<!-- <LuFile />  -->
+			<File />
 			{node.name}
 		</div>
 	{/if}
