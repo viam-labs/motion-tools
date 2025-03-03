@@ -4,6 +4,7 @@ import { createQuery } from '@tanstack/svelte-query'
 
 import { setContext, getContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
+import { fromStore } from 'svelte/store'
 
 const key = Symbol('geometries-context')
 
@@ -16,7 +17,6 @@ interface Context {
 export const provideGeometries = () => {
 	const robot = useRobot()
 	const arms = useResources('arm')
-	const cameras = useResources('camera')
 
 	const clients = $derived.by(() => {
 		const robotClient = robot.client
@@ -25,19 +25,13 @@ export const provideGeometries = () => {
 			return []
 		}
 
-		const armClients = arms.current.map((arm) => new ArmClient(robotClient, arm.name))
-		const cameraClients = cameras.current.map(
-			(camera) => new CameraClient(robot.client!, camera.name)
-		)
-
-		return [...armClients]
+		return arms.current.map((arm) => new ArmClient(robotClient, arm.name))
 	})
 
-	const query = $derived.by(() => {
-		clients
-		return createQuery({
-			queryKey: ['geometries', ...clients.map((client) => client.name)],
-			refetchInterval: 1000 / 5,
+	const query = fromStore(
+		createQuery({
+			queryKey: ['geometries'],
+			refetchInterval: 1000 / 1,
 			queryFn: async () => {
 				const results: Frame[] = []
 				const responses = await Promise.all(clients.map((client) => client.getGeometries()))
@@ -58,23 +52,15 @@ export const provideGeometries = () => {
 				return results
 			},
 		})
-	})
+	)
 
-	let geometries = $state.raw<Frame[]>([])
-	let error = $state.raw<Error>()
-	let fetching = $state.raw(false)
-
-	$effect.pre(() => {
-		return query.subscribe(($query) => {
-			error = $query.error ?? undefined
-			fetching = $query.isFetching
-			geometries = $query.data ?? []
-		})
-	})
+	const current = $derived(query.current.data ?? [])
+	const error = $derived(query.current.error ?? undefined)
+	const fetching = $derived(query.current.isFetching)
 
 	setContext<Context>(key, {
 		get current() {
-			return geometries
+			return current
 		},
 		get error() {
 			return error

@@ -1,41 +1,54 @@
+import { createQuery } from '@tanstack/svelte-query'
 import type { ResourceName } from '@viamrobotics/sdk'
-import { getContext, setContext } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
+import { fromStore } from 'svelte/store'
+import { useRobot } from './useRobot.svelte'
 
 const key = Symbol('resources-context')
 
 interface Context {
 	current: ResourceName[]
-	loading: boolean
 	error: Error | undefined
-	set(value: ResourceName[]): void
+	fetching: boolean
 }
 
-export const createResourcesContext = (): Context => {
-	let resources = $state.raw<ResourceName[]>([])
-	let error = $state.raw<Error>()
-	let loading = $state.raw(false)
+export const createResourcesContext = () => {
+	const robot = useRobot()
 
-	const context = {
-		get current(): ResourceName[] {
-			return resources
+	const query = fromStore(
+		createQuery({
+			queryKey: ['resources'],
+			refetchInterval: 10_000,
+			queryFn: async () => {
+				if (robot.client === undefined) {
+					return []
+				}
+
+				return robot.client.resourceNames()
+			},
+		})
+	)
+
+	$effect(() => {
+		robot.client
+		untrack(() => query.current).refetch()
+	})
+
+	const current = $derived(query.current.data ?? [])
+	const error = $derived(query.current.error ?? undefined)
+	const fetching = $derived(query.current.isFetching)
+
+	setContext<Context>(key, {
+		get current() {
+			return current
 		},
-
 		get error() {
 			return error
 		},
-
-		get loading() {
-			return loading
+		get fetching() {
+			return fetching
 		},
-
-		set(value: ResourceName[]): void {
-			resources = value ?? []
-		},
-	}
-
-	setContext<Context>(key, context)
-
-	return context
+	})
 }
 
 export const useResources = (subtype?: string): Context => {
@@ -45,16 +58,11 @@ export const useResources = (subtype?: string): Context => {
 		const filtered = $derived(context.current.filter((value) => value.subtype === subtype))
 
 		return {
+			...context,
 			get current() {
 				return filtered
 			},
-			get loading() {
-				return context.loading
-			},
-			get error() {
-				return context.error
-			},
-		} as Context
+		}
 	}
 
 	return context

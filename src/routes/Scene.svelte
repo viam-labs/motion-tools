@@ -9,6 +9,7 @@
 	import Focus from '$lib/components/Focus.svelte'
 
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
+	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 
 	interactivity()
 
@@ -30,6 +31,7 @@
 		</CameraControls>
 	</T.PerspectiveCamera>
 
+	<StaticGeometries />
 	<Frames />
 	<Pointclouds />
 	<Selection />

@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte'
 	import { createResourcesContext } from './hooks/useResources.svelte'
 	import { createPartIDContext } from './hooks/usePartID.svelte'
-	import { getDialConfs, loadRobots } from './robots'
+	import { getDialConfs } from './robots'
 	import { provideRobotClientsContext, useRobotClient } from './client'
 	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { provideRobotContext } from './hooks/useRobot.svelte'
@@ -10,6 +10,7 @@
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
+	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 
 	interface Props {
 		children: Snippet
@@ -18,18 +19,18 @@
 	let { children }: Props = $props()
 
 	const connectionConfig = useActiveConnectionConfig()
-	const connectParts = provideRobotClientsContext()
+	const { connectParts } = provideRobotClientsContext()
 
-	const resources = createResourcesContext()
-	const partID = createPartIDContext()
+	const partID = createPartIDContext(() => connectionConfig.current?.partId ?? '')
 
+	useRobotClient(() => partID.current)
 	provideRobotContext()
+	createResourcesContext()
 	provideFrames()
 	provideGeometries()
+	provideStaticGeometries()
 	providePointclouds()
 	provideSelection()
-
-	let robot = $derived(useRobotClient(partID))
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {
@@ -40,20 +41,6 @@
 
 			connectParts(getDialConfs({ robot }))
 		}
-	})
-
-	$effect.pre(() => {
-		const id = connectionConfig.current?.partId
-
-		if (id) {
-			partID.set(id)
-		}
-	})
-
-	$effect.pre(() => {
-		robot.client?.resourceNames().then((unsortedResources) => {
-			resources.set(unsortedResources)
-		})
 	})
 </script>
 

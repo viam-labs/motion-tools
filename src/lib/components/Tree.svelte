@@ -2,17 +2,18 @@
 	import * as tree from '@zag-js/tree-view'
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
-	import { Folder, File, ChevronRight } from 'lucide-svelte'
+	import { Folder, File, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
 
 	import type { TreeNode } from '$lib/buildTree'
 
 	interface Props {
 		rootNode: TreeNode
+		selections: string[]
 		title?: string
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { title, rootNode, onSelectionChange }: Props = $props()
+	let { title, rootNode, selections, onSelectionChange }: Props = $props()
 
 	const collection = tree.collection<TreeNode>({
 		nodeToValue: (node) => node.id,
@@ -37,6 +38,10 @@
 	})
 
 	$effect(() => untrack(() => api.expand()))
+
+	$effect(() => {
+		untrack(() => api).setSelectedValue(selections)
+	})
 </script>
 
 {#snippet treeNode({
@@ -59,12 +64,19 @@
 					class="flex items-center"
 					{...api.getBranchTextProps(nodeProps)}
 				>
-					<File size={14} />
 					{node.name}
 				</span>
 				<span {...api.getBranchIndicatorProps(nodeProps)}>
 					<ChevronRight size={14} />
 				</span>
+				<button
+					onclick={(event) => {
+						event.stopPropagation()
+					}}
+				>
+					<Eye size={14} />
+					<!-- <EyeOff size={14} /> -->
+				</button>
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
@@ -74,9 +86,21 @@
 			</div>
 		</div>
 	{:else}
-		<div {...api.getItemProps(nodeProps)}>
-			<File size={14} />
-			{node.name}
+		<div
+			class="flex justify-between"
+			{...api.getItemProps(nodeProps)}
+		>
+			<span class="flex items-center gap-1.5">
+				{node.name}
+			</span>
+
+			<button
+				onclick={(event) => {
+					event.stopPropagation()
+				}}
+			>
+				<Eye size={14} />
+			</button>
 		</div>
 	{/if}
 {/snippet}
@@ -123,9 +147,7 @@
 
 	:global(:root) {
 		[data-scope='tree-view'][data-part='tree'] {
-			margin-top: 20px;
 			width: 240px;
-			margin-left: -16px;
 		}
 
 		[data-scope='tree-view'][data-part='label'] {

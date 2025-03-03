@@ -6,7 +6,7 @@ const key = Symbol('robot-context-key')
 
 export const provideRobotContext = () => {
 	const partID = usePartID()
-	const robot = useRobotClient(partID)
+	const robot = useRobotClient(() => partID.current)
 
 	setContext(key, robot)
 }

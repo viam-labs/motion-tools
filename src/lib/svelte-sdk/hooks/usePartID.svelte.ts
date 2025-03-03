@@ -4,18 +4,14 @@ const key = Symbol('part-id-context')
 
 interface Context {
 	current: string
-	set(value: string): void
 }
 
-export const createPartIDContext = (): Context => {
+export const createPartIDContext = (partId: () => string): Context => {
 	let id = $state('')
 
 	const context: Context = {
 		get current() {
-			return id
-		},
-		set(value: string) {
-			id = value
+			return partId()
 		},
 	}
 

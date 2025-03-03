@@ -17,6 +17,7 @@
 	import CameraControls from 'camera-controls'
 	import { T, useTask, useThrelte } from '@threlte/core'
 	import type { Snippet } from 'svelte'
+	import { useControls } from '$lib/hooks/useControls.svelte'
 
 	let installed = false
 
@@ -49,6 +50,7 @@
 	if (!installed) install()
 
 	const { camera, dom, invalidate } = useThrelte()
+	const controlsContext = useControls()
 
 	const controls = new CameraControls(camera.current as PerspectiveCamera, dom)
 
@@ -57,7 +59,8 @@
 	})
 
 	$effect.pre(() => {
-		return () => controls.dispose()
+		console.log(controlsContext.transformControlsActive)
+		controls.enabled = !controlsContext.transformControlsActive
 	})
 
 	useTask(

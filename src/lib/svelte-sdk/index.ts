@@ -1,5 +1,4 @@
 export { useRobotClient } from './client'
-export { createResourceQuery } from './api'
 export { createResourceEntity } from './client'
 
 // place files you want to import through the `$lib` alias in this folder.

@@ -2,27 +2,25 @@
 	import { T } from '@threlte/core'
 	import { Fullscreen, Text } from 'threlte-uikit'
 	import type { Snippet } from 'svelte'
-	import { Billboard, useCursor, useViewport } from '@threlte/extras'
-	import { OrientationVector } from '@viamrobotics/three'
-	import { MathUtils, Mesh } from 'three'
+	import { Billboard, Edges, Outlines, useCursor } from '@threlte/extras'
+	import { Mesh, type ColorRepresentation } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
-	import Portal from './portal/Portal.svelte'
-	import PortalTarget from './portal/PortalTarget.svelte'
 	import AxesHelper from './AxesHelper.svelte'
+	import { poseToQuaternion, poseToVector3 } from '$lib/transform'
+	import { darkenColor } from '$lib/color'
 
 	interface Props {
 		name: string
-		parent: string
 		geometry: Geometry
 		pose: Pose
-		children?: Snippet
+		color?: ColorRepresentation
+		children?: Snippet<[{ ref: Mesh }]>
 	}
 
-	let { name, pose, geometry, parent, children }: Props = $props()
+	let { name, pose, geometry, color = 'red', children }: Props = $props()
 
-	const viewport = useViewport()
 	const { onPointerEnter, onPointerLeave } = useCursor()
 	const selection = useSelection()
 	const focus = useFocus()
@@ -31,81 +29,82 @@
 
 	const mesh = new Mesh()
 
-	const ov = new OrientationVector()
-
 	$effect.pre(() => {
-		ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
-		ov.toQuaternion(mesh.quaternion)
+		poseToQuaternion(pose, mesh.quaternion)
 	})
 
 	$effect.pre(() => {
-		mesh.position.set(pose.x, pose.y, pose.z).multiplyScalar(0.001)
+		poseToVector3(pose, mesh.position)
 	})
 </script>
 
-<Portal id={parent}>
-	<T
-		is={mesh}
-		{name}
-		onpointerenter={(event) => {
-			event.stopPropagation()
-			hovering = true
-			onPointerEnter()
-		}}
-		onpointerleave={(event) => {
-			event.stopPropagation()
-			hovering = false
-			onPointerLeave()
-		}}
-		onpointermissed={() => {
-			selection.set(undefined)
-		}}
-		ondblclick={(event) => {
-			event.stopPropagation()
-			focus.set(mesh)
-		}}
-		onclick={(event) => {
-			event.stopPropagation()
-			selection.set(mesh)
-		}}
-	>
-		{#if geometry.geometryType.case === 'box'}
-			{@const dimsMm = geometry.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
-			<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
-		{:else if geometry.geometryType.case === 'sphere'}
-			{@const radiusMm = geometry.geometryType.value.radiusMm ?? 0}
-			<T.SphereGeometry args={[radiusMm * 0.001]} />
-		{:else if geometry.geometryType.case === 'capsule'}
-			{@const { lengthMm, radiusMm } = geometry.geometryType.value}
-			<T
-				is={CapsuleGeometry}
-				args={[radiusMm * 0.001, lengthMm * 0.001]}
-				oncreate={(ref) => void ref.rotateX(-Math.PI / 2)}
-			/>
-		{:else}
-			<AxesHelper
-				width={5}
-				length={0.1}
-			/>
-		{/if}
-		<T.MeshToonMaterial
-			color="red"
-			transparent
-			opacity={0.7}
+<T
+	is={mesh}
+	{name}
+	onpointerenter={(event) => {
+		event.stopPropagation()
+		hovering = true
+		onPointerEnter()
+	}}
+	onpointerleave={(event) => {
+		event.stopPropagation()
+		hovering = false
+		onPointerLeave()
+	}}
+	onpointermissed={() => {
+		selection.set(undefined)
+	}}
+	ondblclick={(event) => {
+		event.stopPropagation()
+		focus.set(mesh.name)
+	}}
+	onclick={(event) => {
+		event.stopPropagation()
+		selection.set(mesh.name)
+	}}
+>
+	{#if geometry.geometryType.case === 'box'}
+		{@const dimsMm = geometry.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
+		<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
+	{:else if geometry.geometryType.case === 'sphere'}
+		{@const radiusMm = geometry.geometryType.value.radiusMm ?? 0}
+		<T.SphereGeometry args={[radiusMm * 0.001]} />
+	{:else if geometry.geometryType.case === 'capsule'}
+		{@const { lengthMm, radiusMm } = geometry.geometryType.value}
+		<T
+			is={CapsuleGeometry}
+			args={[radiusMm * 0.001, lengthMm * 0.001]}
+			oncreate={(ref) => void ref.rotateX(-Math.PI / 2)}
 		/>
+	{:else}
+		<AxesHelper
+			width={5}
+			length={0.1}
+		/>
+	{/if}
 
-		{#if hovering}
-			<Fullscreen>
-				<Text
-					fontSize={12}
-					text={name}
-				/>
-			</Fullscreen>
-			<Billboard position.z={0.2}></Billboard>
-		{/if}
+	{#if geometry.geometryType.case && name !== selection.current}
+		<Edges
+			raycast={() => null}
+			color={darkenColor(color, 10)}
+		/>
+	{/if}
 
-		<PortalTarget id={name} />
+	<T.MeshToonMaterial
+		{color}
+		transparent
+		opacity={0.7}
+	/>
 
-		{@render children?.()}
-	</T>
-</Portal>
+	{#if hovering}
+		<Fullscreen>
+			<Text
+				fontSize={12}
+				text={name}
+			/>
+		</Fullscreen>
+		<Billboard position.z={0.2}></Billboard>
+	{/if}
+
+	{@render children?.({ ref: mesh })}
+</T>

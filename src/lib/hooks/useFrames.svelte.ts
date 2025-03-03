@@ -1,7 +1,8 @@
 import { useRobot } from '$lib/svelte-sdk'
 import { createQuery } from '@tanstack/svelte-query'
 import { Geometry, Pose } from '@viamrobotics/sdk'
-import { getContext, setContext } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
+import { fromStore } from 'svelte/store'
 
 export interface Frame {
 	name: string
@@ -21,42 +22,41 @@ const key = Symbol('frames-context')
 export const provideFrames = () => {
 	const robot = useRobot()
 
-	const query = $derived.by(() => {
-		robot.client
-		return createQuery({
+	const query = fromStore(
+		createQuery({
 			queryKey: ['frame'],
+			refetchInterval: 10_000,
 			queryFn: async () => {
-				const response = await robot.client?.robotService.frameSystemConfig({})
+				if (robot.client === undefined) {
+					return []
+				}
 
-				return (
-					response?.frameSystemConfigs.map((config) => {
-						return {
-							name: config.frame?.referenceFrame ?? '',
-							parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
-							pose: config.frame?.poseInObserverFrame?.pose ?? new Pose(),
-							physicalObject: config.frame?.physicalObject ?? new Geometry(),
-						}
-					}) ?? []
-				)
+				const response = await robot.client.robotService.frameSystemConfig({})
+
+				return response?.frameSystemConfigs.map((config) => {
+					return {
+						name: config.frame?.referenceFrame ?? '',
+						parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
+						pose: config.frame?.poseInObserverFrame?.pose ?? new Pose(),
+						physicalObject: config.frame?.physicalObject ?? new Geometry(),
+					}
+				})
 			},
 		})
+	)
+
+	$effect(() => {
+		robot.client
+		untrack(() => query.current).refetch()
 	})
 
-	let frames = $state.raw<Frame[]>([])
-	let error = $state.raw<Error>()
-	let fetching = $state.raw(false)
-
-	$effect.pre(() => {
-		return query.subscribe(($query) => {
-			fetching = $query.isFetching
-			error = $query.error ?? undefined
-			frames = $query.data ?? []
-		})
-	})
+	const current = $derived(query.current.data ?? [])
+	const error = $derived(query.current.error ?? undefined)
+	const fetching = $derived(query.current.isFetching)
 
 	setContext<Context>(key, {
 		get current() {
-			return frames
+			return current
 		},
 		get error() {
 			return error

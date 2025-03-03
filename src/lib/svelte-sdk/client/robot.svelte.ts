@@ -1,8 +1,6 @@
 /** Attach robot client from TS SDK to a context. */
 import { getContext, setContext } from 'svelte'
-import { derived, type Readable, writable } from 'svelte/store'
 import { deleteIn, getIn, setIn } from '@thi.ng/paths'
-import { type CurrentWritable, currentWritable, watch } from '@threlte/core'
 import { isEqual } from 'lodash-es'
 
 import {
@@ -24,7 +22,7 @@ export interface RobotClientsContext {
 }
 
 const createRobotClientsContext = (): RobotClientsContext => {
-	let clients = $state<Record<PartID, RobotClient>>({})
+	let clients = $state.raw<Record<PartID, RobotClient>>({})
 
 	const connectParts = (dialConfs: Record<PartID, DialConf>) => {
 		const nextClients = updateRobotClients(clients, dialConfs)
@@ -34,10 +32,10 @@ const createRobotClientsContext = (): RobotClientsContext => {
 	}
 
 	return {
+		connectParts,
 		get clients() {
 			return clients
 		},
-		connectParts,
 	}
 }
 
@@ -182,10 +180,10 @@ const updateRobotClients = (
 
 export const provideRobotClientsContext = (context = createRobotClientsContext()) => {
 	setContext<RobotClientsContext>(ROBOT_CLIENTS_CONTEXT_KEY, context)
-	return context.connectParts
+	return context
 }
 
-export const useRobotClient = (partID: { current: PartID }) => {
+export const useRobotClient = (partID: () => PartID) => {
 	const context = getContext<RobotClientsContext | undefined>(ROBOT_CLIENTS_CONTEXT_KEY)
 
 	assertExists(
@@ -203,8 +201,9 @@ export const useRobotClient = (partID: { current: PartID }) => {
 	// Watch the RobotClient interface, it will go between undefined and defined
 	// as DialConfs are provided.
 	$effect(() => {
-		if (!partID.current) return
-		clientWrapped = getIn(context.clients, [partID.current])
+		if (!partID()) return
+
+		clientWrapped = getIn(context.clients, [partID()])
 	})
 
 	$effect(() => {

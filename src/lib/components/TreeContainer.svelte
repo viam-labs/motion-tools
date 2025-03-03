@@ -8,16 +8,25 @@
 	import { buildTreeNodes } from '$lib/buildTree'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
+	import { useSelection } from '$lib/hooks/useSelection.svelte'
+	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', false)
 
+	const selection = useSelection()
 	const frames = useFrames()
 	const geometries = useGeometries()
+	const statics = useStaticGeometries()
 	const pcds = usePointClouds()
 	const clouds = $derived(
 		pcds.current.map(({ name, userData }) => ({ name, parent: userData.parent ?? 'world' }))
 	)
-	const objects = $derived([...frames.current, ...geometries.current, ...clouds])
+	const objects = $derived([
+		...frames.current,
+		...geometries.current,
+		...statics.current,
+		...clouds,
+	])
 	const rootNode = $derived(buildTreeNodes(objects))
 </script>
 
@@ -42,11 +51,14 @@
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
-		<Tree
-			{rootNode}
-			onSelectionChange={(event) => {
-				console.log(event)
-			}}
-		/>
+		{#key rootNode}
+			<Tree
+				{rootNode}
+				selections={[selection.current]}
+				onSelectionChange={(event) => {
+					selection.set(event.selectedValue[0])
+				}}
+			/>
+		{/key}
 	</div>
 {/if}

@@ -9,6 +9,7 @@
 	const focus = useFocus()
 
 	const { onPointerEnter, onPointerLeave } = useCursor()
+	$inspect(pcds.current)
 </script>
 
 {#each pcds.current as points (points.uuid)}
@@ -27,10 +28,10 @@
 			selection.set(undefined)
 		}}
 		ondblclick={() => {
-			focus.set(points)
+			focus.set(points.name)
 		}}
 		onclick={() => {
-			selection.set(points)
+			selection.set(points.name)
 		}}
 	/>
 {/each}
