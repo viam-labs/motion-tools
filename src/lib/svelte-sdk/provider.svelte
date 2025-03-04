@@ -11,6 +11,7 @@
 	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
+	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 
 	interface Props {
 		children: Snippet
@@ -26,11 +27,12 @@
 	useRobotClient(() => partID.current)
 	provideRobotContext()
 	createResourcesContext()
+	provideSelection()
 	provideFrames()
 	provideGeometries()
 	provideStaticGeometries()
 	providePointclouds()
-	provideSelection()
+	provideVisibility()
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {

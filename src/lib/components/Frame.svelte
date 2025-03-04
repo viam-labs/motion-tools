@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Fullscreen, Text } from 'threlte-uikit'
 	import type { Snippet } from 'svelte'
-	import { Billboard, Edges, Outlines, useCursor } from '@threlte/extras'
+	import { Edges, useCursor } from '@threlte/extras'
 	import { Mesh, type ColorRepresentation } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
@@ -10,6 +9,7 @@
 	import AxesHelper from './AxesHelper.svelte'
 	import { poseToQuaternion, poseToVector3 } from '$lib/transform'
 	import { darkenColor } from '$lib/color'
+	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 
 	interface Props {
 		name: string
@@ -24,6 +24,7 @@
 	const { onPointerEnter, onPointerLeave } = useCursor()
 	const selection = useSelection()
 	const focus = useFocus()
+	const visibility = useVisibility()
 
 	let hovering = $state(false)
 
@@ -41,6 +42,7 @@
 <T
 	is={mesh}
 	{name}
+	visible={visibility.current.get(name)}
 	onpointerenter={(event) => {
 		event.stopPropagation()
 		hovering = true
@@ -74,7 +76,6 @@
 		<T
 			is={CapsuleGeometry}
 			args={[radiusMm * 0.001, lengthMm * 0.001]}
-			oncreate={(ref) => void ref.rotateX(-Math.PI / 2)}
 		/>
 	{:else}
 		<AxesHelper
@@ -95,16 +96,6 @@
 		transparent
 		opacity={0.7}
 	/>
-
-	{#if hovering}
-		<Fullscreen>
-			<Text
-				fontSize={12}
-				text={name}
-			/>
-		</Fullscreen>
-		<Billboard position.z={0.2}></Billboard>
-	{/if}
 
 	{@render children?.({ ref: mesh })}
 </T>

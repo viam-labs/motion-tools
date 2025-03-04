@@ -9,7 +9,7 @@ const key = Symbol('static-geometries-context')
 interface Context {
 	current: Frame[]
 	add: () => void
-	remove: (frame: Frame) => void
+	remove: (name: string) => void
 }
 
 export const provideStaticGeometries = () => {
@@ -42,8 +42,9 @@ export const provideStaticGeometries = () => {
 				},
 			})
 		},
-		remove(frame: Frame) {
-			staticGeometries.splice(staticGeometries.indexOf(frame), 1)
+		remove(name: string) {
+			const index = staticGeometries.findIndex((geo) => geo.name === name)
+			staticGeometries.splice(index, 1)
 		},
 	})
 }

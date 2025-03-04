@@ -2,9 +2,11 @@
 	import * as tree from '@zag-js/tree-view'
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
-	import { Folder, File, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
-
+	import { Folder, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
+	import { useVisibility } from '../hooks/useVisibility.svelte'
 	import type { TreeNode } from '$lib/buildTree'
+
+	const visibility = useVisibility()
 
 	interface Props {
 		rootNode: TreeNode
@@ -55,6 +57,7 @@
 })}
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
+	{@const isVisible = visibility.current.get(node.name) ?? true}
 
 	{#if nodeState.isBranch}
 		<div {...api.getBranchProps(nodeProps)}>
@@ -72,10 +75,15 @@
 				<button
 					onclick={(event) => {
 						event.stopPropagation()
+
+						visibility.current.set(node.name, !isVisible)
 					}}
 				>
-					<Eye size={14} />
-					<!-- <EyeOff size={14} /> -->
+					{#if isVisible}
+						<Eye size={14} />
+					{:else}
+						<EyeOff size={14} />
+					{/if}
 				</button>
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
@@ -97,9 +105,15 @@
 			<button
 				onclick={(event) => {
 					event.stopPropagation()
+
+					visibility.current.set(node.name, !isVisible)
 				}}
 			>
-				<Eye size={14} />
+				{#if isVisible}
+					<Eye size={14} />
+				{:else}
+					<EyeOff size={14} />
+				{/if}
 			</button>
 		</div>
 	{/if}

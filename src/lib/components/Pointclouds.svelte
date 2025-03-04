@@ -12,7 +12,7 @@
 	$inspect(pcds.current)
 </script>
 
-{#each pcds.current as points (points.uuid)}
+{#each pcds.current as points (points?.uuid)}
 	<T
 		is={points}
 		raycast={meshBounds}
@@ -28,10 +28,10 @@
 			selection.set(undefined)
 		}}
 		ondblclick={() => {
-			focus.set(points.name)
+			focus.set(points?.name)
 		}}
 		onclick={() => {
-			selection.set(points.name)
+			selection.set(points?.name)
 		}}
 	/>
 {/each}

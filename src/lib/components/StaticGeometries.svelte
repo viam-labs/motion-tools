@@ -24,7 +24,7 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (event.metaKey) {
+		if (event.metaKey || event.ctrlKey) {
 			return
 		}
 
@@ -33,7 +33,7 @@
 		if (key === Keybindings.ADD_GEOMETRY) {
 			geometries.add()
 		} else if (key === Keybindings.REMOVE_GEOMETRY) {
-			geometries.remove()
+			geometries.remove(selection.current ?? '')
 		} else if (key === Keybindings.TRANSLATE) {
 			mode.current = 'translate'
 		} else if (key === Keybindings.ROTATE) {
@@ -68,8 +68,9 @@
 							quaternionToPose(object.getWorldQuaternion(quaternion), frame.pose)
 							object.quaternion.copy(nullRotation)
 						} else if (mode.current === 'scale') {
-							scaleToDimensions(object.scale, frame.physicalObject)
-							object.scale.set(1, 1, 1)
+							console.log(ref.scale)
+							scaleToDimensions(ref.scale, frame.physicalObject)
+							ref.scale.setScalar(1)
 						}
 					}}
 				/>

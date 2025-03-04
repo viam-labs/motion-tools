@@ -2,7 +2,6 @@
 	import { Keybindings } from '$lib/keybindings'
 	import { PersistedState } from 'runed'
 	import { useConnectionConfigs, useActiveConnectionConfig } from '$lib/hooks'
-	import { fly } from 'svelte/transition'
 	import { X, Radio } from 'lucide-svelte'
 
 	const connectionConfigs = useConnectionConfigs()
@@ -30,7 +29,7 @@
 <svelte:window {onkeydown} />
 
 <button
-	class=" fixed top-0 right-0 z-10 p-2"
+	class=" fixed right-0 bottom-0 z-10 p-2"
 	type="button"
 	onclick={() => (open.current = !open.current)}
 >
@@ -40,9 +39,7 @@
 {#if open.current}
 	<dialog
 		open
-		class="z-10 flex w-full items-start justify-between bg-white p-2"
-		in:fly={{ duration: 180, y: -100 }}
-		out:fly={{ duration: 180, y: -100 }}
+		class="z-20 flex w-full items-start justify-between bg-white p-2"
 	>
 		<div class="flex flex-col gap-2">
 			{#each connectionConfigs.current as config, index}

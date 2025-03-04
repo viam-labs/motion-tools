@@ -16,5 +16,6 @@ export class CapsuleGeometry extends LatheGeometry {
 		path.absarc(0, midsectionLength / 2 + radius / 2, radius, 0, Math.PI * 0.5)
 
 		super(path.getPoints(capSegments), radialSegments)
+		this.rotateX(-Math.PI / 2)
 	}
 }

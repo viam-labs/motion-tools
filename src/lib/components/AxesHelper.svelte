@@ -5,7 +5,7 @@
 	import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
 	import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 
-	interface Props_1 {
+	interface Props {
 		length?: number
 		width?: number
 		axesColors?: [x: string, y: string, z: string]
@@ -19,17 +19,17 @@
 		axesColors = ['red', 'green', 'blue'],
 		depthTest = true,
 		...rest
-	}: Props_1 = $props()
+	}: Props = $props()
 
 	const TOTAL_VERTICES = 9
 	const VERTEX_COMPONENTS = 3
 
 	const line = new Line2()
-	const material = $state(new LineMaterial())
+	const material = new LineMaterial()
 	const geometry = new LineGeometry()
 	const color = new Color()
-	const colors = $state(new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS))
-	const positions = $state(new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS))
+	const colors = new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS)
+	const positions = new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS)
 
 	$effect.pre(() => {
 		material.linewidth = width

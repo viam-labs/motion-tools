@@ -4,6 +4,8 @@
 	import TreeContainer from '$lib/components/TreeContainer.svelte'
 	import Logs from '$lib/components/Logs.svelte'
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
+	import Details from '$lib/components/Details.svelte'
+	import { ChevronLeft } from 'lucide-svelte'
 
 	const focus = useFocus()
 </script>
@@ -12,7 +14,16 @@
 	<Scene />
 </Canvas>
 
+<Details />
+
 {#if focus.current === undefined}
 	<TreeContainer />
 	<Logs />
+{:else}
+	<button
+		class="fixed top-0 left-0 p-2"
+		onclick={() => focus.set(undefined)}
+	>
+		<ChevronLeft />
+	</button>
 {/if}

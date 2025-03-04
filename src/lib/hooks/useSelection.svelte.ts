@@ -1,6 +1,10 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
 import type { Mesh, Points } from 'three'
+import { usePointClouds } from './usePointclouds.svelte'
+import { useGeometries } from './useGeometries.svelte'
+import { useFrames } from './useFrames.svelte'
+import { useStaticGeometries } from './useStaticGeometries.svelte'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
@@ -68,12 +72,28 @@ export const useFocusedObject = () => {
 	const focus = useFocus()
 	const { scene } = useThrelte()
 	const object = $derived(
-		focus.current ? (scene.getObjectByName(focus.current) as Mesh | Points) : undefined
+		focus.current ? (scene.getObjectByName(focus.current) as Mesh | Points).clone() : undefined
 	)
 
 	return {
 		get current() {
 			return object
+		},
+	}
+}
+
+export const useFocusedFrame = () => {
+	const geometries = useGeometries()
+	const frames = useFrames()
+	const statics = useStaticGeometries()
+	const focus = useFocus()
+
+	const allFrames = $derived([...geometries.current, ...frames.current, ...statics.current])
+	const selected = $derived(allFrames.find((frame) => frame.name === focus.current))
+
+	return {
+		get current() {
+			return selected
 		},
 	}
 }
@@ -88,6 +108,22 @@ export const useSelectionObject = () => {
 	return {
 		get current() {
 			return object
+		},
+	}
+}
+
+export const useSelectedFrame = () => {
+	const geometries = useGeometries()
+	const frames = useFrames()
+	const statics = useStaticGeometries()
+	const selection = useSelection()
+
+	const allFrames = $derived([...geometries.current, ...frames.current, ...statics.current])
+	const selected = $derived(allFrames.find((frame) => frame.name === selection.current))
+
+	return {
+		get current() {
+			return selected
 		},
 	}
 }

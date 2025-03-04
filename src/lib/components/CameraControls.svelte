@@ -47,7 +47,9 @@
 
 	let { ref = $bindable(), children }: Props = $props()
 
-	if (!installed) install()
+	if (!installed) {
+		install()
+	}
 
 	const { camera, dom, invalidate } = useThrelte()
 	const controlsContext = useControls()
@@ -59,7 +61,6 @@
 	})
 
 	$effect.pre(() => {
-		console.log(controlsContext.transformControlsActive)
 		controls.enabled = !controlsContext.transformControlsActive
 	})
 

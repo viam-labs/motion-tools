@@ -21,6 +21,7 @@
 	const clouds = $derived(
 		pcds.current.map(({ name, userData }) => ({ name, parent: userData.parent ?? 'world' }))
 	)
+	$inspect(clouds)
 	const objects = $derived([
 		...frames.current,
 		...geometries.current,
@@ -47,14 +48,14 @@
 
 {#if showTreeview.current}
 	<div
-		class="fixed top-0 left-0 bg-gray-100 p-4 text-xs"
+		class="fixed top-0 left-0 m-2 rounded-md bg-gray-100 p-2 text-xs"
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
 		{#key rootNode}
 			<Tree
 				{rootNode}
-				selections={[selection.current]}
+				selections={[selection.current ?? '']}
 				onSelectionChange={(event) => {
 					selection.set(event.selectedValue[0])
 				}}

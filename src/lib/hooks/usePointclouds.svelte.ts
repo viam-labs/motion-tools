@@ -28,33 +28,48 @@ export const providePointclouds = () => {
 		return cameras.current.map((camera) => new CameraClient(robotClient, camera.name))
 	})
 
-	const query = fromStore(
-		createQuery({
-			queryKey: ['pointclouds', ...clients.map((client) => client.name)],
-			refetchInterval: 1_000,
-			queryFn: async () => {
-				const filteredClients = clients.filter((client) => client.name.includes('realsense'))
-				const responses = await Promise.all(filteredClients.map((client) => client.getPointCloud()))
-				const transformed = await Promise.all(
-					responses.map((response, index) =>
-						robot.client?.transformPCD(response, clients[index].name, 'world')
-					)
-				)
-				return transformed
-					.filter((value) => value !== undefined)
-					.map((value, index) => {
-						const points = loader.parse(new Uint8Array(value).buffer)
-						points.userData.parent = clients[index].name
-						points.userData.name = `${clients[index].name}:pointcloud`
+	const queries = $derived(
+		clients.map((client) => {
+			return fromStore(
+				createQuery({
+					queryKey: [client.name, 'pointclouds'],
+					refetchInterval: 2_000,
+					queryFn: async () => {
+						const response = await client.getPointCloud()
+						const transformed = await robot.client?.transformPCD(response, client.name, 'world')
+
+						if (!transformed) return
+
+						const points = loader.parse(new Uint8Array(transformed).buffer)
+						points.userData.parent = client.name
+						points.name = `${client.name}:pointcloud`
 						return points
-					})
-			},
+					},
+				})
+			)
 		})
 	)
 
-	const current = $derived(query.current.data ?? [])
-	const error = $derived(query.current.error ?? undefined)
-	const fetching = $derived(query.current.isFetching)
+	const current = $state<Points[]>([])
+
+	$effect(() => {
+		for (const query of queries) {
+			const { data } = query.current
+
+			if (data === undefined) continue
+
+			const index = current.findIndex((points) => points.name === data?.name)
+
+			if (index) {
+				current[index] = data
+			} else {
+				current.push(data)
+			}
+		}
+	})
+
+	const error = $derived(queries[0]?.current.error ?? undefined)
+	const fetching = $derived(queries[0]?.current.isFetching ?? false)
 
 	setContext<Context>(key, {
 		get current() {
