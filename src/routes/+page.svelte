@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Canvas } from '@threlte/core'
+	import { XRButton } from '@threlte/xr'
 	import Scene from './Scene.svelte'
 	import TreeContainer from '$lib/components/TreeContainer.svelte'
 	import Logs from '$lib/components/Logs.svelte'
@@ -26,4 +27,8 @@
 	>
 		<ChevronLeft />
 	</button>
+{/if}
+
+{#if false}
+	<XRButton mode="immersive-ar" />
 {/if}

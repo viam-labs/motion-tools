@@ -13,12 +13,10 @@ let connectionConfigs: ConnectionConfig[] = $state([])
 let activeConfig = new PersistedState('active-connection-config', 0)
 
 export const provideConnectionConfigs = () => {
-	// read
 	get('connection-configs').then((response) => {
 		connectionConfigs = response ?? []
 	})
 
-	// write
 	$effect(() => {
 		set('connection-configs', $state.snapshot(connectionConfigs))
 	})

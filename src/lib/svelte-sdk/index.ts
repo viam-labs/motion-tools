@@ -1,5 +1,4 @@
 export { useRobotClient } from './client'
-export { createResourceEntity } from './client'
 
 // place files you want to import through the `$lib` alias in this folder.
 export { useResources } from './hooks/useResources.svelte'

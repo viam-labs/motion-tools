@@ -12,6 +12,7 @@
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
+	import { providePoses } from '$lib/hooks/usePoses.svelte'
 
 	interface Props {
 		children: Snippet
@@ -33,6 +34,7 @@
 	provideStaticGeometries()
 	providePointclouds()
 	provideVisibility()
+	providePoses()
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {

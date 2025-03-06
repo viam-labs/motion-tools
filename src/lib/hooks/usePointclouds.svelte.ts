@@ -18,6 +18,7 @@ export const providePointclouds = () => {
 	const loader = new PCDLoader()
 	const robot = useRobot()
 	const cameras = useResources('camera')
+
 	const clients = $derived.by(() => {
 		const robotClient = robot.client
 
@@ -30,50 +31,42 @@ export const providePointclouds = () => {
 
 	const queries = $derived(
 		clients.map((client) => {
-			return fromStore(
+			const query = fromStore(
 				createQuery({
 					queryKey: [client.name, 'pointclouds'],
-					refetchInterval: 2_000,
 					queryFn: async () => {
-						const response = await client.getPointCloud()
-						const transformed = await robot.client?.transformPCD(response, client.name, 'world')
+						const transform = true
 
+						const response = await client.getPointCloud()
+						const transformed = transform
+							? await robot.client?.transformPCD(response, client.name, 'world')
+							: response
 						if (!transformed) return
 
 						const points = loader.parse(new Uint8Array(transformed).buffer)
 						points.userData.parent = client.name
 						points.name = `${client.name}:pointcloud`
+
+						setTimeout(() => query.current.refetch(), 5000)
+
 						return points
 					},
 				})
 			)
+
+			return query
 		})
 	)
 
-	const current = $state<Points[]>([])
-
-	$effect(() => {
-		for (const query of queries) {
-			const { data } = query.current
-
-			if (data === undefined) continue
-
-			const index = current.findIndex((points) => points.name === data?.name)
-
-			if (index) {
-				current[index] = data
-			} else {
-				current.push(data)
-			}
-		}
-	})
-
+	const data = $derived(
+		queries.map((query) => query.current.data).filter((points) => points !== undefined)
+	)
 	const error = $derived(queries[0]?.current.error ?? undefined)
 	const fetching = $derived(queries[0]?.current.isFetching ?? false)
 
 	setContext<Context>(key, {
 		get current() {
-			return current
+			return data
 		},
 		get error() {
 			return error

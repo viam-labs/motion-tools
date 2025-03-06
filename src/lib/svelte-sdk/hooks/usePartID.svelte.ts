@@ -7,8 +7,6 @@ interface Context {
 }
 
 export const createPartIDContext = (partId: () => string): Context => {
-	let id = $state('')
-
 	const context: Context = {
 		get current() {
 			return partId()

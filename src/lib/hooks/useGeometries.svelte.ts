@@ -1,10 +1,11 @@
 import { useResources, useRobot } from '$lib/svelte-sdk'
-import { ArmClient, CameraClient, Pose } from '@viamrobotics/sdk'
+import { ArmClient, Pose } from '@viamrobotics/sdk'
 import { createQuery } from '@tanstack/svelte-query'
 
 import { setContext, getContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
 import { fromStore } from 'svelte/store'
+import { SvelteMap } from 'svelte/reactivity'
 
 const key = Symbol('geometries-context')
 
@@ -28,35 +29,35 @@ export const provideGeometries = () => {
 		return arms.current.map((arm) => new ArmClient(robotClient, arm.name))
 	})
 
-	const query = fromStore(
-		createQuery({
-			queryKey: ['geometries'],
-			refetchInterval: 1000 / 1,
-			queryFn: async () => {
-				const results: Frame[] = []
-				const responses = await Promise.all(clients.map((client) => client.getGeometries()))
+	const queries = $derived(
+		clients.map((client) => {
+			const query = fromStore(
+				createQuery({
+					queryKey: [client.name, 'geometries'],
+					queryFn: async () => {
+						const response = await client.getGeometries()
 
-				let index = 0
-				for (const response of responses) {
-					for (const geo of response) {
-						results.push({
+						setTimeout(() => query.current.refetch(), 1000)
+
+						return response.map((geo) => ({
 							name: geo.label,
-							parent: clients[index].name,
+							parent: client.name,
 							pose: geo.center ?? new Pose(),
 							physicalObject: geo,
-						})
-					}
-					index += 1
-				}
+						}))
+					},
+				})
+			)
 
-				return results
-			},
+			return query
 		})
 	)
 
-	const current = $derived(query.current.data ?? [])
-	const error = $derived(query.current.error ?? undefined)
-	const fetching = $derived(query.current.isFetching)
+	const current = $derived(
+		queries.flatMap((query) => query.current.data).filter((x) => x !== undefined)
+	)
+	const error = $derived(queries[0]?.current.error ?? undefined)
+	const fetching = $derived(queries[0]?.current.isFetching ?? false)
 
 	setContext<Context>(key, {
 		get current() {

@@ -105,7 +105,6 @@
 			<button
 				onclick={(event) => {
 					event.stopPropagation()
-
 					visibility.current.set(node.name, !isVisible)
 				}}
 			>

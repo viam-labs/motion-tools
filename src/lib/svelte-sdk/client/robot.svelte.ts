@@ -55,8 +55,7 @@ export interface RobotClient {
 }
 
 const createRobotClient = (): RobotClient => {
-	let connectionStatus = $state<MachineConnectionEvent>(MachineConnectionEvent.DISCONNECTED)
-
+	let connectionStatus = $state.raw<MachineConnectionEvent>(MachineConnectionEvent.DISCONNECTED)
 	let current = $state.raw<Client>()
 	let client = $state.raw<Client>()
 
@@ -124,6 +123,7 @@ const createRobotClient = (): RobotClient => {
 		if (isEqual(nextDialConf, dialConf)) {
 			return
 		}
+
 		dialConf = nextDialConf
 
 		// If there is already a client and the dial config changed

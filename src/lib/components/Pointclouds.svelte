@@ -3,13 +3,14 @@
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useCursor, meshBounds } from '@threlte/extras'
+	import { usePoses } from '$lib/hooks/usePoses.svelte'
 
 	const pcds = usePointClouds()
 	const selection = useSelection()
 	const focus = useFocus()
+	const poses = usePoses()
 
 	const { onPointerEnter, onPointerLeave } = useCursor()
-	$inspect(pcds.current)
 </script>
 
 {#each pcds.current as points (points?.uuid)}

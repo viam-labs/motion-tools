@@ -84,10 +84,11 @@
 		/>
 	{/if}
 
-	{#if geometry.geometryType.case && name !== selection.current}
+	{#if geometry.geometryType.case}
 		<Edges
 			raycast={() => null}
 			color={darkenColor(color, 10)}
+			renderOrder={-1}
 		/>
 	{/if}
 

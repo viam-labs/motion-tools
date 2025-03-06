@@ -21,7 +21,6 @@
 	const clouds = $derived(
 		pcds.current.map(({ name, userData }) => ({ name, parent: userData.parent ?? 'world' }))
 	)
-	$inspect(clouds)
 	const objects = $derived([
 		...frames.current,
 		...geometries.current,

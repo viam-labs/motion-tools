@@ -7,6 +7,7 @@
 	import CameraControls from '$lib/components/CameraControls.svelte'
 	import Selection from '$lib/components/Selection.svelte'
 	import Focus from '$lib/components/Focus.svelte'
+	import XR from '$lib/components/XR.svelte'
 
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
@@ -47,3 +48,5 @@
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.DirectionalLight position={[-3, -3, -3]} />
 <T.AmbientLight />
+
+<XR />
