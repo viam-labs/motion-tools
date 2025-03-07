@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/spatialmath"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -16,11 +17,20 @@ func DrawGeometry(geometry spatialmath.Geometry) error {
 	if err != nil {
 		return err
 	}
-	return postHTTP(data)
+	return postHTTP(data, "json")
 }
 
-func postHTTP(data []byte) error {
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
+func DrawPointCloud(pc pointcloud.PointCloud) error {
+	var buf bytes.Buffer
+	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
+		return err
+	}
+	return postHTTP(buf.Bytes(), "pcd")
+}
+
+func postHTTP(data []byte, content string) error {
+	fmt.Println(len(data))
+	resp, err := http.Post(url, "application/"+content, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}

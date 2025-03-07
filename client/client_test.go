@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/golang/geo/r3"
+	"go.viam.com/rdk/logging"
+	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"
 )
@@ -24,4 +26,10 @@ func TestDrawGeometry(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(capsule), test.ShouldBeNil)
 	})
+}
+
+func TestDrawPointCloud(t *testing.T) {
+	pc, err := pointcloud.NewFromFile("data/octagon.pcd", logging.Global())
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, DrawPointCloud(pc), test.ShouldBeNil)
 }
