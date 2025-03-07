@@ -2,7 +2,7 @@
 	import { T } from '@threlte/core'
 	import type { Snippet } from 'svelte'
 	import { Edges, useCursor } from '@threlte/extras'
-	import { Mesh, type ColorRepresentation } from 'three'
+	import { Mesh, Quaternion, Vector3, type ColorRepresentation } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
@@ -29,13 +29,26 @@
 	let hovering = $state(false)
 
 	const mesh = new Mesh()
+	const vec3 = new Vector3()
+	const quat = new Quaternion()
 
 	$effect.pre(() => {
 		poseToQuaternion(pose, mesh.quaternion)
+
+		if (geometry.center) {
+			poseToQuaternion(geometry.center, quat)
+			mesh.quaternion.multiply(quat)
+			console.log(quat)
+		}
 	})
 
 	$effect.pre(() => {
 		poseToVector3(pose, mesh.position)
+
+		if (geometry.center) {
+			poseToVector3(geometry.center, vec3)
+			mesh.position.add(vec3)
+		}
 	})
 </script>
 

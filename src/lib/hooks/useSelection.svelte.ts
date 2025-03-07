@@ -5,6 +5,7 @@ import { usePointClouds } from './usePointclouds.svelte'
 import { useGeometries } from './useGeometries.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useStaticGeometries } from './useStaticGeometries.svelte'
+import { useWebsocketClient } from './useWebsocketClient.svelte'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
@@ -117,8 +118,14 @@ export const useSelectedFrame = () => {
 	const frames = useFrames()
 	const statics = useStaticGeometries()
 	const selection = useSelection()
+	const shapes = useWebsocketClient()
 
-	const allFrames = $derived([...geometries.current, ...frames.current, ...statics.current])
+	const allFrames = $derived([
+		...geometries.current,
+		...frames.current,
+		...statics.current,
+		...shapes.current,
+	])
 	const selected = $derived(allFrames.find((frame) => frame.name === selection.current))
 
 	return {

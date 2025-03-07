@@ -5,7 +5,6 @@ import { createQuery } from '@tanstack/svelte-query'
 import { setContext, getContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
 import { fromStore } from 'svelte/store'
-import { SvelteMap } from 'svelte/reactivity'
 
 const key = Symbol('geometries-context')
 
@@ -43,7 +42,7 @@ export const provideGeometries = () => {
 							name: geo.label,
 							parent: client.name,
 							pose: geo.center ?? new Pose(),
-							physicalObject: geo,
+							geometry: geo,
 						}))
 					},
 				})

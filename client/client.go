@@ -1,36 +1,32 @@
-package main
+package client
 
 import (
 	"bytes"
 	"fmt"
 	"net/http"
 
-	"github.com/golang/geo/r3"
 	"go.viam.com/rdk/spatialmath"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func main() {
-	box, err := spatialmath.NewBox(spatialmath.NewZeroPose(), r3.Vector{100, 1000, 100}, "")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	data, err := protojson.Marshal(box.ToProtobuf())
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println("Protobuf as JSON:", string(data))
+const url = "http://localhost:3000/shape"
 
-	// Send HTTP POST request with Protobuf data
-	url := "http://localhost:3000/shape"
+func DrawGeometry(geometry spatialmath.Geometry) error {
+	data, err := protojson.Marshal(geometry.ToProtobuf())
+	if err != nil {
+		return err
+	}
+	return postHTTP(data)
+}
+
+func postHTTP(data []byte) error {
 	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
 	if err != nil {
-		fmt.Println("Error sending request:", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
-
-	fmt.Println("Response Status:", resp.Status)
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP post unsuccessful: %s", resp.Status)
+	}
+	return nil
 }

@@ -5,6 +5,8 @@
 3. Run local app server: `pnpm dev`
 4. Run local web server `pnpm run server`
 
+To visit the visualizer, go to `http://localhost:5173/`
+
 Open the machine config page (top right) and enter in connection details to visualize a specific machine.
 
 ## Todo

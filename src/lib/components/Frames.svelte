@@ -16,7 +16,7 @@
 		<Frame
 			name={frame.name}
 			pose={frame.pose}
-			geometry={frame.physicalObject}
+			geometry={frame.geometry}
 		>
 			<PortalTarget id={frame.name} />
 		</Frame>
@@ -28,7 +28,7 @@
 		<Frame
 			name={frame.name}
 			pose={frame.pose}
-			geometry={frame.physicalObject}
+			geometry={frame.geometry}
 		>
 			<PortalTarget id={frame.name} />
 		</Frame>

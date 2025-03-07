@@ -11,7 +11,7 @@
 
 {#if frame}
 	{@const { pose } = frame}
-	{@const { center, geometryType } = frame.physicalObject}
+	{@const { center, geometryType } = frame.geometry}
 	<div class="fixed top-0 right-0 z-10 m-2 w-54 rounded-md bg-gray-100 p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 py-1">
 			<div class="flex items-center gap-1">

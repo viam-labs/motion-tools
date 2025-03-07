@@ -8,7 +8,7 @@ export interface Frame {
 	name: string
 	parent: string
 	pose: Pose
-	physicalObject: Geometry
+	geometry: Geometry
 }
 
 interface Context {
@@ -38,7 +38,7 @@ export const provideFrames = () => {
 						name: config.frame?.referenceFrame ?? '',
 						parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
 						pose: config.frame?.poseInObserverFrame?.pose ?? new Pose(),
-						physicalObject: config.frame?.physicalObject ?? new Geometry(),
+						geometry: config.frame?.physicalObject ?? new Geometry(),
 					}
 				})
 			},

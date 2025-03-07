@@ -33,7 +33,7 @@ export const provideStaticGeometries = () => {
 				name: `geometry ${staticGeometries.length}`,
 				parent: 'world',
 				pose: new Pose(),
-				physicalObject: {
+				geometry: {
 					label: '',
 					geometryType: {
 						case: 'box',
