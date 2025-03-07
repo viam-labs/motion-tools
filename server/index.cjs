@@ -10,7 +10,7 @@ app.post('/shape', (req, res) => {
 
 	res.json({ message: 'Data received successfully', receivedData: req.body })
 
-	WS.send(req.body)
+	WS.send(JSON.stringify(req.body))
 })
 
 app.listen(3000, () => {

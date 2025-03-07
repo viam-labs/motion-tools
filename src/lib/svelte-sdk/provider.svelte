@@ -13,7 +13,7 @@
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 	import { providePoses } from '$lib/hooks/usePoses.svelte'
-	import { provideWebsocket } from '$lib/hooks/useWebsocketClient'
+	import { provideWebsocket } from '$lib/hooks/useWebsocketClient.svelte'
 
 	interface Props {
 		children: Snippet

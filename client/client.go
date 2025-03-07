@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	box, err := spatialmath.NewBox(spatialmath.NewZeroPose(), r3.Vector{1, 1, 1}, "")
+	box, err := spatialmath.NewBox(spatialmath.NewZeroPose(), r3.Vector{100, 1000, 100}, "")
 	if err != nil {
 		fmt.Println(err)
 		return

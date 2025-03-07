@@ -11,6 +11,7 @@
 
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
+	import Shapes from '$lib/components/Shapes.svelte'
 
 	interactivity()
 
@@ -36,6 +37,8 @@
 	<Frames />
 	<Pointclouds />
 	<Selection />
+
+	<Shapes />
 
 	<Grid
 		plane="xy"
