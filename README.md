@@ -2,7 +2,8 @@
 
 1. [Install pnpm](https://pnpm.io/installation)
 2. Install dependencies: `pnpm i`
-3. Run local server: `pnpm dev`
+3. Run local app server: `pnpm dev`
+4. Run local web server `pnpm run server`
 
 Open the machine config page (top right) and enter in connection details to visualize a specific machine.
 
