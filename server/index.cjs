@@ -1,6 +1,7 @@
 const express = require('express')
-
 const app = express()
+
+let WS
 
 app.use(express.json())
 
@@ -8,6 +9,8 @@ app.post('/shape', (req, res) => {
 	console.log('Received POST request:', req.body)
 
 	res.json({ message: 'Data received successfully', receivedData: req.body })
+
+	WS.send(req.body)
 })
 
 app.listen(3000, () => {
@@ -20,6 +23,8 @@ const wss = new WebSocket.Server({ port: 3001 })
 console.log(`WebSocket server running on ws://localhost:${3001}`)
 
 wss.on('connection', (ws) => {
+	WS = ws
+
 	console.log('New client connected')
 
 	ws.on('message', (message) => {

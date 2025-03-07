@@ -13,6 +13,7 @@
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 	import { providePoses } from '$lib/hooks/usePoses.svelte'
+	import { provideWebsocket } from '$lib/hooks/useWebsocketClient'
 
 	interface Props {
 		children: Snippet
@@ -35,6 +36,7 @@
 	providePointclouds()
 	provideVisibility()
 	providePoses()
+	provideWebsocket()
 
 	$effect.pre(() => {
 		if (partID.current && connectionConfig.current) {
