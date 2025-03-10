@@ -1,9 +1,9 @@
-module motion-tools
+module github.com/viam-labs/motion-tools
 
 go 1.23.2
 
 require (
-	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551
+	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	go.viam.com/rdk v0.65.0
 	go.viam.com/test v1.2.4
 	google.golang.org/protobuf v1.36.5
@@ -88,7 +88,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	go.viam.com/api v0.1.400 // indirect
+	go.viam.com/api v0.1.396 // indirect
 	go.viam.com/utils v0.1.130 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
