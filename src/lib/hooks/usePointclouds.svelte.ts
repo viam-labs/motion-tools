@@ -35,7 +35,7 @@ export const providePointclouds = () => {
 				createQuery({
 					queryKey: [client.name, 'pointclouds'],
 					queryFn: async () => {
-						const transform = false
+						const transform = true
 
 						const response = await client.getPointCloud()
 						const transformed = transform

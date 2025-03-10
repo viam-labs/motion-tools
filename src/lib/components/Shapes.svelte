@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { T } from '@threlte/core'
 	import { useShapes } from '$lib/hooks/useWebsocketClient.svelte'
 	import Frame from './Frame.svelte'
 	import Pointcloud from './Pointcloud.svelte'
