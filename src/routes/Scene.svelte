@@ -12,6 +12,7 @@
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
+	import Camera from '$lib/components/Camera.svelte'
 
 	interactivity()
 
@@ -21,17 +22,11 @@
 </script>
 
 {#if focus.current === undefined}
-	<T.PerspectiveCamera
-		makeDefault
-		near={0.01}
-		position={[3, 3, 3]}
-		up={[0, 0, 1]}
-		oncreate={(ref) => ref.lookAt(0, 0, 0)}
-	>
+	<Camera position={[3, 3, 3]}>
 		<CameraControls bind:ref={controls}>
 			<Gizmo />
 		</CameraControls>
-	</T.PerspectiveCamera>
+	</Camera>
 
 	<StaticGeometries />
 	<Frames />

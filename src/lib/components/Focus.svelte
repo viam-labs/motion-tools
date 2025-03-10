@@ -4,6 +4,7 @@
 	import { useFocus, useFocusedObject } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { Box3, PointsMaterial, Vector3 } from 'three'
+	import Camera from './Camera.svelte'
 
 	const viewport = useViewport()
 	const focus = useFocus()
@@ -36,15 +37,11 @@
 
 <svelte:window {onkeydown} />
 
-<T.PerspectiveCamera
-	makeDefault
-	position={[2, 0, 0]}
-	up={[0, 0, 1]}
->
+<Camera position={[2, 0, 0]}>
 	<TrackballControls target={center}>
 		<Gizmo />
 	</TrackballControls>
-</T.PerspectiveCamera>
+</Camera>
 
 {#if focusObject.current}
 	<T is={focusObject.current} />
