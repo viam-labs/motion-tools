@@ -35,20 +35,19 @@
 	$effect.pre(() => {
 		poseToQuaternion(pose, mesh.quaternion)
 
-		if (geometry.center) {
-			poseToQuaternion(geometry.center, quat)
-			mesh.quaternion.multiply(quat)
-			console.log(quat)
-		}
+		// if (geometry.center) {
+		// 	poseToQuaternion(geometry.center, quat)
+		// 	mesh.quaternion.multiply(quat)
+		// }
 	})
 
 	$effect.pre(() => {
 		poseToVector3(pose, mesh.position)
 
-		if (geometry.center) {
-			poseToVector3(geometry.center, vec3)
-			mesh.position.add(vec3)
-		}
+		// if (geometry.center) {
+		// 	poseToVector3(geometry.center, vec3)
+		// 	mesh.position.add(vec3)
+		// }
 	})
 </script>
 

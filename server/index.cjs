@@ -4,13 +4,20 @@ const app = express()
 let WS
 
 app.use(express.json())
+app.use(express.raw({ type: 'application/octet-stream' }))
 
 app.post('/shape', (req, res) => {
 	console.log('Received POST request:', req.body)
 
-	res.json({ message: 'Data received successfully', receivedData: req.body })
+	res.json({ message: 'Data received successfully', status: 200 })
 
 	WS.send(JSON.stringify(req.body))
+})
+
+app.post('/pcd', (req, res) => {
+	res.json({ message: 'Data received successfully', status: 200 })
+
+	WS.send(req.body)
 })
 
 app.listen(3000, () => {

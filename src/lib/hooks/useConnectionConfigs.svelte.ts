@@ -35,8 +35,8 @@ export const useActiveConnectionConfig = () => {
 		get current() {
 			return connectionConfigs.at(activeConfig.current)
 		},
-		set(index: number) {
-			activeConfig.current = index
+		set(index: number | undefined) {
+			activeConfig.current = index ?? -1
 		},
 	}
 }

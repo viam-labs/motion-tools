@@ -39,7 +39,6 @@ export const providePoses = () => {
 					})
 					const promises = components.map((component) => client?.getPose(component, 'world', []))
 					const responses = await Promise.all(promises)
-					console.log('hi', responses)
 					const results = responses
 						.map((response) => response?.pose)
 						.filter((pose) => pose !== undefined)

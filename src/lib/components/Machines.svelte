@@ -49,7 +49,10 @@
 							class="checkbox"
 							type="checkbox"
 							checked={activeConfig.current?.partId === config.partId}
-							onchange={() => activeConfig.set(index)}
+							onchange={(event) => {
+								const { checked } = event.target as HTMLInputElement
+								activeConfig.set(checked ? index : undefined)
+							}}
 						/>
 						Active
 					</label>

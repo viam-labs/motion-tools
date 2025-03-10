@@ -10,14 +10,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const url = "http://localhost:3000/shape"
+const url = "http://localhost:3000/"
 
 func DrawGeometry(geometry spatialmath.Geometry) error {
 	data, err := protojson.Marshal(geometry.ToProtobuf())
 	if err != nil {
 		return err
 	}
-	return postHTTP(data, "json")
+	return postHTTP(data, "json", "shape")
 }
 
 func DrawPointCloud(pc pointcloud.PointCloud) error {
@@ -25,12 +25,12 @@ func DrawPointCloud(pc pointcloud.PointCloud) error {
 	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
 		return err
 	}
-	return postHTTP(buf.Bytes(), "pcd")
+	return postHTTP(buf.Bytes(), "octet-stream", "pcd")
 }
 
-func postHTTP(data []byte, content string) error {
+func postHTTP(data []byte, content string, endpoint string) error {
 	fmt.Println(len(data))
-	resp, err := http.Post(url, "application/"+content, bytes.NewReader(data))
+	resp, err := http.Post(url+endpoint, "application/"+content, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}

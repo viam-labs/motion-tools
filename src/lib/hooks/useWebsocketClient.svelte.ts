@@ -1,19 +1,35 @@
 import { getContext, setContext } from 'svelte'
-import { Geometry, Pose, RectangularPrism } from '@viamrobotics/sdk'
+import { Geometry, Pose } from '@viamrobotics/sdk'
+import type { Frame } from './useFrames.svelte'
+import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
+import type { Points } from 'three'
 
 interface Context {
 	current: {
 		name: string
-		parent: 'world'
+		parent: string
 		geometry: Geometry
 		pose: Pose
 	}[]
+	points: Points[]
 }
 
 const key = Symbol('websocket-context-key')
 
+const tryParse = (json: string) => {
+	try {
+		return JSON.parse(json)
+	} catch {
+		return
+	}
+}
+
 export const provideWebsocket = () => {
 	const ws = new WebSocket('ws://localhost:3001')
+	const loader = new PCDLoader()
+
+	let current = $state<Frame[]>([])
+	let points = $state<Points[]>([])
 
 	ws.onopen = () => {
 		console.log('Connected to server')
@@ -21,58 +37,64 @@ export const provideWebsocket = () => {
 	}
 
 	ws.onmessage = (event) => {
-		const data = JSON.parse(event.data)
-		console.log(data.center)
+		const data = tryParse(event.data)
 
-		const geometry = {
-			geometryType: data.box
-				? {
-						case: 'box',
-						value: { ...data.box },
-					}
-				: data.sphere
+		if (data) {
+			const geometry = {
+				geometryType: data.box
 					? {
-							case: 'sphere',
-							value: { ...data.sphere },
+							case: 'box',
+							value: { ...data.box },
 						}
-					: {
-							case: 'capsule',
-							value: { ...data.capsule },
-						},
-			label: data.label,
-		} satisfies Geometry
+					: data.sphere
+						? {
+								case: 'sphere',
+								value: { ...data.sphere },
+							}
+						: {
+								case: 'capsule',
+								value: { ...data.capsule },
+							},
+				label: data.label,
+			} satisfies Geometry
 
-		const pose = {
-			x: data.center.x ?? 0,
-			y: data.center.y ?? 0,
-			z: data.center.z ?? 0,
-			oX: data.center.oX ?? 0,
-			oY: data.center.oY ?? 0,
-			oZ: data.center.oZ ?? 0,
-			theta: data.center.theta ?? 0,
-		} satisfies Pose
+			const pose = {
+				x: data.center?.x ?? 0,
+				y: data.center?.y ?? 0,
+				z: data.center?.z ?? 0,
+				oX: data.center?.oX ?? 0,
+				oY: data.center?.oY ?? 0,
+				oZ: data.center?.oZ ?? 0,
+				theta: data.center?.theta ?? 0,
+			} satisfies Pose
 
-		console.log(data.center)
+			const object = {
+				name: data.label ?? crypto.randomUUID(),
+				parent: 'world',
+				geometry,
+				pose,
+			}
 
-		const object = {
-			name: data.label ?? crypto.randomUUID(),
-			parent: 'world',
-			geometry,
-			pose,
+			current.push(object)
+		} else if ('arrayBuffer' in event.data) {
+			const blob = event.data as Blob
+			blob.arrayBuffer().then((buffer) => {
+				const result = loader.parse(buffer)
+				points.push(result)
+			})
 		}
-
-		current.push(object)
 	}
 
 	ws.onclose = () => {
 		console.log('Disconnected from server')
 	}
 
-	let current = $state<any[]>([])
-
 	setContext<Context>(key, {
 		get current() {
 			return current
+		},
+		get points() {
+			return points
 		},
 	})
 }
