@@ -48,7 +48,7 @@
 	<Frame
 		name={frame.name}
 		pose={frame.pose}
-		geometry={frame.physicalObject}
+		geometry={frame.geometry}
 		color="hotpink"
 	>
 		{#snippet children({ ref })}
@@ -69,7 +69,7 @@
 							object.quaternion.copy(nullRotation)
 						} else if (mode.current === 'scale') {
 							console.log(ref.scale)
-							scaleToDimensions(ref.scale, frame.physicalObject)
+							scaleToDimensions(ref.scale, frame.geometry)
 							ref.scale.setScalar(1)
 						}
 					}}

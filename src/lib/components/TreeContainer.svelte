@@ -10,6 +10,7 @@
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
+	import { useShapes } from '$lib/hooks/useWebsocketClient.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', false)
 
@@ -17,15 +18,19 @@
 	const frames = useFrames()
 	const geometries = useGeometries()
 	const statics = useStaticGeometries()
+	const shapes = useShapes()
 	const pcds = usePointClouds()
-	const clouds = $derived(
+	const clouds1 = $derived(
 		pcds.current.map(({ name, userData }) => ({ name, parent: userData.parent ?? 'world' }))
 	)
+	const clouds2 = $derived(shapes.points.map(({ name }) => ({ name, parent: 'world' })))
 	const objects = $derived([
 		...frames.current,
 		...geometries.current,
 		...statics.current,
-		...clouds,
+		...shapes.current,
+		...clouds1,
+		...clouds2,
 	])
 	const rootNode = $derived(buildTreeNodes(objects))
 </script>

@@ -7,7 +7,7 @@ export interface TreeNode {
 	href: string
 }
 
-type FrameData = Omit<Frame, 'pose' | 'physicalObject'>
+type FrameData = Omit<Frame, 'pose' | 'geometry'>
 
 /**
  * Creates a tree representing parent child / relationships from a set of frames.

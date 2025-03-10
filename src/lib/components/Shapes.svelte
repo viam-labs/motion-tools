@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { useWebsocketClient } from '$lib/hooks/useWebsocketClient.svelte'
+	import { useShapes } from '$lib/hooks/useWebsocketClient.svelte'
 	import Frame from './Frame.svelte'
+	import Pointcloud from './Pointcloud.svelte'
 
-	const shapes = useWebsocketClient()
+	const shapes = useShapes()
 </script>
 
 {#each shapes.current as shape}
@@ -16,5 +17,5 @@
 {/each}
 
 {#each shapes.points as points (points.uuid)}
-	<T is={points} />
+	<Pointcloud {points} />
 {/each}

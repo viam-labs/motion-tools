@@ -24,6 +24,8 @@ const tryParse = (json: string) => {
 	}
 }
 
+let index = 0
+
 export const provideWebsocket = () => {
 	const ws = new WebSocket('ws://localhost:3001')
 	const loader = new PCDLoader()
@@ -80,6 +82,7 @@ export const provideWebsocket = () => {
 			const blob = event.data as Blob
 			blob.arrayBuffer().then((buffer) => {
 				const result = loader.parse(buffer)
+				result.name = `points ${++index}`
 				points.push(result)
 			})
 		}
@@ -99,6 +102,6 @@ export const provideWebsocket = () => {
 	})
 }
 
-export const useWebsocketClient = () => {
+export const useShapes = () => {
 	return getContext<Context>(key)
 }
