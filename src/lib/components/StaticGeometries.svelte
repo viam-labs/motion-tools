@@ -63,12 +63,11 @@
 						const { object } = event.target
 						if (mode.current === 'translate') {
 							vector3ToPose(object.getWorldPosition(vector3), frame.pose)
-							object.position.set(0, 0, 0)
+							// object.position.set(0, 0, 0)
 						} else if (mode.current === 'rotate') {
 							quaternionToPose(object.getWorldQuaternion(quaternion), frame.pose)
-							object.quaternion.copy(nullRotation)
+							// object.quaternion.copy(nullRotation)
 						} else if (mode.current === 'scale') {
-							console.log(ref.scale)
 							scaleToDimensions(ref.scale, frame.geometry)
 							ref.scale.setScalar(1)
 						}

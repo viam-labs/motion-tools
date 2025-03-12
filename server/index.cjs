@@ -1,7 +1,7 @@
 const express = require('express')
 const app = express()
 
-let WS
+let websocket
 
 app.use(express.json())
 app.use(express.raw({ type: 'application/octet-stream' }))
@@ -11,13 +11,21 @@ app.post('/shape', (req, res) => {
 
 	res.json({ message: 'Data received successfully', status: 200 })
 
-	WS.send(JSON.stringify(req.body))
+	if (websocket) {
+		websocket.send(JSON.stringify(req.body))
+	} else {
+		console.log('No connected client to send:', req.body)
+	}
 })
 
 app.post('/pcd', (req, res) => {
 	res.json({ message: 'Data received successfully', status: 200 })
 
-	WS.send(req.body)
+	if (websocket) {
+		websocket.send(req.body)
+	} else {
+		console.log('No connected client to send: ', req.body)
+	}
 })
 
 app.listen(3000, () => {
@@ -30,7 +38,7 @@ const wss = new WebSocket.Server({ port: 3001 })
 console.log(`WebSocket server running on ws://localhost:${3001}`)
 
 wss.on('connection', (ws) => {
-	WS = ws
+	websocket = ws
 
 	console.log('New client connected')
 
