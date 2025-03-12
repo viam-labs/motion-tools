@@ -7,6 +7,8 @@
 	const frame = $derived(focusedFrame.current ?? selectedFrame.current)
 
 	let copied = $state(false)
+
+	$inspect(frame?.pose)
 </script>
 
 {#if frame}

@@ -44,7 +44,7 @@
 	}}
 />
 
-{#each geometries.current as frame (frame.name)}
+{#each geometries.current as frame, index (frame.name)}
 	<Frame
 		name={frame.name}
 		pose={frame.pose}
@@ -63,10 +63,8 @@
 						const { object } = event.target
 						if (mode.current === 'translate') {
 							vector3ToPose(object.getWorldPosition(vector3), frame.pose)
-							// object.position.set(0, 0, 0)
 						} else if (mode.current === 'rotate') {
-							quaternionToPose(object.getWorldQuaternion(quaternion), frame.pose)
-							// object.quaternion.copy(nullRotation)
+							quaternionToPose(ref.getWorldQuaternion(quaternion), frame.pose)
 						} else if (mode.current === 'scale') {
 							scaleToDimensions(ref.scale, frame.geometry)
 							ref.scale.setScalar(1)

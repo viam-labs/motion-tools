@@ -2,7 +2,6 @@ import { getContext, setContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
 import { get, set } from 'idb-keyval'
 import { Debounced } from 'runed'
-import { Pose } from '@viamrobotics/sdk'
 
 const key = Symbol('static-geometries-context')
 
@@ -32,7 +31,15 @@ export const provideStaticGeometries = () => {
 			staticGeometries.push({
 				name: `geometry ${staticGeometries.length}`,
 				parent: 'world',
-				pose: new Pose(),
+				pose: {
+					x: 0,
+					y: 0,
+					z: 0,
+					oX: 0,
+					oY: 0,
+					oZ: 1,
+					theta: 0,
+				},
 				geometry: {
 					label: '',
 					geometryType: {
