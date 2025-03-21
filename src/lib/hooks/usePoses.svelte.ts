@@ -1,6 +1,6 @@
-import { useResources, useRobot } from '$lib/svelte-sdk'
 import { createQuery } from '@tanstack/svelte-query'
 import { MotionClient, Pose } from '@viamrobotics/sdk'
+import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 import { fromStore } from 'svelte/store'
 
@@ -12,32 +12,26 @@ interface Context {
 	fetching: boolean
 }
 
-export const providePoses = () => {
-	const robot = useRobot()
-
-	const resources = useResources()
-	const motionResources = useResources('motion')
-
-	const client = $derived.by(() => {
-		const robotClient = robot.client
-		const [motionClient] = motionResources.current
-
-		if (robotClient === undefined || motionClient === undefined) {
-			return undefined
-		}
-
-		return new MotionClient(robotClient, motionClient.name)
-	})
+export const providePoses = (partID: () => string) => {
+	const resources = useResourceNames(partID)
+	const motionResources = useResourceNames(partID, 'motion')
+	const motionClient = createResourceClient(
+		MotionClient,
+		partID,
+		() => motionResources.current[0]?.name
+	)
 
 	const query = $derived(
 		fromStore(
 			createQuery({
-				queryKey: [client?.name ?? '', 'poses'],
+				queryKey: [motionClient.current?.name ?? '', 'poses'],
 				queryFn: async () => {
 					const components = resources.current.filter((resource) => {
 						return resource.type === 'component'
 					})
-					const promises = components.map((component) => client?.getPose(component, 'world', []))
+					const promises = components.map((component) =>
+						motionClient.current?.getPose(component, 'world', [])
+					)
 					const responses = await Promise.all(promises)
 					const results = responses
 						.map((response) => response?.pose)

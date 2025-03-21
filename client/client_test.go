@@ -22,7 +22,7 @@ func TestDrawGeometry(t *testing.T) {
 		test.That(t, DrawGeometry(box), test.ShouldBeNil)
 	})
 	t.Run("draw capsule", func(t *testing.T) {
-		capsule, err := spatialmath.NewCapsule(spatialmath.NewPose(r3.Vector{-1000, 0, 0}, &spatialmath.OrientationVectorDegrees{90, 0, 0, 1}), 100, 300, "myCapsule")
+		capsule, err := spatialmath.NewCapsule(spatialmath.NewPose(r3.Vector{-1000, 1, 0}, &spatialmath.OrientationVectorDegrees{90, 0, 0, 1}), 100, 300, "myCapsule")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(capsule), test.ShouldBeNil)
 	})

@@ -13,6 +13,7 @@ interface Context {
 
 export const provideStaticGeometries = () => {
 	let staticGeometries = $state<Frame[]>([])
+
 	const debounced = new Debounced(() => staticGeometries, 500)
 
 	get('static-geometries').then((response) => {
@@ -56,6 +57,6 @@ export const provideStaticGeometries = () => {
 	})
 }
 
-export const useStaticGeometries = () => {
+export const useStaticGeometries = (): Context => {
 	return getContext<Context>(key)
 }

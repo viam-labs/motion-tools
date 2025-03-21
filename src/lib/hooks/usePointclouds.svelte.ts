@@ -1,10 +1,10 @@
 import { Points } from 'three'
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
 import { createQuery } from '@tanstack/svelte-query'
-import { useResources, useRobot } from '$lib/svelte-sdk'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore } from 'svelte/store'
+import { useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
 
 const key = Symbol('pointcloud-context')
 
@@ -14,13 +14,13 @@ interface Context {
 	fetching: boolean
 }
 
-export const providePointclouds = () => {
+export const providePointclouds = (partID: () => string) => {
 	const loader = new PCDLoader()
-	const robot = useRobot()
-	const cameras = useResources('camera')
+	const client = useRobotClient(partID)
+	const cameras = useResourceNames(partID, 'camera')
 
 	const clients = $derived.by(() => {
-		const robotClient = robot.client
+		const robotClient = client.current
 
 		if (robotClient === undefined) {
 			return []
@@ -30,24 +30,22 @@ export const providePointclouds = () => {
 	})
 
 	const queries = $derived(
-		clients.map((client) => {
+		clients.map((cameraClient) => {
 			const query = fromStore(
 				createQuery({
-					queryKey: [client.name, 'pointclouds'],
+					queryKey: [cameraClient.name, 'pointclouds'],
 					queryFn: async () => {
 						const transform = true
 
-						const response = await client.getPointCloud()
+						const response = await cameraClient.getPointCloud()
 						const transformed = transform
-							? await robot.client?.transformPCD(response, client.name, 'world')
+							? await client.current?.transformPCD(response, cameraClient.name, 'world')
 							: response
 						if (!transformed) return
 
 						const points = loader.parse(new Uint8Array(transformed).buffer)
-						points.userData.parent = client.name
-						points.name = `${client.name}:pointcloud`
-
-						setTimeout(() => query.current.refetch(), 5000)
+						points.userData.parent = cameraClient.name
+						points.name = `${cameraClient.name}:pointcloud`
 
 						return points
 					},

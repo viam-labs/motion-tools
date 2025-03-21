@@ -11,9 +11,14 @@ Open the machine config page (top right) and enter in connection details to visu
 
 ## Todo
 
-- Adjust point size (persist)
+- Adjust query rate (manual) (persist)
+- Specify color for custom drawing
+- parent custom geometries
+- draw cone
+- animated sequence
+- send frame over the wire
 - double click to set trackball center
 - Draw arbitrary boxes with labels (persist)
-- Export box data as json
 - Give error logs
-- Adjust query rate
+
+this app should be local and embedded

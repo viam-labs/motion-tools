@@ -1,8 +1,7 @@
-import { useRobot } from '$lib/svelte-sdk'
-import { createQuery } from '@tanstack/svelte-query'
+import { useRobotClient } from '@viamrobotics/svelte-sdk'
 import { Geometry, Pose } from '@viamrobotics/sdk'
+import { createRobotQuery } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext, untrack } from 'svelte'
-import { fromStore } from 'svelte/store'
 
 export interface Frame {
 	name: string
@@ -19,38 +18,28 @@ interface Context {
 
 const key = Symbol('frames-context')
 
-export const provideFrames = () => {
-	const robot = useRobot()
-
-	const query = fromStore(
-		createQuery({
-			queryKey: ['frame'],
-			refetchInterval: 10_000,
-			queryFn: async () => {
-				if (robot.client === undefined) {
-					return []
-				}
-
-				const response = await robot.client.robotService.frameSystemConfig({})
-
-				return response?.frameSystemConfigs.map((config) => {
-					return {
-						name: config.frame?.referenceFrame ?? '',
-						parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
-						pose: config.frame?.poseInObserverFrame?.pose ?? new Pose(),
-						geometry: config.frame?.physicalObject ?? new Geometry(),
-					}
-				})
-			},
-		})
-	)
+export const provideFrames = (partID: () => string) => {
+	const client = useRobotClient(partID)
+	const query = createRobotQuery(client, 'frameSystemConfig', { refetchInterval: 10_000 })
 
 	$effect(() => {
-		robot.client
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		client.current
 		untrack(() => query.current).refetch()
 	})
 
-	const current = $derived(query.current.data ?? [])
+	const current = $derived(
+		(query.current.data ?? []).map((config) => {
+			return {
+				name: config.frame?.referenceFrame ?? '',
+				parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
+				pose:
+					config.frame?.poseInObserverFrame?.pose ??
+					({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 } satisfies Pose),
+				geometry: config.frame?.physicalObject ?? new Geometry(),
+			}
+		})
+	)
 	const error = $derived(query.current.error ?? undefined)
 	const fetching = $derived(query.current.isFetching)
 

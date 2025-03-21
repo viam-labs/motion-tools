@@ -44,7 +44,7 @@
 	}}
 />
 
-{#each geometries.current as frame, index (frame.name)}
+{#each geometries.current as frame (frame.name)}
 	<Frame
 		name={frame.name}
 		pose={frame.pose}
@@ -65,6 +65,8 @@
 							vector3ToPose(object.getWorldPosition(vector3), frame.pose)
 						} else if (mode.current === 'rotate') {
 							quaternionToPose(ref.getWorldQuaternion(quaternion), frame.pose)
+							ref.quaternion.copy(quaternion)
+							// object.quaternion.copy(nullRotation)
 						} else if (mode.current === 'scale') {
 							scaleToDimensions(ref.scale, frame.geometry)
 							ref.scale.setScalar(1)

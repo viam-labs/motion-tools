@@ -24,7 +24,8 @@ export const object3dToPose = (object3d: Object3D, pose: Pose) => {
 }
 
 export const poseToQuaternion = (pose: Pose, quaternion: Quaternion) => {
-	ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
+	const th = MathUtils.degToRad(pose.theta)
+	ov.set(pose.oX, pose.oY, pose.oZ, th)
 	ov.toQuaternion(quaternion)
 }
 
@@ -43,11 +44,6 @@ export const scaleToDimensions = (scale: Vector3, geometry: Geometry) => {
 		geometry.geometryType.value.dimsMm.x *= scale.x
 		geometry.geometryType.value.dimsMm.y *= scale.y
 		geometry.geometryType.value.dimsMm.z *= scale.z
-		// geometry.geometryType.value.dimsMm = {
-		// 	x: scale.x * 1000,
-		// 	y: scale.y * 1000,
-		// 	z: scale.z * 1000,
-		// }
 	} else if (geometry.geometryType.case === 'capsule') {
 		geometry.geometryType.value.radiusMm = scale.x
 		geometry.geometryType.value.lengthMm = scale.y

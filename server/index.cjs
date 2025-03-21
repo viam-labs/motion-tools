@@ -3,8 +3,8 @@ const app = express()
 
 let websocket
 
-app.use(express.json())
-app.use(express.raw({ type: 'application/octet-stream' }))
+app.use(express.json({ limit: '100mb' }))
+app.use(express.raw({ type: 'application/octet-stream', limit: '1000mb' }))
 
 app.post('/shape', (req, res) => {
 	console.log('Received POST request:', req.body)

@@ -1,72 +1,52 @@
-import { useResources, useRobot } from '$lib/svelte-sdk'
 import { ArmClient, Pose } from '@viamrobotics/sdk'
-import { createQuery } from '@tanstack/svelte-query'
-
+import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
-import { fromStore } from 'svelte/store'
+import { fromStore, toStore } from 'svelte/store'
 
 const key = Symbol('geometries-context')
 
 interface Context {
-	current: Frame[]
-	error?: Error
-	fetching: boolean
+	current: QueryObserverResult<Frame[], Error>[]
 }
 
-export const provideGeometries = () => {
-	const robot = useRobot()
-	const arms = useResources('arm')
+export const provideGeometries = (partID: () => string) => {
+	const arms = useResourceNames(partID, 'arm')
+	const clients = $derived(
+		arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name))
+	)
 
-	const clients = $derived.by(() => {
-		const robotClient = robot.client
-
-		if (robotClient === undefined) {
-			return []
-		}
-
-		return arms.current.map((arm) => new ArmClient(robotClient, arm.name))
-	})
-
-	const queries = $derived(
+	const options = $derived(
 		clients.map((client) => {
-			const query = fromStore(
-				createQuery({
-					queryKey: [client.name, 'geometries'],
-					queryFn: async () => {
-						const response = await client.getGeometries()
+			return {
+				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
+				queryFn: async (): Promise<Frame[]> => {
+					if (!client.current) return []
 
-						setTimeout(() => query.current.refetch(), 1000)
+					const geometries = await client.current.getGeometries()
 
-						return response.map((geo) => ({
-							name: geo.label,
-							parent: client.name,
-							pose: geo.center ?? new Pose(),
-							geometry: geo,
-						}))
-					},
-				})
-			)
-
-			return query
+					return geometries.map((geo) => ({
+						name: geo.label,
+						parent: client.current?.name ?? 'world',
+						pose: geo.center ?? new Pose(),
+						geometry: geo,
+					}))
+				},
+			}
 		})
 	)
 
-	const current = $derived(
-		queries.flatMap((query) => query.current.data).filter((x) => x !== undefined)
+	const queries = fromStore(
+		createQueries({
+			queries: toStore(() => options),
+			combine: (results) => results,
+		})
 	)
-	const error = $derived(queries[0]?.current.error ?? undefined)
-	const fetching = $derived(queries[0]?.current.isFetching ?? false)
 
 	setContext<Context>(key, {
 		get current() {
-			return current
-		},
-		get error() {
-			return error
-		},
-		get fetching() {
-			return fetching
+			return queries.current
 		},
 	})
 }

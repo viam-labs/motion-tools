@@ -9,6 +9,6 @@ const context = {
 	},
 }
 
-export let useControls = () => {
+export const useControls = () => {
 	return context
 }

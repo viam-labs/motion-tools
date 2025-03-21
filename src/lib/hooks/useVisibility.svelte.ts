@@ -30,6 +30,6 @@ export const provideVisibility = () => {
 	})
 }
 
-export const useVisibility = () => {
+export const useVisibility = (): Context => {
 	return getContext<Context>(key)
 }

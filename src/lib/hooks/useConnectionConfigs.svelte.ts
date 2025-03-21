@@ -10,7 +10,8 @@ interface ConnectionConfig {
 }
 
 let connectionConfigs: ConnectionConfig[] = $state([])
-let activeConfig = new PersistedState('active-connection-config', 0)
+
+const activeConfig = new PersistedState('active-connection-config', 0)
 
 export const provideConnectionConfigs = () => {
 	get('connection-configs').then((response) => {

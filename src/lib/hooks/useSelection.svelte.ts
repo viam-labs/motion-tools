@@ -1,15 +1,17 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
-import type { Mesh, Points } from 'three'
-import { usePointClouds } from './usePointclouds.svelte'
+import type { Mesh, Object3D, Points } from 'three'
 import { useGeometries } from './useGeometries.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useStaticGeometries } from './useStaticGeometries.svelte'
 import { useShapes } from './useWebsocketClient.svelte'
+import type { Frame } from './useFrames.svelte'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
 const focusKey = Symbol('focus-context')
+const selectedFrameKey = Symbol('selected-frame-context')
+const focusedFrameKey = Symbol('focused-frame-context')
 
 type Selection = string | undefined
 
@@ -28,37 +30,80 @@ interface HoverContext {
 	set(value: Selection): void
 }
 
+interface SelectedFrameContext {
+	readonly current: Frame | undefined
+}
+
+interface FocusedFrameContext {
+	readonly current: Frame | undefined
+}
+
 export const provideSelection = () => {
 	let selection = $state.raw<Selection>()
 	let focus = $state.raw<Selection>()
 	let hovering = $state.raw<Selection>()
 
-	setContext<SelectionContext>(selectionKey, {
+	const selectionContext = {
 		get current() {
 			return selection
 		},
 		set(value: Selection) {
 			selection = value
 		},
-	})
+	}
+	setContext<SelectionContext>(selectionKey, selectionContext)
 
-	setContext<FocusContext>(focusKey, {
+	const focusContext = {
 		get current() {
 			return focus
 		},
 		set(value: Selection) {
 			focus = value
 		},
-	})
+	}
+	setContext<FocusContext>(focusKey, focusContext)
 
-	setContext<HoverContext>(hoverKey, {
+	const hoverContext = {
 		get current() {
 			return hovering
 		},
 		set(value: Selection) {
 			hovering = value
 		},
-	})
+	}
+	setContext<HoverContext>(hoverKey, hoverContext)
+
+	const geometries = useGeometries()
+	const frames = useFrames()
+	const statics = useStaticGeometries()
+	const shapes = useShapes()
+
+	const allGeometries = $derived(geometries.current.flatMap((query) => query.data ?? []))
+	const allFrames = $derived([
+		...allGeometries,
+		...frames.current,
+		...statics.current,
+		...shapes.current,
+	])
+	const selectedFrame = $derived(allFrames.find((frame) => frame.name === selection))
+
+	const selectedFrameContext = {
+		get current() {
+			return selectedFrame
+		},
+	}
+	setContext<SelectedFrameContext>(selectedFrameKey, selectedFrameContext)
+
+	const focusedFrame = $derived(allFrames.find((frame) => frame.name === focus))
+
+	const focusedFrameContext = {
+		get current() {
+			return focusedFrame
+		},
+	}
+	setContext<FocusedFrameContext>(focusedFrameKey, focusedFrameContext)
+
+	return { selection: selectionContext, focus: focusContext, hover: hoverContext }
 }
 
 export const useSelection = () => {
@@ -83,23 +128,7 @@ export const useFocusedObject = () => {
 	}
 }
 
-export const useFocusedFrame = () => {
-	const geometries = useGeometries()
-	const frames = useFrames()
-	const statics = useStaticGeometries()
-	const focus = useFocus()
-
-	const allFrames = $derived([...geometries.current, ...frames.current, ...statics.current])
-	const selected = $derived(allFrames.find((frame) => frame.name === focus.current))
-
-	return {
-		get current() {
-			return selected
-		},
-	}
-}
-
-export const useSelectionObject = () => {
+export const useSelectionObject = (): { current: Object3D | undefined } => {
 	const selection = useSelection()
 	const { scene } = useThrelte()
 	const object = $derived(
@@ -113,24 +142,10 @@ export const useSelectionObject = () => {
 	}
 }
 
-export const useSelectedFrame = () => {
-	const geometries = useGeometries()
-	const frames = useFrames()
-	const statics = useStaticGeometries()
-	const selection = useSelection()
-	const shapes = useShapes()
+export const useFocusedFrame = (): { current: Frame | undefined } => {
+	return getContext<FocusedFrameContext>(focusedFrameKey)
+}
 
-	const allFrames = $derived([
-		...geometries.current,
-		...frames.current,
-		...statics.current,
-		...shapes.current,
-	])
-	const selected = $derived(allFrames.find((frame) => frame.name === selection.current))
-
-	return {
-		get current() {
-			return selected
-		},
-	}
+export const useSelectedFrame = (): { current: Frame | undefined } => {
+	return getContext<SelectedFrameContext>(selectedFrameKey)
 }
