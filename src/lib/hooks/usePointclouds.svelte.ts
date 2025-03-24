@@ -1,76 +1,62 @@
 import { Points } from 'three'
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
-import { createQuery } from '@tanstack/svelte-query'
+import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
-import { fromStore } from 'svelte/store'
-import { useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
+import { fromStore, toStore } from 'svelte/store'
+import { createResourceClient, useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
 
 const key = Symbol('pointcloud-context')
 
 interface Context {
-	current: Points[]
-	error?: Error
-	fetching: boolean
+	current: QueryObserverResult<Points | undefined, Error>[]
 }
 
-export const providePointclouds = (partID: () => string) => {
+export const providePointclouds = (partID: () => string, refetchInterval?: () => number) => {
 	const loader = new PCDLoader()
 	const client = useRobotClient(partID)
 	const cameras = useResourceNames(partID, 'camera')
 
-	const clients = $derived.by(() => {
-		const robotClient = client.current
+	const clients = $derived(
+		cameras.current.map((camera) => createResourceClient(CameraClient, partID, () => camera.name))
+	)
 
-		if (robotClient === undefined) {
-			return []
-		}
-
-		return cameras.current.map((camera) => new CameraClient(robotClient, camera.name))
-	})
-
-	const queries = $derived(
+	const options = $derived(
 		clients.map((cameraClient) => {
-			const query = fromStore(
-				createQuery({
-					queryKey: [cameraClient.name, 'pointclouds'],
-					queryFn: async () => {
-						const transform = true
+			return {
+				refetchInterval: refetchInterval?.(),
+				queryKey: ['partID', partID(), cameraClient.current?.name, 'getPointCloud'],
+				queryFn: async (): Promise<Points | undefined> => {
+					if (!cameraClient.current) return
 
-						const response = await cameraClient.getPointCloud()
-						const transformed = transform
-							? await client.current?.transformPCD(response, cameraClient.name, 'world')
-							: response
-						if (!transformed) return
+					const transform = true
 
-						const points = loader.parse(new Uint8Array(transformed).buffer)
-						points.userData.parent = cameraClient.name
-						points.name = `${cameraClient.name}:pointcloud`
+					const response = await cameraClient.current?.getPointCloud()
+					const transformed = transform
+						? await client.current?.transformPCD(response, cameraClient.current.name, 'world')
+						: response
+					if (!transformed) return
 
-						return points
-					},
-				})
-			)
+					const points = loader.parse(new Uint8Array(transformed).buffer)
+					points.userData.parent = cameraClient.current.name
+					points.name = `${cameraClient.current.name}:pointcloud`
 
-			return query
+					return points
+				},
+			}
 		})
 	)
 
-	const data = $derived(
-		queries.map((query) => query.current.data).filter((points) => points !== undefined)
+	const queries = fromStore(
+		createQueries({
+			queries: toStore(() => options),
+			combine: (results) => results,
+		})
 	)
-	const error = $derived(queries[0]?.current.error ?? undefined)
-	const fetching = $derived(queries[0]?.current.isFetching ?? false)
 
 	setContext<Context>(key, {
 		get current() {
-			return data
-		},
-		get error() {
-			return error
-		},
-		get fetching() {
-			return fetching
+			return queries.current
 		},
 	})
 }

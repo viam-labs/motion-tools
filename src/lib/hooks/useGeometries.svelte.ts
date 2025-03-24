@@ -1,9 +1,11 @@
-import { ArmClient, Pose } from '@viamrobotics/sdk'
+import { ArmClient } from '@viamrobotics/sdk'
 import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
-import type { Frame } from './useFrames.svelte'
 import { fromStore, toStore } from 'svelte/store'
+
+import type { Frame } from './useFrames.svelte'
+import { createPose } from '$lib/transform'
 
 const key = Symbol('geometries-context')
 
@@ -29,7 +31,7 @@ export const provideGeometries = (partID: () => string) => {
 					return geometries.map((geo) => ({
 						name: geo.label,
 						parent: client.current?.name ?? 'world',
-						pose: geo.center ?? new Pose(),
+						pose: geo.center ?? createPose(),
 						geometry: geo,
 					}))
 				},

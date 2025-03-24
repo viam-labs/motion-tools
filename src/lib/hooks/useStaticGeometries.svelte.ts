@@ -2,6 +2,7 @@ import { getContext, setContext } from 'svelte'
 import type { Frame } from './useFrames.svelte'
 import { get, set } from 'idb-keyval'
 import { Debounced } from 'runed'
+import { createGeometry, createPose } from '$lib/transform'
 
 const key = Symbol('static-geometries-context')
 
@@ -32,22 +33,11 @@ export const provideStaticGeometries = () => {
 			staticGeometries.push({
 				name: `geometry ${staticGeometries.length}`,
 				parent: 'world',
-				pose: {
-					x: 0,
-					y: 0,
-					z: 0,
-					oX: 0,
-					oY: 0,
-					oZ: 1,
-					theta: 0,
-				},
-				geometry: {
-					label: '',
-					geometryType: {
-						case: 'box',
-						value: { dimsMm: { x: 100, y: 100, z: 100 } },
-					},
-				},
+				pose: createPose(),
+				geometry: createGeometry({
+					case: 'box',
+					value: { dimsMm: { x: 100, y: 100, z: 100 } },
+				}),
 			})
 		},
 		remove(name: string) {

@@ -1,10 +1,7 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
 import type { Mesh, Object3D, Points } from 'three'
-import { useGeometries } from './useGeometries.svelte'
-import { useFrames } from './useFrames.svelte'
-import { useStaticGeometries } from './useStaticGeometries.svelte'
-import { useShapes } from './useWebsocketClient.svelte'
+import { useAllFrames } from './useFrames.svelte'
 import type { Frame } from './useFrames.svelte'
 
 const hoverKey = Symbol('hover-context')
@@ -73,20 +70,10 @@ export const provideSelection = () => {
 	}
 	setContext<HoverContext>(hoverKey, hoverContext)
 
-	const geometries = useGeometries()
-	const frames = useFrames()
-	const statics = useStaticGeometries()
-	const shapes = useShapes()
+	const allFrames = useAllFrames()
+	const selectedFrame = $derived(allFrames.current.find((frame) => frame.name === selection))
 
-	const allGeometries = $derived(geometries.current.flatMap((query) => query.data ?? []))
-	const allFrames = $derived([
-		...allGeometries,
-		...frames.current,
-		...statics.current,
-		...shapes.current,
-	])
-	const selectedFrame = $derived(allFrames.find((frame) => frame.name === selection))
-
+	$inspect(selectedFrame)
 	const selectedFrameContext = {
 		get current() {
 			return selectedFrame
@@ -94,7 +81,7 @@ export const provideSelection = () => {
 	}
 	setContext<SelectedFrameContext>(selectedFrameKey, selectedFrameContext)
 
-	const focusedFrame = $derived(allFrames.find((frame) => frame.name === focus))
+	const focusedFrame = $derived(allFrames.current.find((frame) => frame.name === focus))
 
 	const focusedFrameContext = {
 		get current() {

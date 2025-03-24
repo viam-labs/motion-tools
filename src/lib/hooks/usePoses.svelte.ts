@@ -14,6 +14,7 @@ interface Context {
 
 export const providePoses = (partID: () => string) => {
 	const resources = useResourceNames(partID)
+	const components = $derived(resources.current.filter(({ type }) => type === 'component'))
 	const motionResources = useResourceNames(partID, 'motion')
 	const motionClient = createResourceClient(
 		MotionClient,
@@ -21,18 +22,18 @@ export const providePoses = (partID: () => string) => {
 		() => motionResources.current[0]?.name
 	)
 
+	$inspect(motionResources.current)
+
 	const query = $derived(
 		fromStore(
 			createQuery({
 				queryKey: [motionClient.current?.name ?? '', 'poses'],
 				queryFn: async () => {
-					const components = resources.current.filter((resource) => {
-						return resource.type === 'component'
-					})
 					const promises = components.map((component) =>
 						motionClient.current?.getPose(component, 'world', [])
 					)
 					const responses = await Promise.all(promises)
+					console.log(responses)
 					const results = responses
 						.map((response) => response?.pose)
 						.filter((pose) => pose !== undefined)

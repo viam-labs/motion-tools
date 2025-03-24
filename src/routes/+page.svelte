@@ -15,10 +15,10 @@
 
 	const partID = usePartID()
 
-	provideFrames(() => partID.current)
+	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
-	providePoses(() => partID.current)
+	provideFrames(() => partID.current)
 
 	const { focus } = provideSelection()
 </script>

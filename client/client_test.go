@@ -12,19 +12,47 @@ import (
 
 func TestDrawGeometry(t *testing.T) {
 	t.Run("draw box", func(t *testing.T) {
-		box, err := spatialmath.NewBox(spatialmath.NewPose(r3.Vector{1000, 0, 0}, &spatialmath.OrientationVectorDegrees{45, 0, 0, 1}), r3.Vector{100, 100, 200}, "myBox")
+		box, err := spatialmath.NewBox(
+			spatialmath.NewPose(
+				r3.Vector{X: 1001, Y: 1, Z: 1},
+				&spatialmath.OrientationVectorDegrees{Theta: 45, OX: 0, OY: 0, OZ: 1},
+			),
+			r3.Vector{X: 102, Y: 100, Z: 200},
+			"myBox",
+		)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(box), test.ShouldBeNil)
 	})
 	t.Run("draw sphere", func(t *testing.T) {
-		box, err := spatialmath.NewSphere(spatialmath.NewPose(r3.Vector{0, 1000, 0}, &spatialmath.OrientationVectorDegrees{0, 0, 0, 1}), 100, "mySphere")
+		box, err := spatialmath.NewSphere(
+			spatialmath.NewPose(
+				r3.Vector{X: 1, Y: 1000, Z: 0},
+				&spatialmath.OrientationVectorDegrees{Theta: 0, OX: 0, OY: 0, OZ: 1},
+			),
+			100,
+			"mySphere",
+		)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(box), test.ShouldBeNil)
 	})
 	t.Run("draw capsule", func(t *testing.T) {
-		capsule, err := spatialmath.NewCapsule(spatialmath.NewPose(r3.Vector{-1000, 1, 0}, &spatialmath.OrientationVectorDegrees{90, 0, 0, 1}), 100, 300, "myCapsule")
+		capsule, err := spatialmath.NewCapsule(
+			spatialmath.NewPose(
+				r3.Vector{X: -1001, Y: 1, Z: 0},
+				&spatialmath.OrientationVectorDegrees{Theta: 90, OX: 0, OY: 0, OZ: 1},
+			),
+			102,
+			301,
+			"myCapsule",
+		)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(capsule), test.ShouldBeNil)
+	})
+
+	t.Run("draw mesh", func(t *testing.T) {
+		mesh, err := spatialmath.NewMeshFromPLYFile("data/lod_100.ply")
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, DrawGeometry(mesh), test.ShouldBeNil)
 	})
 }
 

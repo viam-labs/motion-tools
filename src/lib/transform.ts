@@ -4,6 +4,26 @@ import { type Object3D, MathUtils, Quaternion, Vector3 } from 'three'
 
 const ov = new OrientationVector()
 
+export const createPose = (pose?: Pose): Pose => {
+	return {
+		x: pose?.x ?? 0,
+		y: pose?.y ?? 0,
+		z: pose?.z ?? 0,
+		oX: pose?.oX ?? 0,
+		oY: pose?.oY ?? 0,
+		oZ: pose?.oZ ?? 1,
+		theta: pose?.theta ?? 0,
+	}
+}
+
+export const createGeometry = (geometryType?: Geometry['geometryType'], label = ''): Geometry => {
+	return {
+		center: createPose(),
+		label,
+		geometryType: geometryType ?? { case: undefined, value: undefined },
+	}
+}
+
 export const quaternionToPose = (quaternion: Quaternion, pose: Pose) => {
 	ov.setFromQuaternion(quaternion)
 	pose.oX = ov.x

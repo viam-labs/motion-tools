@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import type { Snippet } from 'svelte'
-	import { Edges, useCursor } from '@threlte/extras'
+	import { Edges } from '@threlte/extras'
 	import { Mesh, Quaternion, Vector3, type ColorRepresentation } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
-	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
 	import AxesHelper from './AxesHelper.svelte'
 	import { poseToQuaternion, poseToVector3 } from '$lib/transform'
 	import { darkenColor } from '$lib/color'
-	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
+	import Clickable from './Clickable.svelte'
 
 	interface Props {
 		name: string
@@ -20,13 +19,6 @@
 	}
 
 	let { name, pose, geometry, color = 'red', children }: Props = $props()
-
-	const { onPointerEnter, onPointerLeave } = useCursor()
-	const selection = useSelection()
-	const focus = useFocus()
-	const visibility = useVisibility()
-
-	let hovering = $state(false)
 
 	const mesh = new Mesh()
 	const vec3 = new Vector3()
@@ -51,31 +43,9 @@
 	})
 </script>
 
-<T
-	is={mesh}
+<Clickable
 	{name}
-	visible={visibility.current.get(name)}
-	onpointerenter={(event) => {
-		event.stopPropagation()
-		hovering = true
-		onPointerEnter()
-	}}
-	onpointerleave={(event) => {
-		event.stopPropagation()
-		hovering = false
-		onPointerLeave()
-	}}
-	onpointermissed={() => {
-		selection.set(undefined)
-	}}
-	ondblclick={(event) => {
-		event.stopPropagation()
-		focus.set(mesh.name)
-	}}
-	onclick={(event) => {
-		event.stopPropagation()
-		selection.set(mesh.name)
-	}}
+	object={mesh}
 >
 	{#if geometry.geometryType.case === 'box'}
 		{@const dimsMm = geometry.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
@@ -111,4 +81,4 @@
 	/>
 
 	{@render children?.({ ref: mesh })}
-</T>
+</Clickable>
