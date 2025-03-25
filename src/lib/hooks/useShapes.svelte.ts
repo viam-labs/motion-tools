@@ -1,4 +1,5 @@
 import { getContext, setContext } from 'svelte'
+import { MathUtils } from 'three'
 import { Geometry, Pose } from '@viamrobotics/sdk'
 import type { Frame } from './useFrames.svelte'
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
@@ -33,7 +34,7 @@ const tryParse = (json: string) => {
 
 let index = 0
 
-export const provideWebsocket = () => {
+export const provideShapes = () => {
 	const ws = new WebSocket('ws://localhost:3001')
 	const current = $state<Frame[]>([])
 	const points = $state<Points[]>([])
@@ -43,12 +44,11 @@ export const provideWebsocket = () => {
 		console.log('Connected to server')
 	}
 
-	const addPcd = (data: any) => {
-		return (data as Blob).arrayBuffer().then((buffer) => {
-			const result = pcdLoader.parse(buffer)
-			result.name = `points ${++index}`
-			points.push(result)
-		})
+	const addPcd = async (data: any) => {
+		const buffer = await (data as Blob).arrayBuffer()
+		const result = pcdLoader.parse(buffer)
+		result.name = `points ${++index}`
+		points.push(result)
 	}
 
 	const addMesh = (data: any) => {
@@ -92,7 +92,7 @@ export const provideWebsocket = () => {
 		)
 
 		const object = {
-			name: data.label ?? crypto.randomUUID(),
+			name: data.label ?? MathUtils.generateUUID(),
 			parent: 'world',
 			geometry,
 			pose: createPose(data.center),

@@ -10,11 +10,11 @@
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
-	import { provideWebsocket } from '$lib/hooks/useWebsocketClient.svelte'
+	import { provideShapes } from '$lib/hooks/useShapes.svelte'
 
 	provideStaticGeometries()
 	provideVisibility()
-	provideWebsocket()
+	provideShapes()
 	provideConnectionConfigs()
 
 	const connectionConfig = useActiveConnectionConfig()

@@ -11,9 +11,7 @@ self.onmessage = async (event) => {
 	}
 
 	try {
-		const text = new TextDecoder().decode(data)
-
-		const pcd = loader.parse(text)
+		const pcd = loader.parse(data.buffer)
 		if (pcd.geometry) {
 			const positionArray = pcd.geometry.attributes.position.array
 			postMessage({ success: true, positionArray }, [positionArray.buffer])

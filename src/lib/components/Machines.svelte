@@ -9,10 +9,31 @@
 
 	let open = new PersistedState('machine-connection-config-open', false)
 
-	const onkeydown = ({ key }: KeyboardEvent) => {
-		if (key.toLowerCase() === Keybindings.MACHINES) {
+	const onkeydown = (event: KeyboardEvent) => {
+		if (open.current) {
+			event.stopImmediatePropagation()
+			return
+		}
+
+		if (event.key.toLowerCase() === Keybindings.MACHINES) {
 			open.current = !open.current
 		}
+	}
+
+	const onpaste = (event: ClipboardEvent) => {
+		try {
+			const config = JSON.parse(event.clipboardData?.getData('text') ?? '')
+
+			if (
+				'host' in config &&
+				'partId' in config &&
+				'apiKeyId' in config &&
+				'apiKeyValue' in config &&
+				'signalingAddress' in config
+			) {
+				connectionConfigs.current.push(config)
+			}
+		} catch {}
 	}
 
 	const addConfig = () => {
@@ -26,7 +47,10 @@
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window
+	{onkeydown}
+	{onpaste}
+/>
 
 <button
 	class=" fixed right-0 bottom-0 z-10 p-2"
@@ -90,6 +114,17 @@
 						}}
 					>
 						Delete
+					</button>
+
+					<button
+						type="button"
+						class="btn preset-filled p-2 text-xs"
+						onclick={() => {
+							const data = connectionConfigs.current[index]
+							navigator.clipboard.writeText(JSON.stringify(data))
+						}}
+					>
+						Copy
 					</button>
 				</form>
 
