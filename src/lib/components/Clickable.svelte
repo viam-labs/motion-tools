@@ -12,7 +12,7 @@
 		children: Snippet
 	}
 
-	let { object, name, children }: Props = $props()
+	let { object, name, children, ...rest }: Props = $props()
 
 	const { onPointerEnter, onPointerLeave } = useCursor()
 	const selection = useSelection()
@@ -44,6 +44,7 @@
 		event.stopPropagation()
 		selection.set(name)
 	}}
+	{...rest}
 >
 	{@render children()}
 </T>

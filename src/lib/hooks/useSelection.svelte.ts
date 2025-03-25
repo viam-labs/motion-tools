@@ -73,7 +73,6 @@ export const provideSelection = () => {
 	const allFrames = useAllFrames()
 	const selectedFrame = $derived(allFrames.current.find((frame) => frame.name === selection))
 
-	$inspect(selectedFrame)
 	const selectedFrameContext = {
 		get current() {
 			return selectedFrame

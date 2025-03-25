@@ -5,6 +5,7 @@ import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 import { DoubleSide, Mesh, MeshToonMaterial, type Points } from 'three'
 import { createGeometry, createPose } from '$lib/transform'
+import { parsePCD } from '$lib/loaders/pcd'
 
 interface Context {
 	current: {

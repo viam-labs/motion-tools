@@ -17,7 +17,7 @@ func TestDrawGeometry(t *testing.T) {
 				r3.Vector{X: 1001, Y: 1, Z: 1},
 				&spatialmath.OrientationVectorDegrees{Theta: 45, OX: 0, OY: 0, OZ: 1},
 			),
-			r3.Vector{X: 102, Y: 100, Z: 200},
+			r3.Vector{X: 101, Y: 100, Z: 200},
 			"myBox",
 		)
 		test.That(t, err, test.ShouldBeNil)
@@ -38,8 +38,8 @@ func TestDrawGeometry(t *testing.T) {
 	t.Run("draw capsule", func(t *testing.T) {
 		capsule, err := spatialmath.NewCapsule(
 			spatialmath.NewPose(
-				r3.Vector{X: -1001, Y: 1, Z: 0},
-				&spatialmath.OrientationVectorDegrees{Theta: 90, OX: 0, OY: 0, OZ: 1},
+				r3.Vector{X: -1002, Y: 3, Z: 0},
+				&spatialmath.OrientationVectorDegrees{Theta: 90, OX: 1, OY: 0, OZ: 1},
 			),
 			102,
 			301,

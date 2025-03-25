@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { TrackballControls, Gizmo, Text, Billboard, useViewport } from '@threlte/extras'
+	import { TrackballControls, Gizmo } from '@threlte/extras'
 	import { useFocus, useFocusedObject } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { Box3, PointsMaterial, Vector3 } from 'three'
 	import Camera from './Camera.svelte'
 
-	const viewport = useViewport()
 	const focus = useFocus()
 	const focusObject = useFocusedObject()
 
@@ -46,30 +45,4 @@
 {#if focusObject.current}
 	<T is={focusObject.current} />
 	<T.BoxHelper args={[focusObject.current, 'red']} />
-
-	<T.Group
-		position={center}
-		visible={false}
-	>
-		<Billboard position={[0, size[1] / 2 + 0.1, size[2] / 2 + 0.1]}>
-			<Text
-				text={`${size[0].toFixed(4)}m`}
-				fontSize={1 / $viewport.distance}
-				color="black"
-			/>
-		</Billboard>
-		<Billboard position={[size[1] / 2 + 0.1, 0, size[2] / 2 + 0.1]}>
-			<Text
-				text={`${size[1].toFixed(4)}m`}
-				color="black"
-			/>
-		</Billboard>
-
-		<Billboard position={[size[0] / 2 + 0.1, size[1] / 2 + 0.1, 0]}>
-			<Text
-				text={`${size[2].toFixed(4)}m`}
-				color="black"
-			/>
-		</Billboard>
-	</T.Group>
 {/if}

@@ -6,8 +6,16 @@
 	let { children, ...rest } = $props()
 
 	const mode = new PersistedState<'perspective' | 'orthographic'>('camera-type', 'perspective')
+
 	const perspective = new PerspectiveCamera()
+	perspective.near = 0.01
+	perspective.up.set(0, 0, 1)
+
 	const orthographic = new OrthographicCamera()
+	orthographic.near = -100
+	orthographic.far = 100
+	orthographic.up.set(0, 0, 1)
+	orthographic.zoom = 200
 </script>
 
 <svelte:window
@@ -21,9 +29,7 @@
 {#if mode.current === 'perspective'}
 	<T
 		is={perspective}
-		near={0.01}
 		makeDefault
-		up={[0, 0, 1]}
 		{...rest}
 	>
 		{@render children?.()}
@@ -31,11 +37,7 @@
 {:else if mode.current === 'orthographic'}
 	<T
 		is={orthographic}
-		near={-100}
-		far={100}
 		makeDefault
-		up={[0, 0, 1]}
-		zoom={200}
 		{...rest}
 	>
 		{@render children?.()}

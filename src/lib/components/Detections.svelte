@@ -1,23 +1,13 @@
 <script lang="ts">
-	import { useResources, usePartID } from '$lib/svelte-sdk'
 	import { VisionClient } from '@viamrobotics/sdk'
 	import { readable } from 'svelte/store'
 	import DetectionsPlane from './DetectionsPlane.svelte'
+	import { useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	const partID = usePartID()
-	const resources = useResources()
-
-	// Log each resource's details
-	resources.current.forEach((r) => {
-		console.log('Resource:', {
-			name: r.name,
-			type: r.type,
-			subtype: r.subtype,
-		})
-	})
-
-	const camResource = $derived(resources.current.filter((r) => r.subtype === 'camera')[0])
-	const visResource = $derived(resources.current.filter((r) => r.subtype === 'vision')[0])
+	const cameras = useResourceNames(() => partID.current, 'camera')
+	const visionServices = useResourceNames(() => partID.current, 'vision')
 
 	// let entity = $derived(
 	// 	visResource

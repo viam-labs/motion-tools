@@ -38,13 +38,7 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => 
 }
 
 app.post('/shape', (req, res) => {
-	sendToClient(
-		JSON.stringify({
-			route: '/shape',
-			body: req.body,
-		}),
-		res
-	)
+	sendToClient(JSON.stringify(req.body), res)
 })
 
 app.post('/pcd', (req, res) => {

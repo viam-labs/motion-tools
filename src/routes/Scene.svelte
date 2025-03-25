@@ -13,6 +13,7 @@
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
 	import Camera from '$lib/components/Camera.svelte'
+	import { Vector3 } from 'three'
 
 	interactivity()
 
@@ -38,6 +39,9 @@
 	<Grid
 		plane="xy"
 		sectionColor="grey"
+		infiniteGrid
+		fadeOrigin={new Vector3()}
+		fadeDistance={25}
 	/>
 {:else}
 	<Focus />

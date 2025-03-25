@@ -24,7 +24,7 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
 	}
 }
 
-export const quaternionToPose = (quaternion: Quaternion, pose: Pose) => {
+export const quaternionToPose = (quaternion: Quaternion, pose: Partial<Pose>) => {
 	ov.setFromQuaternion(quaternion)
 	pose.oX = ov.x
 	pose.oY = ov.y
@@ -32,28 +32,28 @@ export const quaternionToPose = (quaternion: Quaternion, pose: Pose) => {
 	pose.theta = MathUtils.radToDeg(ov.th)
 }
 
-export const vector3ToPose = (vec3: Vector3, pose: Pose) => {
+export const vector3ToPose = (vec3: Vector3, pose: Partial<Pose>) => {
 	pose.x = vec3.x * 1000
 	pose.y = vec3.y * 1000
 	pose.z = vec3.z * 1000
 }
 
-export const object3dToPose = (object3d: Object3D, pose: Pose) => {
+export const object3dToPose = (object3d: Object3D, pose: Partial<Pose>) => {
 	vector3ToPose(object3d.position, pose)
 	quaternionToPose(object3d.quaternion, pose)
 }
 
-export const poseToQuaternion = (pose: Pose, quaternion: Quaternion) => {
-	const th = MathUtils.degToRad(pose.theta)
+export const poseToQuaternion = (pose: Partial<Pose>, quaternion: Quaternion) => {
+	const th = MathUtils.degToRad(pose.theta ?? 0)
 	ov.set(pose.oX, pose.oY, pose.oZ, th)
 	ov.toQuaternion(quaternion)
 }
 
-export const poseToVector3 = (pose: Pose, vec3: Vector3) => {
-	vec3.set(pose.x, pose.y, pose.z).multiplyScalar(0.001)
+export const poseToVector3 = (pose: Partial<Pose>, vec3: Vector3) => {
+	vec3.set(pose.x ?? 0, pose.y ?? 0, pose.z ?? 0).multiplyScalar(0.001)
 }
 
-export const poseToObject3d = (pose: Pose, object3d: Object3D) => {
+export const poseToObject3d = (pose: Partial<Pose>, object3d: Object3D) => {
 	poseToVector3(pose, object3d.position)
 	poseToQuaternion(pose, object3d.quaternion)
 }
