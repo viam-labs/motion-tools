@@ -42,7 +42,7 @@ func TestDrawGeometry(t *testing.T) {
 				&spatialmath.OrientationVectorDegrees{Theta: 90, OX: 1, OY: 0, OZ: 1},
 			),
 			102,
-			301,
+			300,
 			"myCapsule",
 		)
 		test.That(t, err, test.ShouldBeNil)

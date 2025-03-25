@@ -4,7 +4,7 @@ import type { Frame } from './useFrames.svelte'
 import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 import { DoubleSide, Mesh, MeshToonMaterial, type Points } from 'three'
-import { createGeometry, createPose } from '$lib/transform'
+import { createGeometry, createPose, poseToObject3d } from '$lib/transform'
 import { parsePCD } from '$lib/loaders/pcd'
 
 interface Context {
@@ -53,6 +53,7 @@ export const provideWebsocket = () => {
 
 	const addMesh = (data: any) => {
 		if (data.mesh.contentType === 'ply') {
+			console.log(data)
 			const geometry = plyLoader.parse(atob(data.mesh.mesh))
 			const material = new MeshToonMaterial({
 				color: 'purple',
@@ -61,6 +62,7 @@ export const provideWebsocket = () => {
 				opacity: 0.7,
 			})
 			const mesh = new Mesh(geometry, material)
+			poseToObject3d(data.center, mesh)
 			mesh.name = data.label
 			meshes.push(mesh)
 		}
