@@ -1,30 +1,33 @@
 <script lang="ts">
+	import { Vector3 } from 'three'
 	import { T } from '@threlte/core'
 	import { Gizmo, Grid, interactivity } from '@threlte/extras'
-	import type CC from 'camera-controls'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
 	import CameraControls from '$lib/components/CameraControls.svelte'
 	import Selection from '$lib/components/Selection.svelte'
 	import Focus from '$lib/components/Focus.svelte'
 	import XR from '$lib/components/XR.svelte'
-
-	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
 	import Camera from '$lib/components/Camera.svelte'
-	import { Vector3 } from 'three'
+	import { useFocus } from '$lib/hooks/useSelection.svelte'
+	import type { Snippet } from 'svelte'
+
+	interface Props {
+		children?: Snippet
+	}
+
+	let { children }: Props = $props()
 
 	interactivity()
 
 	const focus = useFocus()
-
-	let controls: CC
 </script>
 
 {#if focus.current === undefined}
 	<Camera position={[3, 3, 3]}>
-		<CameraControls bind:ref={controls}>
+		<CameraControls>
 			<Gizmo />
 		</CameraControls>
 	</Camera>
@@ -46,6 +49,8 @@
 {:else}
 	<Focus />
 {/if}
+
+{@render children?.()}
 
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.DirectionalLight position={[-3, -3, -3]} />

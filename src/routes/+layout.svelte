@@ -8,13 +8,8 @@
 	import { getDialConfs } from '$lib/robots'
 	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
-	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
-	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
-	import { provideShapes } from '$lib/hooks/useShapes.svelte'
+	import App from '$lib/components/App.svelte'
 
-	provideStaticGeometries()
-	provideVisibility()
-	provideShapes()
 	provideConnectionConfigs()
 
 	const connectionConfig = useActiveConnectionConfig()
@@ -40,5 +35,7 @@
 <Machines />
 
 <ViamProvider {dialConfigs}>
-	{@render children()}
+	<App>
+		{@render children()}
+	</App>
 </ViamProvider>

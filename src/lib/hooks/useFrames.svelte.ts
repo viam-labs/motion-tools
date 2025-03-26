@@ -1,12 +1,11 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
 import { useRobotClient, createRobotQuery } from '@viamrobotics/svelte-sdk'
-import { OrientationVector } from '@viamrobotics/three'
 import { getContext, setContext, untrack } from 'svelte'
 import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 import { useShapes } from '$lib/hooks/useShapes.svelte'
 import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
-import { createPose, createGeometry } from '$lib/transform'
+import { createPose, createGeometry, object3dToPose } from '$lib/transform'
 
 export interface Frame {
 	name: string
@@ -73,40 +72,53 @@ export const provideFrames = (partID: () => string) => {
 			.map((query) => query.data)
 			.filter((points) => points !== undefined)
 			.map((points) => {
-				const ov = new OrientationVector()
-				ov.setFromQuaternion(points.quaternion)
+				const pose = createPose()
+				object3dToPose(points, pose)
 				return {
 					name: points.name,
 					parent: points.userData.parent ?? 'world',
 					geometry: createGeometry(),
-					pose: {
-						...points.position,
-						oX: ov.x,
-						oY: ov.y,
-						oZ: ov.z,
-						theta: ov.th,
-					},
+					pose,
 				} satisfies Frame
 			})
 	)
 	const clouds2 = $derived(
 		shapes.points.map((points) => {
+			const pose = createPose()
+			object3dToPose(points, pose)
+
 			return {
 				name: points.name,
 				parent: 'world',
 				geometry: createGeometry(),
-				pose: createPose(),
+				pose,
 			} satisfies Frame
 		})
 	)
 	const meshes = $derived(
 		shapes.meshes.map((mesh) => {
+			const pose = createPose()
+			object3dToPose(mesh, pose)
+
 			return {
 				name: mesh.name,
 				parent: 'world',
 				geometry: createGeometry(),
-				pose: createPose({ ...mesh.position }),
+				pose,
 			} satisfies Frame
+		})
+	)
+	const poses = $derived(
+		shapes.poses.map((arrow) => {
+			const pose = createPose()
+			object3dToPose(arrow, pose)
+
+			return {
+				name: arrow.name,
+				parent: 'world',
+				geometry: createGeometry(),
+				pose,
+			}
 		})
 	)
 	const allGeometries = $derived(geometries.current.flatMap((query) => query.data ?? []))
@@ -118,6 +130,7 @@ export const provideFrames = (partID: () => string) => {
 		...clouds1,
 		...clouds2,
 		...meshes,
+		...poses,
 	])
 
 	setContext<AllFramesContext>(allFramesKey, {

@@ -21,7 +21,7 @@ func TestDrawGeometry(t *testing.T) {
 			"myBox",
 		)
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(box), test.ShouldBeNil)
+		test.That(t, DrawGeometry(box, "purple"), test.ShouldBeNil)
 	})
 	t.Run("draw sphere", func(t *testing.T) {
 		box, err := spatialmath.NewSphere(
@@ -33,7 +33,7 @@ func TestDrawGeometry(t *testing.T) {
 			"mySphere",
 		)
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(box), test.ShouldBeNil)
+		test.That(t, DrawGeometry(box, "red"), test.ShouldBeNil)
 	})
 	t.Run("draw capsule", func(t *testing.T) {
 		capsule, err := spatialmath.NewCapsule(
@@ -46,13 +46,13 @@ func TestDrawGeometry(t *testing.T) {
 			"myCapsule",
 		)
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(capsule), test.ShouldBeNil)
+		test.That(t, DrawGeometry(capsule, "orange"), test.ShouldBeNil)
 	})
 
 	t.Run("draw mesh", func(t *testing.T) {
 		mesh, err := spatialmath.NewMeshFromPLYFile("data/lod_100.ply")
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(mesh), test.ShouldBeNil)
+		test.That(t, DrawGeometry(mesh, "blue"), test.ShouldBeNil)
 	})
 }
 
@@ -60,4 +60,54 @@ func TestDrawPointCloud(t *testing.T) {
 	pc, err := pointcloud.NewFromFile("data/octagon.pcd", logging.Global())
 	test.That(t, err, test.ShouldBeNil)
 	test.That(t, DrawPointCloud(pc), test.ShouldBeNil)
+}
+
+func TestDrawPoses(t *testing.T) {
+
+	p0 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 0, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0, OZ: 1, Theta: 0,
+		},
+	)
+
+	p1 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 10, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0.1, OZ: 0.9, Theta: 0,
+		},
+	)
+
+	p2 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 20, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0.2, OZ: 0.8, Theta: 0,
+		},
+	)
+
+	p3 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 30, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0.3, OZ: 0.7, Theta: 0,
+		},
+	)
+
+	p4 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 40, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0.4, OZ: 0.6, Theta: 0,
+		},
+	)
+
+	p5 := spatialmath.NewPose(
+		r3.Vector{X: 700, Y: 50, Z: 0},
+		&spatialmath.OrientationVectorDegrees{
+			OX: 0, OY: 0.5, OZ: 0.5, Theta: 0,
+		},
+	)
+
+	poses := []spatialmath.Pose{p0, p1, p2, p3, p4, p5}
+	colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
+
+	test.That(t, DrawPoses(poses, colors), test.ShouldBeNil)
 }

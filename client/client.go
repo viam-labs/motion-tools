@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -12,12 +13,23 @@ import (
 
 const url = "http://localhost:3000/"
 
-func DrawGeometry(geometry spatialmath.Geometry) error {
+func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	data, err := protojson.Marshal(geometry.ToProtobuf())
 	if err != nil {
 		return err
 	}
-	return postHTTP(data, "json", "shape")
+
+	wrappedData := map[string]interface{}{
+		"geometry": json.RawMessage(data),
+		"color":    color,
+	}
+
+	finalJSON, err := json.Marshal(wrappedData)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(finalJSON, "json", "geometry")
 }
 
 func DrawPointCloud(pc pointcloud.PointCloud) error {
@@ -26,6 +38,29 @@ func DrawPointCloud(pc pointcloud.PointCloud) error {
 		return err
 	}
 	return postHTTP(buf.Bytes(), "octet-stream", "pcd")
+}
+
+func DrawPoses(poses []spatialmath.Pose, colors []string) error {
+	poseData := make([]json.RawMessage, len(poses))
+	for i, pose := range poses {
+		data, err := json.Marshal(spatialmath.PoseToProtobuf(pose))
+		if err != nil {
+			return err
+		}
+		poseData[i] = json.RawMessage(data)
+	}
+
+	wrappedData := map[string]interface{}{
+		"poses":  poseData,
+		"colors": colors,
+	}
+
+	finalJSON, err := json.Marshal(wrappedData)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(finalJSON, "json", "poses")
 }
 
 func postHTTP(data []byte, content string, endpoint string) error {

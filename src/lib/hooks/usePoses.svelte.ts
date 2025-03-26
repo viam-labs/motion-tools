@@ -22,8 +22,6 @@ export const providePoses = (partID: () => string) => {
 		() => motionResources.current[0]?.name
 	)
 
-	$inspect(motionResources.current)
-
 	const query = $derived(
 		fromStore(
 			createQuery({

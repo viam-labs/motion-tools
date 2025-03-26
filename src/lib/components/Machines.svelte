@@ -10,13 +10,20 @@
 	let open = new PersistedState('machine-connection-config-open', false)
 
 	const onkeydown = (event: KeyboardEvent) => {
+		const key = event.key.toLowerCase()
+
 		if (open.current) {
 			event.stopImmediatePropagation()
+
+			if (key === 'escape') {
+				open.current = false
+			}
+
 			return
 		}
 
-		if (event.key.toLowerCase() === Keybindings.MACHINES) {
-			open.current = !open.current
+		if (key === Keybindings.MACHINES) {
+			open.current = true
 		}
 	}
 

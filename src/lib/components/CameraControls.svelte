@@ -41,7 +41,7 @@
 
 <script lang="ts">
 	interface Props {
-		ref: CameraControls
+		ref?: CameraControls
 		children?: Snippet
 	}
 

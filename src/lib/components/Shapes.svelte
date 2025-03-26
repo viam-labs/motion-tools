@@ -15,7 +15,7 @@
 		name={shape.name}
 		geometry={shape.geometry}
 		pose={shape.pose}
-		color="purple"
+		color={shape.color ?? 'purple'}
 	/>
 {/each}
 
@@ -35,4 +35,8 @@
 			renderOrder={-1}
 		/>
 	</Clickable>
+{/each}
+
+{#each shapes.poses as pose (pose.uuid)}
+	<T is={pose} />
 {/each}

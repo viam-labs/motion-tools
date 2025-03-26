@@ -33,7 +33,7 @@
 
 {#if showTreeview.current}
 	<div
-		class="fixed top-0 left-0 m-2 rounded-md bg-gray-100 p-2 text-xs"
+		class="fixed top-0 left-0 m-2 max-h-1/2 overflow-y-auto rounded-md bg-gray-100 p-2 text-xs"
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
