@@ -1,5 +1,6 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
 import { useRobotClient, createRobotQuery } from '@viamrobotics/svelte-sdk'
+
 import { getContext, setContext, untrack } from 'svelte'
 import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 import { useShapes } from '$lib/hooks/useShapes.svelte'

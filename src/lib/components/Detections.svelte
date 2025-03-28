@@ -1,13 +1,21 @@
 <script lang="ts">
 	import { VisionClient } from '@viamrobotics/sdk'
-	import { readable } from 'svelte/store'
 	import DetectionsPlane from './DetectionsPlane.svelte'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	const partID = usePartID()
 	const cameras = useResourceNames(() => partID.current, 'camera')
-	const visionServices = useResourceNames(() => partID.current, 'vision')
+	const services = useResourceNames(() => partID.current, 'vision')
+	const visionClients = $derived(
+		services.current.map((service) =>
+			createResourceClient(
+				VisionClient,
+				() => partID.current,
+				() => service.name
+			)
+		)
+	)
 
 	// let entity = $derived(
 	// 	visResource

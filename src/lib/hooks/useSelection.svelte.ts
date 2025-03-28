@@ -89,7 +89,11 @@ export const provideSelection = () => {
 	}
 	setContext<FocusedFrameContext>(focusedFrameKey, focusedFrameContext)
 
-	return { selection: selectionContext, focus: focusContext, hover: hoverContext }
+	return {
+		selection: selectionContext,
+		focus: focusContext,
+		hover: hoverContext,
+	}
 }
 
 export const useSelection = () => {

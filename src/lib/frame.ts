@@ -1,8 +1,8 @@
 import { Geometry, Pose } from '@viamrobotics/sdk'
 import { Quaternion, Vector3, BufferGeometry, Color } from 'three'
-import { poseToQuaternion, poseToVector3 } from './transform'
+import { createPose, poseToQuaternion, poseToVector3 } from './transform'
 
-const nullPose = new Pose()
+const nullPose = createPose()
 
 export type GeometryType =
 	| {
@@ -37,13 +37,17 @@ export class Frame {
 
 	geometry: GeometryType | undefined
 
-	constructor(pose?: Partial<Pose>) {
+	constructor(name = '', parent = 'world', pose?: Partial<Pose>, geometry?: Geometry) {
+		this.name = name
+		this.parent = parent
 		this.setPose(pose ?? nullPose)
+
+		if (geometry) this.setGeometry(geometry)
 	}
 
-	setPose(pose: Partial<Pose>) {
-		poseToVector3(pose, this.position)
-		poseToQuaternion(pose, this.quaternion)
+	setPose(pose?: Partial<Pose>) {
+		poseToVector3(pose ?? nullPose, this.position)
+		poseToQuaternion(pose ?? nullPose, this.quaternion)
 	}
 
 	setGeometry(geometry: Geometry) {
@@ -52,6 +56,15 @@ export class Frame {
 				type: 'sphere',
 				dimensions: {
 					r: geometry.geometryType.value.radiusMm / 1000,
+				},
+			}
+		} else if (geometry.geometryType.case === 'box') {
+			this.geometry = {
+				type: 'box',
+				dimensions: {
+					x: (geometry.geometryType.value?.dimsMm?.x ?? 0) / 1000,
+					y: (geometry.geometryType.value?.dimsMm?.y ?? 0) / 1000,
+					z: (geometry.geometryType.value?.dimsMm?.z ?? 0) / 1000,
 				},
 			}
 		}

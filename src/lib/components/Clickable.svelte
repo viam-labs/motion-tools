@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
-	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
-	import { T } from '@threlte/core'
+	import { T, type Props as ThrelteProps } from '@threlte/core'
 	import { meshBounds, useCursor } from '@threlte/extras'
 	import type { Snippet } from 'svelte'
-	import type { Mesh, Points } from 'three'
+	import type { Mesh, Points, Object3D } from 'three'
+	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
+	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 
-	interface Props {
+	interface Props extends ThrelteProps<Object3D> {
 		object: Mesh | Points
 		name: string
 		children: Snippet

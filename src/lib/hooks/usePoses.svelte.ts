@@ -22,6 +22,7 @@ export const providePoses = (partID: () => string) => {
 		() => motionResources.current[0]?.name
 	)
 
+	// play with setting refetch interval true / false
 	const query = $derived(
 		fromStore(
 			createQuery({

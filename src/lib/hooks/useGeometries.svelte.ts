@@ -1,5 +1,5 @@
 import { ArmClient } from '@viamrobotics/sdk'
-import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
@@ -21,8 +21,9 @@ export const provideGeometries = (partID: () => string) => {
 
 	const options = $derived(
 		clients.map((client) => {
-			return {
+			return queryOptions({
 				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
+				refetchInterval: 1000,
 				queryFn: async (): Promise<Frame[]> => {
 					if (!client.current) return []
 
@@ -35,7 +36,7 @@ export const provideGeometries = (partID: () => string) => {
 						geometry: geo,
 					}))
 				},
-			}
+			})
 		})
 	)
 

@@ -8,7 +8,7 @@
 	import { getDialConfs } from '$lib/robots'
 	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
-	import App from '$lib/components/App.svelte'
+	import MotionTools from '$lib/components/App.svelte'
 
 	provideConnectionConfigs()
 
@@ -35,7 +35,7 @@
 <Machines />
 
 <ViamProvider {dialConfigs}>
-	<App>
+	<MotionTools>
 		{@render children()}
-	</App>
+	</MotionTools>
 </ViamProvider>
