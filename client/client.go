@@ -64,7 +64,6 @@ func DrawPoses(poses []spatialmath.Pose, colors []string) error {
 }
 
 func postHTTP(data []byte, content string, endpoint string) error {
-	fmt.Println(len(data))
 	resp, err := http.Post(url+endpoint, "application/"+content, bytes.NewReader(data))
 	if err != nil {
 		return err
