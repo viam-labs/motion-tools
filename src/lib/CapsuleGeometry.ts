@@ -12,8 +12,8 @@ export class CapsuleGeometry extends LatheGeometry {
 		const path = new Path()
 		const midsectionLength = length - 2 * radius
 
-		path.absarc(0, -midsectionLength / 2 - radius / 2, radius, Math.PI * 1.5, 0)
-		path.absarc(0, midsectionLength / 2 + radius / 2, radius, 0, Math.PI * 0.5)
+		path.absarc(0, -midsectionLength / 2, radius, Math.PI * 1.5, 0)
+		path.absarc(0, midsectionLength / 2, radius, 0, Math.PI * 0.5)
 
 		super(path.getPoints(capSegments), radialSegments)
 		this.rotateX(-Math.PI / 2)
