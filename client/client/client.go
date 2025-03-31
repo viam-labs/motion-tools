@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/viam-labs/motion-tools/client/shapes"
+
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/spatialmath"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -61,6 +63,33 @@ func DrawPoses(poses []spatialmath.Pose, colors []string) error {
 	}
 
 	return postHTTP(finalJSON, "json", "poses")
+}
+
+func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
+	poseData := make([]json.RawMessage, len(nurbs.ControlPts))
+	for i, pose := range nurbs.ControlPts {
+		data, err := json.Marshal(spatialmath.PoseToProtobuf(pose))
+		if err != nil {
+			return err
+		}
+		poseData[i] = json.RawMessage(data)
+	}
+
+	wrappedData := map[string]interface{}{
+		"ControlPts": poseData,
+		"Degree":     nurbs.Degree,
+		"Weights":    nurbs.Weights,
+		"Knots":      nurbs.Knots,
+		"Color":      color,
+		"name":       name,
+	}
+
+	finalJSON, err := json.Marshal(wrappedData)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(finalJSON, "json", "nurbs")
 }
 
 func postHTTP(data []byte, content string, endpoint string) error {

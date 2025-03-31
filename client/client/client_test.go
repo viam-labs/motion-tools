@@ -3,6 +3,8 @@ package client
 import (
 	"testing"
 
+	"github.com/viam-labs/motion-tools/client/shapes"
+
 	"github.com/golang/geo/r3"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/pointcloud"
@@ -50,14 +52,14 @@ func TestDrawGeometry(t *testing.T) {
 	})
 
 	t.Run("draw mesh", func(t *testing.T) {
-		mesh, err := spatialmath.NewMeshFromPLYFile("data/lod_100.ply")
+		mesh, err := spatialmath.NewMeshFromPLYFile("../data/lod_100.ply")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(mesh, "blue"), test.ShouldBeNil)
 	})
 }
 
 func TestDrawPointCloud(t *testing.T) {
-	pc, err := pointcloud.NewFromFile("data/octagon.pcd", logging.Global())
+	pc, err := pointcloud.NewFromFile("../data/octagon.pcd", logging.Global())
 	test.That(t, err, test.ShouldBeNil)
 	test.That(t, DrawPointCloud(pc), test.ShouldBeNil)
 }
@@ -110,4 +112,10 @@ func TestDrawPoses(t *testing.T) {
 	colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
 
 	test.That(t, DrawPoses(poses, colors), test.ShouldBeNil)
+}
+
+func TestDrawNurbs(t *testing.T) {
+	nurbs := shapes.GenerateNURBS(20, 3)
+
+	test.That(t, DrawNurbs(nurbs, "#40E0D0", "nurbs-1"), test.ShouldBeNil)
 }

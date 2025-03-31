@@ -3,6 +3,7 @@ import type { Frame } from './useFrames.svelte'
 import { get, set } from 'idb-keyval'
 import { Debounced } from 'runed'
 import { createGeometry, createPose } from '$lib/transform'
+import { BatchedMesh } from 'three'
 
 const key = Symbol('static-geometries-context')
 

@@ -57,6 +57,10 @@ app.post('/poses', (req, res) => {
 	sendToClient(JSON.stringify(req.body), res)
 })
 
+app.post('/nurbs', (req, res) => {
+	sendToClient(JSON.stringify(req.body), res)
+})
+
 app.post('/pcd', (req, res) => {
 	sendToClient(req.body, res)
 })

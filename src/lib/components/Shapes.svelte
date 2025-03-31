@@ -40,3 +40,7 @@
 {#each shapes.poses as pose (pose.uuid)}
 	<T is={pose} />
 {/each}
+
+{#each shapes.nurbs as nurbs (nurbs.uuid)}
+	<T is={nurbs} />
+{/each}

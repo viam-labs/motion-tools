@@ -3,6 +3,7 @@ module github.com/viam-labs/motion-tools
 go 1.23.2
 
 require (
+	github.com/biotinker/gosl v0.0.0-20250218175248-7e0bff64d88d
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	go.viam.com/rdk v0.67.0
 	go.viam.com/test v1.2.4

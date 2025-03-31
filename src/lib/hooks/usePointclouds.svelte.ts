@@ -1,10 +1,10 @@
-import { Points } from 'three'
-import { PCDLoader } from 'three/addons/loaders/PCDLoader.js'
+import { BufferAttribute, BufferGeometry, Points, PointsMaterial } from 'three'
 import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { createResourceClient, useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
+import { parsePCD } from '$lib/loaders/pcd'
 
 const key = Symbol('pointcloud-context')
 
@@ -13,7 +13,6 @@ interface Context {
 }
 
 export const providePointclouds = (partID: () => string, refetchInterval?: () => number) => {
-	const loader = new PCDLoader()
 	const client = useRobotClient(partID)
 	const cameras = useResourceNames(partID, 'camera')
 
@@ -31,13 +30,22 @@ export const providePointclouds = (partID: () => string, refetchInterval?: () =>
 
 					const transform = true
 
-					const response = await cameraClient.current?.getPointCloud()
+					const response = await cameraClient.current.getPointCloud()
 					const transformed = transform
 						? await client.current?.transformPCD(response, cameraClient.current.name, 'world')
 						: response
 					if (!transformed) return
 
-					const points = loader.parse(new Uint8Array(transformed).buffer)
+					const { positions, colors } = await parsePCD(transformed)
+					const geometry = new BufferGeometry()
+					const material = new PointsMaterial({ size: 0.01, vertexColors: true })
+					geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+
+					if (colors) {
+						geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+					}
+
+					const points = new Points(geometry, material)
 					points.userData.parent = cameraClient.current.name
 					points.name = `${cameraClient.current.name}:pointcloud`
 
