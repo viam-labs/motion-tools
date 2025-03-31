@@ -20,7 +20,9 @@
 
 	let { children }: Props = $props()
 
-	interactivity()
+	interactivity({
+		filter: (items) => items.filter((item) => item.object.visible === true),
+	})
 
 	const focus = useFocus()
 </script>
