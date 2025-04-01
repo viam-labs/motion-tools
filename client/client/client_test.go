@@ -111,7 +111,7 @@ func TestDrawPoses(t *testing.T) {
 	poses := []spatialmath.Pose{p0, p1, p2, p3, p4, p5}
 	colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
 
-	test.That(t, DrawPoses(poses, colors), test.ShouldBeNil)
+	test.That(t, DrawPoses(poses, colors, true), test.ShouldBeNil)
 }
 
 func TestDrawNurbs(t *testing.T) {

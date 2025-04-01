@@ -39,10 +39,11 @@ func DrawPointCloud(pc pointcloud.PointCloud) error {
 	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
 		return err
 	}
+
 	return postHTTP(buf.Bytes(), "octet-stream", "pcd")
 }
 
-func DrawPoses(poses []spatialmath.Pose, colors []string) error {
+func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
 	poseData := make([]json.RawMessage, len(poses))
 	for i, pose := range poses {
 		data, err := json.Marshal(spatialmath.PoseToProtobuf(pose))
@@ -53,8 +54,9 @@ func DrawPoses(poses []spatialmath.Pose, colors []string) error {
 	}
 
 	wrappedData := map[string]interface{}{
-		"poses":  poseData,
-		"colors": colors,
+		"poses":           poseData,
+		"colors":          colors,
+		"arrowHeadAtPose": arrowHeadAtPose,
 	}
 
 	finalJSON, err := json.Marshal(wrappedData)

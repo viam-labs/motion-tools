@@ -24,7 +24,7 @@
 	is={object}
 	{name}
 	raycast={meshBounds}
-	visible={visibility.current.get(name)}
+	visible={visibility.get(name)}
 	onpointerenter={(event) => {
 		event.stopPropagation()
 		onPointerEnter()

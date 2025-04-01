@@ -3,10 +3,12 @@
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
 	import { Folder, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
-	import { useVisibility } from '../hooks/useVisibility.svelte'
+	import { useVisibility } from '../../hooks/useVisibility.svelte'
 	import type { TreeNode } from '$lib/buildTree'
+	import { useExpanded } from './useExpanded.svelte'
 
 	const visibility = useVisibility()
+	const expanded = useExpanded()
 
 	interface Props {
 		rootNode: TreeNode
@@ -17,32 +19,30 @@
 
 	let { title, rootNode, selections, onSelectionChange }: Props = $props()
 
-	const collection = tree.collection<TreeNode>({
-		nodeToValue: (node) => node.id,
-		nodeToString: (node) => node.name,
-		rootNode,
-	})
+	const collection = $derived(
+		tree.collection<TreeNode>({
+			nodeToValue: (node) => node.id,
+			nodeToString: (node) => node.name,
+			rootNode,
+		})
+	)
 
-	const service = useMachine(tree.machine, {
-		id: '1',
-		collection,
-		expandOnClick: true,
-		selectionMode: 'single',
-		onSelectionChange,
-	})
+	const service = $derived(
+		useMachine(tree.machine, {
+			id: '1',
+			collection,
+			expandOnClick: true,
+			selectionMode: 'single',
+			selectedValue: selections,
+			expandedValue: [...expanded],
+			onSelectionChange,
+		})
+	)
 
 	const api = $derived(tree.connect(service, normalizeProps))
 
 	$effect(() => {
-		const col = untrack(() => api).collection
-		const path = col.getIndexPath('world')
-		col.replace(path ?? [], rootNode)
-	})
-
-	$effect(() => untrack(() => api.expand()))
-
-	$effect(() => {
-		untrack(() => api).setSelectedValue(selections)
+		untrack(() => api.expand())
 	})
 </script>
 
@@ -57,7 +57,7 @@
 })}
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
-	{@const isVisible = visibility.current.get(node.name) ?? true}
+	{@const isVisible = visibility.get(node.name) ?? true}
 
 	{#if nodeState.isBranch}
 		<div {...api.getBranchProps(nodeProps)}>
@@ -75,8 +75,7 @@
 				<button
 					onclick={(event) => {
 						event.stopPropagation()
-
-						visibility.current.set(node.name, !isVisible)
+						visibility.set(node.name, !isVisible)
 					}}
 				>
 					{#if isVisible}
@@ -105,7 +104,7 @@
 			<button
 				onclick={(event) => {
 					event.stopPropagation()
-					visibility.current.set(node.name, !isVisible)
+					visibility.set(node.name, !isVisible)
 				}}
 			>
 				{#if isVisible}

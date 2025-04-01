@@ -8,8 +8,11 @@
 
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
+	import { provideTreeExpandedContext } from './useExpanded.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', false)
+
+	provideTreeExpandedContext()
 
 	const selection = useSelection()
 	const allFrames = useAllFrames()
@@ -37,14 +40,13 @@
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
-		{#key rootNode}
-			<Tree
-				{rootNode}
-				selections={[selection.current ?? '']}
-				onSelectionChange={(event) => {
-					selection.set(event.selectedValue[0])
-				}}
-			/>
-		{/key}
+		<Tree
+			{rootNode}
+			selections={[selection.current ?? '']}
+			onSelectionChange={(event) => {
+				console.log(event)
+				selection.set(event.selectedValue[0])
+			}}
+		/>
 	</div>
 {/if}

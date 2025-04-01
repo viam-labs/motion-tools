@@ -9,6 +9,17 @@ export interface TreeNode {
 
 type FrameData = Omit<Frame, 'pose' | 'geometry'>
 
+const sortTreeByName = (node: TreeNode): TreeNode => {
+	if (node.children && node.children.length > 0) {
+		node.children.sort((a, b) => a.name.localeCompare(b.name))
+		for (const child of node.children) {
+			sortTreeByName(child)
+		}
+	}
+
+	return node
+}
+
 /**
  * Creates a tree representing parent child / relationships from a set of frames.
  */
@@ -42,10 +53,12 @@ export const buildTreeNodes = (frames: FrameData[]): TreeNode => {
 		}
 	}
 
-	return {
+	const nextRoot = sortTreeByName({
 		id: 'world',
 		name: 'World',
 		children: rootNodes,
 		href: '/',
-	}
+	})
+
+	return nextRoot
 }

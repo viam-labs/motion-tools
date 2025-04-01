@@ -153,13 +153,19 @@ export const provideShapes = () => {
 		nurbs.push(line)
 	}
 
-	const addPoses = (nextPoses: any[], colors: string[]) => {
+	const addPoses = (nextPoses: any[], colors: string[], arrowHeadAtPose: boolean) => {
 		for (let i = 0, l = nextPoses.length; i < l; i += 1) {
 			const pose = nextPoses[i]
+			const length = 0.05
 
 			direction.set(pose.o_x ?? 0, pose.o_y ?? 0, pose.o_z ?? 0)
 			origin.set((pose.x ?? 0) / 1000, (pose.y ?? 0) / 1000, (pose.z ?? 0) / 1000)
-			const length = 0.05
+
+			if (arrowHeadAtPose) {
+				// Compute the base position so the arrow ends at the origin
+				origin.sub(direction.clone().multiplyScalar(length))
+			}
+
 			const arrow = new ArrowHelper(
 				direction,
 				origin,
@@ -187,7 +193,7 @@ export const provideShapes = () => {
 		}
 
 		if ('poses' in data) {
-			return addPoses(data.poses, data.colors)
+			return addPoses(data.poses, data.colors, data.arrowHeadAtPose)
 		}
 
 		addShape(data.geometry, data.color)

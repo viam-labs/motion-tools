@@ -4,9 +4,7 @@ import { SvelteMap } from 'svelte/reactivity'
 
 const key = Symbol('object-visibility-context')
 
-interface Context {
-	current: SvelteMap<string, boolean>
-}
+type Context = SvelteMap<string, boolean>
 
 export const provideVisibility = () => {
 	const map = new SvelteMap<string, boolean>()
@@ -23,11 +21,7 @@ export const provideVisibility = () => {
 		set('object-visibility', [...map.entries()])
 	})
 
-	setContext<Context>(key, {
-		get current() {
-			return map
-		},
-	})
+	setContext<Context>(key, map)
 }
 
 export const useVisibility = (): Context => {
