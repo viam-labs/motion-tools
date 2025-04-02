@@ -4,9 +4,7 @@ import {
 	BufferAttribute,
 	BufferGeometry,
 	MathUtils,
-	MeshBasicMaterial,
 	PointsMaterial,
-	SphereGeometry,
 	Vector3,
 	Vector4,
 } from 'three'
@@ -135,7 +133,6 @@ export const provideShapes = () => {
 	}
 
 	const addNurbs = (data: any, color: string) => {
-		console.log(data)
 		const controlPoints = data.ControlPts.map(
 			(point) => new Vector4(point.x / 1000, point.y / 1000, point.z / 1000)
 		)

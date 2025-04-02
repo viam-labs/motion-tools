@@ -1,4 +1,4 @@
-import type { Frame } from './hooks/useFrames.svelte'
+import type { Frame } from '$lib/hooks/useFrames.svelte'
 
 export interface TreeNode {
 	id: string

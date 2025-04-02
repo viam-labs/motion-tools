@@ -4,7 +4,7 @@
 	import { fly } from 'svelte/transition'
 	import { Keybindings } from '$lib/keybindings'
 	import { ListTree } from 'lucide-svelte'
-	import { buildTreeNodes } from '$lib/buildTree'
+	import { buildTreeNodes } from './buildTree'
 
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
@@ -40,13 +40,14 @@
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
-		<Tree
-			{rootNode}
-			selections={[selection.current ?? '']}
-			onSelectionChange={(event) => {
-				console.log(event)
-				selection.set(event.selectedValue[0])
-			}}
-		/>
+		{#key rootNode}
+			<Tree
+				{rootNode}
+				selections={[selection.current ?? '']}
+				onSelectionChange={(event) => {
+					selection.set(event.selectedValue[0])
+				}}
+			/>
+		{/key}
 	</div>
 {/if}

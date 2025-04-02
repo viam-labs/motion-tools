@@ -36,7 +36,7 @@ export const providePointclouds = (partID: () => string, refetchInterval?: () =>
 						: response
 					if (!transformed) return
 
-					const { positions, colors } = await parsePCD(transformed)
+					const { positions, colors } = await parsePCD(new Uint8Array(transformed))
 					const geometry = new BufferGeometry()
 					const material = new PointsMaterial({ size: 0.01, vertexColors: true })
 					geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))

@@ -3,8 +3,8 @@
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
 	import { Folder, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
-	import { useVisibility } from '../../hooks/useVisibility.svelte'
-	import type { TreeNode } from '$lib/buildTree'
+	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
+	import type { TreeNode } from './buildTree'
 	import { useExpanded } from './useExpanded.svelte'
 
 	const visibility = useVisibility()
@@ -19,30 +19,35 @@
 
 	let { title, rootNode, selections, onSelectionChange }: Props = $props()
 
-	const collection = $derived(
-		tree.collection<TreeNode>({
-			nodeToValue: (node) => node.id,
-			nodeToString: (node) => node.name,
-			rootNode,
-		})
-	)
+	const collection = tree.collection<TreeNode>({
+		nodeToValue: (node) => node.id,
+		nodeToString: (node) => node.name,
+		rootNode,
+	})
 
-	const service = $derived(
-		useMachine(tree.machine, {
-			id: '1',
-			collection,
-			expandOnClick: true,
-			selectionMode: 'single',
-			selectedValue: selections,
-			expandedValue: [...expanded],
-			onSelectionChange,
-		})
-	)
+	const service = useMachine(tree.machine, {
+		collection,
+		/// selectedValue: selections,
+		// expandedValue: [...expanded],
+		onSelectionChange(details) {
+			onSelectionChange?.(details)
+		},
+		onExpandedChange(details) {
+			expanded.clear()
+			for (const value of details.expandedValue) {
+				expanded.add(value)
+			}
+		},
+	})
 
 	const api = $derived(tree.connect(service, normalizeProps))
 
 	$effect(() => {
-		untrack(() => api.expand())
+		untrack(() => api).setSelectedValue(selections)
+	})
+
+	$effect(() => {
+		untrack(() => api).setExpandedValue([...expanded])
 	})
 </script>
 

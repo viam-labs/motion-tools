@@ -17,3 +17,8 @@ Open the machine config page (top right) and enter in connection details to visu
 - double click to set trackball center
 - Draw arbitrary boxes with labels (persist)
 - Give error logs
+
+- click on individual poses
+- treeview issue
+- pointcloud color
+- remote IP access
