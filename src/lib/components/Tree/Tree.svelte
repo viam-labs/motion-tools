@@ -27,8 +27,6 @@
 
 	const service = useMachine(tree.machine, {
 		collection,
-		/// selectedValue: selections,
-		// expandedValue: [...expanded],
 		onSelectionChange(details) {
 			onSelectionChange?.(details)
 		},
@@ -124,9 +122,7 @@
 
 <div class="root-node">
 	<div {...api.getRootProps()}>
-		{#if title}
-			<h3 {...api.getLabelProps()}>{title}</h3>
-		{/if}
+		<h3 {...api.getLabelProps()}>{rootNode.name}</h3>
 
 		<div {...api.getTreeProps()}>
 			{#each collection.rootNode.children ?? [] as node, index}

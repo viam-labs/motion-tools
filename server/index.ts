@@ -65,6 +65,10 @@ app.post('/pcd', (req, res) => {
 	sendToClient(req.body, res)
 })
 
+app.post('/remove-all', (_req, res) => {
+	sendToClient(JSON.stringify({ removeAll: true }), res)
+})
+
 app.listen(3000, () => {
 	console.log(`Server running on http://localhost:${3000}`)
 })

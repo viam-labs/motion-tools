@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte'
 	import type { Points } from 'three'
 	import Clickable from './Clickable.svelte'
+	import { meshBounds } from '@threlte/extras'
 
 	interface Props {
 		points: Points
@@ -14,6 +15,7 @@
 <Clickable
 	object={points}
 	name={points.name}
+	raycast={meshBounds}
 >
 	{@render children?.()}
 </Clickable>

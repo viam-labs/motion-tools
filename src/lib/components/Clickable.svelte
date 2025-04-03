@@ -2,14 +2,15 @@
 	import { T, type Props as ThrelteProps } from '@threlte/core'
 	import { meshBounds, useCursor } from '@threlte/extras'
 	import type { Snippet } from 'svelte'
-	import type { Mesh, Points, Object3D } from 'three'
+	import type { Mesh, Points, Object3D, ArrowHelper } from 'three'
 	import { useFocus, useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 
 	interface Props extends ThrelteProps<Object3D> {
-		object: Mesh | Points
+		object: Mesh | Points | ArrowHelper
 		name: string
-		children: Snippet
+		children?: Snippet
+		raycast?: typeof meshBounds
 	}
 
 	let { object, name, children, ...rest }: Props = $props()
@@ -23,7 +24,6 @@
 <T
 	is={object}
 	{name}
-	raycast={meshBounds}
 	visible={visibility.get(name)}
 	onpointerenter={(event) => {
 		event.stopPropagation()
@@ -46,5 +46,5 @@
 	}}
 	{...rest}
 >
-	{@render children()}
+	{@render children?.()}
 </T>

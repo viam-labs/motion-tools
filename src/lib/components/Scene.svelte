@@ -21,7 +21,10 @@
 	let { children }: Props = $props()
 
 	interactivity({
-		filter: (items) => items.filter((item) => item.object.visible === true),
+		filter: (items) => {
+			const item = items.find((item) => item.object.visible === true)
+			return item ? [item] : []
+		},
 	})
 
 	const focus = useFocus()

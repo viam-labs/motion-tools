@@ -3,6 +3,7 @@ import {
 	ArrowHelper,
 	BufferAttribute,
 	BufferGeometry,
+	Color,
 	MathUtils,
 	PointsMaterial,
 	Vector3,
@@ -14,7 +15,6 @@ import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 import { DoubleSide, Mesh, MeshToonMaterial, Points } from 'three'
 import { createGeometry, createPose, poseToObject3d } from '$lib/transform'
 import { parsePCD } from '$lib/loaders/pcd'
-
 import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
@@ -69,7 +69,11 @@ export const provideShapes = () => {
 		const buffer = await (data as Blob).arrayBuffer()
 		const { positions, colors } = await parsePCD(new Uint8Array(buffer))
 		const geometry = new BufferGeometry()
-		const material = new PointsMaterial({ size: 0.01, vertexColors: true })
+		const material = new PointsMaterial({
+			size: 0.01,
+			vertexColors: colors !== undefined,
+			color: new Color('#888888'),
+		})
 		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
 
 		if (colors) {
@@ -176,6 +180,14 @@ export const provideShapes = () => {
 		}
 	}
 
+	const removeAll = () => {
+		current.splice(0, current.length)
+		points.splice(0, points.length)
+		meshes.splice(0, meshes.length)
+		poses.splice(0, poses.length)
+		nurbs.splice(0, nurbs.length)
+	}
+
 	ws.onmessage = (event) => {
 		if (typeof event.data === 'object' && 'arrayBuffer' in event.data) {
 			addPcd(event.data)
@@ -184,6 +196,10 @@ export const provideShapes = () => {
 		const data = tryParse(event.data)
 
 		if (!data) return
+
+		if ('removeAll' in data) {
+			return removeAll()
+		}
 
 		if ('Knots' in data) {
 			return addNurbs(data, data.Color)

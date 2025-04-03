@@ -19,6 +19,6 @@ Open the machine config page (top right) and enter in connection details to visu
 - Give error logs
 
 - click on individual poses
-- treeview issue
 - pointcloud color
 - remote IP access
+- delete geometry

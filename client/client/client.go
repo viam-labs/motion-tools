@@ -94,6 +94,17 @@ func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
 	return postHTTP(finalJSON, "json", "nurbs")
 }
 
+func RemoveAllSpatialObjects() error {
+	data := map[string]interface{}{}
+
+	json, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(json, "json", "remove-all")
+}
+
 func postHTTP(data []byte, content string, endpoint string) error {
 	resp, err := http.Post(url+endpoint, "application/"+content, bytes.NewReader(data))
 	if err != nil {
