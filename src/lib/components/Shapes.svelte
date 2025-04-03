@@ -3,7 +3,7 @@
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
 	import Frame from './Frame.svelte'
 	import Pointcloud from './Pointcloud.svelte'
-	import { Edges, meshBounds } from '@threlte/extras'
+	import { Edges } from '@threlte/extras'
 	import { darkenColor } from '$lib/color'
 	import Clickable from './Clickable.svelte'
 
@@ -27,7 +27,6 @@
 	<Clickable
 		name={mesh.name}
 		object={mesh}
-		raycast={meshBounds}
 	>
 		<Edges
 			raycast={() => null}
@@ -47,7 +46,6 @@
 
 {#each shapes.nurbs as nurbs (nurbs.uuid)}
 	<Clickable
-		raycast={meshBounds}
 		name={nurbs.name}
 		object={nurbs}
 	/>

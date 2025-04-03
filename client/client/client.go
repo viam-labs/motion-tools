@@ -107,10 +107,13 @@ func RemoveAllSpatialObjects() error {
 
 func postHTTP(data []byte, content string, endpoint string) error {
 	resp, err := http.Post(url+endpoint, "application/"+content, bytes.NewReader(data))
+
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("HTTP post unsuccessful: %s", resp.Status)
 	}

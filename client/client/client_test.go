@@ -52,7 +52,13 @@ func TestDrawGeometry(t *testing.T) {
 	})
 
 	t.Run("draw mesh", func(t *testing.T) {
-		mesh, err := spatialmath.NewMeshFromPLYFile("../data/lod_100.ply")
+		mesh, err := spatialmath.NewMeshFromPLYFile("../data/lod_500.ply")
+		pose := spatialmath.NewPose(
+			r3.Vector{X: -343.34, Y: -139.51, Z: 537.44},
+			&spatialmath.OrientationVectorDegrees{Theta: 90, OX: -0.9943171068536344, OY: -0.0046240014351797976, OZ: -0.10635840177882347},
+		)
+		mesh.Transform(pose)
+
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(mesh, "blue"), test.ShouldBeNil)
 	})

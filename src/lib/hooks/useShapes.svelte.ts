@@ -18,6 +18,7 @@ import { parsePCD } from '$lib/loaders/pcd'
 import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
+import { meshBounds } from '@threlte/extras'
 
 interface Frame {
 	name: string
@@ -96,7 +97,9 @@ export const provideShapes = () => {
 				opacity: 0.7,
 			})
 			const mesh = new Mesh(geometry, material)
+			console.log(data)
 			poseToObject3d(data.center, mesh)
+			mesh.raycast = meshBounds
 			mesh.name = data.label
 			meshes.push(mesh)
 		}

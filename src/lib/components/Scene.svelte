@@ -22,7 +22,10 @@
 
 	interactivity({
 		filter: (items) => {
-			const item = items.find((item) => item.object.visible === true)
+			const item = items.find((item) => {
+				return item.object.visible === undefined || item.object.visible === true
+			})
+
 			return item ? [item] : []
 		},
 	})
