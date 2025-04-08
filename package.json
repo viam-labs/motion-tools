@@ -45,6 +45,7 @@
 		"@types/ws": "^8.18.1",
 		"@typescript-eslint/eslint-plugin": "^8.29.0",
 		"@typescript-eslint/parser": "^8.29.0",
+		"@viamrobotics/prime-core": "^0.1.2",
 		"@viamrobotics/sdk": "0.39.0",
 		"@viamrobotics/three": "^0.0.9",
 		"@zag-js/svelte": "^1.7.0",

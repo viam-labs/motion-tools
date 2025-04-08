@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { useRobotClient, createRobotQuery } from '@viamrobotics/svelte-sdk'
+import { useRobotClient, createRobotQuery, useConnectionStatus } from '@viamrobotics/svelte-sdk'
 
 import { getContext, setContext, untrack } from 'svelte'
 import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
@@ -29,8 +29,11 @@ const key = Symbol('frames-context')
 const allFramesKey = Symbol('all-frames-context')
 
 export const provideFrames = (partID: () => string) => {
+	const status = useConnectionStatus(partID)
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig', { refetchInterval: 10_000 })
+
+	$inspect(status.current)
 
 	$effect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions

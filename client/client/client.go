@@ -13,7 +13,15 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-const url = "http://localhost:3000/"
+const DEFAULT_URL = "http://localhost:3000/"
+
+var (
+	url = DEFAULT_URL
+)
+
+func SetURL(preferredURL string) {
+	url = preferredURL
+}
 
 func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	data, err := protojson.Marshal(geometry.ToProtobuf())

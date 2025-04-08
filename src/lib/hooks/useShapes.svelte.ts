@@ -55,7 +55,9 @@ const direction = new Vector3()
 const origin = new Vector3()
 
 export const provideShapes = () => {
-	const ws = new WebSocket('ws://localhost:3001')
+	const ws = new WebSocket(
+		`ws://${(globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__}:3001`
+	)
 	const current = $state<Frame[]>([])
 	const points = $state<Points[]>([])
 	const meshes = $state<Mesh[]>([])

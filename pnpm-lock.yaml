@@ -91,6 +91,9 @@ devDependencies:
   '@typescript-eslint/parser':
     specifier: ^8.29.0
     version: 8.29.0(eslint@9.23.0)(typescript@5.8.2)
+  '@viamrobotics/prime-core':
+    specifier: ^0.1.2
+    version: 0.1.2(svelte@5.25.6)
   '@viamrobotics/sdk':
     specifier: 0.39.0
     version: 0.39.0
@@ -663,6 +666,10 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  /@mdi/js@7.4.47:
+    resolution: {integrity: sha512-KPnNOtm5i2pMabqZxpUz7iQf+mfrYZyKCZ8QNz85czgEt7cuHcGorWfdzUMWYA0SD+a6Hn4FmJ+YhzzzjkTZrQ==}
+    dev: true
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1488,6 +1495,21 @@ packages:
       eslint-visitor-keys: 4.2.0
     dev: true
 
+  /@viamrobotics/prime-core@0.1.2(svelte@5.25.6):
+    resolution: {integrity: sha512-VhQf59c1GYnhiRiAkz7WEPYigkkDQ/MkA0NHxavGDmmpdx2hNP3d9JUV1LznZgz+YqWicHFcgwfuIZ2WFs06EA==}
+    peerDependencies:
+      svelte: '>=5 <6'
+    dependencies:
+      '@floating-ui/dom': 1.6.13
+      '@mdi/js': 7.4.47
+      classnames: 2.5.1
+      lodash-es: 4.17.21
+      nanoid: 5.1.5
+      prism-themes: 1.9.0
+      prismjs: 1.30.0
+      svelte: 5.25.6
+    dev: true
+
   /@viamrobotics/sdk@0.39.0:
     resolution: {integrity: sha512-CJoxP+Yz944cHkp4tDg91CY2+PV+AzJ77kW2FogEdklhtoO8vuKIMkt+Ko6NAA9GoiGn7ihcI7BItFRVOmqL5w==}
     dependencies:
@@ -2175,6 +2197,10 @@ packages:
     engines: {node: '>= 14.16.0'}
     dependencies:
       readdirp: 4.1.1
+    dev: true
+
+  /classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
     dev: true
 
   /clsx@2.1.1:
@@ -3492,6 +3518,12 @@ packages:
     hasBin: true
     dev: true
 
+  /nanoid@5.1.5:
+    resolution: {integrity: sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    dev: true
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
@@ -3890,6 +3922,15 @@ packages:
       ansi-regex: 5.0.1
       ansi-styles: 5.2.0
       react-is: 17.0.2
+    dev: true
+
+  /prism-themes@1.9.0:
+    resolution: {integrity: sha512-tX2AYsehKDw1EORwBps+WhBFKc2kxfoFpQAjxBndbZKr4fRmMkv47XN0BghC/K1qwodB1otbe4oF23vUTFDokw==}
+    dev: true
+
+  /prismjs@1.30.0:
+    resolution: {integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw==}
+    engines: {node: '>=6'}
     dev: true
 
   /proxy-addr@2.0.7:
