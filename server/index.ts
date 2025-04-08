@@ -2,27 +2,12 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import { WebSocket, WebSocketServer } from 'ws'
 import { z } from 'zod'
 import { geometrySchema } from './schema'
-import os from 'node:os'
+import { getLocalIP } from './ip'
 
 const app = express()
 
 app.use(express.json({ limit: '100mb' }))
 app.use(express.raw({ type: 'application/octet-stream', limit: '1000mb' }))
-
-/** Get the local IP (non-internal IPv4 address) */
-const getLocalIP = () => {
-	const interfaces = os.networkInterfaces()
-
-	for (const ifaceList of Object.values(interfaces)) {
-		for (const iface of ifaceList ?? []) {
-			if (iface.family === 'IPv4' && !iface.internal) {
-				return iface.address
-			}
-		}
-	}
-
-	return 'localhost'
-}
 
 const localIP = getLocalIP()
 const connections = new Set<WebSocket>()
@@ -55,16 +40,27 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => 
 		return
 	}
 
+	let completed = 0
+	const errors: Error[] = []
+
 	for (const websocket of connections) {
 		websocket.send(body, (error) => {
 			if (error) {
-				res.json({
-					status: 500,
-					messages: `Websocket error: ${error.message}`,
-				})
+				return errors.push(error)
 			}
-			console.log(messages.success.status, messages.success.message)
-			res.json(messages.success)
+
+			completed += 1
+
+			if (completed === connections.size) {
+				if (errors.length > 0) {
+					return res.json({
+						status: 500,
+						messages: `Websocket error: ${errors.map((error) => error.message).join(',')}`,
+					})
+				}
+
+				res.json(messages.success)
+			}
 		})
 	}
 }
@@ -95,12 +91,12 @@ app.listen(3000, () => {
 
 const wss = new WebSocketServer({ port: 3001, host: localIP })
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, request) => {
 	console.log(`WebSocket server running on ws://${localIP}:${3001}`)
 
 	connections.add(ws)
 
-	console.log('New client connected: ', ws.url)
+	console.log('New client connected:', request.socket.remoteAddress)
 
 	ws.on('message', (message) => {
 		console.log(`Received: ${message}`)

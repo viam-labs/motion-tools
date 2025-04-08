@@ -2,22 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { svelteTesting } from '@testing-library/svelte/vite'
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
-import os from 'os'
-
-/** Get the local IP (non-internal IPv4 address) */
-const getLocalIP = () => {
-	const interfaces = os.networkInterfaces()
-
-	for (const ifaceList of Object.values(interfaces)) {
-		for (const iface of ifaceList ?? []) {
-			if (iface.family === 'IPv4' && !iface.internal) {
-				return iface.address
-			}
-		}
-	}
-
-	return 'localhost'
-}
+import { getLocalIP } from './server/ip'
 
 const localIP = getLocalIP()
 
