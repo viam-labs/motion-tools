@@ -1,12 +1,10 @@
 import express, { type Request, type Response, type NextFunction } from 'express'
-import { WebSocketServer, type WebSocket } from 'ws'
+import { WebSocket, WebSocketServer } from 'ws'
 import { z } from 'zod'
 import { geometrySchema } from './schema'
 import os from 'node:os'
 
 const app = express()
-
-let websocket: WebSocket | undefined
 
 app.use(express.json({ limit: '100mb' }))
 app.use(express.raw({ type: 'application/octet-stream', limit: '1000mb' }))
@@ -27,6 +25,7 @@ const getLocalIP = () => {
 }
 
 const localIP = getLocalIP()
+const connections = new Set<WebSocket>()
 
 const messages = {
 	success: {
@@ -50,7 +49,13 @@ const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: Ne
 }
 
 const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => {
-	if (websocket) {
+	if (connections.size === 0) {
+		console.log('No connected client to send:', body)
+		res.json(messages.noClient)
+		return
+	}
+
+	for (const websocket of connections) {
 		websocket.send(body, (error) => {
 			if (error) {
 				res.json({
@@ -61,9 +66,6 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => 
 			console.log(messages.success.status, messages.success.message)
 			res.json(messages.success)
 		})
-	} else {
-		console.log('No connected client to send:', body)
-		res.json(messages.noClient)
 	}
 }
 
@@ -96,9 +98,9 @@ const wss = new WebSocketServer({ port: 3001, host: localIP })
 wss.on('connection', (ws) => {
 	console.log(`WebSocket server running on ws://${localIP}:${3001}`)
 
-	websocket = ws
+	connections.add(ws)
 
-	console.log('New client connected')
+	console.log('New client connected: ', ws.url)
 
 	ws.on('message', (message) => {
 		console.log(`Received: ${message}`)
@@ -106,6 +108,7 @@ wss.on('connection', (ws) => {
 
 	ws.on('close', () => {
 		console.log('Client disconnected')
+		connections.delete(ws)
 	})
 
 	ws.on('error', (error) => {
