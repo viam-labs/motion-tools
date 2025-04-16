@@ -110,14 +110,12 @@ export const provideFrames = (partID: () => string) => {
 	)
 	const poses = $derived(
 		shapes.poses.map((arrow) => {
-			const pose = createPose()
-			object3dToPose(arrow, pose)
-
+			console.log(arrow.userData)
 			return {
 				name: arrow.name,
 				parent: 'world',
 				geometry: createGeometry(),
-				pose,
+				pose: arrow.userData.pose,
 			}
 		})
 	)

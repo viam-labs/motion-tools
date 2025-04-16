@@ -140,18 +140,23 @@
 
 		<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
 
-		<Button
-			class="w-full"
-			icon="image-filter-center-focus"
-			onclick={() => {
-				if (focus.current) {
-					focus.set(undefined)
-				} else {
-					focus.set(frame.name)
-				}
-			}}
-		>
-			{focus.current ? 'Exit' : 'Enter'} object view
-		</Button>
+		{#if focus.current}
+			<Button
+				class="w-full"
+				icon="arrow-left"
+				variant="dark"
+				onclick={() => focus.set(undefined)}
+			>
+				Exit object view
+			</Button>
+		{:else}
+			<Button
+				class="w-full"
+				icon="image-filter-center-focus"
+				onclick={() => focus.set(frame.name)}
+			>
+				Enter object view
+			</Button>
+		{/if}
 	</div>
 {/if}

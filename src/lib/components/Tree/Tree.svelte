@@ -2,7 +2,7 @@
 	import * as tree from '@zag-js/tree-view'
 	import { useMachine, normalizeProps } from '@zag-js/svelte'
 	import { untrack } from 'svelte'
-	import { Folder, ChevronRight, Eye, EyeOff } from 'lucide-svelte'
+	import { ChevronRight, Eye, EyeOff } from 'lucide-svelte'
 	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 	import type { TreeNode } from './buildTree'
 	import { useExpanded } from './useExpanded.svelte'
@@ -60,20 +60,28 @@
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
 	{@const isVisible = visibility.get(node.name) ?? true}
+	{@const { selected } = nodeState}
 
 	{#if nodeState.isBranch}
-		<div {...api.getBranchProps(nodeProps)}>
+		{@const { expanded } = nodeState}
+		<div
+			{...api.getBranchProps(nodeProps)}
+			class={{ 'text-disabled': !isVisible, 'bg-medium': selected }}
+		>
 			<div {...api.getBranchControlProps(nodeProps)}>
-				<Folder size={14} />
+				<span
+					{...api.getBranchIndicatorProps(nodeProps)}
+					class={{ 'rotate-90': expanded }}
+				>
+					<ChevronRight size={14} />
+				</span>
 				<span
 					class="flex items-center"
 					{...api.getBranchTextProps(nodeProps)}
 				>
 					{node.name}
 				</span>
-				<span {...api.getBranchIndicatorProps(nodeProps)}>
-					<ChevronRight size={14} />
-				</span>
+
 				<button
 					onclick={(event) => {
 						event.stopPropagation()
@@ -96,7 +104,7 @@
 		</div>
 	{:else}
 		<div
-			class="flex justify-between"
+			class={{ 'flex justify-between': true, 'text-disabled': !isVisible, 'bg-medium': selected }}
 			{...api.getItemProps(nodeProps)}
 		>
 			<span class="flex items-center gap-1.5">
@@ -178,21 +186,6 @@
 			align-items: center;
 			gap: 8px;
 			min-height: 32px;
-
-			& svg {
-				width: 16px;
-				height: 16px;
-				opacity: 0.5;
-			}
-
-			&:hover {
-				background: var(--colors-border-bold);
-			}
-
-			&[data-selected] {
-				background: var(--colors-bg-primary-bold);
-				color: var(--colors-text-inverse);
-			}
 		}
 
 		[data-scope='tree-view'][data-part='item-text'],
@@ -212,14 +205,6 @@
 			height: 100%;
 			translate: calc(var(--depth) * 1.25rem);
 			z-index: 0;
-		}
-
-		[data-scope='tree-view'][data-part='branch-indicator'] {
-			display: flex;
-			align-items: center;
-			&[data-state='open'] svg {
-				transform: rotate(90deg);
-			}
 		}
 	}
 </style>

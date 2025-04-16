@@ -48,7 +48,7 @@ const tryParse = (json: string) => {
 	}
 }
 
-let index = 0
+let pointsIndex = 0
 let poseIndex = 0
 
 const direction = new Vector3()
@@ -84,7 +84,7 @@ export const provideShapes = () => {
 
 		const result = new Points(geometry, material)
 
-		result.name = `points ${++index}`
+		result.name = `points ${++pointsIndex}`
 		points.push(result)
 	}
 
@@ -180,7 +180,9 @@ export const provideShapes = () => {
 				0.2 * length
 			)
 
-			arrow.name = `pose ${poseIndex++}`
+			arrow.userData.pose = createPose({ ...pose, oX: pose.o_x, oY: pose.o_y, oZ: pose.o_z })
+
+			arrow.name = `pose ${++poseIndex}`
 
 			poses.push(arrow)
 		}
@@ -192,6 +194,9 @@ export const provideShapes = () => {
 		meshes.splice(0, meshes.length)
 		poses.splice(0, poses.length)
 		nurbs.splice(0, nurbs.length)
+
+		pointsIndex = 0
+		poseIndex = 0
 	}
 
 	ws.onmessage = (event) => {
