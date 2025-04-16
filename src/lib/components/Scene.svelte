@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Vector3 } from 'three'
+	import { Color, Vector3 } from 'three'
 	import { T } from '@threlte/core'
 	import { Gizmo, Grid, interactivity } from '@threlte/extras'
 	import Frames from '$lib/components/Frames.svelte'
@@ -33,6 +33,11 @@
 	const focus = useFocus()
 </script>
 
+<T.Color
+	attach="background"
+	args={[new Color('white')]}
+/>
+
 {#if focus.current === undefined}
 	<Camera position={[3, 3, 3]}>
 		<CameraControls>
@@ -49,7 +54,7 @@
 
 	<Grid
 		plane="xy"
-		sectionColor="grey"
+		sectionColor="lightgrey"
 		infiniteGrid
 		fadeOrigin={new Vector3()}
 		fadeDistance={25}
