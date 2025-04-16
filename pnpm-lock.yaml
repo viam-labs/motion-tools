@@ -13,6 +13,15 @@ dependencies:
     version: 0.1.3(@tanstack/svelte-query@5.74.3)(@viamrobotics/sdk@0.40.0)(svelte@5.26.3)
 
 devDependencies:
+  '@ag-grid-community/client-side-row-model':
+    specifier: ^32.3.5
+    version: 32.3.5
+  '@ag-grid-community/core':
+    specifier: ^32.3.5
+    version: 32.3.5
+  '@ag-grid-community/styles':
+    specifier: ^32.3.5
+    version: 32.3.5
   '@dimforge/rapier3d-compat':
     specifier: ^0.15.1
     version: 0.15.1
@@ -195,6 +204,24 @@ packages:
 
   /@adobe/css-tools@4.4.1:
     resolution: {integrity: sha512-12WGKBQzjUAI4ayyF4IAtfw2QR/IDoqk6jTddXDhtYTJF9ASmoE1zst7cVtP0aL/F1jUJL5r+JxKXKEgHNbEUQ==}
+    dev: true
+
+  /@ag-grid-community/client-side-row-model@32.3.5:
+    resolution: {integrity: sha512-dTAko9W0E914BMVfDBcresQfDZZPiVVmkbS2iRwDPX0erqYT2/nkuXXVh5If1LFnAqM1q5EQTZDZaLXDv2GO7Q==}
+    dependencies:
+      '@ag-grid-community/core': 32.3.5
+      tslib: 2.8.1
+    dev: true
+
+  /@ag-grid-community/core@32.3.5:
+    resolution: {integrity: sha512-RGL3RyPCKC4R2fcG1gXdk7rs+CXig23wufTFJfbE46aQDxg941ww07G0cDS5Z5u/6btM9GJkxlwcR0JVEI003A==}
+    dependencies:
+      ag-charts-types: 10.3.5
+      tslib: 2.8.1
+    dev: true
+
+  /@ag-grid-community/styles@32.3.5:
+    resolution: {integrity: sha512-gr4orZTYDqx3r+P+F8SSaL4BFzSTopjqaua5wXcOHfUm7OGENcgogMo2DiaMnxzcc33T/TbOIiL8RCDP7X0efw==}
     dev: true
 
   /@alloc/quick-lru@5.2.0:
@@ -2001,6 +2028,10 @@ packages:
     resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  /ag-charts-types@10.3.5:
+    resolution: {integrity: sha512-DtvV+IS4RlocGV2IcaQOe/eM6eBGGCvkLnwxGkDxKa8ddxivv90fwlfPxK0O5XnVectiKtWFfOw35Cm0k+4vMw==}
+    dev: true
 
   /agent-base@7.1.3:
     resolution: {integrity: sha512-jRR5wdylq8CkOe6hei19GGZnxM6rBGwFl3Bg0YItGDimvjGtAvdZk4Pu6Cl4u4Igsws4a1fd1Vq3ezrhn4KmFw==}

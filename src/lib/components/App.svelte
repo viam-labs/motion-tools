@@ -6,7 +6,6 @@
 	import TreeContainer from '$lib/components/Tree/TreeContainer.svelte'
 	import Logs from '$lib/components/Logs.svelte'
 	import Details from '$lib/components/Details.svelte'
-	import { ChevronLeft } from 'lucide-svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
@@ -50,13 +49,6 @@
 {#if focus.current === undefined}
 	<TreeContainer />
 	<Logs />
-{:else}
-	<button
-		class="fixed top-0 left-0 p-2"
-		onclick={() => focus.set(undefined)}
-	>
-		<ChevronLeft />
-	</button>
 {/if}
 
 {#if false}

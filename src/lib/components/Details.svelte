@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { useSelectedFrame, useFocusedFrame } from '$lib/hooks/useSelection.svelte'
+	import { useSelectedFrame, useFocusedFrame, useFocus } from '$lib/hooks/useSelection.svelte'
 	import { Check, Copy } from 'lucide-svelte'
+	import { Button } from '@viamrobotics/prime-core'
 
 	const selectedFrame = useSelectedFrame()
 	const focusedFrame = useFocusedFrame()
+	const focus = useFocus()
 	const frame = $derived(focusedFrame.current ?? selectedFrame.current)
 
 	let copied = $state(false)
@@ -12,8 +14,8 @@
 {#if frame}
 	{@const { pose } = frame}
 	{@const { center, geometryType } = frame.geometry}
-	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border text-xs">
-		<div class="flex items-center justify-between gap-2 p-2">
+	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border p-2 text-xs">
+		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
 				<strong class="font-semibold">{frame.name}</strong>
 			</div>
@@ -33,12 +35,12 @@
 			</button>
 		</div>
 
-		<div class="border-medium w-full border-b"></div>
+		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
 
-		<div class="flex flex-col gap-2.5 p-2">
+		<h3 class="text-subtle-2 py-2">Details</h3>
+
+		<div class="flex flex-col gap-2.5">
 			<div>
-				<h3 class="text-subtle-2 pb-1.5">Details</h3>
-
 				<strong class="font-semibold">position</strong>
 				<div class="flex gap-3">
 					<div>
@@ -135,5 +137,21 @@
 				</div>
 			{/if}
 		</div>
+
+		<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
+
+		<Button
+			class="w-full"
+			icon="image-filter-center-focus"
+			onclick={() => {
+				if (focus.current) {
+					focus.set(undefined)
+				} else {
+					focus.set(frame.name)
+				}
+			}}
+		>
+			{focus.current ? 'Exit' : 'Enter'} object view
+		</Button>
 	</div>
 {/if}
