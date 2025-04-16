@@ -61,6 +61,7 @@
 		positions[X_AXIS_X_COMPONENT_INDEX] = length
 		positions[Y_AXIS_Y_COMPONENT_INDEX] = length
 		positions[Z_AXIS_Z_COMPONENT_INDEX] = length
+
 		geometry.setPositions(positions)
 	})
 </script>

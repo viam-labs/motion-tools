@@ -13,11 +13,10 @@
 	interface Props {
 		rootNode: TreeNode
 		selections: string[]
-		title?: string
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { title, rootNode, selections, onSelectionChange }: Props = $props()
+	let { rootNode, selections, onSelectionChange }: Props = $props()
 
 	const collection = tree.collection<TreeNode>({
 		nodeToValue: (node) => node.id,
@@ -122,7 +121,9 @@
 
 <div class="root-node">
 	<div {...api.getRootProps()}>
-		<h3 {...api.getLabelProps()}>{rootNode.name}</h3>
+		<div class="border-medium border-b p-2">
+			<h3 {...api.getLabelProps()}>{rootNode.name}</h3>
+		</div>
 
 		<div {...api.getTreeProps()}>
 			{#each collection.rootNode.children ?? [] as node, index}
@@ -176,7 +177,6 @@
 			display: flex;
 			align-items: center;
 			gap: 8px;
-			border-radius: 2px;
 			min-height: 32px;
 
 			& svg {

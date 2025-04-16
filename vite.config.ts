@@ -3,6 +3,9 @@ import { svelteTesting } from '@testing-library/svelte/vite'
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
 import { getLocalIP } from './server/ip'
+import dns from 'node:dns'
+
+dns.setDefaultResultOrder('verbatim')
 
 const localIP = getLocalIP()
 
@@ -26,6 +29,7 @@ export default defineConfig({
 		host: true,
 		port: 5173,
 		allowedHosts: true,
+		cors: true,
 	},
 
 	ssr: {

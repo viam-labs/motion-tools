@@ -16,6 +16,7 @@
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 	import { provideShapes } from '$lib/hooks/useShapes.svelte'
+	import { providePollingRates } from '$lib/hooks/usePollingRates.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -28,6 +29,7 @@
 	provideStaticGeometries()
 	provideVisibility()
 	provideShapes()
+	providePollingRates()
 
 	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)

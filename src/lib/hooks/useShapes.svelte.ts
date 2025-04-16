@@ -55,9 +55,8 @@ const direction = new Vector3()
 const origin = new Vector3()
 
 export const provideShapes = () => {
-	const ws = new WebSocket(
-		`ws://${(globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__}:3001`
-	)
+	const ip = (globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__ ?? 'localhost'
+	const ws = new WebSocket(`ws://${ip}:3001`)
 	const current = $state<Frame[]>([])
 	const points = $state<Points[]>([])
 	const meshes = $state<Mesh[]>([])
@@ -65,7 +64,7 @@ export const provideShapes = () => {
 	const nurbs = $state<Line2[]>([])
 
 	ws.onopen = () => {
-		console.log('Connected to websocket server')
+		console.log(`Connected to websocket server on IP: ${ip}`)
 	}
 
 	const addPcd = async (data: any) => {
@@ -143,7 +142,7 @@ export const provideShapes = () => {
 
 	const addNurbs = (data: any, color: string) => {
 		const controlPoints = data.ControlPts.map(
-			(point) => new Vector4(point.x / 1000, point.y / 1000, point.z / 1000)
+			(point: Vector3) => new Vector4(point.x / 1000, point.y / 1000, point.z / 1000)
 		)
 		const curve = new NURBSCurve(data.Degree, data.Knots, controlPoints)
 
@@ -180,7 +179,9 @@ export const provideShapes = () => {
 				0.25 * length,
 				0.2 * length
 			)
+
 			arrow.name = `pose ${poseIndex++}`
+
 			poses.push(arrow)
 		}
 	}

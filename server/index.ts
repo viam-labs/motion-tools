@@ -26,10 +26,13 @@ const messages = {
 // Middleware for validation
 const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
 	const result = schema.safeParse(req.body)
+
 	if (!result.success) {
 		return res.status(400).json({ errors: result.error.format() })
 	}
+
 	req.body = result.data // Ensures type safety in controllers
+
 	next()
 }
 
@@ -41,6 +44,7 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => 
 	}
 
 	let completed = 0
+
 	const errors: Error[] = []
 
 	for (const websocket of connections) {
@@ -89,9 +93,9 @@ app.listen(3000, () => {
 	console.log(`Server running on http://${localIP}:${3000}`)
 })
 
-const wss = new WebSocketServer({ port: 3001, host: localIP })
+const socketServer = new WebSocketServer({ port: 3001, host: localIP })
 
-wss.on('connection', (ws, request) => {
+socketServer.on('connection', (ws, request) => {
 	console.log(`WebSocket server running on ws://${localIP}:${3001}`)
 
 	connections.add(ws)

@@ -9,6 +9,9 @@
 @import '@skeletonlabs/skeleton/optional/presets';
 @import '@skeletonlabs/skeleton/themes/cerberus';
 
+@import '@viamrobotics/prime-core/prime.css';
+
 body {
 	height: 100dvh;
+	font-family: system-ui;
 }

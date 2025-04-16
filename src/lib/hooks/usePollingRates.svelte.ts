@@ -2,13 +2,13 @@ import { get, set } from 'idb-keyval'
 import { getContext, setContext } from 'svelte'
 import { SvelteMap } from 'svelte/reactivity'
 
-const key = Symbol('object-visibility-context')
-const idbKey = 'object-visibility'
+const key = Symbol('polling-rate-context')
+const idbKey = 'polling-rate'
 
-type Context = SvelteMap<string, boolean>
+type Context = SvelteMap<string, number>
 
-export const provideVisibility = () => {
-	const map = new SvelteMap<string, boolean>()
+export const providePollingRates = () => {
+	const map = new SvelteMap<string, number>()
 
 	get(idbKey).then((entries) => {
 		if (entries) {
@@ -25,6 +25,6 @@ export const provideVisibility = () => {
 	setContext<Context>(key, map)
 }
 
-export const useVisibility = (): Context => {
+export const usePollingRates = (): Context => {
 	return getContext<Context>(key)
 }

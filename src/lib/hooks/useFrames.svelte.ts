@@ -1,7 +1,6 @@
-import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { useRobotClient, createRobotQuery, useConnectionStatus } from '@viamrobotics/svelte-sdk'
-
 import { getContext, setContext, untrack } from 'svelte'
+import type { Geometry, Pose } from '@viamrobotics/sdk'
+import { useRobotClient, createRobotQuery } from '@viamrobotics/svelte-sdk'
 import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 import { useShapes } from '$lib/hooks/useShapes.svelte'
 import { useGeometries } from '$lib/hooks/useGeometries.svelte'
@@ -29,11 +28,8 @@ const key = Symbol('frames-context')
 const allFramesKey = Symbol('all-frames-context')
 
 export const provideFrames = (partID: () => string) => {
-	const status = useConnectionStatus(partID)
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig', { refetchInterval: 10_000 })
-
-	$inspect(status.current)
 
 	$effect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -125,7 +121,9 @@ export const provideFrames = (partID: () => string) => {
 			}
 		})
 	)
+
 	const allGeometries = $derived(geometries.current.flatMap((query) => query.data ?? []))
+
 	const allFrames = $derived([
 		...frames.current,
 		...statics.current,
