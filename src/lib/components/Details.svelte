@@ -19,6 +19,12 @@
 			<div class="flex items-center gap-1">
 				<strong class="font-semibold">{frame.name}</strong>
 			</div>
+		</div>
+
+		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
+
+		<h3 class="text-subtle-2 flex justify-between py-2">
+			Details
 
 			<button
 				onclick={async () => {
@@ -33,11 +39,7 @@
 					<Copy size={14} />
 				{/if}
 			</button>
-		</div>
-
-		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
-
-		<h3 class="text-subtle-2 py-2">Details</h3>
+		</h3>
 
 		<div class="flex flex-col gap-2.5">
 			<div>
@@ -132,8 +134,15 @@
 				</div>
 			{:else if geometryType.case === 'sphere'}
 				<div class="flex justify-between">
-					radius
-					{geometryType.value.radiusMm.toFixed(2)}
+					<div>
+						<strong class="font-semibold">dimensions</strong>
+						<div class="flex gap-3">
+							<div>
+								<span class="text-subtle-2">r</span>
+								{geometryType.value.radiusMm.toFixed(2)}
+							</div>
+						</div>
+					</div>
 				</div>
 			{/if}
 		</div>

@@ -2,7 +2,7 @@
 	import { TransformControls } from '@threlte/extras'
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
-	import { useControls } from '$lib/hooks/useControls.svelte'
+	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import Frame from './Frame.svelte'
 	import { PersistedState } from 'runed'
@@ -11,14 +11,13 @@
 
 	type Modes = 'translate' | 'rotate' | 'scale'
 
-	const controls = useControls()
+	const transformControls = useTransformControls()
 	const geometries = useStaticGeometries()
 	const selection = useSelection()
 
 	let mode = new PersistedState<Modes>('transform-mode', 'translate')
 
 	const quaternion = new Quaternion()
-	const nullRotation = new Quaternion()
 	const vector3 = new Vector3()
 </script>
 
@@ -56,9 +55,9 @@
 				<TransformControls
 					object={ref}
 					mode={mode.current}
-					onmouseDown={() => controls.setTransformControlsActive(true)}
+					onmouseDown={() => transformControls.setActive(true)}
 					onmouseUp={(event) => {
-						controls.setTransformControlsActive(false)
+						transformControls.setActive(false)
 
 						const { object } = event.target
 						if (mode.current === 'translate') {

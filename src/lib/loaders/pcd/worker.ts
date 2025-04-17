@@ -16,8 +16,6 @@ self.onmessage = async (event) => {
 			const positionArray = pcd.geometry.attributes.position.array
 			const colorArray = pcd.geometry.attributes.color ? pcd.geometry.attributes.color.array : null
 
-			console.log(colorArray)
-
 			postMessage(
 				{ success: true, positionArray, colorArray },
 				colorArray ? [positionArray.buffer, colorArray.buffer] : [positionArray.buffer]

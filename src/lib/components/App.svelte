@@ -16,6 +16,7 @@
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 	import { provideShapes } from '$lib/hooks/useShapes.svelte'
 	import { providePollingRates } from '$lib/hooks/usePollingRates.svelte'
+	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -25,6 +26,7 @@
 
 	const partID = usePartID()
 
+	provideTransformControls()
 	provideStaticGeometries()
 	provideVisibility()
 	provideShapes()

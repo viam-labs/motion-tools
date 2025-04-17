@@ -6,8 +6,8 @@ import { getLocalIP } from './ip'
 
 const app = express()
 
-app.use(express.json({ limit: '100mb' }))
-app.use(express.raw({ type: 'application/octet-stream', limit: '1000mb' }))
+app.use(express.json({ limit: '10000mb' }))
+app.use(express.raw({ type: 'application/octet-stream', limit: '10000mb' }))
 
 const localIP = getLocalIP()
 const connections = new Set<WebSocket>()

@@ -82,6 +82,7 @@ export const provideFrames = (partID: () => string) => {
 				} satisfies Frame
 			})
 	)
+
 	const clouds2 = $derived(
 		shapes.points.map((points) => {
 			const pose = createPose()
@@ -95,6 +96,7 @@ export const provideFrames = (partID: () => string) => {
 			} satisfies Frame
 		})
 	)
+
 	const meshes = $derived(
 		shapes.meshes.map((mesh) => {
 			const pose = createPose()
@@ -108,9 +110,9 @@ export const provideFrames = (partID: () => string) => {
 			} satisfies Frame
 		})
 	)
+
 	const poses = $derived(
 		shapes.poses.map((arrow) => {
-			console.log(arrow.userData)
 			return {
 				name: arrow.name,
 				parent: 'world',
@@ -125,7 +127,14 @@ export const provideFrames = (partID: () => string) => {
 	const allFrames = $derived([
 		...frames.current,
 		...statics.current,
-		...shapes.current,
+		...shapes.current.map((shape) => {
+			return {
+				name: shape.name,
+				parent: 'world',
+				geometry: shape.userData.geometry,
+				pose: shape.userData.pose,
+			} satisfies Frame
+		}),
 		...allGeometries,
 		...clouds1,
 		...clouds2,

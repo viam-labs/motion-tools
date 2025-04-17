@@ -1,11 +1,13 @@
 import { getContext, setContext } from 'svelte'
 import {
 	ArrowHelper,
+	BoxGeometry,
 	BufferAttribute,
 	BufferGeometry,
 	Color,
 	MathUtils,
 	PointsMaterial,
+	SphereGeometry,
 	Vector3,
 	Vector4,
 } from 'three'
@@ -19,17 +21,10 @@ import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { meshBounds } from '@threlte/extras'
-
-interface Frame {
-	name: string
-	parent: string
-	geometry: Geometry
-	pose: Pose
-	color: string
-}
+import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 
 interface Context {
-	current: Frame[]
+	current: Mesh[]
 	points: Points[]
 	meshes: Mesh[]
 	poses: ArrowHelper[]
@@ -57,7 +52,7 @@ const origin = new Vector3()
 export const provideShapes = () => {
 	const ip = (globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__ ?? 'localhost'
 	const ws = new WebSocket(`ws://${ip}:3001`)
-	const current = $state<Frame[]>([])
+	const current = $state<Mesh[]>([])
 	const points = $state<Points[]>([])
 	const meshes = $state<Mesh[]>([])
 	const poses = $state<ArrowHelper[]>([])
@@ -98,7 +93,6 @@ export const provideShapes = () => {
 				opacity: 0.7,
 			})
 			const mesh = new Mesh(geometry, material)
-			console.log(data)
 			poseToObject3d(data.center, mesh)
 			mesh.raycast = meshBounds
 			mesh.name = data.label
@@ -111,7 +105,25 @@ export const provideShapes = () => {
 			return addMesh(data, color)
 		}
 
-		const geometry = createGeometry(
+		const mesh = new Mesh()
+		mesh.name = data.label ?? MathUtils.generateUUID()
+
+		if ('box' in data) {
+			const dimsMm = data.box.dimsMm ?? { x: 0, y: 0, z: 0 }
+			mesh.geometry = new BoxGeometry(dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001)
+		} else if ('sphere' in data) {
+			const radiusMm = data.sphere.radiusMm ?? 0
+			mesh.geometry = new SphereGeometry(radiusMm * 0.001)
+		} else if ('capsule' in data) {
+			const { lengthMm, radiusMm } = data.capsule
+			mesh.geometry = new CapsuleGeometry(radiusMm * 0.001, lengthMm * 0.001)
+		}
+
+		mesh.userData.pose = createPose(data.center)
+
+		poseToObject3d(mesh.userData.pose, mesh)
+		mesh.userData.color = color
+		mesh.userData.geometry = createGeometry(
 			data.box
 				? {
 						case: 'box',
@@ -129,15 +141,7 @@ export const provideShapes = () => {
 			data.label
 		)
 
-		const object = {
-			name: data.label ?? MathUtils.generateUUID(),
-			parent: 'world',
-			geometry,
-			pose: createPose(data.center),
-			color,
-		}
-
-		current.push(object)
+		current.push(mesh)
 	}
 
 	const addNurbs = (data: any, color: string) => {

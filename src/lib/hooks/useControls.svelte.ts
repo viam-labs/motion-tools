@@ -1,14 +1,25 @@
-let transformControlsActive = $state(false)
+import { getContext, setContext } from 'svelte'
 
-const context = {
-	get transformControlsActive() {
-		return transformControlsActive
-	},
-	setTransformControlsActive(active: boolean) {
-		transformControlsActive = active
-	},
+interface Context {
+	active: boolean
+	setActive: (value: boolean) => void
 }
 
-export const useControls = () => {
-	return context
+const key = Symbol('tranform-controls-context')
+
+export const provideTransformControls = () => {
+	let active = $state(false)
+
+	setContext<Context>(key, {
+		get active() {
+			return active
+		},
+		setActive(value: boolean) {
+			active = value
+		},
+	})
+}
+
+export const useTransformControls = (): Context => {
+	return getContext<Context>(key)
 }
