@@ -1,6 +1,6 @@
 import { getContext, setContext, untrack } from 'svelte'
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { useRobotClient, createRobotQuery } from '@viamrobotics/svelte-sdk'
+import { useRobotClient, createRobotQuery, useMachineStatus } from '@viamrobotics/svelte-sdk'
 import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 import { useShapes } from '$lib/hooks/useShapes.svelte'
 import { useGeometries } from '$lib/hooks/useGeometries.svelte'
@@ -29,11 +29,13 @@ const allFramesKey = Symbol('all-frames-context')
 
 export const provideFrames = (partID: () => string) => {
 	const client = useRobotClient(partID)
-	const query = createRobotQuery(client, 'frameSystemConfig', { refetchInterval: 10_000 })
+	const query = createRobotQuery(client, 'frameSystemConfig')
+
+	const machineStatus = useMachineStatus(partID)
+	const revision = $derived(machineStatus.current?.config.revision)
 
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		client.current
+		revision
 		untrack(() => query.current).refetch()
 	})
 
@@ -126,13 +128,27 @@ export const provideFrames = (partID: () => string) => {
 
 	const allFrames = $derived([
 		...frames.current,
-		...statics.current,
+		...statics.current.map((mesh) => {
+			return {
+				name: mesh.name,
+				parent: 'world',
+				geometry: mesh.userData.geometry,
+				pose: mesh.userData.pose,
+			}
+		}),
 		...shapes.current.map((shape) => {
 			return {
 				name: shape.name,
 				parent: 'world',
 				geometry: shape.userData.geometry,
 				pose: shape.userData.pose,
+			} satisfies Frame
+		}),
+		...shapes.models.map((model) => {
+			return {
+				name: model.name,
+				parent: 'world',
+				pose: model.userData.pose,
 			} satisfies Frame
 		}),
 		...allGeometries,

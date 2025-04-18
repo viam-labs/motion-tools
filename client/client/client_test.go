@@ -64,6 +64,11 @@ func TestDrawGeometry(t *testing.T) {
 	})
 }
 
+func TestDrawGLTF(t *testing.T) {
+	test.That(t, DrawGLTF("../data/flamingo.glb"), test.ShouldBeNil)
+	// test.That(t, DrawGLTF("../data/coffeemat.glb"), test.ShouldBeNil)
+}
+
 func TestDrawPointCloud(t *testing.T) {
 	pc, err := pointcloud.NewFromFile("../data/octagon.pcd", logging.Global())
 	test.That(t, err, test.ShouldBeNil)

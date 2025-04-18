@@ -61,13 +61,13 @@ export const poseToObject3d = (pose: Partial<Pose>, object3d: Object3D) => {
 export const scaleToDimensions = (scale: Vector3, geometry: Geometry) => {
 	if (geometry.geometryType.case === 'box') {
 		geometry.geometryType.value.dimsMm ??= { x: 0, y: 0, z: 0 }
-		geometry.geometryType.value.dimsMm.x *= scale.x
-		geometry.geometryType.value.dimsMm.y *= scale.y
-		geometry.geometryType.value.dimsMm.z *= scale.z
+		geometry.geometryType.value.dimsMm.x = scale.x * 1000
+		geometry.geometryType.value.dimsMm.y = scale.y * 1000
+		geometry.geometryType.value.dimsMm.z = scale.z * 1000
 	} else if (geometry.geometryType.case === 'capsule') {
-		geometry.geometryType.value.radiusMm = scale.x
-		geometry.geometryType.value.lengthMm = scale.y
+		geometry.geometryType.value.radiusMm = scale.x * 1000
+		geometry.geometryType.value.lengthMm = scale.y * 1000
 	} else if (geometry.geometryType.case === 'sphere') {
-		geometry.geometryType.value.radiusMm = scale.x
+		geometry.geometryType.value.radiusMm = scale.x * 1000
 	}
 }

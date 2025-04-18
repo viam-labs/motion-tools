@@ -6,12 +6,12 @@ import {
 	BufferGeometry,
 	Color,
 	MathUtils,
+	Object3D,
 	PointsMaterial,
 	SphereGeometry,
 	Vector3,
 	Vector4,
 } from 'three'
-import { Geometry, Pose } from '@viamrobotics/sdk'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 import { DoubleSide, Mesh, MeshToonMaterial, Points } from 'three'
@@ -20,8 +20,9 @@ import { parsePCD } from '$lib/loaders/pcd'
 import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
-import { meshBounds } from '@threlte/extras'
+import { meshBounds, useGltf } from '@threlte/extras'
 import { CapsuleGeometry } from '$lib/CapsuleGeometry'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 interface Context {
 	current: Mesh[]
@@ -29,6 +30,7 @@ interface Context {
 	meshes: Mesh[]
 	poses: ArrowHelper[]
 	nurbs: Line2[]
+	models: Object3D[]
 }
 
 const key = Symbol('websocket-context-key')
@@ -38,7 +40,8 @@ const plyLoader = new PLYLoader()
 const tryParse = (json: string) => {
 	try {
 		return JSON.parse(json)
-	} catch {
+	} catch (error) {
+		console.warn('Failed to parse JSON:', error)
 		return
 	}
 }
@@ -57,6 +60,10 @@ export const provideShapes = () => {
 	const meshes = $state<Mesh[]>([])
 	const poses = $state<ArrowHelper[]>([])
 	const nurbs = $state<Line2[]>([])
+	const models = $state<Object3D[]>([])
+	const loader = new GLTFLoader()
+
+	const { load } = useGltf()
 
 	ws.onopen = () => {
 		console.log(`Connected to websocket server on IP: ${ip}`)
@@ -198,14 +205,49 @@ export const provideShapes = () => {
 		meshes.splice(0, meshes.length)
 		poses.splice(0, poses.length)
 		nurbs.splice(0, nurbs.length)
+		models.splice(0, models.length)
 
 		pointsIndex = 0
 		poseIndex = 0
 	}
 
+	let metadata: { ext: string } | undefined = undefined
+
+	const handleMetadata = (data: string) => {
+		const json = tryParse(data)
+
+		if ('ext' in json) {
+			metadata = json
+			return true
+		}
+
+		return false
+	}
+
+	const loadGLTF = async (data: Blob) => {
+		const buffer = await data.arrayBuffer()
+		const blob = new Blob([buffer], { type: 'model/gltf-binary' })
+		const url = URL.createObjectURL(blob)
+		const gltf = await loader.loadAsync(url)
+		gltf.scene.name = `gltf ${models.length + 1}: ${gltf.scene.name}`
+		models.push(gltf.scene)
+		URL.revokeObjectURL(url)
+	}
+
 	ws.onmessage = (event) => {
+		if (typeof event.data === 'string') {
+			if (handleMetadata(event.data)) {
+				return
+			}
+		}
+
 		if (typeof event.data === 'object' && 'arrayBuffer' in event.data) {
-			addPcd(event.data)
+			if (metadata?.ext === 'glb') {
+				loadGLTF(event.data)
+			} else if (metadata?.ext === 'pcd') {
+				addPcd(event.data)
+			}
+			return
 		}
 
 		const data = tryParse(event.data)
@@ -246,6 +288,9 @@ export const provideShapes = () => {
 		},
 		get nurbs() {
 			return nurbs
+		},
+		get models() {
+			return models
 		},
 	})
 }

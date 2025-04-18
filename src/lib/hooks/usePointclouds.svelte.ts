@@ -1,10 +1,13 @@
 import { BufferAttribute, BufferGeometry, Points, PointsMaterial } from 'three'
-import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { createResourceClient, useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { parsePCD } from '$lib/loaders/pcd'
+import { useRefreshRates } from './useRefreshRates.svelte'
+import { usePoses } from './usePoses.svelte'
+import { useFrames } from './useFrames.svelte'
 
 const key = Symbol('pointcloud-context')
 
@@ -12,9 +15,16 @@ interface Context {
 	current: QueryObserverResult<Points | undefined, Error>[]
 }
 
-export const providePointclouds = (partID: () => string, refetchInterval?: () => number) => {
+export const providePointclouds = (partID: () => string) => {
+	const refreshRates = useRefreshRates()
+	const poses = usePoses()
+	const frames = useFrames()
 	const client = useRobotClient(partID)
 	const cameras = useResourceNames(partID, 'camera')
+
+	if (!refreshRates.has('Pointclouds')) {
+		refreshRates.set('Pointclouds', 5000)
+	}
 
 	const clients = $derived(
 		cameras.current.map((camera) => createResourceClient(CameraClient, partID, () => camera.name))
@@ -22,18 +32,27 @@ export const providePointclouds = (partID: () => string, refetchInterval?: () =>
 
 	const options = $derived(
 		clients.map((cameraClient) => {
-			return {
-				refetchInterval: refetchInterval?.(),
-				queryKey: ['partID', partID(), cameraClient.current?.name, 'getPointCloud'],
-				queryFn: async (): Promise<Points | undefined> => {
-					if (!cameraClient.current) return
+			const name = cameraClient.current?.name ?? ''
+			const interval = refreshRates.get('Pointclouds')
 
-					const transform = true
+			return queryOptions({
+				enabled: interval !== -1 && cameraClient.current !== undefined,
+				refetchInterval: interval,
+				queryKey: ['partID', partID(), name, 'getPointCloud'],
+				queryFn: async (): Promise<Points | undefined> => {
+					if (!cameraClient.current) {
+						throw new Error('No camera client')
+					}
+
+					const frame = frames.current.find((frame) => frame.name === name)
+					const transform = frame !== undefined
 
 					const response = await cameraClient.current.getPointCloud()
+
 					const transformed = transform
 						? await client.current?.transformPCD(response, cameraClient.current.name, 'world')
 						: response
+
 					if (!transformed) return
 
 					const { positions, colors } = await parsePCD(new Uint8Array(transformed))
@@ -46,19 +65,22 @@ export const providePointclouds = (partID: () => string, refetchInterval?: () =>
 					}
 
 					const points = new Points(geometry, material)
-					points.userData.parent = cameraClient.current.name
-					points.name = `${cameraClient.current.name}:pointcloud`
+
+					points.userData.parent = frame ? name : 'world'
+					points.name = `${name}:pointcloud`
 
 					return points
 				},
-			}
+			})
 		})
 	)
 
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
-			combine: (results) => results,
+			combine: (result) => {
+				return result
+			},
 		})
 	)
 

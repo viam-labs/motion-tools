@@ -7,6 +7,7 @@ import { getLocalIP } from './ip'
 const app = express()
 
 app.use(express.json({ limit: '10000mb' }))
+app.use(express.raw({ type: 'model/gltf-binary', limit: '10000mb' }))
 app.use(express.raw({ type: 'application/octet-stream', limit: '10000mb' }))
 
 const localIP = getLocalIP()
@@ -36,10 +37,10 @@ const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: Ne
 	next()
 }
 
-const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => {
+const sendToClient = (body: Parameters<WebSocket['send']>[0], res?: Response) => {
 	if (connections.size === 0) {
 		console.log('No connected client to send:', body)
-		res.json(messages.noClient)
+		res?.json(messages.noClient)
 		return
 	}
 
@@ -57,13 +58,13 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res: Response) => 
 
 			if (completed === connections.size) {
 				if (errors.length > 0) {
-					return res.json({
+					return res?.json({
 						status: 500,
 						messages: `Websocket error: ${errors.map((error) => error.message).join(',')}`,
 					})
 				}
 
-				res.json(messages.success)
+				res?.json(messages.success)
 			}
 		})
 	}
@@ -82,6 +83,12 @@ app.post('/nurbs', (req, res) => {
 })
 
 app.post('/pcd', (req, res) => {
+	sendToClient(JSON.stringify({ ext: 'pcd' }))
+	sendToClient(req.body, res)
+})
+
+app.post('/gltf', (req, res) => {
+	sendToClient(JSON.stringify({ ext: 'glb' }))
 	sendToClient(req.body, res)
 })
 

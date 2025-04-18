@@ -1,13 +1,15 @@
 <script lang="ts">
-	import { TransformControls } from '@threlte/extras'
+	import { T } from '@threlte/core'
+	import { Edges, TransformControls } from '@threlte/extras'
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
 	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { Keybindings } from '$lib/keybindings'
-	import Frame from './Frame.svelte'
 	import { PersistedState } from 'runed'
 	import { quaternionToPose, scaleToDimensions, vector3ToPose } from '$lib/transform'
 	import { Quaternion, Vector3 } from 'three'
+	import Clickable from './Clickable.svelte'
+	import { darkenColor } from '$lib/color'
 
 	type Modes = 'translate' | 'rotate' | 'scale'
 
@@ -43,15 +45,13 @@
 	}}
 />
 
-{#each geometries.current as frame (frame.name)}
-	<Frame
-		name={frame.name}
-		pose={frame.pose}
-		geometry={frame.geometry}
-		color="hotpink"
+{#each geometries.current as mesh (mesh.uuid)}
+	<Clickable
+		name={mesh.name}
+		object={mesh}
 	>
 		{#snippet children({ ref })}
-			{#if selection.current === frame.name}
+			{#if selection.current === mesh.name}
 				<TransformControls
 					object={ref}
 					mode={mode.current}
@@ -61,18 +61,28 @@
 
 						const { object } = event.target
 						if (mode.current === 'translate') {
-							vector3ToPose(object.getWorldPosition(vector3), frame.pose)
+							vector3ToPose(object.getWorldPosition(vector3), mesh.userData.pose)
 						} else if (mode.current === 'rotate') {
-							quaternionToPose(ref.getWorldQuaternion(quaternion), frame.pose)
+							quaternionToPose(ref.getWorldQuaternion(quaternion), mesh.userData.pose)
 							ref.quaternion.copy(quaternion)
-							// object.quaternion.copy(nullRotation)
 						} else if (mode.current === 'scale') {
-							scaleToDimensions(ref.scale, frame.geometry)
-							ref.scale.setScalar(1)
+							scaleToDimensions(ref.scale, mesh.userData.geometry)
 						}
 					}}
 				/>
 			{/if}
+
+			<Edges
+				raycast={() => null}
+				color={darkenColor('hotpink', 10)}
+				renderOrder={-1}
+			/>
+
+			<T.MeshToonMaterial
+				color="hotpink"
+				transparent
+				opacity={0.7}
+			/>
 		{/snippet}
-	</Frame>
+	</Clickable>
 {/each}

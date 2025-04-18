@@ -1,8 +1,9 @@
-import { createQueries, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
 import { MotionClient, PoseInFrame, ResourceName } from '@viamrobotics/sdk'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
+import { useRefreshRates } from './useRefreshRates.svelte'
 
 const key = Symbol('poses-context')
 
@@ -13,6 +14,7 @@ interface Context {
 }
 
 export const providePoses = (partID: () => string) => {
+	const refreshRates = useRefreshRates()
 	const resources = useResourceNames(partID)
 	const components = $derived(resources.current.filter(({ type }) => type === 'component'))
 	const motionResources = useResourceNames(partID, 'motion')
@@ -22,15 +24,23 @@ export const providePoses = (partID: () => string) => {
 		)
 	)
 
+	if (!refreshRates.has('Poses')) {
+		refreshRates.set('Poses', 1000)
+	}
+
 	const options = $derived(
 		clients.map((motionClient) => {
-			return {
-				refetchInterval: 1000,
+			const interval = refreshRates.get('Poses')
+
+			return queryOptions({
+				enabled: interval !== -1 && motionClient.current !== undefined,
+				refetchInterval: interval,
 				queryKey: ['partID', partID(), motionClient.current?.name, 'getPose'],
 				queryFn: async (): Promise<PoseWithComponent[]> => {
 					const client = motionClient.current
-
-					if (!client) return []
+					if (!client) {
+						throw new Error('No client')
+					}
 
 					const promises = components.map((component) => {
 						return client.getPose(component, 'world', [])
@@ -43,7 +53,7 @@ export const providePoses = (partID: () => string) => {
 						.filter((result) => result.status === 'fulfilled')
 						.map((result) => ({ ...result.value, component: result.component }))
 				},
-			}
+			})
 		})
 	)
 

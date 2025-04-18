@@ -10,8 +10,10 @@
 	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
+	import RefreshRate from '../RefreshRate.svelte'
 
-	const showTreeview = new PersistedState('show-treeview', false)
+	const showTreeview = new PersistedState('show-treeview', true)
+	const showSettings = new PersistedState('show-settings', false)
 
 	provideTreeExpandedContext()
 
@@ -59,5 +61,20 @@
 				}}
 			/>
 		{/key}
+
+		<button
+			class="border-medium w-full border-t border-b p-2 text-left"
+			onclick={() => (showSettings.current = !showSettings.current)}
+		>
+			<h3>Settings</h3>
+		</button>
+
+		{#if showSettings.current}
+			<div class="flex flex-col gap-1.5 p-2">
+				<RefreshRate name="Pointclouds" />
+				<RefreshRate name="Geometries" />
+				<RefreshRate name="Poses" />
+			</div>
+		{/if}
 	</div>
 {/if}

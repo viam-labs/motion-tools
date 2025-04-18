@@ -7,9 +7,9 @@
 	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 
 	interface Props extends ThrelteProps<Object3D> {
-		object: Mesh | Points | ArrowHelper
+		object: Mesh | Points | ArrowHelper | Object3D
 		name: string
-		children?: Snippet
+		children?: Snippet<[{ ref: Mesh | Points | ArrowHelper | Object3D }]>
 		raycast?: typeof meshBounds
 	}
 
@@ -46,5 +46,5 @@
 	}}
 	{...rest}
 >
-	{@render children?.()}
+	{@render children?.({ ref: object })}
 </T>

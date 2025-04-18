@@ -9,7 +9,7 @@
 	const shapes = useShapes()
 </script>
 
-{#each shapes.current as mesh}
+{#each shapes.current as mesh (mesh.uuid)}
 	<Clickable
 		name={mesh.name}
 		object={mesh}
@@ -58,5 +58,12 @@
 	<Clickable
 		name={nurbs.name}
 		object={nurbs}
+	/>
+{/each}
+
+{#each shapes.models as model (model.uuid)}
+	<Clickable
+		name={model.name}
+		object={model}
 	/>
 {/each}
