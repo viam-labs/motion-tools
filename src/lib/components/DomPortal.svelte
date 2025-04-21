@@ -5,6 +5,7 @@
 
 	$effect(() => {
 		document.body.append(div)
+		return () => div.remove()
 	})
 </script>
 

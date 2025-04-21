@@ -5,10 +5,11 @@
 	import { Mesh, Quaternion, Vector3, type ColorRepresentation } from 'three'
 	import type { Geometry, Pose } from '@viamrobotics/sdk'
 	import { CapsuleGeometry } from '$lib/CapsuleGeometry'
-	import AxesHelper from './AxesHelper.svelte'
+
 	import { poseToQuaternion, poseToVector3 } from '$lib/transform'
 	import { darkenColor } from '$lib/color'
 	import Clickable from './Clickable.svelte'
+	import AxesHelper from './AxesHelper.svelte'
 
 	interface Props {
 		name: string

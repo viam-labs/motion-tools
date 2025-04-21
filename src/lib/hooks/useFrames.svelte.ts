@@ -6,6 +6,7 @@ import { useShapes } from '$lib/hooks/useShapes.svelte'
 import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 import { createPose, createGeometry, object3dToPose } from '$lib/transform'
+import { usePoses } from './usePoses.svelte'
 
 export interface Frame {
 	name: string
@@ -30,6 +31,7 @@ const allFramesKey = Symbol('all-frames-context')
 export const provideFrames = (partID: () => string) => {
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig')
+	const poses = usePoses()
 
 	const machineStatus = useMachineStatus(partID)
 	const revision = $derived(machineStatus.current?.config.revision)
@@ -39,8 +41,8 @@ export const provideFrames = (partID: () => string) => {
 		untrack(() => query.current).refetch()
 	})
 
-	const current = $derived(
-		(query.current.data ?? []).map((config) => {
+	const current = $derived.by(() => {
+		return (query.current.data ?? []).map((config) => {
 			return {
 				name: config.frame?.referenceFrame ?? '',
 				parent: config.frame?.poseInObserverFrame?.referenceFrame ?? 'world',
@@ -48,7 +50,7 @@ export const provideFrames = (partID: () => string) => {
 				geometry: config.frame?.physicalObject ?? createGeometry(),
 			}
 		})
-	)
+	})
 	const error = $derived(query.current.error ?? undefined)
 	const fetching = $derived(query.current.isFetching)
 
@@ -113,7 +115,7 @@ export const provideFrames = (partID: () => string) => {
 		})
 	)
 
-	const poses = $derived(
+	const drawnPoses = $derived(
 		shapes.poses.map((arrow) => {
 			return {
 				name: arrow.name,
@@ -155,7 +157,7 @@ export const provideFrames = (partID: () => string) => {
 		...clouds1,
 		...clouds2,
 		...meshes,
-		...poses,
+		...drawnPoses,
 	])
 
 	setContext<AllFramesContext>(allFramesKey, {

@@ -60,7 +60,11 @@ export const providePoses = (partID: () => string) => {
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
-			combine: (results) => results,
+			combine: (results) => {
+				return {
+					data: results.flatMap((result) => result.data),
+				}
+			},
 		})
 	)
 

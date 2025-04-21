@@ -133,7 +133,10 @@
 			<h3 {...api.getLabelProps()}>{rootNode.name}</h3>
 		</div>
 
-		<div {...api.getTreeProps()}>
+		<div
+			{...api.getTreeProps()}
+			class="w-[240px]"
+		>
 			{#each collection.rootNode.children ?? [] as node, index}
 				{@render treeNode({ node, indexPath: [index], api })}
 			{/each}
@@ -142,40 +145,7 @@
 </div>
 
 <style>
-	.root-node {
-		--colors-bg-subtle: #ffffff;
-		--colors-bg-bold: #edf2f7;
-		--colors-bg-primary-subtle: #38a169;
-		--colors-bg-primary-bold: #2f855a;
-		--colors-bg-secondary-subtle: #000000;
-		--colors-bg-secondary-bold: #2d3748;
-		--colors-bg-tertiary-bold: #c6f6d5;
-		--colors-bg-tertiary-subtle: #f0fff4;
-		--colors-bg-code-block: hsl(230, 1%, 98%);
-		--colors-bg-code-inline: rgba(0, 0, 0, 0.04);
-		--colors-bg-header: rgba(255, 255, 255, 0.92);
-		--colors-bg-badge: #feebc8;
-		--colors-text-bold: #171923;
-		--colors-text-subtle: #4a5568;
-		--colors-text-primary-bold: #38a169;
-		--colors-text-inverse: #ffffff;
-		--colors-text-primary-subtle: #2f855a;
-		--colors-text-badge: #c05621;
-		--colors-border-subtle: #edf2f7;
-		--colors-border-bold: #e2e8f0;
-		--colors-border-primary-subtle: #38a169;
-		--colors-border-primary-bold: #2f855a;
-	}
-
 	:global(:root) {
-		[data-scope='tree-view'][data-part='tree'] {
-			width: 240px;
-		}
-
-		[data-scope='tree-view'][data-part='label'] {
-			font-weight: 500;
-		}
-
 		[data-scope='tree-view'][data-part='item'],
 		[data-scope='tree-view'][data-part='branch-control'] {
 			user-select: none;
