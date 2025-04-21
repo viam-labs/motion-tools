@@ -11,11 +11,16 @@ import (
 	"github.com/viam-labs/motion-tools/client/shapes"
 
 	"go.viam.com/rdk/pointcloud"
+	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const DEFAULT_URL = "http://localhost:3000/"
+
+// DefaultColorMap is a list of sensible colors to cycle between
+// this is also the "Set1" colormap in Matplotlib
+var DefaultColorMap = []string{"#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"}
 
 var (
 	url = DEFAULT_URL
@@ -145,6 +150,23 @@ func DrawGLTF(filePath string) error {
 		return fmt.Errorf("HTTP post unsuccessful: %s", resp.Status)
 	}
 
+	return nil
+}
+
+func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
+	frameGeomMap, err := referenceframe.FrameSystemGeometries(fs, inputs)
+	if err != nil {
+		return err
+	}
+	i := 0
+	for _, geoms := range frameGeomMap {
+		for _, geom := range geoms.Geometries() {
+			if err = DrawGeometry(geom, DefaultColorMap[i%len(DefaultColorMap)]); err != nil {
+				return err
+			}
+		}
+		i++
+	}
 	return nil
 }
 
