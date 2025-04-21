@@ -170,6 +170,21 @@ func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameS
 	return nil
 }
 
+func DrawWorldState(ws *referenceframe.WorldState, fs referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
+	geoms, err := ws.ObstaclesInWorldFrame(fs, inputs)
+	if err != nil {
+		return err
+	}
+	i := 0
+	for _, geom := range geoms.Geometries() {
+		if err = DrawGeometry(geom, DefaultColorMap[i%len(DefaultColorMap)]); err != nil {
+			return err
+		}
+		i++
+	}
+	return nil
+}
+
 func postHTTP(data []byte, content string, endpoint string) error {
 	resp, err := http.Post(url+endpoint, "application/"+content, bytes.NewReader(data))
 	if err != nil {

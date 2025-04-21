@@ -138,10 +138,9 @@ func TestDrawFrameSystem(t *testing.T) {
 
 	// add a static frame with a box
 	name0 := "frame0"
-	pose0 := spatialmath.NewPoseFromPoint(r3.Vector{X: -4, Y: -4, Z: -4})
-	box0, err := spatialmath.NewBox(pose0, dims, name0)
+	box0, err := spatialmath.NewBox(spatialmath.NewZeroPose(), dims, name0)
 	test.That(t, err, test.ShouldBeNil)
-	frame0, err := referenceframe.NewStaticFrameWithGeometry(name0, pose0, box0)
+	frame0, err := referenceframe.NewStaticFrameWithGeometry(name0, spatialmath.NewZeroPose(), box0)
 	test.That(t, err, test.ShouldBeNil)
 	fs.AddFrame(frame0, fs.World())
 
@@ -153,10 +152,9 @@ func TestDrawFrameSystem(t *testing.T) {
 
 	// add a static frame as a child of the model
 	name2 := "frame1"
-	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{2, 2, 2})
-	box2, err := spatialmath.NewBox(pose2, dims, name2)
+	box2, err := spatialmath.NewBox(spatialmath.NewZeroPose(), dims, name2)
 	test.That(t, err, test.ShouldBeNil)
-	blockFrame, err := referenceframe.NewStaticFrameWithGeometry(name2, pose2, box2)
+	blockFrame, err := referenceframe.NewStaticFrameWithGeometry(name2, spatialmath.NewZeroPose(), box2)
 	test.That(t, err, test.ShouldBeNil)
 	fs.AddFrame(blockFrame, model)
 
@@ -165,4 +163,31 @@ func TestDrawFrameSystem(t *testing.T) {
 	test.That(t, DrawFrameSystem(fs, inputs), test.ShouldBeNil)
 	inputs[armName] = referenceframe.FloatsToInputs([]float64{1, 1, 1, 1, 1, 1})
 	test.That(t, DrawFrameSystem(fs, inputs), test.ShouldBeNil)
+}
+
+func TestDrawWorldState(t *testing.T) {
+	dims := r3.Vector{X: 100, Y: 100, Z: 100}
+
+	// make a super simple frame system
+	fs := referenceframe.NewEmptyFrameSystem("test")
+	frameName := "frame0"
+	frame0, err := referenceframe.NewStaticFrame(frameName, spatialmath.NewPoseFromPoint(r3.Vector{Z: 300}))
+	test.That(t, err, test.ShouldBeNil)
+	fs.AddFrame(frame0, fs.World())
+
+	// make some boxes
+	box0, err := spatialmath.NewBox(spatialmath.NewZeroPose(), dims, "box0")
+	test.That(t, err, test.ShouldBeNil)
+	box1, err := spatialmath.NewBox(spatialmath.NewPoseFromPoint(r3.Vector{X: 300}), dims, "box1")
+	test.That(t, err, test.ShouldBeNil)
+	box2, err := spatialmath.NewBox(spatialmath.NewPoseFromPoint(r3.Vector{Z: 300}), dims, "box2")
+	test.That(t, err, test.ShouldBeNil)
+
+	// make the worldstate and draw it
+	ws, err := referenceframe.NewWorldState([]*referenceframe.GeometriesInFrame{
+		referenceframe.NewGeometriesInFrame(frameName, []spatialmath.Geometry{box0, box1}),
+		referenceframe.NewGeometriesInFrame(referenceframe.World, []spatialmath.Geometry{box2}),
+	}, nil)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, DrawWorldState(ws, fs, referenceframe.NewZeroInputs(fs)), test.ShouldBeNil)
 }
