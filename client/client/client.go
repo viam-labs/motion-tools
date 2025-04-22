@@ -9,10 +9,11 @@ import (
 	"os"
 
 	"github.com/viam-labs/motion-tools/client/shapes"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"go.viam.com/rdk/pointcloud"
+	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const DEFAULT_URL = "http://localhost:3000/"
@@ -44,6 +45,31 @@ func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	return postHTTP(finalJSON, "json", "geometry")
 }
 
+func DrawGeometries(geometries *referenceframe.GeometriesInFrame, colors []string) error {
+	geoData := make([]json.RawMessage, len(geometries.Geometries()))
+
+	for i, geo := range geometries.Geometries() {
+		data, err := protojson.Marshal(geo.ToProtobuf())
+		if err != nil {
+			return err
+		}
+		geoData[i] = json.RawMessage(data)
+	}
+
+	wrappedData := map[string]interface{}{
+		"geometries": geoData,
+		"colors":     colors,
+		"parent":     geometries.Parent(),
+	}
+
+	finalJSON, err := json.Marshal(wrappedData)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(finalJSON, "json", "geometries")
+}
+
 func DrawPointCloud(pc pointcloud.PointCloud) error {
 	var buf bytes.Buffer
 	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
@@ -56,7 +82,7 @@ func DrawPointCloud(pc pointcloud.PointCloud) error {
 func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
 	poseData := make([]json.RawMessage, len(poses))
 	for i, pose := range poses {
-		data, err := json.Marshal(spatialmath.PoseToProtobuf(pose))
+		data, err := protojson.Marshal(spatialmath.PoseToProtobuf(pose))
 		if err != nil {
 			return err
 		}
@@ -80,7 +106,7 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
 	poseData := make([]json.RawMessage, len(nurbs.ControlPts))
 	for i, pose := range nurbs.ControlPts {
-		data, err := json.Marshal(spatialmath.PoseToProtobuf(pose))
+		data, err := protojson.Marshal(spatialmath.PoseToProtobuf(pose))
 		if err != nil {
 			return err
 		}

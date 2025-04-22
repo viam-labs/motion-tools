@@ -52,6 +52,8 @@
 			signalingAddress: '',
 		})
 	}
+
+	$inspect(activeConfig.current)
 </script>
 
 <svelte:window
@@ -82,6 +84,7 @@
 							checked={activeConfig.current?.partId === config.partId}
 							onchange={(event) => {
 								const { checked } = event.target as HTMLInputElement
+								console.log(checked)
 								activeConfig.set(checked ? index : undefined)
 							}}
 						/>

@@ -108,7 +108,7 @@ export const provideFrames = (partID: () => string) => {
 
 			return {
 				name: mesh.name,
-				parent: 'world',
+				parent: mesh.userData.parent,
 				geometry: createGeometry(),
 				pose,
 			} satisfies Frame
@@ -141,7 +141,7 @@ export const provideFrames = (partID: () => string) => {
 		...shapes.current.map((shape) => {
 			return {
 				name: shape.name,
-				parent: 'world',
+				parent: shape.userData.parent,
 				geometry: shape.userData.geometry,
 				pose: shape.userData.pose,
 			} satisfies Frame
@@ -149,7 +149,7 @@ export const provideFrames = (partID: () => string) => {
 		...shapes.models.map((model) => {
 			return {
 				name: model.name,
-				parent: 'world',
+				parent: model.userData.parent,
 				pose: model.userData.pose,
 			} satisfies Frame
 		}),

@@ -24,6 +24,8 @@ import { meshBounds, useGltf } from '@threlte/extras'
 import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
+type ConnectionStatus = 'connecting' | 'open' | 'closed'
+
 interface Context {
 	current: Mesh[]
 	points: Points[]
@@ -31,6 +33,7 @@ interface Context {
 	poses: ArrowHelper[]
 	nurbs: Line2[]
 	models: Object3D[]
+	connectionStatus: ConnectionStatus
 }
 
 const key = Symbol('websocket-context-key')
@@ -55,19 +58,19 @@ const origin = new Vector3()
 export const provideShapes = () => {
 	const ip = (globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__ ?? 'localhost'
 	const ws = new WebSocket(`ws://${ip}:3001`)
+
 	const current = $state<Mesh[]>([])
 	const points = $state<Points[]>([])
 	const meshes = $state<Mesh[]>([])
 	const poses = $state<ArrowHelper[]>([])
 	const nurbs = $state<Line2[]>([])
 	const models = $state<Object3D[]>([])
+
+	let connectionStatus = $state<ConnectionStatus>('connecting')
+
 	const loader = new GLTFLoader()
 
 	const { load } = useGltf()
-
-	ws.onopen = () => {
-		console.log(`Connected to websocket server on IP: ${ip}`)
-	}
 
 	const addPcd = async (data: any) => {
 		const buffer = await (data as Blob).arrayBuffer()
@@ -90,63 +93,49 @@ export const provideShapes = () => {
 		points.push(result)
 	}
 
-	const addMesh = (data: any, color: string) => {
-		if (data.mesh.contentType === 'ply') {
-			const geometry = plyLoader.parse(atob(data.mesh.mesh))
-			const material = new MeshToonMaterial({
-				color: color ?? 'purple',
-				side: DoubleSide,
-				transparent: true,
-				opacity: 0.7,
-			})
-			const mesh = new Mesh(geometry, material)
-			poseToObject3d(data.center, mesh)
-			mesh.raycast = meshBounds
-			mesh.name = data.label
-			meshes.push(mesh)
-		}
-	}
-
-	const addShape = (data: any, color: string) => {
-		if (data.mesh) {
-			return addMesh(data, color)
-		}
-
+	const addGeometry = (data: any, color: string, parent?: string) => {
 		const mesh = new Mesh()
 		mesh.name = data.label ?? MathUtils.generateUUID()
-
-		if ('box' in data) {
-			const dimsMm = data.box.dimsMm ?? { x: 0, y: 0, z: 0 }
-			mesh.geometry = new BoxGeometry(dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001)
-		} else if ('sphere' in data) {
-			const radiusMm = data.sphere.radiusMm ?? 0
-			mesh.geometry = new SphereGeometry(radiusMm * 0.001)
-		} else if ('capsule' in data) {
-			const { lengthMm, radiusMm } = data.capsule
-			mesh.geometry = new CapsuleGeometry(radiusMm * 0.001, lengthMm * 0.001)
-		}
-
+		mesh.userData.parent = parent ?? 'world'
 		mesh.userData.pose = createPose(data.center)
 
 		poseToObject3d(mesh.userData.pose, mesh)
 		mesh.userData.color = color
-		mesh.userData.geometry = createGeometry(
-			data.box
-				? {
-						case: 'box',
-						value: { ...data.box },
-					}
-				: data.sphere
-					? {
-							case: 'sphere',
-							value: { ...data.sphere },
-						}
-					: {
-							case: 'capsule',
-							value: { ...data.capsule },
-						},
-			data.label
-		)
+
+		if ('mesh' in data) {
+			if (data.mesh.contentType === 'ply') {
+				const geometry = plyLoader.parse(atob(data.mesh.mesh))
+				const material = new MeshToonMaterial({
+					color: color ?? 'purple',
+					side: DoubleSide,
+					transparent: true,
+					opacity: 0.7,
+				})
+				mesh.geometry = geometry
+				mesh.material = material
+				if (data.center) {
+					poseToObject3d(data.center, mesh)
+				}
+				mesh.raycast = meshBounds
+				mesh.name = data.label
+				meshes.push(mesh)
+				return
+			}
+		}
+
+		if ('box' in data) {
+			const dimsMm = data.box.dimsMm ?? { x: 0, y: 0, z: 0 }
+			mesh.geometry = new BoxGeometry(dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001)
+			mesh.userData.geometry = createGeometry({ case: 'box', value: data.box })
+		} else if ('sphere' in data) {
+			const radiusMm = data.sphere.radiusMm ?? 0
+			mesh.geometry = new SphereGeometry(radiusMm * 0.001)
+			mesh.userData.geometry = createGeometry({ case: 'sphere', value: data.sphere })
+		} else if ('capsule' in data) {
+			const { lengthMm, radiusMm } = data.capsule
+			mesh.geometry = new CapsuleGeometry(radiusMm * 0.001, lengthMm * 0.001)
+			mesh.userData.geometry = createGeometry({ case: 'capsule', value: data.capsule })
+		}
 
 		current.push(mesh)
 	}
@@ -199,6 +188,14 @@ export const provideShapes = () => {
 		}
 	}
 
+	const addGeometries = (geometries: any[], colors: string[], parent: string) => {
+		let i = 0
+		for (const geometry of geometries) {
+			addGeometry(geometry, colors[i], parent)
+			i += 1
+		}
+	}
+
 	const removeAll = () => {
 		current.splice(0, current.length)
 		points.splice(0, points.length)
@@ -229,12 +226,26 @@ export const provideShapes = () => {
 		const blob = new Blob([buffer], { type: 'model/gltf-binary' })
 		const url = URL.createObjectURL(blob)
 		const gltf = await loader.loadAsync(url)
-		gltf.scene.name = `gltf ${models.length + 1}: ${gltf.scene.name}`
+		gltf.scene.userData.parent = 'world'
 		models.push(gltf.scene)
 		URL.revokeObjectURL(url)
 	}
 
-	ws.onmessage = (event) => {
+	const onOpen = () => {
+		connectionStatus = 'open'
+		console.log(`Connected to websocket server on IP: ${ip}`)
+	}
+
+	const onClose = () => {
+		connectionStatus = 'closed'
+		console.log('Disconnected from server')
+	}
+
+	const onError = (event: Event) => {
+		console.log('Websocket error', JSON.stringify(event))
+	}
+
+	const onMessage = (event: MessageEvent) => {
 		if (typeof event.data === 'string') {
 			if (handleMetadata(event.data)) {
 				return
@@ -254,6 +265,11 @@ export const provideShapes = () => {
 
 		if (!data) return
 
+		if ('geometries' in data) {
+			console.log(data)
+			return addGeometries(data.geometries, data.colors, data.parent)
+		}
+
 		if ('removeAll' in data) {
 			return removeAll()
 		}
@@ -266,12 +282,15 @@ export const provideShapes = () => {
 			return addPoses(data.poses, data.colors, data.arrowHeadAtPose)
 		}
 
-		addShape(data.geometry, data.color)
+		if ('geometry' in data) {
+			addGeometry(data.geometry, data.color)
+		}
 	}
 
-	ws.onclose = () => {
-		console.log('Disconnected from server')
-	}
+	ws.onclose = onClose
+	ws.onerror = onError
+	ws.onopen = onOpen
+	ws.onmessage = onMessage
 
 	setContext<Context>(key, {
 		get current() {
@@ -291,6 +310,9 @@ export const provideShapes = () => {
 		},
 		get models() {
 			return models
+		},
+		get connectionStatus() {
+			return connectionStatus
 		},
 	})
 }

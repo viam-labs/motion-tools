@@ -70,7 +70,11 @@ const sendToClient = (body: Parameters<WebSocket['send']>[0], res?: Response) =>
 	}
 }
 
-app.post('/geometry', validate(geometrySchema), (req, res) => {
+app.post('/geometry', (req, res) => {
+	sendToClient(JSON.stringify(req.body), res)
+})
+
+app.post('/geometries', (req, res) => {
 	sendToClient(JSON.stringify(req.body), res)
 })
 

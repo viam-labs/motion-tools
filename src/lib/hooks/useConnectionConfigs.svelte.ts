@@ -11,7 +11,7 @@ interface ConnectionConfig {
 
 let connectionConfigs: ConnectionConfig[] = $state([])
 
-const activeConfig = new PersistedState('active-connection-config', 0)
+const activeConfig = new PersistedState<number>('active-connection-config', 0)
 
 export const provideConnectionConfigs = () => {
 	get('connection-configs').then((response) => {
@@ -34,6 +34,9 @@ export const useConnectionConfigs = () => {
 export const useActiveConnectionConfig = () => {
 	return {
 		get current() {
+			if (activeConfig.current === -1) {
+				return undefined
+			}
 			return connectionConfigs.at(activeConfig.current)
 		},
 		set(index: number | undefined) {
