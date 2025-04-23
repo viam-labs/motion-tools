@@ -203,7 +203,9 @@ export const provideShapes = () => {
 			const pose = nextPoses[i]
 			const length = 0.05
 
-			direction.set(pose.o_x ?? 0, pose.o_y ?? 0, pose.o_z ?? 0)
+			console.log(pose)
+
+			direction.set(pose.oX ?? 0, pose.oY ?? 0, pose.oZ ?? 0)
 			origin.set((pose.x ?? 0) / 1000, (pose.y ?? 0) / 1000, (pose.z ?? 0) / 1000)
 
 			if (arrowHeadAtPose) {
@@ -220,7 +222,7 @@ export const provideShapes = () => {
 				0.2 * length
 			)
 
-			arrow.userData.pose = createPose({ ...pose, oX: pose.o_x, oY: pose.o_y, oZ: pose.o_z })
+			arrow.userData.pose = createPose(pose)
 
 			arrow.name = `pose ${++poseIndex}`
 
