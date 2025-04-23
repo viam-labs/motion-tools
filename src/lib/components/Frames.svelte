@@ -1,8 +1,13 @@
 <script lang="ts">
-	import { Portal, PortalTarget } from '@threlte/extras'
-	import Frame from './Frame.svelte'
+	import { Edges } from '@threlte/extras'
+	import Portal from './Portal/Portal.svelte'
+	import PortalTarget from './Portal/PortalTarget.svelte'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
+	import Clickable from './Clickable.svelte'
+	import { darkenColor } from '$lib/color'
+	import AxesHelper from './AxesHelper.svelte'
+	import Frame from './Frame.svelte'
 
 	const frames = useFrames()
 	const geometries = useGeometries()
@@ -10,28 +15,24 @@
 
 <PortalTarget id="world" />
 
-{#each frames.current as frame (frame.name)}
-	<Portal id={frame.parent}>
+{#each frames.current as { name, pose, geometry } (name)}
+	<Portal id={pose.referenceFrame}>
 		<Frame
-			name={frame.name}
-			pose={frame.pose}
-			geometry={frame.geometry}
+			{name}
+			pose={pose.pose}
+			{geometry}
 		>
-			<PortalTarget id={frame.name} />
+			<PortalTarget id={name} />
 		</Frame>
 	</Portal>
 {/each}
 
-{#each geometries.current as query}
-	{#each query.data ?? [] as frame}
-		<Portal id={frame.parent}>
-			<Frame
-				name={frame.name}
-				pose={frame.pose}
-				geometry={frame.geometry}
-			>
-				<PortalTarget id={frame.name} />
-			</Frame>
-		</Portal>
-	{/each}
+{#each geometries.current as { name, pose, geometry } (name)}
+	<Portal id={mesh.userData.parent}>
+		<Frame
+			{name}
+			pose={pose.pose}
+			{geometry}
+		/>
+	</Portal>
 {/each}

@@ -13,8 +13,8 @@
 
 	interface Props {
 		name: string
-		geometry: Geometry
-		pose: Pose
+		geometry?: Geometry
+		pose?: Pose
 		color?: ColorRepresentation
 		children?: Snippet<[{ ref: Mesh }]>
 	}
@@ -26,7 +26,9 @@
 	const quat = new Quaternion()
 
 	$effect.pre(() => {
-		poseToQuaternion(pose, mesh.quaternion)
+		if (pose) {
+			poseToQuaternion(pose, mesh.quaternion)
+		}
 
 		// if (geometry.center) {
 		// 	poseToQuaternion(geometry.center, quat)
@@ -35,7 +37,9 @@
 	})
 
 	$effect.pre(() => {
-		poseToVector3(pose, mesh.position)
+		if (pose) {
+			poseToVector3(pose, mesh.position)
+		}
 
 		// if (geometry.center) {
 		// 	poseToVector3(geometry.center, vec3)
@@ -48,13 +52,13 @@
 	{name}
 	object={mesh}
 >
-	{#if geometry.geometryType.case === 'box'}
+	{#if geometry?.geometryType.case === 'box'}
 		{@const dimsMm = geometry.geometryType.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
 		<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
-	{:else if geometry.geometryType.case === 'sphere'}
+	{:else if geometry?.geometryType.case === 'sphere'}
 		{@const radiusMm = geometry.geometryType.value.radiusMm ?? 0}
 		<T.SphereGeometry args={[radiusMm * 0.001]} />
-	{:else if geometry.geometryType.case === 'capsule'}
+	{:else if geometry?.geometryType.case === 'capsule'}
 		{@const { lengthMm, radiusMm } = geometry.geometryType.value}
 		<T
 			is={CapsuleGeometry}
@@ -67,7 +71,7 @@
 		/>
 	{/if}
 
-	{#if geometry.geometryType.case}
+	{#if geometry?.geometryType.case}
 		<Edges
 			raycast={() => null}
 			color={darkenColor(color, 10)}

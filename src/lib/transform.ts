@@ -1,8 +1,19 @@
-import type { Geometry, Pose } from '@viamrobotics/sdk'
+import type { Geometry, Pose, PoseInFrame } from '@viamrobotics/sdk'
 import { OrientationVector } from '@viamrobotics/three'
 import { type Object3D, MathUtils, Quaternion, Vector3 } from 'three'
 
 const ov = new OrientationVector()
+
+export const createPoseInFrame = (pose?: Pose, referenceFrame = 'world'): PoseInFrame => {
+	return {
+		referenceFrame,
+		pose: createPose(pose),
+	}
+}
+
+export const copyPoseInFrame = (poseInFrame?: PoseInFrame): PoseInFrame => {
+	return createPoseInFrame(poseInFrame?.pose, poseInFrame?.referenceFrame)
+}
 
 export const createPose = (pose?: Pose): Pose => {
 	return {
@@ -16,9 +27,13 @@ export const createPose = (pose?: Pose): Pose => {
 	}
 }
 
-export const createGeometry = (geometryType?: Geometry['geometryType'], label = ''): Geometry => {
+export const createGeometry = (
+	geometryType?: Geometry['geometryType'],
+	label = '',
+	center?: Pose
+): Geometry => {
 	return {
-		center: createPose(),
+		center: createPose(center),
 		label,
 		geometryType: geometryType ?? { case: undefined, value: undefined },
 	}

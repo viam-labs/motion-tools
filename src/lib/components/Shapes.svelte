@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Portal, PortalTarget } from '@threlte/extras'
+	import Portal from './Portal/Portal.svelte'
+	import PortalTarget from './Portal/PortalTarget.svelte'
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
 	import Pointcloud from './Pointcloud.svelte'
 	import { Edges } from '@threlte/extras'
@@ -21,12 +22,6 @@
 				thresholdAngle={0}
 				color={darkenColor(mesh.userData.color, 10)}
 				renderOrder={-1}
-			/>
-
-			<T.MeshToonMaterial
-				color={mesh.userData.color}
-				transparent
-				opacity={0.7}
 			/>
 
 			<PortalTarget id={mesh.name} />

@@ -21,3 +21,4 @@ Open the machine config page (bottom right) and enter in connection details to v
 - pointcloud color
 - remote IP access
 - delete geometry
+- wasd

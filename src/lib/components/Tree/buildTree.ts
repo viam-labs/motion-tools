@@ -1,4 +1,5 @@
 import type { Frame } from '$lib/hooks/useFrames.svelte'
+import type { Mesh } from 'three'
 
 export interface TreeNode {
 	id: string
@@ -23,7 +24,7 @@ const sortTreeByName = (node: TreeNode): TreeNode => {
 /**
  * Creates a tree representing parent child / relationships from a set of frames.
  */
-export const buildTreeNodes = (frames: FrameData[]): TreeNode => {
+export const buildTreeNodes = (frames: Mesh[]): TreeNode => {
 	const nodeMap = new Map<string, TreeNode>()
 	const rootNodes = []
 
@@ -38,15 +39,15 @@ export const buildTreeNodes = (frames: FrameData[]): TreeNode => {
 
 		nodeMap.set(name, node)
 
-		if (frame.parent === 'world') {
+		if (frame.userData.parent === 'world') {
 			rootNodes.push(node)
 		}
 	}
 
-	for (const { name, parent } of frames) {
-		if (parent !== 'world') {
-			const parentNode = nodeMap.get(parent)
-			const child = nodeMap.get(name)
+	for (const frame of frames) {
+		if (frame.userData.parent !== 'world') {
+			const parentNode = nodeMap.get(frame.userData.parent)
+			const child = nodeMap.get(frame.name)
 			if (parentNode && child) {
 				parentNode.children?.push(child)
 			}

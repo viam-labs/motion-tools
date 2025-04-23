@@ -1,8 +1,8 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
 import type { Mesh, Object3D, Points } from 'three'
-import { useAllFrames } from './useFrames.svelte'
 import type { Frame } from './useFrames.svelte'
+import { useObjects } from './useObjects.svelte'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
@@ -70,8 +70,8 @@ export const provideSelection = () => {
 	}
 	setContext<HoverContext>(hoverKey, hoverContext)
 
-	const allFrames = useAllFrames()
-	const selectedFrame = $derived(allFrames.current.find((frame) => frame.name === selection))
+	const objects = useObjects()
+	const selectedFrame = $derived(objects.current.find(({ name }) => name === selection))
 
 	const selectedFrameContext = {
 		get current() {
@@ -80,7 +80,7 @@ export const provideSelection = () => {
 	}
 	setContext<SelectedFrameContext>(selectedFrameKey, selectedFrameContext)
 
-	const focusedFrame = $derived(allFrames.current.find((frame) => frame.name === focus))
+	const focusedFrame = $derived(objects.current.find(({ name }) => name === focus))
 
 	const focusedFrameContext = {
 		get current() {
@@ -130,12 +130,4 @@ export const useSelectionObject = (): { current: Object3D | undefined } => {
 			return object
 		},
 	}
-}
-
-export const useFocusedFrame = (): { current: Frame | undefined } => {
-	return getContext<FocusedFrameContext>(focusedFrameKey)
-}
-
-export const useSelectedFrame = (): { current: Frame | undefined } => {
-	return getContext<SelectedFrameContext>(selectedFrameKey)
 }

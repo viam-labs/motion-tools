@@ -1,17 +1,18 @@
 import { ArmClient, CameraClient } from '@viamrobotics/sdk'
-import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 
-import type { Frame } from './useFrames.svelte'
-import { createPose } from '$lib/transform'
+import { createPose, createPoseInFrame } from '$lib/transform'
 import { useRefreshRates } from './useRefreshRates.svelte'
+import type { Mesh } from 'three'
+import { WorldObject } from '$lib/WorldObject'
 
 const key = Symbol('geometries-context')
 
 interface Context {
-	current: QueryObserverResult<Frame[], Error>[]
+	current: WorldObject[]
 }
 
 export const provideGeometries = (partID: () => string) => {
@@ -37,19 +38,19 @@ export const provideGeometries = (partID: () => string) => {
 				enabled: interval !== -1 && client.current !== undefined,
 				refetchInterval: interval,
 				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
-				queryFn: async (): Promise<Frame[]> => {
-					if (!client.current) {
+				queryFn: async (): Promise<WorldObject[]> => {
+					const currentClient = client.current
+
+					if (!currentClient) {
 						throw new Error('No client')
 					}
 
-					const geometries = await client.current.getGeometries()
+					const geometries = await currentClient.getGeometries()
 
-					return geometries.map((geo) => ({
-						name: geo.label,
-						parent: client.current?.name ?? 'world',
-						pose: geo.center ?? createPose(),
-						geometry: geo,
-					}))
+					return geometries.map((geometry) => {
+						const pose = createPoseInFrame(createPose(geometry.center), currentClient.name)
+						return new WorldObject(geometry.label, pose, geometry)
+					})
 				},
 			})
 		})
@@ -58,13 +59,17 @@ export const provideGeometries = (partID: () => string) => {
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
-			combine: (results) => results,
+			combine: (results) => {
+				return {
+					data: results.flatMap((result) => result.data).filter((result) => result !== undefined),
+				}
+			},
 		})
 	)
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return queries.current.data
 		},
 	})
 }

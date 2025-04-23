@@ -46,5 +46,13 @@
 	}}
 	{...rest}
 >
+	{#if 'geometry' in object}
+		<T is={object.geometry} />
+	{/if}
+
+	{#if 'material' in object}
+		<T is={object.material} />
+	{/if}
+
 	{@render children?.({ ref: object })}
 </T>

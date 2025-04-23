@@ -1,5 +1,5 @@
 import { BufferAttribute, BufferGeometry, Points, PointsMaterial } from 'three'
-import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
@@ -12,7 +12,7 @@ import { useFrames } from './useFrames.svelte'
 const key = Symbol('pointcloud-context')
 
 interface Context {
-	current: QueryObserverResult<Points | undefined, Error>[]
+	current: Points[]
 }
 
 export const providePointclouds = (partID: () => string) => {
@@ -78,15 +78,17 @@ export const providePointclouds = (partID: () => string) => {
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
-			combine: (result) => {
-				return result
+			combine: (results) => {
+				return {
+					data: results.flatMap((result) => result.data).filter((result) => result !== undefined),
+				}
 			},
 		})
 	)
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return queries.current.data
 		},
 	})
 }

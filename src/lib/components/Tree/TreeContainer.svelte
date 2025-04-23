@@ -7,10 +7,10 @@
 	import { buildTreeNodes, type TreeNode } from './buildTree'
 
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
-	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
 	import RefreshRate from '../RefreshRate.svelte'
+	import { useObjects } from '$lib/hooks/useObjects.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', true)
 	const showSettings = new PersistedState('show-settings', false)
@@ -18,12 +18,12 @@
 	provideTreeExpandedContext()
 
 	const selection = useSelection()
-	const allFrames = useAllFrames()
+	const objects = useObjects()
 
 	let rootNode = $state<TreeNode>(buildTreeNodes([]))
 
 	$effect.pre(() => {
-		const nextNodes = buildTreeNodes(allFrames.current)
+		const nextNodes = buildTreeNodes(objects.current)
 
 		if (!isEqual(rootNode, nextNodes)) {
 			rootNode = nextNodes

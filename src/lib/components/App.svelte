@@ -8,6 +8,7 @@
 	import Details from '$lib/components/Details.svelte'
 	import Providers from './Providers.svelte'
 	import DomPortal from './DomPortal.svelte'
+	import Introduction from './Messages/Introduction.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -24,6 +25,7 @@
 			</Scene>
 
 			<DomPortal>
+				<Introduction />
 				<Details />
 			</DomPortal>
 

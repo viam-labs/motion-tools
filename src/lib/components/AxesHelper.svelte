@@ -18,6 +18,7 @@
 		width = 1,
 		axesColors = ['red', 'green', 'blue'],
 		depthTest = true,
+		children,
 		...rest
 	}: Props = $props()
 
@@ -76,4 +77,5 @@
 		vertexColors
 		{depthTest}
 	/>
+	{@render children?.({ ref: line })}
 </T>

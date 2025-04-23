@@ -2,7 +2,6 @@
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
-	import { untrack } from 'svelte'
 
 	let stack = $state.raw<string[]>([])
 

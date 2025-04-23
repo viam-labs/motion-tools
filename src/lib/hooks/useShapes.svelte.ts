@@ -23,6 +23,8 @@ import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { meshBounds, useGltf } from '@threlte/extras'
 import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { createMesh } from '$lib/mesh'
+import type { Geometry } from '@viamrobotics/sdk'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed'
 
@@ -94,6 +96,44 @@ export const provideShapes = () => {
 	}
 
 	const addGeometry = (data: any, color: string, parent?: string) => {
+		const type: Geometry['geometryType'] = data.box
+			? {
+					case: 'box',
+					value: data.box,
+				}
+			: data.sphere
+				? {
+						case: 'sphere',
+						value: data.sphere,
+					}
+				: data.capsule
+					? {
+							case: 'capsule',
+							value: data.capsule,
+						}
+					: data.mesh
+						? {
+								case: 'mesh',
+								value: data.mesh,
+							}
+						: {
+								case: undefined,
+								value: undefined,
+							}
+
+		const geometry = createGeometry(type, data.label, data.center)
+
+		current.push(
+			createMesh({
+				name: data.label,
+				parent,
+				pose: createPose(data.center),
+				geometry,
+				color,
+			})
+		)
+		return
+
 		const mesh = new Mesh()
 		mesh.name = data.label ?? MathUtils.generateUUID()
 		mesh.userData.parent = parent ?? 'world'
@@ -266,7 +306,6 @@ export const provideShapes = () => {
 		if (!data) return
 
 		if ('geometries' in data) {
-			console.log(data)
 			return addGeometries(data.geometries, data.colors, data.parent)
 		}
 

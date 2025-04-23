@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { useSelectedFrame, useFocusedFrame, useFocus } from '$lib/hooks/useSelection.svelte'
+	import { useSelectionObject, useFocusedObject, useFocus } from '$lib/hooks/useSelection.svelte'
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
 
-	const selectedFrame = useSelectedFrame()
-	const focusedFrame = useFocusedFrame()
+	const selectionObject = useSelectionObject()
+	const focusedObject = useFocusedObject()
 	const focus = useFocus()
-	const frame = $derived(focusedFrame.current ?? selectedFrame.current)
+	const frame = $derived(focusedObject.current ?? selectionObject.current)
 
 	let copied = $state(false)
 </script>
 
 {#if frame}
-	{@const { pose, name } = frame}
-	{@const { center, geometryType } = frame.geometry ?? {}}
+	{@const { pose, name } = frame.userData}
+	{@const { center, geometryType } = frame.userData.geometry ?? {}}
 	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
