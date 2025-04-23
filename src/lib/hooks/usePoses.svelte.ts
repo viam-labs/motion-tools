@@ -10,7 +10,7 @@ const key = Symbol('poses-context')
 type PoseWithComponent = PoseInFrame & { component: ResourceName }
 
 interface Context {
-	current: QueryObserverResult<PoseWithComponent[], Error>[]
+	current: PoseWithComponent[]
 }
 
 export const providePoses = (partID: () => string) => {
@@ -62,7 +62,7 @@ export const providePoses = (partID: () => string) => {
 			queries: toStore(() => options),
 			combine: (results) => {
 				return {
-					data: results.flatMap((result) => result.data),
+					data: results.flatMap((result) => result.data).filter((result) => result !== undefined),
 				}
 			},
 		})
@@ -70,7 +70,7 @@ export const providePoses = (partID: () => string) => {
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return queries.current.data
 		},
 	})
 }

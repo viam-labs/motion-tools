@@ -28,7 +28,7 @@
 {/each}
 
 {#each geometries.current as { name, pose, geometry } (name)}
-	<Portal id={mesh.userData.parent}>
+	<Portal id={pose.referenceFrame}>
 		<Frame
 			{name}
 			pose={pose.pose}

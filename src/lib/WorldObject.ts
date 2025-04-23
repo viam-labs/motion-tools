@@ -6,6 +6,7 @@ type Geometries = Geometry | Float32Array | undefined
 
 interface Metadata {
 	color?: string
+	colors?: Float32Array
 }
 
 export class WorldObject {

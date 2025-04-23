@@ -8,11 +8,12 @@ import { parsePCD } from '$lib/loaders/pcd'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { usePoses } from './usePoses.svelte'
 import { useFrames } from './useFrames.svelte'
+import { WorldObject } from '$lib/WorldObject'
 
 const key = Symbol('pointcloud-context')
 
 interface Context {
-	current: Points[]
+	current: WorldObject[]
 }
 
 export const providePointclouds = (partID: () => string) => {
@@ -39,13 +40,13 @@ export const providePointclouds = (partID: () => string) => {
 				enabled: interval !== -1 && cameraClient.current !== undefined,
 				refetchInterval: interval,
 				queryKey: ['partID', partID(), name, 'getPointCloud'],
-				queryFn: async (): Promise<Points | undefined> => {
+				queryFn: async (): Promise<WorldObject | undefined> => {
 					if (!cameraClient.current) {
 						throw new Error('No camera client')
 					}
 
 					const frame = frames.current.find((frame) => frame.name === name)
-					const transform = frame !== undefined
+					const transform = false
 
 					const response = await cameraClient.current.getPointCloud()
 
@@ -55,21 +56,34 @@ export const providePointclouds = (partID: () => string) => {
 
 					if (!transformed) return
 
+					const pose = poses.current.find((pose) => pose.component.name === name)
 					const { positions, colors } = await parsePCD(new Uint8Array(transformed))
-					const geometry = new BufferGeometry()
-					const material = new PointsMaterial({ size: 0.01, vertexColors: true })
-					geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
 
-					if (colors) {
-						geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
-					}
+					const worldObject = new WorldObject(
+						`${name}:pointcloud`,
+						pose,
+						new Float32Array(positions),
+						{
+							colors: colors ? new Float32Array(colors) : undefined,
+						}
+					)
 
-					const points = new Points(geometry, material)
+					return worldObject
 
-					points.userData.parent = frame ? name : 'world'
-					points.name = `${name}:pointcloud`
+					// const geometry = new BufferGeometry()
+					// const material = new PointsMaterial({ size: 0.01, vertexColors: true })
+					// geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
 
-					return points
+					// if (colors) {
+					// 	geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+					// }
+
+					// const points = new Points(geometry, material)
+
+					// points.userData.parent = frame ? name : 'world'
+					// points.name = `${name}:pointcloud`
+
+					// return points
 				},
 			})
 		})

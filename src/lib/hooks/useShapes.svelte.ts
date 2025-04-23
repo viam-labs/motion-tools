@@ -15,7 +15,7 @@ import {
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 import { DoubleSide, Mesh, MeshToonMaterial, Points } from 'three'
-import { createGeometry, createPose, poseToObject3d } from '$lib/transform'
+import { createGeometry, createPose, createPoseInFrame, poseToObject3d } from '$lib/transform'
 import { parsePCD } from '$lib/loaders/pcd'
 import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
@@ -25,15 +25,16 @@ import { CapsuleGeometry } from '$lib/CapsuleGeometry'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { createMesh } from '$lib/mesh'
 import type { Geometry } from '@viamrobotics/sdk'
+import { WorldObject } from '$lib/WorldObject'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed'
 
 interface Context {
-	current: Mesh[]
-	points: Points[]
-	meshes: Mesh[]
-	poses: ArrowHelper[]
-	nurbs: Line2[]
+	current: WorldObject[]
+	points: WorldObject[]
+	meshes: WorldObject[]
+	poses: WorldObject[]
+	nurbs: WorldObject[]
 	models: Object3D[]
 	connectionStatus: ConnectionStatus
 }
@@ -61,11 +62,11 @@ export const provideShapes = () => {
 	const ip = (globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__ ?? 'localhost'
 	const ws = new WebSocket(`ws://${ip}:3001`)
 
-	const current = $state<Mesh[]>([])
-	const points = $state<Points[]>([])
-	const meshes = $state<Mesh[]>([])
-	const poses = $state<ArrowHelper[]>([])
-	const nurbs = $state<Line2[]>([])
+	const current = $state<WorldObject[]>([])
+	const points = $state<WorldObject[]>([])
+	const meshes = $state<WorldObject[]>([])
+	const poses = $state<WorldObject[]>([])
+	const nurbs = $state<WorldObject[]>([])
 	const models = $state<Object3D[]>([])
 
 	let connectionStatus = $state<ConnectionStatus>('connecting')
@@ -77,22 +78,35 @@ export const provideShapes = () => {
 	const addPcd = async (data: any) => {
 		const buffer = await (data as Blob).arrayBuffer()
 		const { positions, colors } = await parsePCD(new Uint8Array(buffer))
-		const geometry = new BufferGeometry()
-		const material = new PointsMaterial({
-			size: 0.01,
-			vertexColors: colors !== undefined,
-			color: new Color('#888888'),
-		})
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
 
-		if (colors) {
-			geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
-		}
+		const worldObject = new WorldObject(
+			`pointcloud ${++pointsIndex}`,
+			undefined,
+			new Float32Array(positions),
+			{
+				colors: colors ? new Float32Array(colors) : undefined,
+			}
+		)
 
-		const result = new Points(geometry, material)
+		points.push(worldObject)
+		// return worldObject
 
-		result.name = `points ${++pointsIndex}`
-		points.push(result)
+		// const geometry = new BufferGeometry()
+		// const material = new PointsMaterial({
+		// 	size: 0.01,
+		// 	vertexColors: colors !== undefined,
+		// 	color: new Color('#888888'),
+		// })
+		// geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+
+		// if (colors) {
+		// 	geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+		// }
+
+		// const result = new Points(geometry, material)
+
+		// result.name = `points ${++pointsIndex}`
+		// points.push(result)
 	}
 
 	const addGeometry = (data: any, color: string, parent?: string) => {
@@ -123,61 +137,64 @@ export const provideShapes = () => {
 
 		const geometry = createGeometry(type, data.label, data.center)
 
-		current.push(
-			createMesh({
-				name: data.label,
-				parent,
-				pose: createPose(data.center),
-				geometry,
-				color,
-			})
-		)
-		return
+		const worldObject = new WorldObject(data.label, createPoseInFrame(data.center), geometry)
 
-		const mesh = new Mesh()
-		mesh.name = data.label ?? MathUtils.generateUUID()
-		mesh.userData.parent = parent ?? 'world'
-		mesh.userData.pose = createPose(data.center)
+		current.push(worldObject)
 
-		poseToObject3d(mesh.userData.pose, mesh)
-		mesh.userData.color = color
+		// current.push(
+		// 	createMesh({
+		// 		name: data.label,
+		// 		parent,
+		// 		pose: createPose(data.center),
+		// 		geometry,
+		// 		color,
+		// 	})
+		// )
 
-		if ('mesh' in data) {
-			if (data.mesh.contentType === 'ply') {
-				const geometry = plyLoader.parse(atob(data.mesh.mesh))
-				const material = new MeshToonMaterial({
-					color: color ?? 'purple',
-					side: DoubleSide,
-					transparent: true,
-					opacity: 0.7,
-				})
-				mesh.geometry = geometry
-				mesh.material = material
-				if (data.center) {
-					poseToObject3d(data.center, mesh)
-				}
-				mesh.raycast = meshBounds
-				mesh.name = data.label
-				meshes.push(mesh)
-				return
-			}
-		}
+		// const mesh = new Mesh()
+		// mesh.name = data.label ?? MathUtils.generateUUID()
+		// mesh.userData.parent = parent ?? 'world'
+		// mesh.userData.pose = createPose(data.center)
 
-		if ('box' in data) {
-			const dimsMm = data.box.dimsMm ?? { x: 0, y: 0, z: 0 }
-			mesh.geometry = new BoxGeometry(dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001)
-			mesh.userData.geometry = createGeometry({ case: 'box', value: data.box })
-		} else if ('sphere' in data) {
-			const radiusMm = data.sphere.radiusMm ?? 0
-			mesh.geometry = new SphereGeometry(radiusMm * 0.001)
-			mesh.userData.geometry = createGeometry({ case: 'sphere', value: data.sphere })
-		} else if ('capsule' in data) {
-			const { lengthMm, radiusMm } = data.capsule
-			mesh.geometry = new CapsuleGeometry(radiusMm * 0.001, lengthMm * 0.001)
-			mesh.userData.geometry = createGeometry({ case: 'capsule', value: data.capsule })
-		}
+		// poseToObject3d(mesh.userData.pose, mesh)
+		// mesh.userData.color = color
 
-		current.push(mesh)
+		// if ('mesh' in data) {
+		// 	if (data.mesh.contentType === 'ply') {
+		// 		const geometry = plyLoader.parse(atob(data.mesh.mesh))
+		// 		const material = new MeshToonMaterial({
+		// 			color: color ?? 'purple',
+		// 			side: DoubleSide,
+		// 			transparent: true,
+		// 			opacity: 0.7,
+		// 		})
+		// 		mesh.geometry = geometry
+		// 		mesh.material = material
+		// 		if (data.center) {
+		// 			poseToObject3d(data.center, mesh)
+		// 		}
+		// 		mesh.raycast = meshBounds
+		// 		mesh.name = data.label
+		// 		meshes.push(mesh)
+		// 		return
+		// 	}
+		// }
+
+		// if ('box' in data) {
+		// 	const dimsMm = data.box.dimsMm ?? { x: 0, y: 0, z: 0 }
+		// 	mesh.geometry = new BoxGeometry(dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001)
+		// 	mesh.userData.geometry = createGeometry({ case: 'box', value: data.box })
+		// } else if ('sphere' in data) {
+		// 	const radiusMm = data.sphere.radiusMm ?? 0
+		// 	mesh.geometry = new SphereGeometry(radiusMm * 0.001)
+		// 	mesh.userData.geometry = createGeometry({ case: 'sphere', value: data.sphere })
+		// } else if ('capsule' in data) {
+		// 	const { lengthMm, radiusMm } = data.capsule
+		// 	mesh.geometry = new CapsuleGeometry(radiusMm * 0.001, lengthMm * 0.001)
+		// 	mesh.userData.geometry = createGeometry({ case: 'capsule', value: data.capsule })
+		// }
+
+		// current.push(mesh)
 	}
 
 	const addNurbs = (data: any, color: string) => {
@@ -189,21 +206,26 @@ export const provideShapes = () => {
 		const geometry = new LineGeometry()
 		geometry.setFromPoints(curve.getPoints(200))
 
-		const material = new LineMaterial()
-		material.color.set(color)
+		// const material = new LineMaterial()
+		// material.color.set(color)
 
-		const line = new Line2(geometry, material)
-		line.name = data.name
+		// const line = new Line2(geometry, material)
+		// line.name = data.name
 
-		nurbs.push(line)
+		return new WorldObject(
+			data.name,
+			undefined,
+			new Float32Array(geometry.getAttribute('positions').array),
+			{ color }
+		)
+
+		// nurbs.push(line)
 	}
 
 	const addPoses = (nextPoses: any[], colors: string[], arrowHeadAtPose: boolean) => {
 		for (let i = 0, l = nextPoses.length; i < l; i += 1) {
 			const pose = nextPoses[i]
 			const length = 0.05
-
-			console.log(pose)
 
 			direction.set(pose.oX ?? 0, pose.oY ?? 0, pose.oZ ?? 0)
 			origin.set((pose.x ?? 0) / 1000, (pose.y ?? 0) / 1000, (pose.z ?? 0) / 1000)
@@ -226,7 +248,7 @@ export const provideShapes = () => {
 
 			arrow.name = `pose ${++poseIndex}`
 
-			poses.push(arrow)
+			// poses.push(arrow)
 		}
 	}
 

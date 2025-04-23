@@ -13,7 +13,7 @@
 
 	interface Props {
 		name: string
-		geometry?: Geometry
+		geometry?: Geometry | Float32Array
 		pose?: Pose
 		color?: ColorRepresentation
 		children?: Snippet<[{ ref: Mesh }]>
