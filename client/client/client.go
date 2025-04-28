@@ -14,7 +14,6 @@ import (
 
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/referenceframe"
-	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
 
@@ -225,40 +224,24 @@ func DrawWorldState(ws *referenceframe.WorldState, fs referenceframe.FrameSystem
 	return nil
 }
 
-func DrawShaped(ctx context.Context, s resource.Shaped, color string) error {
-	geoms, err := s.Geometries(ctx, nil)
+// ws can be empty
+func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.WorldState) error {
+	fsCfg, err := myRobot.FrameSystemConfig(ctx)
 	if err != nil {
 		return err
 	}
 
-	for _, g := range geoms {
-		err := DrawGeometry(g, color)
-		if err != nil {
-			return err
-		}
+	rf, err := referenceframe.NewFrameSystem("foo", fsCfg.Parts, fsCfg.AdditionalTransforms)
+	if err != nil {
+		return err
 	}
 
-	return nil
-}
+	inputs, err := mutils.GetInputs(ctx, rf, myRobot)
+	if err != nil {
+		return err
+	}
 
-// ws can be empty
-func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.WorldState) error {
 	if ws != nil {
-		fsCfg, err := myRobot.FrameSystemConfig(ctx)
-		if err != nil {
-			return err
-		}
-
-		rf, err := referenceframe.NewFrameSystem("foo", fsCfg.Parts, fsCfg.AdditionalTransforms)
-		if err != nil {
-			return err
-		}
-
-		inputs, err := mutils.GetInputs(ctx, rf, myRobot)
-		if err != nil {
-			return err
-		}
-
 		err = DrawWorldState(ws, rf, inputs)
 		if err != nil {
 			return err
@@ -276,20 +259,15 @@ func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.Worl
 
 	}
 
-	cc := &colorChooser{}
-	for _, n := range myRobot.ResourceNames() {
-		r, err := myRobot.ResourceByName(n)
+	gifs, err := referenceframe.FrameSystemGeometries(rf, inputs)
+	if err != nil {
+		return nil
+	}
+	for _, gif := range gifs {
+		err = DrawGeometries(gif, DefaultColorMap)
 		if err != nil {
-			return err
+			return nil
 		}
-		s, ok := r.(resource.Shaped)
-		if ok {
-			err := DrawShaped(ctx, s, cc.next())
-			if err != nil {
-				return err
-			}
-		}
-
 	}
 
 	return nil
