@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,7 +14,11 @@ import (
 
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/referenceframe"
+	"go.viam.com/rdk/resource"
+	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
+
+	"github.com/viam-labs/motion-tools/mutils"
 )
 
 const DEFAULT_URL = "http://localhost:3000/"
@@ -21,6 +26,16 @@ const DEFAULT_URL = "http://localhost:3000/"
 // DefaultColorMap is a list of sensible colors to cycle between
 // this is also the "Set1" colormap in Matplotlib
 var DefaultColorMap = []string{"#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"}
+
+type colorChooser struct {
+	count int
+}
+
+func (cc *colorChooser) next() string {
+	c := DefaultColorMap[cc.count%len(DefaultColorMap)]
+	cc.count++
+	return c
+}
 
 var (
 	url = DEFAULT_URL
@@ -200,13 +215,83 @@ func DrawWorldState(ws *referenceframe.WorldState, fs referenceframe.FrameSystem
 	if err != nil {
 		return err
 	}
-	i := 0
+	cc := &colorChooser{}
 	for _, geom := range geoms.Geometries() {
-		if err = DrawGeometry(geom, DefaultColorMap[i%len(DefaultColorMap)]); err != nil {
+		if err = DrawGeometry(geom, cc.next()); err != nil {
 			return err
 		}
-		i++
 	}
+
+	return nil
+}
+
+func DrawShaped(ctx context.Context, s resource.Shaped, color string) error {
+	geoms, err := s.Geometries(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, g := range geoms {
+		err := DrawGeometry(g, color)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ws can be empty
+func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.WorldState) error {
+	if ws != nil {
+		fsCfg, err := myRobot.FrameSystemConfig(ctx)
+		if err != nil {
+			return err
+		}
+
+		rf, err := referenceframe.NewFrameSystem("foo", fsCfg.Parts, fsCfg.AdditionalTransforms)
+		if err != nil {
+			return err
+		}
+
+		inputs, err := mutils.GetInputs(ctx, rf, myRobot)
+		if err != nil {
+			return err
+		}
+
+		err = DrawWorldState(ws, rf, inputs)
+		if err != nil {
+			return err
+		}
+
+		for _, lif := range ws.Transforms() {
+			err = DrawGeometries(referenceframe.NewGeometriesInFrame(
+				lif.Parent(),
+				[]spatialmath.Geometry{lif.Geometry()},
+			), DefaultColorMap)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	cc := &colorChooser{}
+	for _, n := range myRobot.ResourceNames() {
+		r, err := myRobot.ResourceByName(n)
+		if err != nil {
+			return err
+		}
+		s, ok := r.(resource.Shaped)
+		if ok {
+			err := DrawShaped(ctx, s, cc.next())
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
