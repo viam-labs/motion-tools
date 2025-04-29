@@ -7,7 +7,6 @@
 	import CameraControls from '$lib/components/CameraControls.svelte'
 	import Selection from '$lib/components/Selection.svelte'
 	import Focus from '$lib/components/Focus.svelte'
-	import XR from '$lib/components/XR.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
 	import Camera from '$lib/components/Camera.svelte'
@@ -68,5 +67,3 @@
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.DirectionalLight position={[-3, -3, -3]} />
 <T.AmbientLight />
-
-<XR />

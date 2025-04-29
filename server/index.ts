@@ -1,7 +1,5 @@
-import express, { type Request, type Response, type NextFunction } from 'express'
+import express, { type Response } from 'express'
 import { WebSocket, WebSocketServer } from 'ws'
-import { z } from 'zod'
-import { geometrySchema } from './schema'
 import { getLocalIP } from './ip'
 
 const app = express()
@@ -22,19 +20,6 @@ const messages = {
 		message: 'No connected client',
 		status: 404,
 	},
-}
-
-// Middleware for validation
-const validate = (schema: z.ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
-	const result = schema.safeParse(req.body)
-
-	if (!result.success) {
-		return res.status(400).json({ errors: result.error.format() })
-	}
-
-	req.body = result.data // Ensures type safety in controllers
-
-	next()
 }
 
 const sendToClient = (body: Parameters<WebSocket['send']>[0], res?: Response) => {
