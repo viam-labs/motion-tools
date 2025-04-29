@@ -10,6 +10,7 @@
 	import DomPortal from './DomPortal.svelte'
 	import { PersistedState } from 'runed'
 	import XR from '$lib/components/XR.svelte'
+	import { World } from '@threlte/rapier'
 
 	interface Props {
 		children?: Snippet
@@ -29,28 +30,30 @@
 />
 
 <Canvas renderMode="always">
-	<Providers>
-		{#snippet children({ focus })}
-			<Scene>
-				{@render appChildren?.()}
+	<World>
+		<Providers>
+			{#snippet children({ focus })}
+				<Scene>
+					{@render appChildren?.()}
 
-				{#if enableXR.current}
-					<XR />
-				{/if}
-			</Scene>
+					{#if enableXR.current}
+						<XR />
+					{/if}
+				</Scene>
 
-			<DomPortal>
-				<Details />
-			</DomPortal>
-
-			{#if !focus}
 				<DomPortal>
-					<TreeContainer />
-					<Logs />
+					<Details />
 				</DomPortal>
-			{/if}
-		{/snippet}
-	</Providers>
+
+				{#if !focus}
+					<DomPortal>
+						<TreeContainer />
+						<Logs />
+					</DomPortal>
+				{/if}
+			{/snippet}
+		</Providers>
+	</World>
 </Canvas>
 
 {#if enableXR.current}
