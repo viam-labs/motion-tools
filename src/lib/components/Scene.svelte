@@ -12,6 +12,7 @@
 	import Camera from '$lib/components/Camera.svelte'
 	import { useFocus } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
+	import { useXR } from '@threlte/xr'
 
 	interface Props {
 		children?: Snippet
@@ -30,6 +31,8 @@
 	})
 
 	const focus = useFocus()
+
+	const { isPresenting } = useXR()
 </script>
 
 <T.Color
@@ -39,9 +42,11 @@
 
 {#if focus.current === undefined}
 	<Camera position={[3, 3, 3]}>
-		<CameraControls>
-			<Gizmo />
-		</CameraControls>
+		{#if !$isPresenting}
+			<CameraControls>
+				<Gizmo />
+			</CameraControls>
+		{/if}
 	</Camera>
 
 	<StaticGeometries />
