@@ -52,8 +52,6 @@
 			signalingAddress: '',
 		})
 	}
-
-	$inspect(activeConfig.current)
 </script>
 
 <svelte:window

@@ -21,7 +21,7 @@ import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { meshBounds, useGltf } from '@threlte/extras'
-import { CapsuleGeometry } from '$lib/CapsuleGeometry'
+import { CapsuleGeometry } from '$lib/three/CapsuleGeometry'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 type ConnectionStatus = 'connecting' | 'open' | 'closed'
@@ -57,7 +57,7 @@ const origin = new Vector3()
 
 export const provideShapes = () => {
 	const ip = (globalThis as unknown as { __BACKEND_IP__: string }).__BACKEND_IP__ ?? 'localhost'
-	const ws = new WebSocket(`ws://${ip}:3001`)
+	const ws = new WebSocket(`ws://${ip}:3000/ws`)
 
 	const current = $state<Mesh[]>([])
 	const points = $state<Points[]>([])
@@ -162,8 +162,6 @@ export const provideShapes = () => {
 		for (let i = 0, l = nextPoses.length; i < l; i += 1) {
 			const pose = nextPoses[i]
 			const length = 0.05
-
-			console.log(pose)
 
 			direction.set(pose.oX ?? 0, pose.oY ?? 0, pose.oZ ?? 0)
 			origin.set((pose.x ?? 0) / 1000, (pose.y ?? 0) / 1000, (pose.z ?? 0) / 1000)
