@@ -31,14 +31,7 @@
 
 	$effect.pre(() => {
 		const nextNodes = buildTreeNodes(objects.current)
-		const poseNodes = buildTreeNodes(
-			shapes.poses.map((pose, index) => {
-				return {
-					name: `pose ${index}`,
-					parent: 'world',
-				}
-			})
-		)
+		const poseNodes = buildTreeNodes(shapes.poses)
 
 		if (poseNodes.length > 0) {
 			const poseRoot = {

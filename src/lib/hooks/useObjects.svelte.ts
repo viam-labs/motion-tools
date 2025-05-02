@@ -28,7 +28,7 @@ export const provideObjects = () => {
 		...shapes.models,
 		...shapes.nurbs,
 		...shapes.points,
-		...statics.current,
+		// ...statics.current,
 	])
 
 	setContext<Context>(key, {

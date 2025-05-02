@@ -1,35 +1,18 @@
 <script lang="ts">
-	import {
-		useSelectedFrame,
-		useFocusedFrame,
-		useFocus,
-		useSelectionObject,
-		useFocusedObject,
-	} from '$lib/hooks/useSelection.svelte'
+	import { useSelectedFrame, useFocusedFrame, useFocus } from '$lib/hooks/useSelection.svelte'
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
-	import { createPose, object3dToPose } from '$lib/transform'
-	import { Geometry } from '@viamrobotics/sdk'
-
-	const nullPose = createPose()
-
-	const selectionObject = useSelectionObject()
-	const focusedObject = useFocusedObject()
-	const object = $derived(selectionObject.current ?? focusedObject.current)
-
-	const pose = $derived(object ? object3dToPose(object, nullPose) : undefined)
-	const geometry = $derived<Geometry | undefined>(object?.userData.geometry)
 
 	const selectedFrame = useSelectedFrame()
 	const focusedFrame = useFocusedFrame()
 	const focus = useFocus()
-	const frame = $derived(focusedFrame.current ?? selectedFrame.current)
+	const object = $derived(focusedFrame.current ?? selectedFrame.current)
 
 	let copied = $state(false)
 </script>
 
 {#if object}
-	{@const { center, geometryType } = geometry ?? {}}
+	{@const { geometry, pose } = object}
 	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
@@ -47,7 +30,7 @@
 
 			<button
 				onclick={async () => {
-					navigator.clipboard.writeText(JSON.stringify($state.snapshot(frame)))
+					navigator.clipboard.writeText(JSON.stringify($state.snapshot(object)))
 					copied = true
 					setTimeout(() => (copied = false), 1000)
 				}}
@@ -103,7 +86,7 @@
 				</div>
 			{/if}
 
-			{#if center}
+			<!-- {#if center}
 				<div>
 					<strong class="font-semibold">center</strong>
 					<div class="flex gap-3">
@@ -121,11 +104,11 @@
 						</div>
 					</div>
 				</div>
-			{/if}
+			{/if} -->
 
-			{#if geometryType}
-				{#if geometryType.case === 'box'}
-					{@const { dimsMm } = geometryType.value}
+			{#if geometry}
+				{#if geometry.case === 'box'}
+					{@const { dimsMm } = geometry.value}
 					<div>
 						<strong class="font-semibold">dimensions</strong>
 						<div class="flex gap-3">
@@ -143,8 +126,8 @@
 							</div>
 						</div>
 					</div>
-				{:else if geometryType.case === 'capsule'}
-					{@const { value } = geometryType}
+				{:else if geometry.case === 'capsule'}
+					{@const { value } = geometry}
 					<div>
 						<strong class="font-semibold">dimensions</strong>
 						<div class="flex gap-3">
@@ -158,14 +141,14 @@
 							</div>
 						</div>
 					</div>
-				{:else if geometryType.case === 'sphere'}
+				{:else if geometry.case === 'sphere'}
 					<div class="flex justify-between">
 						<div>
 							<strong class="font-semibold">dimensions</strong>
 							<div class="flex gap-3">
 								<div>
 									<span class="text-subtle-2">r</span>
-									{geometryType.value.radiusMm.toFixed(2)}
+									{geometry.value.radiusMm.toFixed(2)}
 								</div>
 							</div>
 						</div>
@@ -189,7 +172,7 @@
 			<Button
 				class="w-full"
 				icon="image-filter-center-focus"
-				onclick={() => focus.set(name)}
+				onclick={() => focus.set(object.name)}
 			>
 				Enter object view
 			</Button>
