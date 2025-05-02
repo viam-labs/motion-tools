@@ -58,6 +58,9 @@ devDependencies:
   '@tanstack/svelte-query':
     specifier: ^5.74.9
     version: 5.74.9(svelte@5.28.2)
+  '@tanstack/svelte-query-devtools':
+    specifier: ^5.75.0
+    version: 5.75.0(@tanstack/svelte-query@5.74.9)(svelte@5.28.2)
   '@testing-library/jest-dom':
     specifier: ^6.6.3
     version: 6.6.3
@@ -1176,6 +1179,22 @@ packages:
 
   /@tanstack/query-core@5.74.9:
     resolution: {integrity: sha512-qmjXpWyigDw4SfqdSBy24FzRvpBPXlaSbl92N77lcrL+yvVQLQkf0T6bQNbTxl9IEB/SvVFhhVZoIlQvFnNuuw==}
+
+  /@tanstack/query-devtools@5.74.7:
+    resolution: {integrity: sha512-nSNlfuGdnHf4yB0S+BoNYOE1o3oAH093weAYZolIHfS2stulyA/gWfSk/9H4ZFk5mAAHb5vNqAeJOmbdcGPEQw==}
+    dev: true
+
+  /@tanstack/svelte-query-devtools@5.75.0(@tanstack/svelte-query@5.74.9)(svelte@5.28.2):
+    resolution: {integrity: sha512-OxMC9iwm4i6vUD9O3/GIGRfYxLl+LmOMceH1em8aYL95u+mplmTzyacGrqDLI/isaKKC7Tg/VldyU5UIVnWt4A==}
+    peerDependencies:
+      '@tanstack/svelte-query': ^5.75.0
+      svelte: ^3.54.0 || ^4.0.0 || ^5.0.0
+    dependencies:
+      '@tanstack/query-devtools': 5.74.7
+      '@tanstack/svelte-query': 5.74.9(svelte@5.28.2)
+      esm-env: 1.2.2
+      svelte: 5.28.2
+    dev: true
 
   /@tanstack/svelte-query@5.74.9(svelte@5.28.2):
     resolution: {integrity: sha512-VfZ2/YZdyG1M7cxVst5B6aboUpqjwqtCWWBt+5uf66Wp3ogXMLsET/UDBBWIEVdVOi5Oal3/RfF+Z4QARUAPKg==}
