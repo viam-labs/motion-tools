@@ -13,7 +13,8 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 
 	define: {
-		__BACKEND_IP__: JSON.stringify(localIP),
+		BACKEND_IP: JSON.stringify(localIP),
+		BUN_SERVER_PORT: JSON.stringify(process.env.BUN_SERVER_PORT),
 	},
 
 	optimizeDeps: {

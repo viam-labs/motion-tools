@@ -5,6 +5,8 @@ import (
 
 	"github.com/viam-labs/motion-tools/client/shapes"
 
+	"math"
+
 	"github.com/golang/geo/r3"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/pointcloud"
@@ -60,9 +62,7 @@ func TestDrawGeometries(t *testing.T) {
 
 		colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
 
-		DrawGeometries(geometriesInFrame, colors)
-
-		test.That(t, DrawGeometry(box, "purple"), test.ShouldBeNil)
+		test.That(t, DrawGeometries(geometriesInFrame, colors), test.ShouldBeNil)
 	})
 }
 
@@ -130,52 +130,66 @@ func TestDrawPointCloud(t *testing.T) {
 }
 
 func TestDrawPoses(t *testing.T) {
-	p0 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 0, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0, OZ: 1, Theta: 0,
-		},
+	const (
+		numPoints = 5000
+		radius    = 1000.0
 	)
 
-	p1 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 10, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0.1, OZ: 0.9, Theta: 0,
-		},
-	)
+	// Define the center of the sphere
+	centerX := 1500.0
+	centerY := 1500.0
+	centerZ := -300.0
 
-	p2 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 20, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0.2, OZ: 0.8, Theta: 0,
-		},
-	)
+	var poses []spatialmath.Pose
+	var colors []string
+	pallet := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
 
-	p3 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 30, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0.3, OZ: 0.7, Theta: 0,
-		},
-	)
+	for i := 0; i < numPoints; i++ {
+		phi := math.Acos(1 - 2*float64(i)/float64(numPoints))
+		theta := math.Pi * (1 + math.Sqrt(5)) * float64(i)
 
-	p4 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 40, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0.4, OZ: 0.6, Theta: 0,
-		},
-	)
+		x := radius * math.Sin(phi) * math.Cos(theta)
+		y := radius * math.Sin(phi) * math.Sin(theta)
+		z := radius * math.Cos(phi)
 
-	p5 := spatialmath.NewPose(
-		r3.Vector{X: 700, Y: 50, Z: 0},
-		&spatialmath.OrientationVectorDegrees{
-			OX: 0, OY: 0.5, OZ: 0.5, Theta: 0,
-		},
-	)
+		// Apply offset to shift the sphere center
+		x += centerX
+		y += centerY
+		z += centerZ
 
-	poses := []spatialmath.Pose{p0, p1, p2, p3, p4, p5}
-	colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
+		// Orientation: point back toward the center
+		dx := centerX - x
+		dy := centerY - y
+		dz := centerZ - z
+
+		length := math.Sqrt(dx*dx + dy*dy + dz*dz)
+
+		pose := spatialmath.NewPose(
+			r3.Vector{X: x, Y: y, Z: z},
+			&spatialmath.OrientationVectorDegrees{
+				OX:    dx / length,
+				OY:    dy / length,
+				OZ:    dz / length,
+				Theta: 0,
+			},
+		)
+
+		poses = append(poses, pose)
+		colors = append(colors, pallet[i%len(pallet)])
+	}
 
 	test.That(t, DrawPoses(poses, colors, true), test.ShouldBeNil)
+
+	box, err := spatialmath.NewSphere(
+		spatialmath.NewPose(
+			r3.Vector{X: centerX, Y: centerY, Z: centerZ},
+			&spatialmath.OrientationVectorDegrees{Theta: 0, OX: 0, OY: 0, OZ: 1},
+		),
+		radius,
+		"mySpherePose",
+	)
+	test.That(t, err, test.ShouldBeNil)
+	test.That(t, DrawGeometry(box, "turquoise"), test.ShouldBeNil)
 }
 
 func TestDrawNurbs(t *testing.T) {

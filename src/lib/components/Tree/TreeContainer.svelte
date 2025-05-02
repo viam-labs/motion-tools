@@ -7,10 +7,11 @@
 	import { buildTreeNodes, type TreeNode } from './buildTree'
 
 	import { useSelection } from '$lib/hooks/useSelection.svelte'
-	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
 	import RefreshRate from '../RefreshRate.svelte'
+	import { useShapes } from '$lib/hooks/useShapes.svelte'
+	import { useObjects } from '$lib/hooks/useObjects.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', true)
 	const showSettings = new PersistedState('show-settings', false)
@@ -18,15 +19,40 @@
 	provideTreeExpandedContext()
 
 	const selection = useSelection()
-	const allFrames = useAllFrames()
+	const objects = useObjects()
+	const shapes = useShapes()
 
-	let rootNode = $state<TreeNode>(buildTreeNodes([]))
+	let rootNode = $state<TreeNode>({
+		id: 'world',
+		name: 'World',
+		children: [],
+		href: '/',
+	})
 
 	$effect.pre(() => {
-		const nextNodes = buildTreeNodes(allFrames.current)
+		const nextNodes = buildTreeNodes(objects.current)
+		const poseNodes = buildTreeNodes(
+			shapes.poses.map((pose, index) => {
+				return {
+					name: `pose ${index}`,
+					parent: 'world',
+				}
+			})
+		)
 
-		if (!isEqual(rootNode, nextNodes)) {
-			rootNode = nextNodes
+		if (poseNodes.length > 0) {
+			const poseRoot = {
+				id: 'poses',
+				name: 'Poses',
+				children: poseNodes,
+				href: '/',
+			}
+
+			nextNodes.push(poseRoot)
+		}
+
+		if (!isEqual(rootNode.children, nextNodes)) {
+			rootNode.children = nextNodes
 		}
 	})
 </script>

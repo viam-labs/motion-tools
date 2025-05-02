@@ -1,7 +1,24 @@
 <script lang="ts">
-	import { useSelectedFrame, useFocusedFrame, useFocus } from '$lib/hooks/useSelection.svelte'
+	import {
+		useSelectedFrame,
+		useFocusedFrame,
+		useFocus,
+		useSelectionObject,
+		useFocusedObject,
+	} from '$lib/hooks/useSelection.svelte'
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
+	import { createPose, object3dToPose } from '$lib/transform'
+	import { Geometry } from '@viamrobotics/sdk'
+
+	const nullPose = createPose()
+
+	const selectionObject = useSelectionObject()
+	const focusedObject = useFocusedObject()
+	const object = $derived(selectionObject.current ?? focusedObject.current)
+
+	const pose = $derived(object ? object3dToPose(object, nullPose) : undefined)
+	const geometry = $derived<Geometry | undefined>(object?.userData.geometry)
 
 	const selectedFrame = useSelectedFrame()
 	const focusedFrame = useFocusedFrame()
@@ -11,16 +28,15 @@
 	let copied = $state(false)
 </script>
 
-{#if frame}
-	{@const { pose, name } = frame}
-	{@const { center, geometryType } = frame.geometry ?? {}}
+{#if object}
+	{@const { center, geometryType } = geometry ?? {}}
 	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
 				<button>
 					<Icon name="drag" />
 				</button>
-				<strong class="font-semibold">{name}</strong>
+				<strong class="font-semibold">{object.name}</strong>
 			</div>
 		</div>
 
@@ -51,15 +67,15 @@
 					<div class="flex gap-3">
 						<div>
 							<span class="text-subtle-2">x</span>
-							{pose.x.toFixed(2)}
+							{pose.x !== undefined ? pose.x.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">y</span>
-							{pose.y.toFixed(2)}
+							{pose.y !== undefined ? pose.y.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">z</span>
-							{pose.z.toFixed(2)}
+							{pose.z !== undefined ? pose.z.toFixed(2) : '-'}
 						</div>
 					</div>
 				</div>
@@ -69,19 +85,19 @@
 					<div class="flex gap-3">
 						<div>
 							<span class="text-subtle-2">x</span>
-							{pose.oX.toFixed(2)}
+							{pose.oX !== undefined ? pose.oX.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">y</span>
-							{pose.oY.toFixed(2)}
+							{pose.oY !== undefined ? pose.oY.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">z</span>
-							{pose.oZ.toFixed(2)}
+							{pose.oZ !== undefined ? pose.oZ.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">th</span>
-							{pose.theta.toFixed(2)}
+							{pose.theta !== undefined ? pose.theta.toFixed(2) : '-'}
 						</div>
 					</div>
 				</div>
@@ -93,15 +109,15 @@
 					<div class="flex gap-3">
 						<div>
 							<span class="text-subtle-2">x</span>
-							{center?.x.toFixed(2)}
+							{center.x !== undefined ? center.x.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">y</span>
-							{center?.y.toFixed(2)}
+							{center.y !== undefined ? center.y.toFixed(2) : '-'}
 						</div>
 						<div>
 							<span class="text-subtle-2">z</span>
-							{center?.z.toFixed(2)}
+							{center.z !== undefined ? center.z.toFixed(2) : '-'}
 						</div>
 					</div>
 				</div>
@@ -109,34 +125,36 @@
 
 			{#if geometryType}
 				{#if geometryType.case === 'box'}
+					{@const { dimsMm } = geometryType.value}
 					<div>
 						<strong class="font-semibold">dimensions</strong>
 						<div class="flex gap-3">
 							<div>
 								<span class="text-subtle-2">x</span>
-								{geometryType.value.dimsMm?.x.toFixed(2)}
+								{dimsMm?.x ? dimsMm.x.toFixed(2) : '-'}
 							</div>
 							<div>
 								<span class="text-subtle-2">y</span>
-								{geometryType.value.dimsMm?.y.toFixed(2)}
+								{dimsMm?.y ? dimsMm.y.toFixed(2) : '-'}
 							</div>
 							<div>
 								<span class="text-subtle-2">z</span>
-								{geometryType.value.dimsMm?.z.toFixed(2)}
+								{dimsMm?.z ? dimsMm.z.toFixed(2) : '-'}
 							</div>
 						</div>
 					</div>
 				{:else if geometryType.case === 'capsule'}
+					{@const { value } = geometryType}
 					<div>
 						<strong class="font-semibold">dimensions</strong>
 						<div class="flex gap-3">
 							<div>
 								<span class="text-subtle-2">r</span>
-								{geometryType.value.radiusMm.toFixed(2)}
+								{value.radiusMm ? value.radiusMm.toFixed(2) : '-'}
 							</div>
 							<div>
 								<span class="text-subtle-2">l</span>
-								{geometryType.value.lengthMm.toFixed(2)}
+								{value.lengthMm ? value.lengthMm.toFixed(2) : '-'}
 							</div>
 						</div>
 					</div>

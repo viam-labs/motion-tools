@@ -41,6 +41,7 @@ export const vector3ToPose = (vec3: Vector3, pose: Partial<Pose>) => {
 export const object3dToPose = (object3d: Object3D, pose: Partial<Pose>) => {
 	vector3ToPose(object3d.position, pose)
 	quaternionToPose(object3d.quaternion, pose)
+	return pose
 }
 
 export const poseToQuaternion = (pose: Partial<Pose>, quaternion: Quaternion) => {

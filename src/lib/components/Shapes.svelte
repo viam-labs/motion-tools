@@ -2,79 +2,46 @@
 	import { T } from '@threlte/core'
 	import { Portal, PortalTarget } from '@threlte/extras'
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
-	import Pointcloud from './Pointcloud.svelte'
-	import { Edges } from '@threlte/extras'
-	import { darkenColor } from '$lib/color'
 	import Clickable from './Clickable.svelte'
+	import Frame from './Frame.svelte'
 
 	const shapes = useShapes()
 </script>
 
-{#each shapes.current as mesh (mesh.uuid)}
-	<Portal id={mesh.userData.parent}>
-		<Clickable
-			name={mesh.name}
-			object={mesh}
-		>
-			<Edges
-				raycast={() => null}
-				thresholdAngle={0}
-				color={darkenColor(mesh.userData.color, 10)}
-				renderOrder={-1}
-			/>
-
-			<T.MeshToonMaterial
-				color={mesh.userData.color}
-				transparent
-				opacity={0.7}
-			/>
-
-			<PortalTarget id={mesh.name} />
-		</Clickable>
+{#each shapes.current as object (object.name)}
+	<Portal id={object.referenceFrame}>
+		<Frame {object}>
+			<PortalTarget id={object.name} />
+		</Frame>
 	</Portal>
 {/each}
 
-{#each shapes.points as points (points.uuid)}
-	<Pointcloud {points} />
-{/each}
-
-{#each shapes.meshes as mesh (mesh.uuid)}
-	<Portal id={mesh.userData.parent}>
-		<Clickable
-			name={mesh.name}
-			object={mesh}
-		>
-			<Edges
-				raycast={() => null}
-				thresholdAngle={0}
-				color={darkenColor(mesh.userData.color, 10)}
-				renderOrder={-1}
-			/>
-
-			<PortalTarget id={mesh.name} />
-		</Clickable>
+{#each shapes.meshes as object (object.uuid)}
+	<Portal id={object.referenceFrame}>
+		<Frame {object}>
+			<PortalTarget id={object.name} />
+		</Frame>
 	</Portal>
 {/each}
 
-{#each shapes.poses as pose (pose.uuid)}
-	<T
-		name={pose.name}
-		is={pose}
-	/>
+<T
+	name={shapes.object3ds.batchedArrow.object3d.name}
+	is={shapes.object3ds.batchedArrow.object3d}
+/>
+
+{#each shapes.nurbs as object (object.uuid)}
+	<Portal id={object.referenceFrame}>
+		<Frame {object}>
+			<PortalTarget id={object.name} />
+		</Frame>
+	</Portal>
 {/each}
 
-{#each shapes.nurbs as nurbs (nurbs.uuid)}
+{#each shapes.models as object (object.uuid)}
 	<Clickable
-		name={nurbs.name}
-		object={nurbs}
-	/>
-{/each}
-
-{#each shapes.models as model (model.uuid)}
-	<Clickable
-		name={model.name}
-		object={model}
+		name={object.name}
+		object={object.metadata.gltf.scene}
 	>
-		<PortalTarget id={model.name} />
+		<PortalTarget id={object.name} />
 	</Clickable>
 {/each}

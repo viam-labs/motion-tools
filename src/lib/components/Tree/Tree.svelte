@@ -6,6 +6,7 @@
 	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 	import type { TreeNode } from './buildTree'
 	import { useExpanded } from './useExpanded.svelte'
+	import { VirtualList } from 'svelte-virtuallists'
 
 	const visibility = useVisibility()
 	const expanded = useExpanded()
@@ -64,9 +65,15 @@
 
 	{#if nodeState.isBranch}
 		{@const { expanded } = nodeState}
+		{@const { children = [] } = node}
 		<div
 			{...api.getBranchProps(nodeProps)}
-			class={{ 'text-disabled': !isVisible, 'bg-medium': selected }}
+			class={{
+				'text-disabled': !isVisible,
+				'bg-white': !selected,
+				'bg-medium': selected,
+				sticky: true,
+			}}
 		>
 			<div {...api.getBranchControlProps(nodeProps)}>
 				<span
@@ -97,9 +104,15 @@
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
-				{#each node.children ?? [] as childNode, index}
-					{@render treeNode({ node: childNode, indexPath: [...indexPath, index], api })}
-				{/each}
+				<VirtualList
+					class="w-full"
+					style="height:{Math.min(5, children.length) * 32}px;"
+					items={children}
+				>
+					{#snippet vl_slot({ index, item })}
+						{@render treeNode({ node: item, indexPath: [...indexPath, Number(index)], api })}
+					{/snippet}
+				</VirtualList>
 			</div>
 		</div>
 	{:else}

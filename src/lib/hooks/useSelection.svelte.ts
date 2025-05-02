@@ -1,8 +1,8 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
 import type { Mesh, Object3D, Points } from 'three'
-import { useAllFrames } from './useFrames.svelte'
-import type { Frame } from './useFrames.svelte'
+import { useObjects } from './useObjects.svelte'
+import type { WorldObject } from '$lib/WorldObject'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
@@ -28,11 +28,11 @@ interface HoverContext {
 }
 
 interface SelectedFrameContext {
-	readonly current: Frame | undefined
+	readonly current: WorldObject | undefined
 }
 
 interface FocusedFrameContext {
-	readonly current: Frame | undefined
+	readonly current: WorldObject | undefined
 }
 
 export const provideSelection = () => {
@@ -70,7 +70,7 @@ export const provideSelection = () => {
 	}
 	setContext<HoverContext>(hoverKey, hoverContext)
 
-	const allFrames = useAllFrames()
+	const allFrames = useObjects()
 	const selectedFrame = $derived(allFrames.current.find((frame) => frame.name === selection))
 
 	const selectedFrameContext = {
@@ -132,10 +132,10 @@ export const useSelectionObject = (): { current: Object3D | undefined } => {
 	}
 }
 
-export const useFocusedFrame = (): { current: Frame | undefined } => {
+export const useFocusedFrame = (): { current: WorldObject | undefined } => {
 	return getContext<FocusedFrameContext>(focusedFrameKey)
 }
 
-export const useSelectedFrame = (): { current: Frame | undefined } => {
+export const useSelectedFrame = (): { current: WorldObject | undefined } => {
 	return getContext<SelectedFrameContext>(selectedFrameKey)
 }

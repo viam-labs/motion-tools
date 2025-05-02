@@ -10,28 +10,18 @@
 
 <PortalTarget id="world" />
 
-{#each frames.current as frame (frame.name)}
-	<Portal id={frame.parent}>
-		<Frame
-			name={frame.name}
-			pose={frame.pose}
-			geometry={frame.geometry}
-		>
-			<PortalTarget id={frame.name} />
+{#each frames.current as object (object.name)}
+	<Portal id={object.referenceFrame}>
+		<Frame {object}>
+			<PortalTarget id={object.name} />
 		</Frame>
 	</Portal>
 {/each}
 
-{#each geometries.current as query}
-	{#each query.data ?? [] as frame}
-		<Portal id={frame.parent}>
-			<Frame
-				name={frame.name}
-				pose={frame.pose}
-				geometry={frame.geometry}
-			>
-				<PortalTarget id={frame.name} />
-			</Frame>
-		</Portal>
-	{/each}
+{#each geometries.current as object (object.name)}
+	<Portal id={object.referenceFrame}>
+		<Frame {object}>
+			<PortalTarget id={object.name} />
+		</Frame>
+	</Portal>
 {/each}

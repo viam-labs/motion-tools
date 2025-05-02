@@ -1,4 +1,3 @@
-import { BufferAttribute, BufferGeometry, Points, PointsMaterial } from 'three'
 import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
@@ -8,11 +7,12 @@ import { parsePCD } from '$lib/loaders/pcd'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { usePoses } from './usePoses.svelte'
 import { useFrames } from './useFrames.svelte'
+import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 
 const key = Symbol('pointcloud-context')
 
 interface Context {
-	current: QueryObserverResult<Points | undefined, Error>[]
+	current: QueryObserverResult<WorldObject<PointsGeometry> | undefined, Error>[]
 }
 
 export const providePointclouds = (partID: () => string) => {
@@ -39,7 +39,7 @@ export const providePointclouds = (partID: () => string) => {
 				enabled: interval !== -1 && cameraClient.current !== undefined,
 				refetchInterval: interval,
 				queryKey: ['partID', partID(), name, 'getPointCloud'],
-				queryFn: async (): Promise<Points | undefined> => {
+				queryFn: async (): Promise<WorldObject<PointsGeometry> | undefined> => {
 					if (!cameraClient.current) {
 						throw new Error('No camera client')
 					}
@@ -56,20 +56,14 @@ export const providePointclouds = (partID: () => string) => {
 					if (!transformed) return
 
 					const { positions, colors } = await parsePCD(new Uint8Array(transformed))
-					const geometry = new BufferGeometry()
-					const material = new PointsMaterial({ size: 0.01, vertexColors: true })
-					geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
 
-					if (colors) {
-						geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
-					}
-
-					const points = new Points(geometry, material)
-
-					points.userData.parent = frame ? name : 'world'
-					points.name = `${name}:pointcloud`
-
-					return points
+					return new WorldObject(
+						`${name}:pointcloud`,
+						undefined,
+						frame ? name : 'world',
+						{ case: 'points', value: new Float32Array(positions) },
+						colors ? { colors: new Float32Array(colors) } : undefined
+					)
 				},
 			})
 		})
