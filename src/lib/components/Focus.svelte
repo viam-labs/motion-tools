@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { T } from '@threlte/core'
+	import { isInstanceOf, T } from '@threlte/core'
 	import { TrackballControls, Gizmo } from '@threlte/extras'
-	import { useFocus, useFocusedObject } from '$lib/hooks/useSelection.svelte'
+	import { useFocused, useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { Box3, PointsMaterial, Vector3 } from 'three'
 	import Camera from './Camera.svelte'
 
-	const focus = useFocus()
-	const focusObject = useFocusedObject()
+	const focus = useFocused()
+	const focusedObject = useFocusedObject3d()
+	const object3d = $derived(focusedObject.current)
 
 	const box = new Box3()
 	const vec = new Vector3()
@@ -16,8 +17,8 @@
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
 
 	$effect(() => {
-		if (focusObject.current) {
-			box.setFromObject(focusObject.current)
+		if (object3d) {
+			box.setFromObject(object3d)
 			center = box.getCenter(vec).toArray()
 			size = box.getSize(vec).toArray()
 		}
@@ -27,8 +28,8 @@
 		if (key === Keybindings.ESCAPE) {
 			focus.set(undefined)
 		} else if (key === Keybindings.UP || key === Keybindings.DOWN) {
-			if (focusObject.current?.material instanceof PointsMaterial) {
-				focusObject.current.material.size += key === Keybindings.UP ? 0.001 : -0.001
+			if (object3d && 'material' in object3d && isInstanceOf(object3d.material, 'PointsMaterial')) {
+				object3d.material.size += key === Keybindings.UP ? 0.001 : -0.001
 			}
 		}
 	}
@@ -42,7 +43,7 @@
 	</TrackballControls>
 </Camera>
 
-{#if focusObject.current}
-	<T is={focusObject.current} />
-	<T.BoxHelper args={[focusObject.current, 'red']} />
+{#if object3d}
+	<T is={object3d} />
+	<T.BoxHelper args={[object3d, 'red']} />
 {/if}

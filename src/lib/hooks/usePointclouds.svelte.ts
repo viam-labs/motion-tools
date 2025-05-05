@@ -1,4 +1,4 @@
-import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
@@ -12,7 +12,7 @@ import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 const key = Symbol('pointcloud-context')
 
 interface Context {
-	current: QueryObserverResult<WorldObject<PointsGeometry> | undefined, Error>[]
+	current: WorldObject<PointsGeometry>[]
 }
 
 export const providePointclouds = (partID: () => string) => {
@@ -72,15 +72,17 @@ export const providePointclouds = (partID: () => string) => {
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
-			combine: (result) => {
-				return result
+			combine: (results) => {
+				return {
+					data: results.flatMap((result) => result.data).filter((data) => data !== undefined),
+				}
 			},
 		})
 	)
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return queries.current.data
 		},
 	})
 }

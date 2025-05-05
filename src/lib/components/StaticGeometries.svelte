@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import { Edges, TransformControls } from '@threlte/extras'
-	import { useSelection } from '$lib/hooks/useSelection.svelte'
+	import { useSelected } from '$lib/hooks/useSelection.svelte'
 	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { PersistedState } from 'runed'
 	import { quaternionToPose, scaleToDimensions, vector3ToPose } from '$lib/transform'
 	import { Quaternion, Vector3 } from 'three'
-	import Clickable from './Clickable.svelte'
+	import Clickable from './WorldObject.svelte'
 	import { darkenColor } from '$lib/color'
 
 	type Modes = 'translate' | 'rotate' | 'scale'
 
 	const transformControls = useTransformControls()
 	const geometries = useStaticGeometries()
-	const selection = useSelection()
+	const selected = useSelected()
 
 	let mode = new PersistedState<Modes>('transform-mode', 'translate')
 
@@ -34,7 +34,7 @@
 		if (key === Keybindings.ADD_GEOMETRY) {
 			geometries.add()
 		} else if (key === Keybindings.REMOVE_GEOMETRY) {
-			geometries.remove(selection.current ?? '')
+			geometries.remove(selected.current ?? '')
 		} else if (key === Keybindings.TRANSLATE) {
 			mode.current = 'translate'
 		} else if (key === Keybindings.ROTATE) {
@@ -45,7 +45,7 @@
 	}}
 />
 
-{#each geometries.current as mesh (mesh.uuid)}
+<!-- {#each geometries.current as mesh (mesh.uuid)}
 	<Clickable
 		name={mesh.name}
 		object={mesh}
@@ -85,4 +85,4 @@
 			/>
 		{/snippet}
 	</Clickable>
-{/each}
+{/each} -->

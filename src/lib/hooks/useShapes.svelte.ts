@@ -1,26 +1,9 @@
 import { getContext, setContext } from 'svelte'
-import {
-	BoxGeometry,
-	BufferAttribute,
-	BufferGeometry,
-	Color,
-	MathUtils,
-	Object3D,
-	PointsMaterial,
-	SphereGeometry,
-	Vector3,
-	Vector4,
-} from 'three'
+import { Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
-import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
-import { DoubleSide, Mesh, MeshToonMaterial, Points } from 'three'
-import { createGeometry, createPose, poseToObject3d } from '$lib/transform'
 import { parsePCD } from '$lib/loaders/pcd'
-import { Line2 } from 'three/addons/lines/Line2.js'
-import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
-import { meshBounds, useGltf } from '@threlte/extras'
-import { CapsuleGeometry } from '$lib/three/CapsuleGeometry'
+import { useGltf } from '@threlte/extras'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { BatchedArrow } from '$lib/three/BatchedArrow'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
@@ -54,13 +37,14 @@ const tryParse = (json: string) => {
 	}
 }
 
-let pointsIndex = 0
-let geometryIndex = 0
-
 const direction = new Vector3()
 const origin = new Vector3()
 
 export const provideShapes = () => {
+	let pointsIndex = 0
+	let geometryIndex = 0
+	let poseIndex = 0
+
 	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
 		BACKEND_IP: string
 		BUN_SERVER_PORT: string
@@ -161,7 +145,7 @@ export const provideShapes = () => {
 			}
 
 			batchedArrow.addArrow(direction, origin, length, colors[i])
-			poses.push(pose)
+			poses.push(new WorldObject(`pose ${++poseIndex}`, pose))
 		}
 	}
 

@@ -3,16 +3,14 @@
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
 	import Pointcloud from './Pointcloud.svelte'
 
-	const queries = usePointClouds()
+	const points = usePointClouds()
 	const shapes = useShapes()
 </script>
 
-{#each queries.current as query}
-	{#if query.data}
-		<Pointcloud object={query.data} />
-	{/if}
+{#each points.current as object (object.name)}
+	<Pointcloud {object} />
 {/each}
 
-{#each shapes.points as object}
+{#each shapes.points as object (object.name)}
 	<Pointcloud {object} />
 {/each}

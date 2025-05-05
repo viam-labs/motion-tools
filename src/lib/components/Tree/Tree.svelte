@@ -47,6 +47,8 @@
 	$effect(() => {
 		untrack(() => api).setExpandedValue([...expanded])
 	})
+
+	const rootChildren = $derived(collection.rootNode.children ?? [])
 </script>
 
 {#snippet treeNode({
@@ -104,7 +106,7 @@
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
-				<VirtualList
+				<!-- <VirtualList
 					class="w-full"
 					style="height:{Math.min(5, children.length) * 32}px;"
 					items={children}
@@ -112,7 +114,11 @@
 					{#snippet vl_slot({ index, item })}
 						{@render treeNode({ node: item, indexPath: [...indexPath, Number(index)], api })}
 					{/snippet}
-				</VirtualList>
+				</VirtualList> -->
+
+				{#each children as node, index}
+					{@render treeNode({ node, indexPath: [index], api })}
+				{/each}
 			</div>
 		</div>
 	{:else}
@@ -150,9 +156,15 @@
 			{...api.getTreeProps()}
 			class="w-[240px]"
 		>
-			{#each collection.rootNode.children ?? [] as node, index}
-				{@render treeNode({ node, indexPath: [index], api })}
-			{/each}
+			<VirtualList
+				class="w-full"
+				style="height:{Math.min(10, rootChildren.length) * 32}px;"
+				items={rootChildren}
+			>
+				{#snippet vl_slot({ index, item })}
+					{@render treeNode({ node: item, indexPath: [Number(index)], api })}
+				{/snippet}
+			</VirtualList>
 		</div>
 	</div>
 </div>

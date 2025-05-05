@@ -8,8 +8,6 @@
 	const geometries = useGeometries()
 </script>
 
-<PortalTarget id="world" />
-
 {#each frames.current as object (object.name)}
 	<Portal id={object.referenceFrame}>
 		<Frame {object}>

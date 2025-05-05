@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { useSelectedFrame, useFocusedFrame, useFocus } from '$lib/hooks/useSelection.svelte'
+	import { useSelectedObject, useFocusedObject, useFocused } from '$lib/hooks/useSelection.svelte'
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
 
-	const selectedFrame = useSelectedFrame()
-	const focusedFrame = useFocusedFrame()
-	const focus = useFocus()
-	const object = $derived(focusedFrame.current ?? selectedFrame.current)
+	const focused = useFocused()
+	const selectedObject = useSelectedObject()
+	const focusedObject = useFocusedObject()
+	const object = $derived(focusedObject.current ?? selectedObject.current)
 
 	let copied = $state(false)
 </script>
 
 {#if object}
 	{@const { geometry, pose } = object}
-	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border p-2 text-xs">
+	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-60 border p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
 				<button>
@@ -159,12 +159,12 @@
 
 		<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
 
-		{#if focus.current}
+		{#if focused.current}
 			<Button
 				class="w-full"
 				icon="arrow-left"
 				variant="dark"
-				onclick={() => focus.set(undefined)}
+				onclick={() => focused.set()}
 			>
 				Exit object view
 			</Button>
@@ -172,7 +172,7 @@
 			<Button
 				class="w-full"
 				icon="image-filter-center-focus"
-				onclick={() => focus.set(object.name)}
+				onclick={() => focused.set(object.uuid)}
 			>
 				Enter object view
 			</Button>

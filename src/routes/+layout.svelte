@@ -9,6 +9,8 @@
 	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import MotionTools from '$lib/components/App.svelte'
+	import { PersistedState } from 'runed'
+	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 
 	provideConnectionConfigs()
 
@@ -30,7 +32,17 @@
 	})
 
 	createPartIDContext(() => connectionConfig.current?.partId ?? '')
+
+	const queryDevtoolsOpen = new PersistedState('query-devtools-open', false)
 </script>
+
+<svelte:window
+	onkeydown={({ key }) => {
+		if (key === '0') {
+			queryDevtoolsOpen.current = !queryDevtoolsOpen.current
+		}
+	}}
+/>
 
 <Machines />
 
@@ -38,4 +50,8 @@
 	<MotionTools>
 		{@render children()}
 	</MotionTools>
+
+	{#if queryDevtoolsOpen.current}
+		<SvelteQueryDevtools initialIsOpen />
+	{/if}
 </ViamProvider>

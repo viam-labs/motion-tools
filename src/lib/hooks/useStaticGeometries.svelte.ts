@@ -2,7 +2,7 @@ import { getContext, setContext } from 'svelte'
 import { get, set } from 'idb-keyval'
 import { Debounced } from 'runed'
 import { createGeometry, createPose } from '$lib/transform'
-import { BoxGeometry, Mesh, Object3D } from 'three'
+import { BoxGeometry, Mesh } from 'three'
 import { ObjectLoader } from 'three'
 
 const key = Symbol('static-geometries-context')

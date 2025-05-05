@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { MathUtils } from 'three'
+import { MathUtils, Object3D } from 'three'
 import { createPose } from './transform'
 
 export type PointsGeometry = { case: 'points'; value: Float32Array }
@@ -7,7 +7,11 @@ export type LinesGeometry = { case: 'line'; value: Float32Array }
 
 export type Geometries = Geometry['geometryType'] | PointsGeometry | LinesGeometry
 
-export type Metadata = Record<string, any>
+export type Metadata = {
+	colors?: Float32Array
+	color?: string
+	gltf?: { scene: Object3D }
+}
 
 export class WorldObject<T extends Geometries = Geometries> {
 	uuid = MathUtils.generateUUID()

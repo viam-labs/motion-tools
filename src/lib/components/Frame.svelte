@@ -1,52 +1,61 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import type { Snippet } from 'svelte'
+	import { type Snippet } from 'svelte'
 	import { Edges, meshBounds } from '@threlte/extras'
-	import { BufferAttribute, DoubleSide, FrontSide, Mesh } from 'three'
+	import { BufferAttribute, DoubleSide, FrontSide, Mesh, Object3D } from 'three'
 	import { CapsuleGeometry } from '$lib/three/CapsuleGeometry'
-	import { poseToQuaternion, poseToVector3 } from '$lib/transform'
+	import { poseToObject3d } from '$lib/transform'
 	import { darkenColor } from '$lib/color'
-	import Clickable from './Clickable.svelte'
 	import AxesHelper from './AxesHelper.svelte'
 	import type { WorldObject } from '$lib/WorldObject'
 	import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 	import { Line2, LineMaterial } from 'three/examples/jsm/Addons.js'
+	import { useObjectProps } from '$lib/hooks/useObjectProps.svelte'
 
 	const plyLoader = new PLYLoader()
 
 	interface Props {
 		object: WorldObject
-		children?: Snippet<[{ ref: Mesh }]>
+		children?: Snippet<[{ ref: Object3D }]>
 	}
 
 	let { object, children }: Props = $props()
 
-	const mesh = object.geometry?.case === 'line' ? new Line2() : new Mesh()
+	const type = $derived(object.geometry?.case)
+	const mesh = $derived.by(() => {
+		const object3d =
+			type === undefined ? new Object3D() : type === 'line' ? new Line2() : new Mesh()
 
-	if (object.geometry?.case === 'mesh') {
-		mesh.raycast = meshBounds
-	}
+		if (type === 'mesh' || type === 'points' || type === 'line') {
+			object3d.raycast = meshBounds
+		}
 
-	$effect.pre(() => {
-		poseToQuaternion(object.pose, mesh.quaternion)
+		return object3d
 	})
 
+	const objectProps = useObjectProps(() => object.uuid)
+	const pose = $derived(object.pose)
+
 	$effect.pre(() => {
-		poseToVector3(object.pose, mesh.position)
+		poseToObject3d(pose, mesh)
 	})
 </script>
 
-<Clickable
+<T
+	is={mesh}
 	name={object.name}
-	object={mesh}
+	{...objectProps}
 >
 	{#if object.geometry?.case === 'mesh'}
 		{@const geometry = plyLoader.parse(atob(object.geometry.value.mesh as unknown as string))}
 		<T is={geometry} />
 	{:else if object.geometry?.case === 'line'}
-		<T.BufferGeometry>
-			<T.BufferAttribute args={[object.geometry.value, 3]} />
-		</T.BufferGeometry>
+		{@const array = object.geometry.value}
+		<T.BufferGeometry
+			oncreate={(ref) => {
+				ref.setAttribute('position', new BufferAttribute(array, 3))
+			}}
+		/>
 	{:else if object.geometry?.case === 'box'}
 		{@const dimsMm = object.geometry.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
 		<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
@@ -87,4 +96,4 @@
 	{/if}
 
 	{@render children?.({ ref: mesh })}
-</Clickable>
+</T>

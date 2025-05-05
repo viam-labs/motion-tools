@@ -1,4 +1,4 @@
-import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
+import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { MotionClient, PoseInFrame, ResourceName } from '@viamrobotics/sdk'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
@@ -10,7 +10,7 @@ const key = Symbol('poses-context')
 type PoseWithComponent = PoseInFrame & { component: ResourceName }
 
 interface Context {
-	current: QueryObserverResult<PoseWithComponent[], Error>[]
+	current: PoseWithComponent[]
 }
 
 export const providePoses = (partID: () => string) => {
@@ -62,7 +62,7 @@ export const providePoses = (partID: () => string) => {
 			queries: toStore(() => options),
 			combine: (results) => {
 				return {
-					data: results.flatMap((result) => result.data),
+					data: results.flatMap((result) => result.data).filter((data) => data !== undefined),
 				}
 			},
 		})
@@ -70,7 +70,7 @@ export const providePoses = (partID: () => string) => {
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return queries.current.data
 		},
 	})
 }
