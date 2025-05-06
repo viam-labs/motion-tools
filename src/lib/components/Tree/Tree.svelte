@@ -87,6 +87,7 @@
 						event.stopPropagation()
 						visibility.set(node.name, !isVisible)
 					}}
+					class="text-gray-6"
 				>
 					{#if isVisible}
 						<Eye size={14} />
@@ -116,6 +117,7 @@
 					event.stopPropagation()
 					visibility.set(node.name, !isVisible)
 				}}
+				class="text-gray-6"
 			>
 				{#if isVisible}
 					<Eye size={14} />

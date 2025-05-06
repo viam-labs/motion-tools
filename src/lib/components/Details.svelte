@@ -14,16 +14,16 @@
 {#if frame}
 	{@const { pose, name } = frame}
 	{@const { center, geometryType } = frame.geometry ?? {}}
-	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-54 border text-xs">
+	<div class="border-medium bg-extralight fixed top-1 right-1 z-10 m-2 w-54 border text-xs">
 		<div class="border-medium flex items-center justify-between gap-2 border-b">
-			<div class="flex items-center">
+			<div class="text-default flex items-center">
 				<IconButton
 					icon="drag"
 					label="draggable icon"
 					variant="ghost"
 					cx="size-6"
 				/>
-				<strong class="font-semibold">{name}</strong>
+				{name}
 			</div>
 		</div>
 

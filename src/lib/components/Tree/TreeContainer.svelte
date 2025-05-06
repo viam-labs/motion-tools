@@ -11,6 +11,7 @@
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
 	import RefreshRate from '../RefreshRate.svelte'
+	import { IconButton } from '@viamrobotics/prime-core'
 
 	const showTreeview = new PersistedState('show-treeview', true)
 	const showSettings = new PersistedState('show-settings', false)
@@ -40,7 +41,7 @@
 />
 
 <button
-	class="fixed top-0 left-0 p-2"
+	class="fixed top-2 left-2 p-2"
 	onclick={() => (showTreeview.current = !showTreeview.current)}
 >
 	<ListTree />
@@ -48,7 +49,7 @@
 
 {#if showTreeview.current}
 	<div
-		class="bg-extralight border-medium fixed top-0 left-0 m-2 max-h-1/2 overflow-y-auto border text-xs"
+		class="bg-extralight border-medium fixed top-1 left-1 m-2 max-h-5/6 overflow-y-auto border text-xs"
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
@@ -63,15 +64,23 @@
 		{/key}
 
 		<button
-			class="border-medium w-full border-t border-b p-2 text-left"
+			class="border-medium w-full border-t text-left"
 			onclick={() => (showSettings.current = !showSettings.current)}
 		>
-			<h3>Settings</h3>
+			<h3 class="text-default flex items-center">
+				<IconButton
+					icon={showSettings.current ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
+					label="unfold more icon"
+					variant="ghost"
+					cx="size-6"
+				/>
+				Settings
+			</h3>
 		</button>
 
 		{#if showSettings.current}
-			<div class="flex flex-col gap-1.5 p-2">
-				<RefreshRate name="Pointclouds" />
+			<div class="border-medium flex flex-col gap-2 border-t p-3">
+				<RefreshRate name="Point clouds" />
 				<RefreshRate name="Geometries" />
 				<RefreshRate name="Poses" />
 			</div>

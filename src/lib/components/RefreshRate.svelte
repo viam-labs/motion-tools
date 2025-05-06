@@ -13,7 +13,7 @@
 </script>
 
 <div>
-	<label>
+	<label class="flex flex-col gap-1">
 		{name}
 		<Select
 			onchange={(event: InputEvent) => {
