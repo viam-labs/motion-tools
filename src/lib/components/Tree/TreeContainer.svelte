@@ -73,6 +73,7 @@
 					label="unfold more icon"
 					variant="ghost"
 					cx="size-6"
+					on:click={() => (showSettings.current = !showSettings.current)}
 				/>
 				Settings
 			</h3>
