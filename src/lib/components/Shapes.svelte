@@ -14,9 +14,15 @@
 	dispose={false}
 />
 
-{#each shapes.current as object (object.name)}
+{#each shapes.current as object (object.uuid)}
 	<Portal id={object.referenceFrame}>
-		<Frame {object}>
+		<Frame
+			uuid={object.uuid}
+			name={object.name}
+			pose={object.pose}
+			geometry={object.geometry}
+			metadata={object.metadata}
+		>
 			<PortalTarget id={object.name} />
 		</Frame>
 	</Portal>
@@ -24,7 +30,13 @@
 
 {#each shapes.meshes as object (object.uuid)}
 	<Portal id={object.referenceFrame}>
-		<Frame {object}>
+		<Frame
+			uuid={object.uuid}
+			name={object.name}
+			pose={object.pose}
+			geometry={object.geometry}
+			metadata={object.metadata}
+		>
 			<PortalTarget id={object.name} />
 		</Frame>
 	</Portal>
@@ -32,7 +44,13 @@
 
 {#each shapes.nurbs as object (object.uuid)}
 	<Portal id={object.referenceFrame}>
-		<Frame {object}>
+		<Frame
+			uuid={object.uuid}
+			name={object.name}
+			pose={object.pose}
+			geometry={object.geometry}
+			metadata={object.metadata}
+		>
 			<PortalTarget id={object.name} />
 		</Frame>
 	</Portal>

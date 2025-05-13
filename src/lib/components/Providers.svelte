@@ -28,9 +28,9 @@
 	provideRefreshRates()
 
 	providePoses(() => partID.current)
+	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
-	provideFrames(() => partID.current)
 	provideObjects()
 
 	const { focus } = provideSelection()

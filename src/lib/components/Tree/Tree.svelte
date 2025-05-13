@@ -62,7 +62,7 @@
 })}
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
-	{@const isVisible = visibility.get(node.name) ?? true}
+	{@const isVisible = visibility.get(node.id) ?? true}
 	{@const { selected } = nodeState}
 
 	{#if nodeState.isBranch}
@@ -72,7 +72,6 @@
 			{...api.getBranchProps(nodeProps)}
 			class={{
 				'text-disabled': !isVisible,
-				'bg-white': !selected,
 				'bg-medium': selected,
 				sticky: true,
 			}}
@@ -94,7 +93,7 @@
 				<button
 					onclick={(event) => {
 						event.stopPropagation()
-						visibility.set(node.name, !isVisible)
+						visibility.set(node.id, !isVisible)
 					}}
 				>
 					{#if isVisible}
@@ -106,15 +105,6 @@
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
-				<!-- <VirtualList
-					class="w-full"
-					style="height:{Math.min(5, children.length) * 32}px;"
-					items={children}
-				>
-					{#snippet vl_slot({ index, item })}
-						{@render treeNode({ node: item, indexPath: [...indexPath, Number(index)], api })}
-					{/snippet}
-				</VirtualList> -->
 
 				{#each children as node, index}
 					{@render treeNode({ node, indexPath: [index], api })}
@@ -133,7 +123,7 @@
 			<button
 				onclick={(event) => {
 					event.stopPropagation()
-					visibility.set(node.name, !isVisible)
+					visibility.set(node.id, !isVisible)
 				}}
 			>
 				{#if isVisible}
@@ -158,7 +148,7 @@
 		>
 			<VirtualList
 				class="w-full"
-				style="height:{Math.min(10, rootChildren.length) * 32}px;"
+				style="height:{Math.min(10, Math.max(rootChildren.length, 5)) * 32}px;"
 				items={rootChildren}
 			>
 				{#snippet vl_slot({ index, item })}

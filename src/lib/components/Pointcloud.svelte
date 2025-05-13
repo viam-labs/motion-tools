@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { BufferAttribute, BufferGeometry, Color, PointsMaterial } from 'three'
+	import { Points, BufferAttribute, BufferGeometry, Color, PointsMaterial } from 'three'
 	import type { WorldObject } from '$lib/WorldObject'
+	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
+	import { meshBounds } from '@threlte/extras'
+	import { poseToObject3d } from '$lib/transform'
 
 	interface Props {
 		object: WorldObject<{ case: 'points'; value: Float32Array }>
@@ -9,6 +12,7 @@
 
 	let { object }: Props = $props()
 
+	const points = new Points()
 	const geometry = new BufferGeometry()
 	const material = new PointsMaterial({
 		size: 0.01,
@@ -28,11 +32,25 @@
 	})
 
 	$effect.pre(() => {
-		geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+		if (colors) {
+			geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+		}
 	})
+
+	$effect.pre(() => {
+		poseToObject3d(object.pose, points)
+	})
+
+	const events = useObjectEvents(() => object.uuid)
 </script>
 
-<T.Points>
+<T
+	is={points}
+	name={object.name}
+	uuid={object.uuid}
+	raycast={meshBounds}
+	{...events}
+>
 	<T is={geometry} />
 	<T is={material} />
-</T.Points>
+</T>

@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { MathUtils, Object3D } from 'three'
+import { Box3, MathUtils, Object3D, Vector3 } from 'three'
 import { createPose } from './transform'
 
 export type PointsGeometry = { case: 'points'; value: Float32Array }
@@ -11,6 +11,11 @@ export type Metadata = {
 	colors?: Float32Array
 	color?: string
 	gltf?: { scene: Object3D }
+	points?: Vector3[]
+	batched?: {
+		name: string
+	}
+	getBoundingBoxAt?: (box: Box3) => void
 }
 
 export class WorldObject<T extends Geometries = Geometries> {

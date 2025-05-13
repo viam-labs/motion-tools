@@ -1,7 +1,7 @@
 import { ArmClient, CameraClient, Geometry } from '@viamrobotics/sdk'
 import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
-import { setContext, getContext } from 'svelte'
+import { setContext, getContext, untrack } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject } from '$lib/WorldObject'
@@ -22,7 +22,6 @@ export const provideGeometries = (partID: () => string) => {
 			createResourceClient(CameraClient, partID, () => camera.name)
 		),
 	])
-	const geometries = $state<WorldObject[]>([])
 
 	if (!refreshRates.has('Geometries')) {
 		refreshRates.set('Geometries', 1000)
@@ -49,25 +48,29 @@ export const provideGeometries = (partID: () => string) => {
 	)
 
 	const queries = fromStore(createQueries({ queries: toStore(() => options) }))
+	const uuids = new Map<string, string>()
+	const geometries = $derived.by(() => {
+		const results: WorldObject[] = []
 
-	$effect(() => {
 		for (const query of queries.current) {
 			if (!query.data) continue
 
-			// const toDelete = geometries.filter(({ name }) => query.data.geometries.find(({ label }) => name !== label))
-
-			for (const geometry of query.data.geometries) {
-				const result = geometries.find(({ name }) => name === geometry.label)
-
-				if (result) {
-					result.pose = geometry.center ?? result.pose
-				} else {
-					geometries.push(
-						new WorldObject(geometry.label, geometry.center, query.data.name, geometry.geometryType)
-					)
-				}
+			for (const { center, label, geometryType } of query.data.geometries) {
+				results.push(new WorldObject(label, center, query.data.name, geometryType))
 			}
 		}
+
+		if (uuids.size === 0) {
+			for (const result of results) {
+				uuids.set(result.name, result.uuid)
+			}
+		} else {
+			for (const result of results) {
+				result.uuid = uuids.get(result.name) ?? result.uuid
+			}
+		}
+
+		return results
 	})
 
 	setContext<Context>(key, {

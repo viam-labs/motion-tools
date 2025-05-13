@@ -2,15 +2,15 @@ import { useCursor, type IntersectionEvent } from '@threlte/extras'
 import { useFocused, useSelected } from './useSelection.svelte'
 import { useVisibility } from './useVisibility.svelte'
 
-export const useObjectProps = (uuid: () => string) => {
+export const useObjectEvents = (uuid: () => string) => {
 	const { onPointerEnter, onPointerLeave } = useCursor()
 	const selected = useSelected()
 	const focused = useFocused()
-	const visible = useVisibility()
+	const visibility = useVisibility()
 
 	return {
 		get visible() {
-			return visible.get(uuid())
+			return visibility.get(uuid())
 		},
 		onpointerenter: (event: IntersectionEvent<MouseEvent>) => {
 			event.stopPropagation()

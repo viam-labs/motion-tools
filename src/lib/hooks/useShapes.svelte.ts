@@ -1,8 +1,7 @@
 import { getContext, setContext } from 'svelte'
-import { Vector3, Vector4 } from 'three'
+import { Vector3, Vector4, type Box3 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { parsePCD } from '$lib/loaders/pcd'
-import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { useGltf } from '@threlte/extras'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { BatchedArrow } from '$lib/three/BatchedArrow'
@@ -107,28 +106,23 @@ export const provideShapes = () => {
 		meshes.push(object)
 	}
 
-	const geometry = new LineGeometry()
 	const addNurbs = (data: any, color: string) => {
 		const controlPoints = data.ControlPts.map(
 			(point: Vector3) => new Vector4(point.x / 1000, point.y / 1000, point.z / 1000)
 		)
 		const curve = new NURBSCurve(data.Degree, data.Knots, controlPoints)
-
-		geometry.setFromPoints(curve.getPoints(200))
-		const value = geometry.getAttribute('position').array as Float32Array
 		const object = new WorldObject(
 			data.name,
 			data.pose,
 			data.parent,
-			{ case: 'line', value },
-			{ color }
+			{ case: 'line', value: new Float32Array() },
+			{ color, points: curve.getPoints(200) }
 		)
 
 		nurbs.push(object)
 	}
 
 	const vec3 = new Vector3()
-
 	const batchedArrow = new BatchedArrow()
 
 	const addPoses = (nextPoses: any[], colors: string[], arrowHeadAtPose: boolean) => {
@@ -144,8 +138,17 @@ export const provideShapes = () => {
 				origin.sub(vec3.copy(direction).multiplyScalar(length))
 			}
 
-			batchedArrow.addArrow(direction, origin, length, colors[i])
-			poses.push(new WorldObject(`pose ${++poseIndex}`, pose))
+			const arrowId = batchedArrow.addArrow(direction, origin, length, colors[i])
+			poses.push(
+				new WorldObject(`pose ${++poseIndex}`, pose, undefined, undefined, {
+					getBoundingBoxAt(box3: Box3) {
+						return batchedArrow.getBoundingBoxAt(arrowId, box3)
+					},
+					batched: {
+						name: batchedArrow.object3d.name,
+					},
+				})
+			)
 		}
 	}
 

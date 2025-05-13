@@ -6,16 +6,24 @@ import {
 	Object3D,
 	Vector3,
 	Color,
+	Box3,
+	Matrix4,
 } from 'three'
 
 const axis = new Vector3()
 const object3d = new Object3D()
 const vec3 = new Vector3()
+const box1 = new Box3()
+const box2 = new Box3()
+const mat4_1 = new Matrix4()
+const mat4_2 = new Matrix4()
 
 interface Arrow {
 	shaftId: number
 	headId: number
 }
+
+let index = 0
 
 export class BatchedArrow {
 	batchedMesh: BatchedMesh
@@ -25,6 +33,7 @@ export class BatchedArrow {
 	shaftWidth = 0
 
 	_arrows = new Map<number, Arrow>() // arrowId -> { shaftId, headId }
+	_idToArrowId = new Map<number, number>()
 	_pool: Arrow[] = []
 	_idCounter = 0
 
@@ -48,6 +57,7 @@ export class BatchedArrow {
 		const maxIndexCount = maxArrows * (shaftIndexCount + coneIndexCount)
 
 		this.batchedMesh = new BatchedMesh(maxArrows * 2, maxVertexCount, maxIndexCount, material)
+		this.batchedMesh.name = `batched arrows ${++index}`
 		this.batchedMesh.frustumCulled = false
 		this.shaftWidth = shaftWidth
 
@@ -93,7 +103,30 @@ export class BatchedArrow {
 
 		const arrowId = this._idCounter++
 		this._arrows.set(arrowId, { shaftId, headId })
+		this._idToArrowId.set(shaftId, arrowId)
+		this._idToArrowId.set(headId, arrowId)
 		return arrowId
+	}
+
+	getArrowId(instanceId: number) {
+		return this._idToArrowId.get(instanceId)
+	}
+
+	getBoundingBoxAt(arrowId: number, target: Box3) {
+		const arrow = this._arrows.get(arrowId)
+
+		if (arrow) {
+			const headBox = this.batchedMesh.getBoundingBoxAt(this.coneGeoId, box1)
+			const tailBox = this.batchedMesh.getBoundingBoxAt(this.shaftGeoId, box2)
+
+			if (headBox && tailBox) {
+				this.batchedMesh.getMatrixAt(arrow.headId, mat4_1)
+				this.batchedMesh.getMatrixAt(arrow.shaftId, mat4_2)
+				target.copy(headBox.applyMatrix4(mat4_1)).union(tailBox.applyMatrix4(mat4_2))
+				console.log(target)
+				return target
+			}
+		}
 	}
 
 	removeArrow(arrowId: number) {
