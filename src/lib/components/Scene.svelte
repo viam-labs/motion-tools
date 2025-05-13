@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { Color, Vector3 } from 'three'
 	import { T } from '@threlte/core'
-	import { Gizmo, Grid, interactivity } from '@threlte/extras'
+	import { Gizmo, Grid, PortalTarget, interactivity } from '@threlte/extras'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
 	import CameraControls from '$lib/components/CameraControls.svelte'
-	import Selection from '$lib/components/Selection.svelte'
+	import Selected from '$lib/components/Selected.svelte'
 	import Focus from '$lib/components/Focus.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
 	import Camera from '$lib/components/Camera.svelte'
-	import { useFocus } from '$lib/hooks/useSelection.svelte'
+	import { useFocused } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
 
@@ -30,7 +30,7 @@
 		},
 	})
 
-	const focus = useFocus()
+	const focused = useFocused()
 
 	const { isPresenting } = useXR()
 </script>
@@ -40,7 +40,7 @@
 	args={[new Color('white')]}
 />
 
-{#if focus.current === undefined}
+{#if focused.current === undefined}
 	<Camera position={[3, 3, 3]}>
 		{#if !$isPresenting}
 			<CameraControls>
@@ -49,12 +49,14 @@
 		{/if}
 	</Camera>
 
+	<PortalTarget id="world" />
+
 	<StaticGeometries />
 	<Frames />
 	<Pointclouds />
-	<Selection />
-
 	<Shapes />
+
+	<Selected />
 
 	<Grid
 		plane="xy"

@@ -6,6 +6,7 @@
 	import { useVisibility } from '$lib/hooks/useVisibility.svelte'
 	import type { TreeNode } from './buildTree'
 	import { useExpanded } from './useExpanded.svelte'
+	import { VirtualList } from 'svelte-virtuallists'
 
 	const visibility = useVisibility()
 	const expanded = useExpanded()
@@ -46,6 +47,8 @@
 	$effect(() => {
 		untrack(() => api).setExpandedValue([...expanded])
 	})
+
+	const rootChildren = $derived(collection.rootNode.children ?? [])
 </script>
 
 {#snippet treeNode({
@@ -59,14 +62,19 @@
 })}
 	{@const nodeProps = { indexPath, node }}
 	{@const nodeState = api.getNodeState(nodeProps)}
-	{@const isVisible = visibility.get(node.name) ?? true}
+	{@const isVisible = visibility.get(node.id) ?? true}
 	{@const { selected } = nodeState}
 
 	{#if nodeState.isBranch}
 		{@const { expanded } = nodeState}
+		{@const { children = [] } = node}
 		<div
 			{...api.getBranchProps(nodeProps)}
-			class={{ 'text-disabled': !isVisible, 'bg-medium': selected }}
+			class={{
+				'text-disabled': !isVisible,
+				'bg-medium': selected,
+				sticky: true,
+			}}
 		>
 			<div {...api.getBranchControlProps(nodeProps)}>
 				<span
@@ -85,7 +93,7 @@
 				<button
 					onclick={(event) => {
 						event.stopPropagation()
-						visibility.set(node.name, !isVisible)
+						visibility.set(node.id, !isVisible)
 					}}
 				>
 					{#if isVisible}
@@ -97,8 +105,9 @@
 			</div>
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
-				{#each node.children ?? [] as childNode, index}
-					{@render treeNode({ node: childNode, indexPath: [...indexPath, index], api })}
+
+				{#each children as node, index}
+					{@render treeNode({ node, indexPath: [index], api })}
 				{/each}
 			</div>
 		</div>
@@ -114,7 +123,7 @@
 			<button
 				onclick={(event) => {
 					event.stopPropagation()
-					visibility.set(node.name, !isVisible)
+					visibility.set(node.id, !isVisible)
 				}}
 			>
 				{#if isVisible}
@@ -137,9 +146,15 @@
 			{...api.getTreeProps()}
 			class="w-[240px]"
 		>
-			{#each collection.rootNode.children ?? [] as node, index}
-				{@render treeNode({ node, indexPath: [index], api })}
-			{/each}
+			<VirtualList
+				class="w-full"
+				style="height:{Math.min(10, Math.max(rootChildren.length, 5)) * 32}px;"
+				items={rootChildren}
+			>
+				{#snippet vl_slot({ index, item })}
+					{@render treeNode({ node: item, indexPath: [Number(index)], api })}
+				{/snippet}
+			</VirtualList>
 		</div>
 	</div>
 </div>

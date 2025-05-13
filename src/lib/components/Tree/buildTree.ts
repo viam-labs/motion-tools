@@ -1,4 +1,4 @@
-import type { Frame } from '$lib/hooks/useFrames.svelte'
+import type { WorldObject } from '$lib/WorldObject'
 
 export interface TreeNode {
 	id: string
@@ -7,58 +7,49 @@ export interface TreeNode {
 	href: string
 }
 
-type FrameData = Omit<Frame, 'pose' | 'geometry'>
+const sortTreeByName = (children: TreeNode[]): TreeNode[] => {
+	children.sort((a, b) => a.name.localeCompare(b.name))
 
-const sortTreeByName = (node: TreeNode): TreeNode => {
-	if (node.children && node.children.length > 0) {
-		node.children.sort((a, b) => a.name.localeCompare(b.name))
-		for (const child of node.children) {
-			sortTreeByName(child)
+	for (const child of children) {
+		if (child.children) {
+			sortTreeByName(child.children)
 		}
 	}
 
-	return node
+	return children
 }
 
 /**
  * Creates a tree representing parent child / relationships from a set of frames.
  */
-export const buildTreeNodes = (frames: FrameData[]): TreeNode => {
+export const buildTreeNodes = (objects: WorldObject[]): TreeNode[] => {
 	const nodeMap = new Map<string, TreeNode>()
 	const rootNodes = []
 
-	for (const frame of frames) {
-		const { name } = frame
+	for (const object of objects) {
 		const node: TreeNode = {
-			name,
-			id: name,
+			name: object.name,
+			id: object.uuid,
 			children: [],
-			href: `/selection/${name}`,
+			href: `/selection/${object.name}`,
 		}
 
-		nodeMap.set(name, node)
+		nodeMap.set(object.name, node)
 
-		if (frame.parent === 'world') {
+		if (object.referenceFrame === 'world') {
 			rootNodes.push(node)
 		}
 	}
 
-	for (const { name, parent } of frames) {
-		if (parent !== 'world') {
-			const parentNode = nodeMap.get(parent)
-			const child = nodeMap.get(name)
+	for (const object of objects) {
+		if (object.referenceFrame !== 'world') {
+			const parentNode = nodeMap.get(object.referenceFrame)
+			const child = nodeMap.get(object.name)
 			if (parentNode && child) {
 				parentNode.children?.push(child)
 			}
 		}
 	}
 
-	const nextRoot = sortTreeByName({
-		id: 'world',
-		name: 'World',
-		children: rootNodes,
-		href: '/',
-	})
-
-	return nextRoot
+	return rootNodes
 }

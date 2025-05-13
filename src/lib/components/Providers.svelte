@@ -11,6 +11,7 @@
 	import { provideRefreshRates } from '$lib/hooks/useRefreshRates.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import type { Snippet } from 'svelte'
+	import { provideObjects } from '$lib/hooks/useObjects.svelte'
 
 	interface Props {
 		children: Snippet<[{ focus: boolean }]>
@@ -27,9 +28,10 @@
 	provideRefreshRates()
 
 	providePoses(() => partID.current)
+	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
-	provideFrames(() => partID.current)
+	provideObjects()
 
 	const { focus } = provideSelection()
 </script>

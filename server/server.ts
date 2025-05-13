@@ -1,4 +1,4 @@
-import { serve } from 'bun'
+import { serve, spawn } from 'bun'
 import { getLocalIP } from './ip'
 
 const localIP = getLocalIP()
@@ -7,6 +7,18 @@ const connections = new Set<Bun.ServerWebSocket<unknown>>()
 const messages = {
 	success: { message: 'Data received successfully', status: 200 },
 	noClient: { message: 'No connected client', status: 404 },
+}
+
+const launchVite = async (port: number) => {
+	spawn({
+		cmd: ['bun', 'run', 'vite'],
+		env: {
+			...process.env,
+			BUN_SERVER_PORT: port.toString(),
+		},
+		stdout: 'inherit',
+		stderr: 'inherit',
+	})
 }
 
 function sendToClients(data: string | Bun.BufferSource) {
@@ -71,50 +83,67 @@ function jsonResponse(data: any, status = 200) {
 	})
 }
 
-serve({
-	port: 3000,
-	hostname: '0.0.0.0',
+let port = 3000
 
-	fetch(req, server) {
-		const { pathname } = new URL(req.url)
+while (true) {
+	try {
+		serve({
+			port,
+			hostname: '0.0.0.0',
 
-		if (pathname === '/ws') {
-			if (server.upgrade(req)) return
-			return new Response('Upgrade Failed', { status: 400 })
-		}
+			fetch(req, server) {
+				const { pathname } = new URL(req.url)
 
-		if (req.method === 'OPTIONS') {
-			return new Response(null, {
-				status: 204,
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'POST, OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type',
+				if (pathname === '/ws') {
+					if (server.upgrade(req)) return
+					return new Response('Upgrade Failed', { status: 400 })
+				}
+
+				if (req.method === 'OPTIONS') {
+					return new Response(null, {
+						status: 204,
+						headers: {
+							'Access-Control-Allow-Origin': '*',
+							'Access-Control-Allow-Methods': 'POST, OPTIONS',
+							'Access-Control-Allow-Headers': 'Content-Type',
+						},
+					})
+				}
+
+				if (req.method === 'POST') {
+					return handlePost(req, pathname)
+				}
+
+				return new Response('Not Found', { status: 404 })
+			},
+
+			websocket: {
+				open(ws) {
+					console.log('WebSocket client connected:', ws.remoteAddress)
+					connections.add(ws)
 				},
-			})
+				message(ws, message) {
+					console.log(`Received: ${message}`)
+				},
+				close(ws) {
+					console.log('WebSocket client closed:', ws.remoteAddress)
+					connections.delete(ws)
+				},
+			},
+		})
+		console.log(`Server running at http://${localIP}:${port}`)
+		console.log(`WebSocket endpoint ws://${localIP}:${port}/ws`)
+
+		launchVite(port)
+
+		break
+	} catch (error) {
+		if (error.code === 'EADDRINUSE') {
+			console.warn(`Port ${port} in use, trying ${port + 1}...`)
+			port += 1
+		} else {
+			console.error('Failed to start server:', error)
+			break
 		}
-
-		if (req.method === 'POST') {
-			return handlePost(req, pathname)
-		}
-
-		return new Response('Not Found', { status: 404 })
-	},
-
-	websocket: {
-		open(ws) {
-			console.log('WebSocket client connected:', ws.remoteAddress)
-			connections.add(ws)
-		},
-		message(ws, message) {
-			console.log(`Received: ${message}`)
-		},
-		close(ws) {
-			console.log('WebSocket client closed:', ws.remoteAddress)
-			connections.delete(ws)
-		},
-	},
-})
-
-console.log(`Server running at http://${localIP}:3000`)
-console.log(`WebSocket endpoint ws://${localIP}:3000/ws`)
+	}
+}

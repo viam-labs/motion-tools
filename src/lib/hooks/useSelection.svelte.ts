@@ -1,93 +1,93 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
-import type { Mesh, Object3D, Points } from 'three'
-import { useAllFrames } from './useFrames.svelte'
-import type { Frame } from './useFrames.svelte'
+import type { Object3D } from 'three'
+import { useObjects } from './useObjects.svelte'
+import type { WorldObject } from '$lib/WorldObject'
 
 const hoverKey = Symbol('hover-context')
 const selectionKey = Symbol('selection-context')
 const focusKey = Symbol('focus-context')
-const selectedFrameKey = Symbol('selected-frame-context')
-const focusedFrameKey = Symbol('focused-frame-context')
+const selectedObjectKey = Symbol('selected-frame-context')
+const focusedObjectKey = Symbol('focused-frame-context')
 
-type Selection = string | undefined
+type UUID = string
 
 interface SelectionContext {
-	readonly current: Selection
-	set(value: Selection): void
+	readonly current: UUID | undefined
+	set(value?: UUID): void
 }
 
 interface FocusContext {
-	readonly current: Selection
-	set(value: Selection): void
+	readonly current: UUID | undefined
+	set(value?: UUID): void
 }
 
 interface HoverContext {
-	readonly current: Selection
-	set(value: Selection): void
+	readonly current: UUID | undefined
+	set(value?: UUID): void
 }
 
-interface SelectedFrameContext {
-	readonly current: Frame | undefined
+interface SelectedWorldObjectContext {
+	readonly current: WorldObject | undefined
 }
 
-interface FocusedFrameContext {
-	readonly current: Frame | undefined
+interface FocusedWorldObjectContext {
+	readonly current: WorldObject | undefined
 }
 
 export const provideSelection = () => {
-	let selection = $state.raw<Selection>()
-	let focus = $state.raw<Selection>()
-	let hovering = $state.raw<Selection>()
+	let selected = $state.raw<UUID>()
+	let focused = $state.raw<UUID>()
+	let hovered = $state.raw<UUID>()
 
 	const selectionContext = {
 		get current() {
-			return selection
+			return selected
 		},
-		set(value: Selection) {
-			selection = value
+		set(value?: UUID) {
+			selected = value
 		},
 	}
 	setContext<SelectionContext>(selectionKey, selectionContext)
 
 	const focusContext = {
 		get current() {
-			return focus
+			return focused
 		},
-		set(value: Selection) {
-			focus = value
+		set(value?: UUID) {
+			focused = value
 		},
 	}
 	setContext<FocusContext>(focusKey, focusContext)
 
 	const hoverContext = {
 		get current() {
-			return hovering
+			return hovered
 		},
-		set(value: Selection) {
-			hovering = value
+		set(value?: UUID) {
+			hovered = value
 		},
 	}
 	setContext<HoverContext>(hoverKey, hoverContext)
 
-	const allFrames = useAllFrames()
-	const selectedFrame = $derived(allFrames.current.find((frame) => frame.name === selection))
+	const objects = useObjects()
+	const selectedObject = $derived(objects.current.find((object) => object.uuid === selected))
 
-	const selectedFrameContext = {
+	const selectedObjectContext = {
 		get current() {
-			return selectedFrame
+			return selectedObject
 		},
 	}
-	setContext<SelectedFrameContext>(selectedFrameKey, selectedFrameContext)
+	setContext<SelectedWorldObjectContext>(selectedObjectKey, selectedObjectContext)
 
-	const focusedFrame = $derived(allFrames.current.find((frame) => frame.name === focus))
+	const focusedFrame = $derived(objects.current.find((object) => object.uuid === focused))
 
 	const focusedFrameContext = {
 		get current() {
 			return focusedFrame
 		},
 	}
-	setContext<FocusedFrameContext>(focusedFrameKey, focusedFrameContext)
+	setContext<FocusedWorldObjectContext>(focusedObjectKey, focusedFrameContext)
 
 	return {
 		selection: selectionContext,
@@ -96,19 +96,27 @@ export const provideSelection = () => {
 	}
 }
 
-export const useSelection = () => {
+export const useSelected = () => {
 	return getContext<SelectionContext>(selectionKey)
 }
 
-export const useFocus = () => {
+export const useFocused = () => {
 	return getContext<FocusContext>(focusKey)
 }
 
-export const useFocusedObject = () => {
-	const focus = useFocus()
+export const useFocusedObject = (): { current: WorldObject | undefined } => {
+	return getContext<FocusedWorldObjectContext>(focusedObjectKey)
+}
+
+export const useSelectedObject = (): { current: WorldObject | undefined } => {
+	return getContext<SelectedWorldObjectContext>(selectedObjectKey)
+}
+
+export const useFocusedObject3d = (): { current: Object3D | undefined } => {
+	const focusedObject = useFocusedObject()
 	const { scene } = useThrelte()
 	const object = $derived(
-		focus.current ? (scene.getObjectByName(focus.current) as Mesh | Points).clone() : undefined
+		focusedObject.current ? scene.getObjectByName(focusedObject.current.name)?.clone() : undefined
 	)
 
 	return {
@@ -118,11 +126,11 @@ export const useFocusedObject = () => {
 	}
 }
 
-export const useSelectionObject = (): { current: Object3D | undefined } => {
-	const selection = useSelection()
+export const useSelectedObject3d = (): { current: Object3D | undefined } => {
+	const selectedObject = useSelectedObject()
 	const { scene } = useThrelte()
 	const object = $derived(
-		selection.current ? (scene.getObjectByName(selection.current) as Mesh | Points) : undefined
+		selectedObject.current ? scene.getObjectByName(selectedObject.current.name) : undefined
 	)
 
 	return {
@@ -130,12 +138,4 @@ export const useSelectionObject = (): { current: Object3D | undefined } => {
 			return object
 		},
 	}
-}
-
-export const useFocusedFrame = (): { current: Frame | undefined } => {
-	return getContext<FocusedFrameContext>(focusedFrameKey)
-}
-
-export const useSelectedFrame = (): { current: Frame | undefined } => {
-	return getContext<SelectedFrameContext>(selectedFrameKey)
 }

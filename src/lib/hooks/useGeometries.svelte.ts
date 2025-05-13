@@ -1,17 +1,15 @@
-import { ArmClient, CameraClient } from '@viamrobotics/sdk'
-import { createQueries, queryOptions, type QueryObserverResult } from '@tanstack/svelte-query'
+import { ArmClient, CameraClient, Geometry } from '@viamrobotics/sdk'
+import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
-import { setContext, getContext } from 'svelte'
+import { setContext, getContext, untrack } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
-
-import type { Frame } from './useFrames.svelte'
-import { createPose } from '$lib/transform'
 import { useRefreshRates } from './useRefreshRates.svelte'
+import { WorldObject } from '$lib/WorldObject'
 
 const key = Symbol('geometries-context')
 
 interface Context {
-	current: QueryObserverResult<Frame[], Error>[]
+	current: WorldObject[]
 }
 
 export const provideGeometries = (partID: () => string) => {
@@ -37,34 +35,47 @@ export const provideGeometries = (partID: () => string) => {
 				enabled: interval !== -1 && client.current !== undefined,
 				refetchInterval: interval,
 				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
-				queryFn: async (): Promise<Frame[]> => {
+				queryFn: async (): Promise<{ name: string; geometries: Geometry[] }> => {
 					if (!client.current) {
 						throw new Error('No client')
 					}
 
 					const geometries = await client.current.getGeometries()
-
-					return geometries.map((geo) => ({
-						name: geo.label,
-						parent: client.current?.name ?? 'world',
-						pose: geo.center ?? createPose(),
-						geometry: geo,
-					}))
+					return { name: client.current.name, geometries }
 				},
 			})
 		})
 	)
 
-	const queries = fromStore(
-		createQueries({
-			queries: toStore(() => options),
-			combine: (results) => results,
-		})
-	)
+	const queries = fromStore(createQueries({ queries: toStore(() => options) }))
+	const uuids = new Map<string, string>()
+	const geometries = $derived.by(() => {
+		const results: WorldObject[] = []
+
+		for (const query of queries.current) {
+			if (!query.data) continue
+
+			for (const { center, label, geometryType } of query.data.geometries) {
+				results.push(new WorldObject(label, center, query.data.name, geometryType))
+			}
+		}
+
+		if (uuids.size === 0) {
+			for (const result of results) {
+				uuids.set(result.name, result.uuid)
+			}
+		} else {
+			for (const result of results) {
+				result.uuid = uuids.get(result.name) ?? result.uuid
+			}
+		}
+
+		return results
+	})
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current
+			return geometries
 		},
 	})
 }

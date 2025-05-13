@@ -8,30 +8,30 @@
 	const geometries = useGeometries()
 </script>
 
-<PortalTarget id="world" />
-
-{#each frames.current as frame (frame.name)}
-	<Portal id={frame.parent}>
+{#each frames.current as object (object.name)}
+	<Portal id={object.referenceFrame}>
 		<Frame
-			name={frame.name}
-			pose={frame.pose}
-			geometry={frame.geometry}
+			uuid={object.uuid}
+			name={object.name}
+			pose={object.pose}
+			geometry={object.geometry}
+			metadata={object.metadata}
 		>
-			<PortalTarget id={frame.name} />
+			<PortalTarget id={object.name} />
 		</Frame>
 	</Portal>
 {/each}
 
-{#each geometries.current as query}
-	{#each query.data ?? [] as frame}
-		<Portal id={frame.parent}>
-			<Frame
-				name={frame.name}
-				pose={frame.pose}
-				geometry={frame.geometry}
-			>
-				<PortalTarget id={frame.name} />
-			</Frame>
-		</Portal>
-	{/each}
+{#each geometries.current as object (object.name)}
+	<Portal id={object.referenceFrame}>
+		<Frame
+			uuid={object.uuid}
+			name={object.name}
+			pose={object.pose}
+			geometry={object.geometry}
+			metadata={object.metadata}
+		>
+			<PortalTarget id={object.name} />
+		</Frame>
+	</Portal>
 {/each}

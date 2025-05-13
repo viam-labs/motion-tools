@@ -6,27 +6,32 @@
 	import { ListTree } from 'lucide-svelte'
 	import { buildTreeNodes, type TreeNode } from './buildTree'
 
-	import { useSelection } from '$lib/hooks/useSelection.svelte'
-	import { useAllFrames } from '$lib/hooks/useFrames.svelte'
+	import { useSelected } from '$lib/hooks/useSelection.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
 	import RefreshRate from '../RefreshRate.svelte'
+	import { useObjects } from '$lib/hooks/useObjects.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', true)
 	const showSettings = new PersistedState('show-settings', false)
 
 	provideTreeExpandedContext()
 
-	const selection = useSelection()
-	const allFrames = useAllFrames()
+	const selected = useSelected()
+	const objects = useObjects()
 
-	let rootNode = $state<TreeNode>(buildTreeNodes([]))
+	let rootNode = $state<TreeNode>({
+		id: 'world',
+		name: 'World',
+		children: [],
+		href: '/',
+	})
 
 	$effect.pre(() => {
-		const nextNodes = buildTreeNodes(allFrames.current)
+		const nextNodes = buildTreeNodes(objects.current)
 
-		if (!isEqual(rootNode, nextNodes)) {
-			rootNode = nextNodes
+		if (!isEqual(rootNode.children, nextNodes)) {
+			rootNode.children = nextNodes
 		}
 	})
 </script>
@@ -48,16 +53,16 @@
 
 {#if showTreeview.current}
 	<div
-		class="bg-extralight border-medium fixed top-0 left-0 m-2 max-h-1/2 overflow-y-auto border text-xs"
+		class="bg-extralight border-medium fixed top-0 left-0 m-2 overflow-y-auto border text-xs"
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>
 		{#key rootNode}
 			<Tree
 				{rootNode}
-				selections={[selection.current ?? '']}
+				selections={selected.current ? [selected.current] : []}
 				onSelectionChange={(event) => {
-					selection.set(event.selectedValue[0])
+					selected.set(event.selectedValue[0])
 				}}
 			/>
 		{/key}

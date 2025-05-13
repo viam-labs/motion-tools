@@ -1,21 +1,56 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
-	import type { Points } from 'three'
-	import Clickable from './Clickable.svelte'
+	import { T } from '@threlte/core'
+	import { Points, BufferAttribute, BufferGeometry, Color, PointsMaterial } from 'three'
+	import type { WorldObject } from '$lib/WorldObject'
+	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import { meshBounds } from '@threlte/extras'
+	import { poseToObject3d } from '$lib/transform'
 
 	interface Props {
-		points: Points
-		children?: Snippet
+		object: WorldObject<{ case: 'points'; value: Float32Array }>
 	}
 
-	let { points, children }: Props = $props()
+	let { object }: Props = $props()
+
+	const points = new Points()
+	const geometry = new BufferGeometry()
+	const material = new PointsMaterial({
+		size: 0.01,
+
+		color: new Color('#888888'),
+	})
+
+	const colors = $derived(object.metadata.colors)
+	const positions = $derived(object.geometry?.value ?? [])
+
+	$effect(() => {
+		material.vertexColors = colors !== undefined
+	})
+
+	$effect.pre(() => {
+		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+	})
+
+	$effect.pre(() => {
+		if (colors) {
+			geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+		}
+	})
+
+	$effect.pre(() => {
+		poseToObject3d(object.pose, points)
+	})
+
+	const events = useObjectEvents(() => object.uuid)
 </script>
 
-<Clickable
-	object={points}
-	name={points.name}
+<T
+	is={points}
+	name={object.name}
+	uuid={object.uuid}
 	raycast={meshBounds}
+	{...events}
 >
-	{@render children?.()}
-</Clickable>
+	<T is={geometry} />
+	<T is={material} />
+</T>
