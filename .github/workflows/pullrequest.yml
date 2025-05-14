@@ -6,6 +6,8 @@ on:
       - main
       - next
 
+permissions: write-all
+
 jobs:
   lint:
     runs-on: ubuntu-latest
