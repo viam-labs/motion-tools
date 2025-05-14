@@ -107,7 +107,7 @@
 			<div {...api.getBranchContentProps(nodeProps)}>
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
 
-				{#each children as node, index}
+				{#each children as node, index (node.id)}
 					{@render treeNode({ node, indexPath: [index], api })}
 				{/each}
 			</div>

@@ -12,6 +12,7 @@ declare global {
 	}
 
 	namespace Threlte {
+		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 		interface UserProps extends InteractivityProps {}
 	}
 }

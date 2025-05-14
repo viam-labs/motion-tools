@@ -10,7 +10,7 @@
 		if ($isPresenting) {
 			const [left, right] = renderer.xr.getCamera().cameras
 
-			console.log('here')
+			console.log(left, right)
 		}
 	})
 </script>

@@ -18,6 +18,7 @@ export const provideFrames = (partID: () => string) => {
 	const revision = $derived(machineStatus.current?.config.revision)
 
 	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		revision
 		untrack(() => query.current).refetch()
 	})

@@ -22,24 +22,24 @@
 	const linear = { x: 0, y: 0, z: 0 }
 	const angular = { x: 0, y: 0, z: 0 }
 
-	// gamepadLeft.squeeze.on('change', (event) => {
-	// 	linear.y = -event.value
-	// 	baseClient?.setPower(linear, angular)
-	// })
+	gamepadLeft.squeeze.on('change', (event) => {
+		linear.y = -event.value
+		baseClient?.setPower(linear, angular)
+	})
 
-	// gamepadLeft.trigger.on('change', (event) => {
-	// 	if (typeof event.value === 'number') {
-	// 		linear.y = event.value
-	// 		baseClient?.setPower(linear, angular)
-	// 	}
-	// })
+	gamepadLeft.trigger.on('change', (event) => {
+		if (typeof event.value === 'number') {
+			linear.y = event.value
+			baseClient?.setPower(linear, angular)
+		}
+	})
 
-	// gamepadLeft.thumbstick.on('change', (event) => {
-	// 	if (typeof event.value === 'object') {
-	// 		angular.z = event.value.x
-	// 		baseClient?.setPower(linear, angular)
-	// 	}
-	// })
+	gamepadLeft.thumbstick.on('change', (event) => {
+		if (typeof event.value === 'object') {
+			angular.z = event.value.x
+			baseClient?.setPower(linear, angular)
+		}
+	})
 
 	const onselectstart = () => {}
 

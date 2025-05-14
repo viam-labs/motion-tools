@@ -73,6 +73,7 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 	}
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function jsonResponse(data: any, status = 200) {
 	return new Response(JSON.stringify(data), {
 		status,

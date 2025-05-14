@@ -1,7 +1,7 @@
 import { ArmClient, CameraClient, Geometry } from '@viamrobotics/sdk'
 import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
-import { setContext, getContext, untrack } from 'svelte'
+import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject } from '$lib/WorldObject'

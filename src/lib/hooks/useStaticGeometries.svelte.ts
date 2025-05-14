@@ -1,9 +1,7 @@
 import { getContext, setContext } from 'svelte'
 import { get, set } from 'idb-keyval'
 import { Debounced } from 'runed'
-import { createGeometry, createPose } from '$lib/transform'
-import { BoxGeometry, Mesh } from 'three'
-import { ObjectLoader } from 'three'
+import { createGeometry } from '$lib/transform'
 import { WorldObject } from '$lib/WorldObject'
 
 const key = Symbol('static-geometries-context')
@@ -15,8 +13,6 @@ interface Context {
 }
 
 export const provideStaticGeometries = () => {
-	const loader = new ObjectLoader()
-
 	let geometries = $state<WorldObject[]>([])
 
 	const debounced = new Debounced(() => geometries, 500)

@@ -5,8 +5,6 @@ import { fromStore, toStore } from 'svelte/store'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { parsePCD } from '$lib/loaders/pcd'
 import { useRefreshRates } from './useRefreshRates.svelte'
-import { usePoses } from './usePoses.svelte'
-import { useFrames } from './useFrames.svelte'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 
@@ -18,8 +16,6 @@ interface Context {
 
 export const providePointclouds = (partID: () => string) => {
 	const refreshRates = useRefreshRates()
-	const poses = usePoses()
-	const frames = useFrames()
 	const cameras = useResourceNames(partID, 'camera')
 
 	if (!refreshRates.has('Pointclouds')) {

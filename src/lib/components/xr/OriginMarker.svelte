@@ -4,7 +4,7 @@
 	import { Collider, RigidBody } from '@threlte/rapier'
 	import { RigidBody as RigidBodyType } from '@dimforge/rapier3d-compat'
 	import { useController } from '@threlte/xr'
-	import { Euler, Group, Mesh, Quaternion, Vector3 } from 'three'
+	import { Group, Mesh, Quaternion, Vector3 } from 'three'
 
 	const height = 0.1
 	const radius = 0.05
@@ -17,7 +17,6 @@
 
 	const offset = new Vector3()
 	const position = new Vector3()
-	const rotation = new Euler()
 
 	let hovering = $state(false)
 	let dragging = $state(false)
@@ -57,6 +56,10 @@
 
 	$effect(() => (hovering && dragging ? start() : stop()))
 </script>
+
+{#if rotating}
+	<!-- TODO -->
+{/if}
 
 <T
 	is={group}

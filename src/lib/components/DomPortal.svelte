@@ -5,7 +5,10 @@
 
 	$effect(() => {
 		document.body.append(div)
-		return () => div.remove()
+		return () => {
+			// eslint-disable-next-line svelte/no-dom-manipulating
+			div.remove()
+		}
 	})
 </script>
 
