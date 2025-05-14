@@ -148,15 +148,19 @@
 			{...api.getTreeProps()}
 			class="w-[240px]"
 		>
-			<VirtualList
-				class="w-full"
-				style="height:{Math.min(10, Math.max(rootChildren.length, 5)) * 32}px;"
-				items={rootChildren}
-			>
-				{#snippet vl_slot({ index, item })}
-					{@render treeNode({ node: item, indexPath: [Number(index)], api })}
-				{/snippet}
-			</VirtualList>
+			{#if rootChildren.length === 0}
+				<p class="text-subtle-2 px-2 py-4">No objects displayed</p>
+			{:else}
+				<VirtualList
+					class="w-full"
+					style="height:{Math.min(8, Math.max(rootChildren.length, 5)) * 32}px;"
+					items={rootChildren}
+				>
+					{#snippet vl_slot({ index, item })}
+						{@render treeNode({ node: item, indexPath: [Number(index)], api })}
+					{/snippet}
+				</VirtualList>
+			{/if}
 		</div>
 	</div>
 </div>
