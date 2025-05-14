@@ -4,14 +4,12 @@ import { setContext } from 'svelte'
 const key = Symbol('draggables-context')
 
 interface Context {
-	onDragStart: () => void
-	onDragMove: () => void
-	onDragEnd: () => void
-	translate: {
-		current: {
-			x: number
-			y: number
-		}
+	onDragStart: (event: MouseEvent) => void
+	onDragMove: (event: MouseEvent) => void
+	onDragEnd: (event: MouseEvent) => void
+	current: {
+		x: number
+		y: number
 	}
 }
 
@@ -19,6 +17,9 @@ export const provideDraggables = () => {}
 
 export const useDraggable = (name: string) => {
 	const down = { x: 0, y: 0 }
+
+	const onDragMove = () => {}
+
 	const onDragStart = (event: MouseEvent) => {
 		down.x = event.clientX
 		down.y = event.clientY
@@ -34,7 +35,8 @@ export const useDraggable = (name: string) => {
 	setContext<Context>(key, {
 		onDragStart,
 		onDragMove,
-		get translate() {
+		onDragEnd,
+		get current() {
 			return translate.current
 		},
 	})

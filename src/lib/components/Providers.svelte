@@ -27,8 +27,8 @@
 	provideShapes()
 	provideRefreshRates()
 
-	providePoses(() => partID.current)
 	provideFrames(() => partID.current)
+	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
 	provideObjects()

@@ -8,6 +8,7 @@ import { useRefreshRates } from './useRefreshRates.svelte'
 import { usePoses } from './usePoses.svelte'
 import { useFrames } from './useFrames.svelte'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
+import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 
 const key = Symbol('pointcloud-context')
 
@@ -43,11 +44,6 @@ export const providePointclouds = (partID: () => string) => {
 						throw new Error('No camera client')
 					}
 
-					const pose = poses.current.find((pose) => pose.component.name === name)?.pose
-					const frame = frames.current.find((frame) => frame.name === name)?.pose
-
-					if (!pose && !frame) return null
-
 					const response = await cameraClient.current.getPointCloud()
 
 					if (!response) return null
@@ -56,7 +52,7 @@ export const providePointclouds = (partID: () => string) => {
 
 					return new WorldObject(
 						`${name}:pointcloud`,
-						pose ?? frame,
+						undefined,
 						name,
 						{ case: 'points', value: new Float32Array(positions) },
 						colors ? { colors: new Float32Array(colors) } : undefined
@@ -66,14 +62,19 @@ export const providePointclouds = (partID: () => string) => {
 		})
 	)
 
+	const { updateUUIDs } = usePersistentUUIDs()
 	const queries = fromStore(
 		createQueries({
 			queries: toStore(() => options),
 			combine: (results) => {
+				const data = results
+					.flatMap((result) => result.data)
+					.filter((data) => data !== null && data !== undefined)
+
+				updateUUIDs(data)
+
 				return {
-					data: results
-						.flatMap((result) => result.data)
-						.filter((data) => data !== null && data !== undefined),
+					data,
 				}
 			},
 		})

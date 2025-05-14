@@ -36,9 +36,9 @@ interface FocusedWorldObjectContext {
 }
 
 export const provideSelection = () => {
-	let selected = $state.raw<UUID>()
-	let focused = $state.raw<UUID>()
-	let hovered = $state.raw<UUID>()
+	let selected = $state<UUID>()
+	let focused = $state<UUID>()
+	let hovered = $state<UUID>()
 
 	const selectionContext = {
 		get current() {

@@ -4,6 +4,7 @@ import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk
 import { getContext, setContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
+import { useFrames } from './useFrames.svelte'
 
 const key = Symbol('poses-context')
 
@@ -16,7 +17,20 @@ interface Context {
 export const providePoses = (partID: () => string) => {
 	const refreshRates = useRefreshRates()
 	const resources = useResourceNames(partID)
-	const components = $derived(resources.current.filter(({ type }) => type === 'component'))
+	const frames = useFrames()
+	const components = $derived.by(() => {
+		const results = []
+		for (const frame of frames.current) {
+			const resourceName = resources.current.find((resource) => resource.name === frame.name)
+
+			if (resourceName) {
+				results.push({ resourceName, frame })
+			}
+		}
+
+		return results
+	})
+
 	const motionResources = useResourceNames(partID, 'motion')
 	const clients = $derived(
 		motionResources.current.map((resource) =>
@@ -43,13 +57,18 @@ export const providePoses = (partID: () => string) => {
 					}
 
 					const promises = components.map((component) => {
-						return client.getPose(component, 'world', [])
+						console.log(component.resourceName, component.frame.referenceFrame)
+						return client.getPose(
+							component.resourceName,
+							component.frame.referenceFrame ?? 'world',
+							[]
+						)
 					})
 
 					const results = await Promise.allSettled(promises)
 
 					return results
-						.map((result, index) => ({ ...result, component: components[index] }))
+						.map((result, index) => ({ ...result, component: components[index].resourceName }))
 						.filter((result) => result.status === 'fulfilled')
 						.map((result) => ({ ...result.value, component: result.component }))
 				},

@@ -16,7 +16,6 @@
 	const geometry = new BufferGeometry()
 	const material = new PointsMaterial({
 		size: 0.01,
-
 		color: new Color('#888888'),
 	})
 

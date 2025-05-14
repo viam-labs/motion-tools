@@ -91,6 +91,7 @@
 				</span>
 
 				<button
+					class="text-gray-6"
 					onclick={(event) => {
 						event.stopPropagation()
 						visibility.set(node.id, !isVisible)
@@ -121,6 +122,7 @@
 			</span>
 
 			<button
+				class="text-gray-6"
 				onclick={(event) => {
 					event.stopPropagation()
 					visibility.set(node.id, !isVisible)

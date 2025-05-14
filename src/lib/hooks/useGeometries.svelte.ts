@@ -5,6 +5,7 @@ import { setContext, getContext, untrack } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject } from '$lib/WorldObject'
+import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 
 const key = Symbol('geometries-context')
 
@@ -47,8 +48,9 @@ export const provideGeometries = (partID: () => string) => {
 		})
 	)
 
+	const { updateUUIDs } = usePersistentUUIDs()
 	const queries = fromStore(createQueries({ queries: toStore(() => options) }))
-	const uuids = new Map<string, string>()
+
 	const geometries = $derived.by(() => {
 		const results: WorldObject[] = []
 
@@ -60,15 +62,7 @@ export const provideGeometries = (partID: () => string) => {
 			}
 		}
 
-		if (uuids.size === 0) {
-			for (const result of results) {
-				uuids.set(result.name, result.uuid)
-			}
-		} else {
-			for (const result of results) {
-				result.uuid = uuids.get(result.name) ?? result.uuid
-			}
-		}
+		updateUUIDs(results)
 
 		return results
 	})
