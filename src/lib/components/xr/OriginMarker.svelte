@@ -44,15 +44,18 @@
 	const onsensorenter = () => (hovering = true)
 	const onsensorexit = () => (hovering = false)
 
-	const { start, stop } = useTask(() => {
-		if (!$left || !rigidBody) return
-	
-		position.copy($left.grip.position).sub(offset)
+	const { start, stop } = useTask(
+		() => {
+			if (!$left || !rigidBody) return
 
-		rigidBody.setNextKinematicTranslation({ x: position.x, y: position.y, z: position.z })
-	}, { autoStart: false })
+			position.copy($left.grip.position).sub(offset)
 
-	$effect(() => hovering && dragging ? start() : stop())
+			rigidBody.setNextKinematicTranslation({ x: position.x, y: position.y, z: position.z })
+		},
+		{ autoStart: false }
+	)
+
+	$effect(() => (hovering && dragging ? start() : stop()))
 </script>
 
 <T

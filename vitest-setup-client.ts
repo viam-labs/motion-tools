@@ -1,5 +1,5 @@
-import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import '@testing-library/jest-dom/vitest'
+import { vi } from 'vitest'
 
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -11,8 +11,8 @@ Object.defineProperty(window, 'matchMedia', {
 		onchange: null,
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),
-		dispatchEvent: vi.fn()
-	}))
-});
+		dispatchEvent: vi.fn(),
+	})),
+})
 
 // add more mocks here if you need them
