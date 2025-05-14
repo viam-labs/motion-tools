@@ -4,18 +4,19 @@
 
 	import { BaseClient } from '@viamrobotics/sdk'
 
-	import { useRobotClient, usePartID, useResources } from '$lib/svelte-sdk'
 	import { RigidBody } from '@threlte/rapier'
 	import HandCollider from './HandCollider.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useResourceNames, useRobotClient } from '@viamrobotics/svelte-sdk'
 
 	const gamepadLeft = useGamepad({ xr: true, hand: 'left' })
 
 	const partID = usePartID()
-	const resources = useResources()
-	const robot = useRobotClient(partID)
+	const resources = useResourceNames(() => partID.current)
+	const robotClient = useRobotClient(() => partID.current)
 	const resource = $derived(resources.current.find((r) => r.subtype === 'base'))
 	const baseClient = $derived(
-		robot.client && resource ? new BaseClient(robot.client, resource.name) : undefined
+		robotClient.current && resource ? new BaseClient(robotClient.current, resource.name) : undefined
 	)
 
 	const linear = { x: 0, y: 0, z: 0 }

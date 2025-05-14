@@ -11,14 +11,16 @@ self.onmessage = async (event) => {
 	}
 
 	try {
-		const pcd = loader.parse(data.buffer)
+		const pcd = loader.parse(data.buffer as ArrayBuffer)
 		if (pcd.geometry) {
 			const positionArray = pcd.geometry.attributes.position.array
 			const colorArray = pcd.geometry.attributes.color ? pcd.geometry.attributes.color.array : null
 
 			postMessage(
 				{ success: true, positionArray, colorArray },
-				colorArray ? [positionArray.buffer, colorArray.buffer] : [positionArray.buffer]
+				colorArray
+					? [positionArray.buffer as ArrayBuffer, colorArray.buffer as ArrayBuffer]
+					: [positionArray.buffer as ArrayBuffer]
 			)
 		} else {
 			postMessage({ error: 'Failed to extract geometry' })

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core'
+	import { useRobotClient, createStreamClient } from '@viamrobotics/svelte-sdk'
 	import BentPlaneGeometry from '../BentPlaneGeometry.svelte'
 	import { useHeadset } from '@threlte/xr'
 	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
-	import { StreamClient } from '@viamrobotics/sdk'
-	import { usePartID, useRobotClient } from '$lib/svelte-sdk'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	interface CameraFeedProps {
 		resourceName: string
@@ -13,38 +13,24 @@
 	let { resourceName }: CameraFeedProps = $props()
 
 	const partID = usePartID()
-	let robot = useRobotClient(partID)
-	let robotClient = $derived(robot.client)
+	let client = useRobotClient(() => partID.current)
+	const streamClient = createStreamClient(
+		() => partID.current,
+		() => resourceName
+	)
 
 	let video = document.createElement('video')
 	let aspect = $state(1)
 	let ready = $state(false)
-
-	let streamClient = $derived(robotClient ? new StreamClient(robotClient) : undefined)
 
 	video.addEventListener('canplaythrough', () => {
 		aspect = video.videoWidth / video.videoHeight
 		video.play()
 	})
 
-	const handleTrack = (event: unknown) => {
-		const [eventStream] = (event as { streams: MediaStream[] }).streams
-
-		if (!eventStream || eventStream.id !== resourceName) {
-			return
-		}
-		video.srcObject = eventStream
+	$effect.pre(() => {
+		video.srcObject = streamClient.mediaStream
 		ready = true
-	}
-
-	$effect(() => {
-		streamClient?.on('track', handleTrack)
-		return () => streamClient?.off('track', handleTrack)
-	})
-
-	$effect(() => {
-		streamClient?.getStream(resourceName)
-		return () => streamClient?.remove(resourceName)
 	})
 
 	const headset = useHeadset()

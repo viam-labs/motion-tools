@@ -5,6 +5,7 @@ import {
 	BufferAttribute,
 	BufferGeometry,
 	Object3D,
+	Material,
 } from 'three'
 
 const _box = /*@__PURE__*/ new Box3()
@@ -158,7 +159,7 @@ class BoxHelper extends LineSegments {
 	 */
 	dispose() {
 		this.geometry.dispose()
-		this.material.dispose()
+		;(this.material as Material).dispose()
 	}
 }
 
