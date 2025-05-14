@@ -23,7 +23,6 @@ export const provideObjects = () => {
 		...frames.current,
 		...geometries.current,
 		...points.current,
-		...shapes.current,
 		...shapes.meshes,
 		...shapes.models,
 		...shapes.nurbs,

@@ -148,6 +148,16 @@ func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
 	return postHTTP(finalJSON, "json", "nurbs")
 }
 
+func RemoveSpatialObjects(names []string) error {
+	json, err := json.Marshal(names)
+
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(json, "json", "remove")
+}
+
 func RemoveAllSpatialObjects() error {
 	data := map[string]interface{}{}
 
@@ -199,10 +209,13 @@ func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameS
 	}
 	i := 0
 	for _, geoms := range frameGeomMap {
-		for _, geom := range geoms.Geometries() {
-			if err = DrawGeometry(geom, DefaultColorMap[i%len(DefaultColorMap)]); err != nil {
-				return err
-			}
+		geometries := geoms.Geometries()
+		colors := make([]string, len(geometries))
+		for j := range geometries {
+			colors[j] = DefaultColorMap[i%len(DefaultColorMap)]
+		}
+		if err = DrawGeometries(geoms, colors); err != nil {
+			return err
 		}
 		i++
 	}
@@ -214,11 +227,16 @@ func DrawWorldState(ws *referenceframe.WorldState, fs referenceframe.FrameSystem
 	if err != nil {
 		return err
 	}
+
+	geometries := geoms.Geometries()
 	cc := &colorChooser{}
-	for _, geom := range geoms.Geometries() {
-		if err = DrawGeometry(geom, cc.next()); err != nil {
-			return err
-		}
+	colors := make([]string, len(geometries))
+	for i := range geometries {
+		colors[i] = cc.next()
+	}
+
+	if err = DrawGeometries(geoms, colors); err != nil {
+		return err
 	}
 
 	return nil
