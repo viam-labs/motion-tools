@@ -1,0 +1,11 @@
+import type { Geometry, Pose } from '@viamrobotics/sdk';
+import { type Object3D, Quaternion, Vector3 } from 'three';
+export declare const createPose: (pose?: Pose) => Pose;
+export declare const createGeometry: (geometryType?: Geometry["geometryType"], label?: string) => Geometry;
+export declare const quaternionToPose: (quaternion: Quaternion, pose: Partial<Pose>) => void;
+export declare const vector3ToPose: (vec3: Vector3, pose: Partial<Pose>) => void;
+export declare const object3dToPose: (object3d: Object3D, pose: Partial<Pose>) => Partial<import("@viamrobotics/sdk").PlainMessage<import("@viamrobotics/sdk/dist/gen/common/v1/common_pb").Pose>>;
+export declare const poseToQuaternion: (pose: Partial<Pose>, quaternion: Quaternion) => void;
+export declare const poseToVector3: (pose: Partial<Pose>, vec3: Vector3) => void;
+export declare const poseToObject3d: (pose: Partial<Pose>, object3d: Object3D) => void;
+export declare const scaleToDimensions: (scale: Vector3, geometry: Geometry) => void;

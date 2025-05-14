@@ -2,11 +2,13 @@
 	"name": "motion-tools",
 	"private": false,
 	"version": "0.0.1",
+	"description": "Motion visualization with Viam",
+	"license": "Apache-2.0",
 	"type": "module",
 	"scripts": {
 		"dev": "tsx server/check-bun && bun run server/server.ts",
-		"build": "vite build",
-		"server": "echo \"This command is now lumped into pnpm dev and is no longer required\"",
+    "build": "vite build && npm run prepack",
+		"prepack": "svelte-kit sync && svelte-package && publint",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -33,6 +35,7 @@
 		"@skeletonlabs/skeleton-svelte": "1.2.1",
 		"@sveltejs/adapter-static": "^3.0.8",
 		"@sveltejs/kit": "^2.21.0",
+		"@sveltejs/package": "^2.3.11",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@tailwindcss/forms": "^0.5.10",
 		"@tailwindcss/vite": "^4.1.6",
@@ -66,6 +69,7 @@
 		"prettier": "^3.5.3",
 		"prettier-plugin-svelte": "^3.4.0",
 		"prettier-plugin-tailwindcss": "^0.6.11",
+		"publint": "^0.3.12",
 		"runed": "^0.27.0",
 		"svelte": "^5.28.6",
 		"svelte-check": "^4.2.0",
@@ -89,5 +93,22 @@
 	"packageManager": "pnpm@8.15.6+sha256.01c01eeb990e379b31ef19c03e9d06a14afa5250b82e81303f88721c99ff2e6f",
 	"dependencies": {
 		"@viamrobotics/svelte-sdk": "^0.1.4"
-	}
+	},
+	"svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+	"exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js"
+    }
+  },
+	"repository": {
+    "type": "git",
+    "url": "git+https://github.com/viam-labs/motion-tools.git"
+  },
+	"files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*"
+  ]
 }
