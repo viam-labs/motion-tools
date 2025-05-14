@@ -40,7 +40,9 @@
 			) {
 				connectionConfigs.current.push(config)
 			}
-		} catch {}
+		} catch {
+			// Do nothing
+		}
 	}
 
 	const addConfig = () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core'
-	import { useRobotClient, createStreamClient } from '@viamrobotics/svelte-sdk'
+	import { createStreamClient } from '@viamrobotics/svelte-sdk'
 	import BentPlaneGeometry from '../BentPlaneGeometry.svelte'
 	import { useHeadset } from '@threlte/xr'
 	import { Euler, Group, Mesh, Vector3, Quaternion, VideoTexture } from 'three'
@@ -13,7 +13,6 @@
 	let { resourceName }: CameraFeedProps = $props()
 
 	const partID = usePartID()
-	let client = useRobotClient(() => partID.current)
 	const streamClient = createStreamClient(
 		() => partID.current,
 		() => resourceName

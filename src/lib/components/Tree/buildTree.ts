@@ -7,18 +7,6 @@ export interface TreeNode {
 	href: string
 }
 
-const sortTreeByName = (children: TreeNode[]): TreeNode[] => {
-	children.sort((a, b) => a.name.localeCompare(b.name))
-
-	for (const child of children) {
-		if (child.children) {
-			sortTreeByName(child.children)
-		}
-	}
-
-	return children
-}
-
 /**
  * Creates a tree representing parent child / relationships from a set of frames.
  */

@@ -24,7 +24,7 @@
 	const queries = $derived(() =>
 		visionClients.map((client) =>
 			createResourceQuery(client, 'captureAllFromCamera', [
-				'',
+				cameras.current[0].name,
 				{
 					returnImage: true,
 					returnClassifications: false,
@@ -34,6 +34,8 @@
 			])
 		)
 	)
+
+	$inspect(queries)
 </script>
 
-<!-- <DetectionsPlane {detections} /> -->
+<DetectionsPlane detections={[]} />

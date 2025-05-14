@@ -2,7 +2,6 @@ import { getContext, setContext } from 'svelte'
 import { Vector3, Vector4, type Box3 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { parsePCD } from '$lib/loaders/pcd'
-import { useGltf } from '@threlte/extras'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { BatchedArrow } from '$lib/three/BatchedArrow'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
@@ -58,9 +57,7 @@ export const provideShapes = () => {
 
 	const loader = new GLTFLoader()
 
-	const { load } = useGltf()
-
-	const addPcd = async (data: any) => {
+	const addPcd = async (data: object) => {
 		const buffer = await (data as Blob).arrayBuffer()
 		const { positions, colors } = await parsePCD(new Uint8Array(buffer))
 
@@ -78,6 +75,7 @@ export const provideShapes = () => {
 		)
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const addGeometry = (data: any, color: string, parent?: string) => {
 		let geometry: Geometry['geometryType']
 
@@ -103,6 +101,7 @@ export const provideShapes = () => {
 		meshes.push(object)
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const addNurbs = (data: any, color: string) => {
 		const controlPoints = data.ControlPts.map(
 			(point: Vector3) => new Vector4(point.x / 1000, point.y / 1000, point.z / 1000)
@@ -124,6 +123,7 @@ export const provideShapes = () => {
 	const vec3 = new Vector3()
 	const batchedArrow = new BatchedArrow()
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const addPoses = (nextPoses: any[], colors: string[], arrowHeadAtPose: boolean) => {
 		for (let i = 0, l = nextPoses.length; i < l; i += 1) {
 			const pose = nextPoses[i]
@@ -151,6 +151,7 @@ export const provideShapes = () => {
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const addGeometries = (geometries: any[], colors: string[], parent: string) => {
 		let i = 0
 		for (const geometry of geometries) {
