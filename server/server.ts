@@ -64,6 +64,12 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 				return jsonResponse(messages.success, 200)
 			}
 
+			case '/remove': {
+				const json = await req.json()
+				sendToClients(JSON.stringify({ remove: true, names: json }))
+				return jsonResponse(messages.success, 200)
+			}
+
 			default:
 				return new Response('Not Found', { status: 404 })
 		}

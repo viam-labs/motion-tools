@@ -10,7 +10,6 @@ import type { Geometry } from '@viamrobotics/sdk'
 type ConnectionStatus = 'connecting' | 'open' | 'closed'
 
 interface Context {
-	current: WorldObject[]
 	points: WorldObject<PointsGeometry>[]
 	meshes: WorldObject[]
 	poses: WorldObject[]
@@ -46,7 +45,6 @@ export const provideShapes = () => {
 	}
 	const ws = new WebSocket(`ws://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
 
-	const current = $state<WorldObject[]>([])
 	const points = $state<WorldObject<PointsGeometry>[]>([])
 	const meshes = $state<WorldObject[]>([])
 	const poses = $state<WorldObject[]>([])
@@ -144,6 +142,7 @@ export const provideShapes = () => {
 						return batchedArrow.getBoundingBoxAt(arrowId, box3)
 					},
 					batched: {
+						id: arrowId,
 						name: batchedArrow.object3d.name,
 					},
 				})
@@ -160,15 +159,60 @@ export const provideShapes = () => {
 		}
 	}
 
+	const remove = (names: string[]) => {
+		let index = -1
+
+		for (const name of names) {
+			index = points.findIndex((p) => p.name === name)
+
+			if (index !== -1) {
+				points.splice(index, 1)
+				continue
+			}
+
+			index = meshes.findIndex((m) => m.name === name)
+
+			if (index !== -1) {
+				meshes.splice(index, 1)
+				continue
+			}
+
+			index = poses.findIndex((p) => p.name === name)
+
+			if (index !== -1) {
+				const id = poses[index].metadata.batched?.id
+
+				if (id) {
+					batchedArrow.removeArrow(id)
+					poses.splice(index, 1)
+					continue
+				}
+			}
+
+			index = nurbs.findIndex((n) => n.name === name)
+
+			if (index !== -1) {
+				nurbs.splice(index, 1)
+				continue
+			}
+
+			index = models.findIndex((m) => m.name === name)
+
+			if (index !== -1) {
+				models.splice(index, 1)
+				continue
+			}
+		}
+	}
+
 	const removeAll = () => {
-		current.splice(0, current.length)
 		points.splice(0, points.length)
 		meshes.splice(0, meshes.length)
 
 		nurbs.splice(0, nurbs.length)
 		models.splice(0, models.length)
-		poses.splice(0, poses.length)
 
+		poses.splice(0, poses.length)
 		batchedArrow.clear()
 
 		pointsIndex = 0
@@ -236,6 +280,10 @@ export const provideShapes = () => {
 			return addGeometries(data.geometries, data.colors, data.parent)
 		}
 
+		if ('remove' in data) {
+			return remove(data.names)
+		}
+
 		if ('removeAll' in data) {
 			return removeAll()
 		}
@@ -259,9 +307,6 @@ export const provideShapes = () => {
 	ws.onmessage = onMessage
 
 	setContext<Context>(key, {
-		get current() {
-			return current
-		},
 		get points() {
 			return points
 		},

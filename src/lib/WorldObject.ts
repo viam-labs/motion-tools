@@ -13,6 +13,7 @@ export type Metadata = {
 	gltf?: { scene: Object3D }
 	points?: Vector3[]
 	batched?: {
+		id: number
 		name: string
 	}
 	getBoundingBoxAt?: (box: Box3) => void
