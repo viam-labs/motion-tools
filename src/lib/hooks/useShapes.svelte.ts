@@ -36,9 +36,6 @@ const tryParse = (json: string) => {
 	}
 }
 
-const direction = new Vector3()
-const origin = new Vector3()
-
 export const provideShapes = () => {
 	let pointsIndex = 0
 	let geometryIndex = 0
@@ -122,6 +119,8 @@ export const provideShapes = () => {
 		nurbs.push(object)
 	}
 
+	const direction = new Vector3()
+	const origin = new Vector3()
 	const vec3 = new Vector3()
 	const batchedArrow = new BatchedArrow()
 
@@ -172,6 +171,8 @@ export const provideShapes = () => {
 		batchedArrow.clear()
 
 		pointsIndex = 0
+		geometryIndex = 0
+		poseIndex = 0
 	}
 
 	let metadata: { ext: string } | undefined = undefined

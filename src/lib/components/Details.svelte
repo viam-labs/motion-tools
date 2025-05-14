@@ -19,7 +19,7 @@
 				<button>
 					<Icon name="drag" />
 				</button>
-				<strong class="font-semibold">{object.name}</strong>
+				{object.name}
 			</div>
 		</div>
 

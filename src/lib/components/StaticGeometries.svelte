@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { T } from '@threlte/core'
-	import { Edges, TransformControls } from '@threlte/extras'
+	import { TransformControls } from '@threlte/extras'
 	import { useSelected } from '$lib/hooks/useSelection.svelte'
 	import { useStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
@@ -8,8 +7,7 @@
 	import { PersistedState } from 'runed'
 	import { quaternionToPose, scaleToDimensions, vector3ToPose } from '$lib/transform'
 	import { Quaternion, Vector3 } from 'three'
-	import Clickable from './WorldObject.svelte'
-	import { darkenColor } from '$lib/color'
+	import Frame from './Frame.svelte'
 
 	type Modes = 'translate' | 'rotate' | 'scale'
 
@@ -45,13 +43,16 @@
 	}}
 />
 
-<!-- {#each geometries.current as mesh (mesh.uuid)}
-	<Clickable
-		name={mesh.name}
-		object={mesh}
+{#each geometries.current as object (object.uuid)}
+	<Frame
+		uuid={object.uuid}
+		name={object.name}
+		pose={object.pose}
+		geometry={object.geometry}
+		metadata={object.metadata}
 	>
 		{#snippet children({ ref })}
-			{#if selection.current === mesh.name}
+			{#if selected.current === ref.name}
 				<TransformControls
 					object={ref}
 					mode={mode.current}
@@ -61,28 +62,16 @@
 
 						const { object } = event.target
 						if (mode.current === 'translate') {
-							vector3ToPose(object.getWorldPosition(vector3), mesh.userData.pose)
+							vector3ToPose(object.getWorldPosition(vector3), ref.userData.pose)
 						} else if (mode.current === 'rotate') {
-							quaternionToPose(ref.getWorldQuaternion(quaternion), mesh.userData.pose)
+							quaternionToPose(ref.getWorldQuaternion(quaternion), ref.userData.pose)
 							ref.quaternion.copy(quaternion)
 						} else if (mode.current === 'scale') {
-							scaleToDimensions(ref.scale, mesh.userData.geometry)
+							scaleToDimensions(ref.scale, ref.userData.geometry)
 						}
 					}}
 				/>
 			{/if}
-
-			<Edges
-				raycast={() => null}
-				color={darkenColor('hotpink', 10)}
-				renderOrder={-1}
-			/>
-
-			<T.MeshToonMaterial
-				color="hotpink"
-				transparent
-				opacity={0.7}
-			/>
 		{/snippet}
-	</Clickable>
-{/each} -->
+	</Frame>
+{/each}

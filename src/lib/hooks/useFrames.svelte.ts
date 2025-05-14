@@ -1,6 +1,5 @@
 import { getContext, setContext, untrack } from 'svelte'
 import { useRobotClient, createRobotQuery, useMachineStatus } from '@viamrobotics/svelte-sdk'
-import { usePoses } from './usePoses.svelte'
 import { WorldObject } from '$lib/WorldObject'
 
 interface FramesContext {
@@ -14,7 +13,6 @@ const key = Symbol('frames-context')
 export const provideFrames = (partID: () => string) => {
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig')
-	const poses = usePoses()
 
 	const machineStatus = useMachineStatus(partID)
 	const revision = $derived(machineStatus.current?.config.revision)

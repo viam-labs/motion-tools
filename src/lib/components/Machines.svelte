@@ -73,7 +73,7 @@
 			class="border-medium flex h-full max-h-[500px] w-full max-w-[650px] items-start justify-between overflow-y-auto border bg-white p-2"
 		>
 			<div class="flex flex-col gap-2">
-				{#each connectionConfigs.current as config, index}
+				{#each connectionConfigs.current as config, index (config.partId)}
 					<form class="flex flex-wrap items-center gap-2">
 						<label class="label flex items-center gap-1.5 text-xs">
 							<input

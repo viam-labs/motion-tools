@@ -16,3 +16,5 @@ Open the machine config page (bottom right) and enter in connection details to v
 - Give error logs
 - pointcloud color
 - remote IP access
+- ortho points are messed up size-wise
+- delete individual objects
