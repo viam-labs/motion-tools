@@ -123,7 +123,6 @@ export class BatchedArrow {
 				this.batchedMesh.getMatrixAt(arrow.headId, mat4_1)
 				this.batchedMesh.getMatrixAt(arrow.shaftId, mat4_2)
 				target.copy(headBox.applyMatrix4(mat4_1)).union(tailBox.applyMatrix4(mat4_2))
-				console.log(target)
 				return target
 			}
 		}

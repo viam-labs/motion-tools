@@ -108,7 +108,7 @@
 				<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
 
 				{#each children as node, index (node.id)}
-					{@render treeNode({ node, indexPath: [index], api })}
+					{@render treeNode({ node, indexPath: [...indexPath, index], api })}
 				{/each}
 			</div>
 		</div>
@@ -192,10 +192,10 @@
 		[data-scope='tree-view'][data-part='branch-indent-guide'] {
 			position: absolute;
 			content: '';
-			border-left: 1px solid rgba(226, 226, 226, 0.179);
+			border-left: 1px solid #eee;
 			height: 100%;
 			translate: calc(var(--depth) * 1.25rem);
-			z-index: 0;
+			z-index: 1;
 		}
 	}
 </style>

@@ -33,7 +33,7 @@ export const providePointclouds = (partID: () => string) => {
 
 			return queryOptions({
 				enabled: interval !== -1 && cameraClient.current !== undefined,
-				refetchInterval: interval,
+				refetchInterval: interval === 0 ? false : interval,
 				queryKey: ['partID', partID(), name, 'getPointCloud'],
 				queryFn: async (): Promise<WorldObject<PointsGeometry> | null> => {
 					if (!cameraClient.current) {

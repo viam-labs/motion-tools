@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { Color, Vector3 } from 'three'
 	import { T } from '@threlte/core'
-	import { Gizmo, Grid, PortalTarget, interactivity } from '@threlte/extras'
+	import { Gizmo, Grid, interactivity } from '@threlte/extras'
+	import { PortalTarget } from './portal'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
 	import CameraControls from '$lib/components/CameraControls.svelte'

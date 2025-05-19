@@ -4,33 +4,21 @@ import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk
 import { getContext, setContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
-import { useFrames } from './useFrames.svelte'
 
 const key = Symbol('poses-context')
 
 type PoseWithComponent = PoseInFrame & { component: ResourceName }
 
 interface Context {
-	current: PoseWithComponent[]
+	current: {
+		[k: string]: PoseWithComponent | undefined
+	}
 }
 
 export const providePoses = (partID: () => string) => {
 	const refreshRates = useRefreshRates()
 	const resources = useResourceNames(partID)
-	const frames = useFrames()
-	const components = $derived.by(() => {
-		const results = []
-		for (const frame of frames.current) {
-			const resourceName = resources.current.find((resource) => resource.name === frame.name)
-
-			if (resourceName) {
-				results.push({ resourceName, frame })
-			}
-		}
-
-		return results
-	})
-
+	const components = $derived(resources.current.filter(({ type }) => type === 'component'))
 	const motionResources = useResourceNames(partID, 'motion')
 	const clients = $derived(
 		motionResources.current.map((resource) =>
@@ -48,7 +36,7 @@ export const providePoses = (partID: () => string) => {
 
 			return queryOptions({
 				enabled: interval !== -1 && motionClient.current !== undefined,
-				refetchInterval: interval,
+				refetchInterval: interval === 0 ? false : interval,
 				queryKey: ['partID', partID(), motionClient.current?.name, 'getPose'],
 				queryFn: async (): Promise<PoseWithComponent[]> => {
 					const client = motionClient.current
@@ -57,18 +45,13 @@ export const providePoses = (partID: () => string) => {
 					}
 
 					const promises = components.map((component) => {
-						console.log(component.resourceName, component.frame.referenceFrame)
-						return client.getPose(
-							component.resourceName,
-							component.frame.referenceFrame ?? 'world',
-							[]
-						)
+						return client.getPose(component, 'world', [])
 					})
 
 					const results = await Promise.allSettled(promises)
 
 					return results
-						.map((result, index) => ({ ...result, component: components[index].resourceName }))
+						.map((result, index) => ({ ...result, component: components[index] }))
 						.filter((result) => result.status === 'fulfilled')
 						.map((result) => ({ ...result.value, component: result.component }))
 				},
@@ -80,16 +63,26 @@ export const providePoses = (partID: () => string) => {
 		createQueries({
 			queries: toStore(() => options),
 			combine: (results) => {
-				return {
-					data: results.flatMap((result) => result.data).filter((data) => data !== undefined),
+				const obj: { [k: string]: PoseWithComponent | undefined } = {}
+				for (const service of results) {
+					let i = 0
+
+					if (service.data) {
+						for (const pose of service.data) {
+							obj[components[i].name] = pose
+							i += 1
+						}
+					}
 				}
+
+				return obj
 			},
 		})
 	)
 
 	setContext<Context>(key, {
 		get current() {
-			return queries.current.data
+			return queries.current
 		},
 	})
 }

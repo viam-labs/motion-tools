@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Portal, PortalTarget } from '@threlte/extras'
+	import { Portal, PortalTarget } from './portal'
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
 	import WorldObject from './WorldObject.svelte'
 	import Frame from './Frame.svelte'

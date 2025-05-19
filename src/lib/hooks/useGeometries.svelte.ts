@@ -34,7 +34,7 @@ export const provideGeometries = (partID: () => string) => {
 
 			return queryOptions({
 				enabled: interval !== -1 && client.current !== undefined,
-				refetchInterval: interval,
+				refetchInterval: interval === 0 ? false : interval,
 				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
 				queryFn: async (): Promise<{ name: string; geometries: Geometry[] }> => {
 					if (!client.current) {

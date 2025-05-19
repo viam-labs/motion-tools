@@ -18,19 +18,13 @@
 		onchange={(event: InputEvent) => {
 			if (event.target instanceof HTMLSelectElement) {
 				const { value } = event.target
-
-				if (value === '') {
-					pollingRates.delete(name)
-					return
-				}
-
 				pollingRates.set(name, Number.parseInt(value, 10))
 			}
 		}}
 		value={String(rate ?? '')}
 	>
 		<option value="-1">Do not fetch</option>
-		<option value="">Do not refresh</option>
+		<option value="0">Do not refresh</option>
 		<option value="500">Refresh every 0.5 second</option>
 		<option value="1000">Refresh every second</option>
 		<option value="2000">Refresh every 2 seconds</option>

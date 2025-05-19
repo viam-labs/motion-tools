@@ -3,12 +3,11 @@
 
 	import type { DialConf } from '@viamrobotics/sdk'
 	import { ViamProvider } from '@viamrobotics/svelte-sdk'
-	import Machines from '$lib/components/Machines.svelte'
+	import { MotionTools } from '$lib'
 	import { provideConnectionConfigs } from '$lib/hooks'
-	import { getDialConfs } from '$lib/robots'
+	import Machines from './lib/components/Machines.svelte'
+	import { getDialConfs } from './lib/robots'
 	import { useActiveConnectionConfig } from '$lib/hooks'
-	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
-	import MotionTools from '$lib/components/App.svelte'
 	import { PersistedState } from 'runed'
 	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 
@@ -31,7 +30,7 @@
 		return {}
 	})
 
-	createPartIDContext(() => connectionConfig.current?.partId ?? '')
+	const partID = $derived(connectionConfig.current?.partId)
 
 	const queryDevtoolsOpen = new PersistedState('query-devtools-open', false)
 </script>
@@ -47,7 +46,7 @@
 <Machines />
 
 <ViamProvider {dialConfigs}>
-	<MotionTools>
+	<MotionTools {partID}>
 		{@render children()}
 	</MotionTools>
 

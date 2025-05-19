@@ -11,6 +11,8 @@
 
 	const { start, stop } = useTask(() => box.update(), { autoStart: false })
 
+	const box3 = new Box3()
+
 	$effect.pre(() => {
 		if (selected.current) {
 			start()
@@ -19,27 +21,22 @@
 		}
 	})
 
-	const box3 = new Box3()
-
 	$effect.pre(() => {
-		if (selected.current) {
-			box.visible = true
-
-			if (selected.current.metadata.batched) {
-				selected.current.metadata.getBoundingBoxAt?.(box3)
-				console.log(box3)
-				box.setFromBox3(box3)
-			} else {
-				const object3d = scene.getObjectByName(selected.current.name)
-				if (object3d) {
-					box.setFromObject(object3d)
-				}
-			}
-
-			start()
-		} else {
+		if (!selected.current) {
 			box.visible = false
-			stop()
+			return
+		}
+
+		box.visible = true
+
+		if (selected.current.metadata.batched) {
+			selected.current.metadata.getBoundingBoxAt?.(box3)
+			box.setFromBox3(box3)
+		} else {
+			const object3d = scene.getObjectByProperty('uuid', selected.current.uuid)
+			if (object3d) {
+				box.setFromObject(object3d)
+			}
 		}
 	})
 </script>

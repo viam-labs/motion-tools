@@ -45,6 +45,7 @@
 <T
 	is={mesh}
 	{name}
+	{uuid}
 	{...events}
 >
 	{#if geometry?.case === 'mesh'}

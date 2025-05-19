@@ -22,11 +22,11 @@
 	const partID = usePartID()
 
 	provideTransformControls()
-	provideStaticGeometries()
 	provideVisibility()
-	provideShapes()
 	provideRefreshRates()
 
+	provideStaticGeometries()
+	provideShapes()
 	provideFrames(() => partID.current)
 	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)

@@ -27,11 +27,11 @@
 		href: '/',
 	})
 
-	$effect.pre(() => {
-		const nextNodes = buildTreeNodes(objects.current)
+	const nodes = $derived(buildTreeNodes(objects.current))
 
-		if (!isEqual(rootNode.children, nextNodes)) {
-			rootNode.children = nextNodes
+	$effect.pre(() => {
+		if (!isEqual(rootNode.children, nodes)) {
+			rootNode.children = nodes
 		}
 	})
 </script>

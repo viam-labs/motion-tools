@@ -20,8 +20,7 @@ export type Metadata = {
 }
 
 export class WorldObject<T extends Geometries = Geometries> {
-	uuid = MathUtils.generateUUID()
-
+	uuid: string
 	name: string
 	referenceFrame: string
 	pose: Pose
@@ -29,6 +28,7 @@ export class WorldObject<T extends Geometries = Geometries> {
 	metadata: Metadata
 
 	constructor(name: string, pose?: Pose, parent = 'world', geometry?: T, metadata?: Metadata) {
+		this.uuid = MathUtils.generateUUID()
 		this.name = name
 		this.referenceFrame = parent
 		this.pose = pose ?? createPose()
