@@ -1,5 +1,5 @@
 {
-  "name": "@viamrobotics/motion-tools",
+	"name": "@viamrobotics/motion-tools",
 	"version": "0.0.1",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
@@ -86,11 +86,11 @@
 		"zod": "^3.25.7"
 	},
 	"peerDependencies": {
-    "@tanstack/svelte-query": ">=5",
-    "@viamrobotics/sdk": ">=0.38",
+		"@tanstack/svelte-query": ">=5",
+		"@viamrobotics/sdk": ">=0.38",
 		"@viamrobotics/svelte-sdk": ">=0.1",
-    "svelte": ">=5"
-  },
+		"svelte": ">=5"
+	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
 			"esbuild"
