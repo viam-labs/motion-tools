@@ -7,6 +7,7 @@
 	import type { TreeNode } from './buildTree'
 	import { useExpanded } from './useExpanded.svelte'
 	import { VirtualList } from 'svelte-virtuallists'
+	import { observe } from '@threlte/core'
 
 	const visibility = useVisibility()
 	const expanded = useExpanded()
@@ -40,13 +41,15 @@
 
 	const api = $derived(tree.connect(service, normalizeProps))
 
-	$effect(() => {
-		untrack(() => api).setSelectedValue(selections)
-	})
+	observe(
+		() => [selections],
+		() => untrack(() => api.setSelectedValue(selections))
+	)
 
-	$effect(() => {
-		untrack(() => api).setExpandedValue([...expanded])
-	})
+	observe(
+		() => [expanded],
+		() => untrack(() => api.setExpandedValue([...expanded]))
+	)
 
 	const rootChildren = $derived(collection.rootNode.children ?? [])
 </script>
@@ -139,9 +142,9 @@
 {/snippet}
 
 <div class="root-node">
-	<div {...api.getRootProps()}>
+	<div {...api.getRootProps() as object}>
 		<div class="border-medium border-b p-2">
-			<h3 {...api.getLabelProps()}>{rootNode.name}</h3>
+			<h3 {...api.getLabelProps() as object}>{rootNode.name}</h3>
 		</div>
 
 		<div
