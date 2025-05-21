@@ -60,7 +60,7 @@
 		"camera-controls": "^2.10.1",
 		"eslint": "^9.27.0",
 		"eslint-config-prettier": "^10.1.5",
-		"eslint-plugin-svelte": "^3.8.2",
+		"eslint-plugin-svelte": "^3.9.0",
 		"globals": "^16.1.0",
 		"idb-keyval": "^6.2.2",
 		"jsdom": "^26.1.0",
@@ -71,7 +71,7 @@
 		"prettier-plugin-tailwindcss": "^0.6.11",
 		"publint": "^0.3.12",
 		"runed": "^0.28.0",
-		"svelte": "5.32.0",
+		"svelte": "5.32.1",
 		"svelte-check": "^4.2.1",
 		"svelte-virtuallists": "^1.4.2",
 		"tailwindcss": "^4.1.7",
@@ -82,8 +82,7 @@
 		"typescript-eslint": "^8.32.1",
 		"vite": "^6.3.5",
 		"vite-plugin-mkcert": "^1.17.8",
-		"vitest": "^3.1.4",
-		"zod": "^3.25.7"
+		"vitest": "^3.1.4"
 	},
 	"peerDependencies": {
 		"@tanstack/svelte-query": ">=5",

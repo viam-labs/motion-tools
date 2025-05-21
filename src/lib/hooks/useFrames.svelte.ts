@@ -1,6 +1,8 @@
 import { getContext, setContext, untrack } from 'svelte'
 import { useRobotClient, createRobotQuery, useMachineStatus } from '@viamrobotics/svelte-sdk'
 import { WorldObject } from '$lib/WorldObject'
+import { useRefreshRates } from './useRefreshRates.svelte'
+import { observe } from '@threlte/core'
 
 interface FramesContext {
 	current: WorldObject[]
@@ -11,20 +13,33 @@ interface FramesContext {
 const key = Symbol('frames-context')
 
 export const provideFrames = (partID: () => string) => {
+	const refreshRates = useRefreshRates()
+
+	if (!refreshRates.has('Frames')) {
+		refreshRates.set('Frames', 1)
+	}
+
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig')
-
 	const machineStatus = useMachineStatus(partID)
 	const revision = $derived(machineStatus.current?.config.revision)
+	const shouldFetch = $derived(refreshRates.get('Frames') === 1)
 
-	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		revision
-		untrack(() => query.current).refetch()
-	})
+	observe.pre(
+		() => [revision],
+		() => {
+			if (shouldFetch) {
+				untrack(() => query.current).refetch()
+			}
+		}
+	)
 
 	const current = $derived.by(() => {
 		const objects: WorldObject[] = []
+
+		if (!shouldFetch) {
+			return objects
+		}
 
 		for (const { frame } of query.current.data ?? []) {
 			if (frame) {

@@ -23,7 +23,7 @@ const launchVite = async (port: number) => {
 
 function sendToClients(data: string | Bun.BufferSource) {
 	if (connections.size === 0) {
-		console.log('No connected clients to send:', data)
+		console.log('No connected web clients to send data!')
 		return false
 	}
 
@@ -126,14 +126,14 @@ while (true) {
 
 			websocket: {
 				open(ws) {
-					console.log('WebSocket client connected:', ws.remoteAddress)
+					console.log('WebSocket client connected at:', ws.remoteAddress)
 					connections.add(ws)
 				},
 				message(ws, message) {
 					console.log(`Received: ${message}`)
 				},
 				close(ws) {
-					console.log('WebSocket client closed:', ws.remoteAddress)
+					console.log('WebSocket client closed at:', ws.remoteAddress)
 					connections.delete(ws)
 				},
 			},

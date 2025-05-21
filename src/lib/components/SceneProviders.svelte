@@ -12,6 +12,7 @@
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import type { Snippet } from 'svelte'
 	import { provideObjects } from '$lib/hooks/useObjects.svelte'
+	import { provideMotionClient } from '$lib/hooks/useMotionClient.svelte'
 
 	interface Props {
 		children: Snippet<[{ focus: boolean }]>
@@ -31,6 +32,7 @@
 	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
+	provideMotionClient(() => partID.current)
 	provideObjects()
 
 	const { focus } = provideSelection()

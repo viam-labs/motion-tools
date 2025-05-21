@@ -5,15 +5,13 @@
 	import { Keybindings } from '$lib/keybindings'
 	import { ListTree } from 'lucide-svelte'
 	import { buildTreeNodes, type TreeNode } from './buildTree'
-	import { Icon } from '@viamrobotics/prime-core'
 	import { useSelected } from '$lib/hooks/useSelection.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { isEqual } from 'lodash-es'
-	import RefreshRate from '../RefreshRate.svelte'
 	import { useObjects } from '$lib/hooks/useObjects.svelte'
+	import Settings from './Settings.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', true)
-	const showSettings = new PersistedState('show-settings', false)
 
 	provideTreeExpandedContext()
 
@@ -67,28 +65,6 @@
 			/>
 		{/key}
 
-		<button
-			class="border-medium w-full border-t p-2 text-left"
-			onclick={() => (showSettings.current = !showSettings.current)}
-		>
-			<h3 class="text-default flex items-center gap-1.5">
-				<Icon
-					name={showSettings.current ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
-					label="unfold more icon"
-					variant="ghost"
-					cx="size-6"
-					on:click={() => (showSettings.current = !showSettings.current)}
-				/>
-				Settings
-			</h3>
-		</button>
-
-		{#if showSettings.current}
-			<div class="border-medium flex flex-col gap-2 border-t p-3">
-				<RefreshRate name="Pointclouds" />
-				<RefreshRate name="Geometries" />
-				<RefreshRate name="Poses" />
-			</div>
-		{/if}
+		<Settings />
 	</div>
 {/if}

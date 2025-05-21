@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { Select } from '@viamrobotics/prime-core'
 	import { useRefreshRates } from '$lib/hooks/useRefreshRates.svelte'
+	import type { Snippet } from 'svelte'
 
 	interface Props {
 		name: string
+		children?: Snippet
 	}
 
-	let { name }: Props = $props()
+	let { name, children }: Props = $props()
 
 	const pollingRates = useRefreshRates()
 	const rate = $derived(pollingRates.get(name))
@@ -23,14 +25,18 @@
 		}}
 		value={String(rate ?? '')}
 	>
-		<option value="-1">Do not fetch</option>
-		<option value="0">Do not refresh</option>
-		<option value="500">Refresh every 0.5 second</option>
-		<option value="1000">Refresh every second</option>
-		<option value="2000">Refresh every 2 seconds</option>
-		<option value="5000">Refresh every 5 seconds</option>
-		<option value="10000">Refresh every 10 seconds</option>
-		<option value="30000">Refresh every 30 seconds</option>
+		{#if children}
+			{@render children()}
+		{:else}
+			<option value="-1">Do not fetch</option>
+			<option value="0">Do not refresh</option>
+			<option value="500">Refresh every 0.5 second</option>
+			<option value="1000">Refresh every second</option>
+			<option value="2000">Refresh every 2 seconds</option>
+			<option value="5000">Refresh every 5 seconds</option>
+			<option value="10000">Refresh every 10 seconds</option>
+			<option value="30000">Refresh every 30 seconds</option>
+		{/if}
 	</Select>
 </label>
 

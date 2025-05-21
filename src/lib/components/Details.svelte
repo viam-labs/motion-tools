@@ -86,26 +86,6 @@
 				</div>
 			{/if}
 
-			<!-- {#if center}
-				<div>
-					<strong class="font-semibold">center</strong>
-					<div class="flex gap-3">
-						<div>
-							<span class="text-subtle-2">x</span>
-							{center.x !== undefined ? center.x.toFixed(2) : '-'}
-						</div>
-						<div>
-							<span class="text-subtle-2">y</span>
-							{center.y !== undefined ? center.y.toFixed(2) : '-'}
-						</div>
-						<div>
-							<span class="text-subtle-2">z</span>
-							{center.z !== undefined ? center.z.toFixed(2) : '-'}
-						</div>
-					</div>
-				</div>
-			{/if} -->
-
 			{#if geometry}
 				{#if geometry.case === 'box'}
 					{@const { dimsMm } = geometry.value}

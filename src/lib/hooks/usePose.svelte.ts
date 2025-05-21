@@ -4,28 +4,19 @@ import { MotionClient } from '@viamrobotics/sdk'
 import { createQuery, queryOptions } from '@tanstack/svelte-query'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { fromStore, toStore } from 'svelte/store'
+import { useMotionClient } from './useMotionClient.svelte'
 
 export const usePose = (name: () => string, parent: () => string | undefined) => {
 	const refreshRates = useRefreshRates()
 	const partID = usePartID()
+	const motionClient = useMotionClient()
 	const resources = useResourceNames(() => partID.current)
 	const resource = $derived(resources.current.find((resource) => resource.name === name()))
-	const services = useResourceNames(() => partID.current, 'motion')
-
-	const service = $derived.by(() => {
-		for (const service of services.current) {
-			if (service.name === 'builtin') {
-				return service
-			}
-		}
-
-		return services.current[0]
-	})
 
 	const client = createResourceClient(
 		MotionClient,
 		() => partID.current,
-		() => service?.name
+		() => motionClient.current ?? ''
 	)
 
 	const interval = refreshRates.get('Poses')
