@@ -39,11 +39,16 @@ export const provideShapes = () => {
 	let geometryIndex = 0
 	let poseIndex = 0
 
+	let reconnectDelay = 200
+
+	const maxReconnectDelay = 5_000
+
 	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
 		BACKEND_IP: string
 		BUN_SERVER_PORT: string
 	}
-	const ws = new WebSocket(`ws://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
+
+	let ws: WebSocket
 
 	const points = $state<WorldObject<PointsGeometry>[]>([])
 	const meshes = $state<WorldObject[]>([])
@@ -242,18 +247,29 @@ export const provideShapes = () => {
 		URL.revokeObjectURL(url)
 	}
 
+	const scheduleReconnect = () => {
+		setTimeout(() => {
+			reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay)
+			console.log(`Reconnecting in ${reconnectDelay / 1000} seconds...`)
+			connect()
+		}, this.reconnectDelay)
+	}
+
 	const onOpen = () => {
 		connectionStatus = 'open'
+		reconnectDelay = 1000
 		console.log(`Connected to websocket server at ${BACKEND_IP}:${BUN_SERVER_PORT}`)
 	}
 
 	const onClose = () => {
 		connectionStatus = 'closed'
 		console.log('Disconnected from websocket server')
+		scheduleReconnect()
 	}
 
 	const onError = (event: Event) => {
 		console.log('Websocket error', JSON.stringify(event))
+		ws.close()
 	}
 
 	const onMessage = (event: MessageEvent) => {
@@ -301,10 +317,15 @@ export const provideShapes = () => {
 		}
 	}
 
-	ws.onclose = onClose
-	ws.onerror = onError
-	ws.onopen = onOpen
-	ws.onmessage = onMessage
+	const connect = () => {
+		ws = new WebSocket(`ws://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
+		ws.onclose = onClose
+		ws.onerror = onError
+		ws.onopen = onOpen
+		ws.onmessage = onMessage
+	}
+
+	connect()
 
 	setContext<Context>(key, {
 		get points() {
