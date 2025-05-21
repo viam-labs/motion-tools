@@ -252,7 +252,7 @@ export const provideShapes = () => {
 			reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay)
 			console.log(`Reconnecting in ${reconnectDelay / 1000} seconds...`)
 			connect()
-		}, this.reconnectDelay)
+		}, reconnectDelay)
 	}
 
 	const onOpen = () => {
