@@ -86,10 +86,22 @@
 		"vitest": "^3.1.4"
 	},
 	"peerDependencies": {
+		"@dimforge/rapier3d-compat": ">=0.17",
 		"@tanstack/svelte-query": ">=5",
+		"@threlte/core": ">=8",
+		"@threlte/extras": ">=9",
+		"@threlte/rapier": ">=3",
+		"@threlte/xr": ">=1",
+		"@viamrobotics/prime-core": ">=0.1",
 		"@viamrobotics/sdk": ">=0.38",
 		"@viamrobotics/svelte-sdk": ">=0.1",
-		"svelte": ">=5"
+		"@zag-js/svelte": ">=1",
+		"@zag-js/tree-view": ">=1",
+		"idb-keyval": ">=6",
+		"lucide-svelte": ">=0.511",
+		"runed": ">=0.28",
+		"svelte": ">=5",
+		"svelte-virtuallists": ">=1"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
