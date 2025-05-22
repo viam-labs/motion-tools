@@ -53,24 +53,26 @@
 	>
 		{#snippet children({ ref })}
 			{#if selected.current === ref.uuid}
-				<TransformControls
-					object={ref}
-					mode={mode.current}
-					onmouseDown={() => transformControls.setActive(true)}
-					onmouseUp={(event) => {
-						transformControls.setActive(false)
+				{#key mode.current}
+					<TransformControls
+						object={ref}
+						mode={mode.current}
+						onmouseDown={() => transformControls.setActive(true)}
+						onmouseUp={() => {
+							transformControls.setActive(false)
 
-						if (mode.current === 'translate') {
-							vector3ToPose(ref.getWorldPosition(vector3), object.pose)
-						} else if (mode.current === 'rotate') {
-							quaternionToPose(ref.getWorldQuaternion(quaternion), object.pose)
-							ref.quaternion.copy(quaternion)
-						} else if (mode.current === 'scale' && object.geometry?.case === 'box') {
-							scaleToDimensions(ref.scale, object.geometry)
-							ref.scale.setScalar(1)
-						}
-					}}
-				/>
+							if (mode.current === 'translate') {
+								vector3ToPose(ref.getWorldPosition(vector3), object.pose)
+							} else if (mode.current === 'rotate') {
+								quaternionToPose(ref.getWorldQuaternion(quaternion), object.pose)
+								ref.quaternion.copy(quaternion)
+							} else if (mode.current === 'scale' && object.geometry?.case === 'box') {
+								scaleToDimensions(ref.scale, object.geometry)
+								ref.scale.setScalar(1)
+							}
+						}}
+					/>
+				{/key}
 			{/if}
 		{/snippet}
 	</Frame>
