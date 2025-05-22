@@ -26,7 +26,7 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (event.ctrlKey && event.key.toLowerCase() === 'q') {
+		if (event.ctrlKey && event.key.toLowerCase() === 'a') {
 			enableXR.current = !enableXR.current
 		}
 	}}

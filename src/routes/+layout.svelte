@@ -24,7 +24,7 @@
 				disableSessions: true,
 			}
 
-			return getDialConfs({ robot })
+			return { ...getDialConfs({ robot }) }
 		}
 
 		return {}

@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import { svelteTesting } from '@testing-library/svelte/vite'
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
@@ -8,9 +9,10 @@ import dns from 'node:dns'
 dns.setDefaultResultOrder('verbatim')
 
 const localIP = getLocalIP()
+const https = false
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [...(https ? [basicSsl()] : []), tailwindcss(), sveltekit()],
 
 	define: {
 		BACKEND_IP: JSON.stringify(localIP),
@@ -31,6 +33,7 @@ export default defineConfig({
 		port: 5173,
 		allowedHosts: true,
 		cors: true,
+		https,
 	},
 
 	ssr: {

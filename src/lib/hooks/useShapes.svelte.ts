@@ -318,7 +318,8 @@ export const provideShapes = () => {
 	}
 
 	const connect = () => {
-		ws = new WebSocket(`ws://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
+		const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+		ws = new WebSocket(`${protocol}://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
 		ws.onclose = onClose
 		ws.onerror = onError
 		ws.onopen = onOpen

@@ -55,6 +55,7 @@
 		"@viamrobotics/sdk": "0.42.0",
 		"@viamrobotics/svelte-sdk": "0.1.4",
 		"@viamrobotics/three": "^0.0.9",
+		"@vitejs/plugin-basic-ssl": "^2.0.0",
 		"@zag-js/svelte": "1.12.4",
 		"@zag-js/tree-view": "1.12.4",
 		"camera-controls": "^2.10.1",

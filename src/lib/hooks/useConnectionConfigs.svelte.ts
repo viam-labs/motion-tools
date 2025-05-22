@@ -1,6 +1,7 @@
 import { get, set } from 'idb-keyval'
 import { PersistedState } from 'runed'
 import { getContext, setContext } from 'svelte'
+import { envDialConfigs } from '../../routes/lib/configs'
 
 interface ConnectionConfig {
 	host: string
@@ -21,16 +22,20 @@ export const provideConnectionConfigs = () => {
 	let connectionConfigs: ConnectionConfig[] = $state([])
 
 	get('connection-configs').then((response) => {
-		connectionConfigs = response ?? []
+		if (Array.isArray(response)) {
+			connectionConfigs = response
+		}
 	})
 
 	$effect(() => {
 		set('connection-configs', $state.snapshot(connectionConfigs))
 	})
 
+	const envConfigs = Object.values(envDialConfigs)
+
 	setContext<Context>(key, {
 		get current() {
-			return connectionConfigs
+			return [...envConfigs, ...connectionConfigs]
 		},
 	})
 }

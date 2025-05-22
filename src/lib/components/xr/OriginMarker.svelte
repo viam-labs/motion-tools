@@ -63,7 +63,6 @@
 
 <T
 	is={group}
-	rotation.x={Math.PI}
 	position={[0, 0.05, 0]}
 >
 	<RigidBody
@@ -78,10 +77,17 @@
 			{onsensorexit}
 		>
 			<T is={mesh}>
-				<T.ConeGeometry args={[radius, height]} />
+				<T.ConeGeometry
+					args={[radius, height]}
+					oncreate={(ref) => {
+						ref.rotateX(-Math.PI / 2)
+						ref.translate(0, 0, height / 2)
+					}}
+				/>
 				<T.MeshStandardMaterial color={hovering ? 'hotpink' : 'red'} />
 
 				<Grid
+					plane="xy"
 					position.y={0.05}
 					fadeDistance={1}
 					cellSize={0.1}

@@ -41,37 +41,41 @@
 	args={[new Color('white')]}
 />
 
-{#if focused.current === undefined}
-	<Camera position={[3, 3, 3]}>
+<T.Group rotation.x={$isPresenting ? -Math.PI / 2 : 0}>
+	{#if focused.current === undefined}
 		{#if !$isPresenting}
-			<CameraControls>
-				<Gizmo />
-			</CameraControls>
+			<Camera position={[3, 3, 3]}>
+				<CameraControls>
+					<Gizmo />
+				</CameraControls>
+			</Camera>
 		{/if}
-	</Camera>
 
-	<PortalTarget id="world" />
+		<PortalTarget id="world" />
 
-	<StaticGeometries />
-	<Frames />
-	<Pointclouds />
-	<Shapes />
+		<StaticGeometries />
+		<Frames />
+		<Pointclouds />
+		<Shapes />
 
-	<Selected />
+		<Selected />
 
-	<Grid
-		plane="xy"
-		sectionColor="lightgrey"
-		infiniteGrid
-		fadeOrigin={new Vector3()}
-		fadeDistance={25}
-	/>
-{:else}
-	<Focus />
-{/if}
+		{#if !$isPresenting}
+			<Grid
+				plane="xy"
+				sectionColor="lightgrey"
+				infiniteGrid
+				fadeOrigin={new Vector3()}
+				fadeDistance={25}
+			/>
+		{/if}
+	{:else}
+		<Focus />
+	{/if}
 
-{@render children?.()}
+	{@render children?.()}
 
-<T.DirectionalLight position={[3, 3, 3]} />
-<T.DirectionalLight position={[-3, -3, -3]} />
-<T.AmbientLight />
+	<T.DirectionalLight position={[3, 3, 3]} />
+	<T.DirectionalLight position={[-3, -3, -3]} />
+	<T.AmbientLight />
+</T.Group>
