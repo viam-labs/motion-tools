@@ -52,7 +52,7 @@
 		metadata={object.metadata}
 	>
 		{#snippet children({ ref })}
-			{#if selected.current === ref.name}
+			{#if selected.current === ref.uuid}
 				<TransformControls
 					object={ref}
 					mode={mode.current}
@@ -60,14 +60,14 @@
 					onmouseUp={(event) => {
 						transformControls.setActive(false)
 
-						const { object } = event.target
 						if (mode.current === 'translate') {
-							vector3ToPose(object.getWorldPosition(vector3), ref.userData.pose)
+							vector3ToPose(ref.getWorldPosition(vector3), object.pose)
 						} else if (mode.current === 'rotate') {
-							quaternionToPose(ref.getWorldQuaternion(quaternion), ref.userData.pose)
+							quaternionToPose(ref.getWorldQuaternion(quaternion), object.pose)
 							ref.quaternion.copy(quaternion)
-						} else if (mode.current === 'scale') {
-							scaleToDimensions(ref.scale, ref.userData.geometry)
+						} else if (mode.current === 'scale' && object.geometry?.case === 'box') {
+							scaleToDimensions(ref.scale, object.geometry)
+							ref.scale.setScalar(1)
 						}
 					}}
 				/>

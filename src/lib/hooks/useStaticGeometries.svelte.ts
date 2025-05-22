@@ -42,7 +42,7 @@ export const provideStaticGeometries = () => {
 				}).geometryType
 			)
 
-			geometries.push(object)
+			geometries.push(structuredClone(object))
 		},
 		remove(name: string) {
 			const index = geometries.findIndex((geo) => geo.name === name)

@@ -59,16 +59,16 @@ export const poseToObject3d = (pose: Partial<Pose>, object3d: Object3D) => {
 	poseToQuaternion(pose, object3d.quaternion)
 }
 
-export const scaleToDimensions = (scale: Vector3, geometry: Geometry) => {
-	if (geometry.geometryType.case === 'box') {
-		geometry.geometryType.value.dimsMm ??= { x: 0, y: 0, z: 0 }
-		geometry.geometryType.value.dimsMm.x = scale.x * 1000
-		geometry.geometryType.value.dimsMm.y = scale.y * 1000
-		geometry.geometryType.value.dimsMm.z = scale.z * 1000
-	} else if (geometry.geometryType.case === 'capsule') {
-		geometry.geometryType.value.radiusMm = scale.x * 1000
-		geometry.geometryType.value.lengthMm = scale.y * 1000
-	} else if (geometry.geometryType.case === 'sphere') {
-		geometry.geometryType.value.radiusMm = scale.x * 1000
+export const scaleToDimensions = (scale: Vector3, geometry: Geometry['geometryType']) => {
+	if (geometry.case === 'box') {
+		geometry.value.dimsMm ??= { x: 0, y: 0, z: 0 }
+		geometry.value.dimsMm.x *= scale.x
+		geometry.value.dimsMm.y *= scale.y
+		geometry.value.dimsMm.z *= scale.z
+	} else if (geometry.case === 'capsule') {
+		geometry.value.radiusMm *= scale.x
+		geometry.value.lengthMm *= scale.y
+	} else if (geometry.case === 'sphere') {
+		geometry.value.radiusMm *= scale.x
 	}
 }

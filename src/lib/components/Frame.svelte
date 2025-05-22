@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import { type Snippet } from 'svelte'
-	import { Edges, meshBounds, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
-	import { DoubleSide, FrontSide, Mesh, Object3D } from 'three'
+	import { meshBounds, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
+	import { BufferGeometry, DoubleSide, FrontSide, Mesh, Object3D } from 'three'
 	import { CapsuleGeometry } from '$lib/three/CapsuleGeometry'
 	import { poseToObject3d } from '$lib/transform'
 	import { darkenColor } from '$lib/color'
@@ -40,6 +40,8 @@
 	})
 
 	const events = useObjectEvents(() => uuid)
+
+	let geo = $state<BufferGeometry>()
 </script>
 
 <T
@@ -55,15 +57,28 @@
 		<MeshLineGeometry points={metadata.points} />
 	{:else if geometry?.case === 'box'}
 		{@const dimsMm = geometry.value.dimsMm ?? { x: 0, y: 0, z: 0 }}
-		<T.BoxGeometry args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]} />
+		<T.BoxGeometry
+			args={[dimsMm.x * 0.001, dimsMm.y * 0.001, dimsMm.z * 0.001]}
+			oncreate={(ref) => {
+				geo = ref
+			}}
+		/>
 	{:else if geometry?.case === 'sphere'}
 		{@const radiusMm = geometry.value.radiusMm ?? 0}
-		<T.SphereGeometry args={[radiusMm * 0.001]} />
+		<T.SphereGeometry
+			args={[radiusMm * 0.001]}
+			oncreate={(ref) => {
+				geo = ref
+			}}
+		/>
 	{:else if geometry?.case === 'capsule'}
 		{@const { lengthMm, radiusMm } = geometry.value}
 		<T
 			is={CapsuleGeometry}
 			args={[radiusMm * 0.001, lengthMm * 0.001]}
+			oncreate={(ref) => {
+				geo = ref
+			}}
 		/>
 	{:else}
 		<AxesHelper
@@ -85,11 +100,12 @@
 			opacity={0.7}
 		/>
 
-		<Edges
-			raycast={() => null}
-			color={darkenColor(metadata.color ?? 'red', 10)}
-			renderOrder={-1}
-		/>
+		{#if geo}
+			<T.LineSegments raycast={() => null}>
+				<T.EdgesGeometry args={[geo, 1]} />
+				<T.LineBasicMaterial color={darkenColor(metadata.color ?? 'red', 10)} />
+			</T.LineSegments>
+		{/if}
 	{/if}
 
 	{@render children?.({ ref: mesh })}
