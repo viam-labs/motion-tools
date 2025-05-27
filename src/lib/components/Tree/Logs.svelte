@@ -7,7 +7,7 @@
 </script>
 
 <Drawer name="Logs">
-	<div class="flex h-[250px] w-[240px] flex-col gap-2 overflow-auto p-3">
+	<div class="flex h-64 w-60 flex-col gap-2 overflow-auto p-3">
 		{#each truncated as log (log.uuid)}
 			<div>
 				<div class="flex flex-wrap items-center gap-1.5">

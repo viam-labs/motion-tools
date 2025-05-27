@@ -149,7 +149,7 @@
 
 		<div
 			{...api.getTreeProps()}
-			class="w-[240px]"
+			class="w-60"
 		>
 			{#if rootChildren.length === 0}
 				<p class="text-subtle-2 px-2 py-4">No objects displayed</p>

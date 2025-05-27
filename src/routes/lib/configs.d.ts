@@ -1,9 +1,9 @@
 interface ConnectionConfig {
-    host: string;
-    partId: string;
-    apiKeyId: string;
-    apiKeyValue: string;
-    signalingAddress: string;
+	host: string
+	partId: string
+	apiKeyId: string
+	apiKeyValue: string
+	signalingAddress: string
 }
-export declare const envDialConfigs: Record<string, ConnectionConfig>;
-export {};
+export declare const envDialConfigs: Record<string, ConnectionConfig>
+export {}
