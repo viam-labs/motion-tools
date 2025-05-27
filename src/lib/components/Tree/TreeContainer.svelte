@@ -44,7 +44,7 @@
 />
 
 <button
-	class="fixed top-2 left-2 p-2"
+	class="absolute top-2 left-2 p-2"
 	onclick={() => (showTreeview.current = !showTreeview.current)}
 >
 	<ListTree />
@@ -52,7 +52,7 @@
 
 {#if showTreeview.current}
 	<div
-		class="bg-extralight border-medium fixed top-0 left-0 m-2 overflow-y-auto border text-xs"
+		class="bg-extralight border-medium absolute top-0 left-0 m-2 overflow-y-auto border text-xs"
 		in:fly={{ duration: 250, x: -100 }}
 		out:fly={{ duration: 250, x: -100 }}
 	>

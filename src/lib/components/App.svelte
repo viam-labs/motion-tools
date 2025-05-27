@@ -22,6 +22,8 @@
 	createPartIDContext(() => partID)
 
 	const enableXR = new PersistedState('enable-xr', false)
+
+	let root: HTMLElement
 </script>
 
 <svelte:window
@@ -32,31 +34,36 @@
 	}}
 />
 
-<Canvas renderMode="always">
-	<World>
-		<SceneProviders>
-			{#snippet children({ focus })}
-				<Scene>
-					{@render appChildren?.()}
+<div
+	class="relative h-full w-full"
+	bind:this={root}
+>
+	<Canvas renderMode="always">
+		<World>
+			<SceneProviders>
+				{#snippet children({ focus })}
+					<Scene>
+						{@render appChildren?.()}
 
-					{#if enableXR.current}
-						<XR />
-					{/if}
-				</Scene>
+						{#if enableXR.current}
+							<XR />
+						{/if}
+					</Scene>
 
-				<DomPortal>
-					<Details />
-				</DomPortal>
-
-				{#if !focus}
-					<DomPortal>
-						<TreeContainer />
+					<DomPortal element={root}>
+						<Details />
 					</DomPortal>
-				{/if}
-			{/snippet}
-		</SceneProviders>
-	</World>
-</Canvas>
+
+					{#if !focus}
+						<DomPortal element={root}>
+							<TreeContainer />
+						</DomPortal>
+					{/if}
+				{/snippet}
+			</SceneProviders>
+		</World>
+	</Canvas>
+</div>
 
 {#if enableXR.current}
 	<XRButton mode="immersive-ar" />

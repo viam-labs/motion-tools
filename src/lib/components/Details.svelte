@@ -13,7 +13,7 @@
 
 {#if object}
 	{@const { geometry, pose } = object}
-	<div class="border-medium bg-extralight fixed top-0 right-0 z-10 m-2 w-60 border p-2 text-xs">
+	<div class="border-medium bg-extralight absolute top-0 right-0 z-10 m-2 w-60 border p-2 text-xs">
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
 				<button>

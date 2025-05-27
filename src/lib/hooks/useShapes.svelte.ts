@@ -43,11 +43,6 @@ export const provideShapes = () => {
 
 	const maxReconnectDelay = 5_000
 
-	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
-		BACKEND_IP: string
-		BUN_SERVER_PORT: string
-	}
-
 	let ws: WebSocket
 
 	const points = $state<WorldObject<PointsGeometry>[]>([])
@@ -247,6 +242,11 @@ export const provideShapes = () => {
 		URL.revokeObjectURL(url)
 	}
 
+	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
+		BACKEND_IP?: string
+		BUN_SERVER_PORT?: string
+	}
+
 	const scheduleReconnect = () => {
 		setTimeout(() => {
 			reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay)
@@ -318,12 +318,14 @@ export const provideShapes = () => {
 	}
 
 	const connect = () => {
-		const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
-		ws = new WebSocket(`${protocol}://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
-		ws.onclose = onClose
-		ws.onerror = onError
-		ws.onopen = onOpen
-		ws.onmessage = onMessage
+		if (BACKEND_IP && BUN_SERVER_PORT) {
+			const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+			ws = new WebSocket(`${protocol}://${BACKEND_IP}:${BUN_SERVER_PORT}/ws`)
+			ws.onclose = onClose
+			ws.onerror = onError
+			ws.onopen = onOpen
+			ws.onmessage = onMessage
+		}
 	}
 
 	connect()
