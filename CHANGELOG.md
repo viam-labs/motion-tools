@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.3.2
+
+### Patch Changes
+
+- 4a97eb6: Portal into motion tools root
+
 ## 0.3.1
 
 ### Patch Changes
