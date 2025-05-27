@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.3.1
+
+### Patch Changes
+
+- 5a18876: Use absolute positioning for items
+
 ## 0.3.0
 
 ### Minor Changes
