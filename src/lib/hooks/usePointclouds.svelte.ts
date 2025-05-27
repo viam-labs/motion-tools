@@ -33,7 +33,6 @@ export const providePointclouds = (partID: () => string) => {
 			const name = cameraClient.current?.name ?? ''
 			const interval = refreshRates.get('Pointclouds')
 
-			console.log(interval)
 			return queryOptions({
 				enabled: interval !== -1 && cameraClient.current !== undefined,
 				refetchInterval: interval === 0 ? false : interval,
