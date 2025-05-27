@@ -17,3 +17,5 @@ const parseConfigs = () => {
 }
 
 export const envDialConfigs: Record<string, ConnectionConfig> = parseConfigs()
+
+export const envConfigs = Object.values(envDialConfigs)

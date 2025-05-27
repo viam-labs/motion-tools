@@ -1,7 +1,8 @@
 import { get, set } from 'idb-keyval'
 import { PersistedState } from 'runed'
 import { getContext, setContext } from 'svelte'
-import { envDialConfigs } from '../../routes/lib/configs'
+import { envConfigs } from '../../routes/lib/configs'
+import { isEqual } from 'lodash-es'
 
 interface ConnectionConfig {
 	host: string
@@ -16,6 +17,9 @@ const activeConfig = new PersistedState<number>('active-connection-config', 0)
 
 interface Context {
 	current: ConnectionConfig[]
+	add: () => void
+	remove: (index: number) => void
+	isEnvConfig: (config: ConnectionConfig) => boolean
 }
 
 export const provideConnectionConfigs = () => {
@@ -31,12 +35,33 @@ export const provideConnectionConfigs = () => {
 		set('connection-configs', $state.snapshot(connectionConfigs))
 	})
 
-	const envConfigs = Object.values(envDialConfigs)
+	const merged = $derived([...envConfigs, ...connectionConfigs])
+
+	const add = () => {
+		connectionConfigs.push({
+			host: '',
+			partId: '',
+			apiKeyId: '',
+			apiKeyValue: '',
+			signalingAddress: '',
+		})
+	}
+
+	const remove = (index: number) => {
+		connectionConfigs.splice(index - envConfigs.length, 1)
+	}
+
+	const isEnvConfig = (config: ConnectionConfig) => {
+		return envConfigs.some((value) => isEqual(config, value))
+	}
 
 	setContext<Context>(key, {
 		get current() {
-			return [...envConfigs, ...connectionConfigs]
+			return merged
 		},
+		add,
+		remove,
+		isEnvConfig,
 	})
 }
 

@@ -18,3 +18,25 @@ Open the machine config page (bottom right) and enter in connection details to v
 - remote IP access
 - ortho points are messed up size-wise
 - geometries parented to parent
+- end effector pose visualized
+- poses of all frames
+- bounding boxes should include just the thing and not children
+- configure frames from here
+- color pallet for resource to color
+
+## Env files
+
+To add a list of connection configs in an env file, use the following format:
+
+```
+VITE_CONFIGS='
+{
+  "fleet-rover-01": {
+    "host": "fleet-rover-01-main.ve4ba7w5qr.viam.cloud",
+    "partId": "myPartID",
+    "apiKeyId": "myApiKeyId",
+    "apiKeyValue": "MyApiKeyValue",
+    "signalingAddress": "https://app.viam.com:443"
+  }
+}
+```

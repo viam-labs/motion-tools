@@ -44,16 +44,6 @@
 			// Do nothing
 		}
 	}
-
-	const addConfig = () => {
-		connectionConfigs.current.push({
-			host: '',
-			partId: '',
-			apiKeyId: '',
-			apiKeyValue: '',
-			signalingAddress: '',
-		})
-	}
 </script>
 
 <svelte:window
@@ -115,15 +105,17 @@
 							class="input max-w-72 text-xs"
 							placeholder="Signaling Address"
 						/>
-						<button
-							type="button"
-							class="btn preset-filled p-2 text-xs"
-							onclick={() => {
-								connectionConfigs.current.splice(index, 1)
-							}}
-						>
-							Delete
-						</button>
+						{#if !connectionConfigs.isEnvConfig(config)}
+							<button
+								type="button"
+								class="btn preset-filled p-2 text-xs"
+								onclick={() => {
+									connectionConfigs.remove(index)
+								}}
+							>
+								Delete
+							</button>
+						{/if}
 
 						<button
 							type="button"
@@ -143,7 +135,7 @@
 				<button
 					type="button"
 					class="btn preset-filled"
-					onclick={addConfig}>Add config</button
+					onclick={() => connectionConfigs.add()}>Add config</button
 				>
 			</div>
 
