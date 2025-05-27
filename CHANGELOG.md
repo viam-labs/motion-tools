@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.3.4
+
+### Patch Changes
+
+- d43c1ab: Don't use tailwind computed classes
+
 ## 0.3.3
 
 ### Patch Changes
