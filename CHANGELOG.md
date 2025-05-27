@@ -1,5 +1,16 @@
 # motion-tools
 
+## 0.3.0
+
+### Minor Changes
+
+- 628630b: Add comprehensive peer dependencies
+
+### Patch Changes
+
+- f297a81: Only establish websocket connection locally
+- 4fd9fc5: add logs
+
 ## 0.2.0
 
 ### Minor Changes
