@@ -10,6 +10,7 @@
 	import { isEqual } from 'lodash-es'
 	import { useObjects } from '$lib/hooks/useObjects.svelte'
 	import Settings from './Settings.svelte'
+	import Logs from './Logs.svelte'
 
 	const showTreeview = new PersistedState('show-treeview', true)
 
@@ -65,6 +66,7 @@
 			/>
 		{/key}
 
+		<Logs />
 		<Settings />
 	</div>
 {/if}
