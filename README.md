@@ -26,7 +26,7 @@ Open the machine config page (bottom right) and enter in connection details to v
 
 ## Env files
 
-To add a list of connection configs in an env file, use the following format:
+To add a list of connection configs in an `.env.local` file, use the following format:
 
 ```
 VITE_CONFIGS='
