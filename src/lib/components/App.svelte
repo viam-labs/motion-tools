@@ -22,6 +22,8 @@
 	createPartIDContext(() => partID)
 
 	const enableXR = new PersistedState('enable-xr', false)
+
+	let root: HTMLElement
 </script>
 
 <svelte:window
@@ -34,7 +36,7 @@
 
 <div
 	class="relative h-full w-full"
-	id="motion-tools-root"
+	bind:this={root}
 >
 	<Canvas renderMode="always">
 		<World>
@@ -48,12 +50,12 @@
 						{/if}
 					</Scene>
 
-					<DomPortal>
+					<DomPortal element={root}>
 						<Details />
 					</DomPortal>
 
 					{#if !focus}
-						<DomPortal>
+						<DomPortal element={root}>
 							<TreeContainer />
 						</DomPortal>
 					{/if}

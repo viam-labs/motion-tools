@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Portal into motion tools root
+Use binding element for portal
