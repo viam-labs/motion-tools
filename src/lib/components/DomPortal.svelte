@@ -1,10 +1,17 @@
 <script lang="ts">
-	let { children } = $props()
+	import type { Snippet } from 'svelte'
+
+	interface Props {
+		selector?: string
+		children: Snippet
+	}
+
+	let { children, selector = 'body' }: Props = $props()
 
 	let div: HTMLDivElement
 
 	$effect(() => {
-		document.body.append(div)
+		document.querySelector(selector)?.append(div)
 		return () => {
 			// eslint-disable-next-line svelte/no-dom-manipulating
 			div.remove()

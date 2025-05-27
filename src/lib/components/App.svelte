@@ -32,7 +32,10 @@
 	}}
 />
 
-<div class="relative h-full w-full">
+<div
+	class="relative h-full w-full"
+	id="motion-tools-root"
+>
 	<Canvas renderMode="always">
 		<World>
 			<SceneProviders>
