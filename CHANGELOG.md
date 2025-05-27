@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.3.3
+
+### Patch Changes
+
+- 5fdb320: Use binding element for portal
+
 ## 0.3.2
 
 ### Patch Changes
