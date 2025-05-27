@@ -7,6 +7,7 @@ import { parsePCD } from '$lib/loaders/pcd'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
+import { useLogs } from './useLogs.svelte'
 
 const key = Symbol('pointcloud-context')
 
@@ -15,6 +16,7 @@ interface Context {
 }
 
 export const providePointclouds = (partID: () => string) => {
+	const logs = useLogs()
 	const refreshRates = useRefreshRates()
 	const cameras = useResourceNames(partID, 'camera')
 
@@ -31,6 +33,7 @@ export const providePointclouds = (partID: () => string) => {
 			const name = cameraClient.current?.name ?? ''
 			const interval = refreshRates.get('Pointclouds')
 
+			console.log(interval)
 			return queryOptions({
 				enabled: interval !== -1 && cameraClient.current !== undefined,
 				refetchInterval: interval === 0 ? false : interval,
@@ -40,6 +43,7 @@ export const providePointclouds = (partID: () => string) => {
 						throw new Error('No camera client')
 					}
 
+					logs.add(`Fetching pointcloud for ${cameraClient.current.name}`)
 					const response = await cameraClient.current.getPointCloud()
 
 					if (!response) return null

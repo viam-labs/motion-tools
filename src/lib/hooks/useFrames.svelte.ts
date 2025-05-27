@@ -3,6 +3,7 @@ import { useRobotClient, createRobotQuery, useMachineStatus } from '@viamrobotic
 import { WorldObject } from '$lib/WorldObject'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { observe } from '@threlte/core'
+import { useLogs } from './useLogs.svelte'
 
 interface FramesContext {
 	current: WorldObject[]
@@ -19,6 +20,7 @@ export const provideFrames = (partID: () => string) => {
 		refreshRates.set('Frames', 1)
 	}
 
+	const logs = useLogs()
 	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig')
 	const machineStatus = useMachineStatus(partID)
@@ -30,6 +32,7 @@ export const provideFrames = (partID: () => string) => {
 		() => {
 			if (shouldFetch) {
 				untrack(() => query.current).refetch()
+				logs.add('Fetching frames...')
 			}
 		}
 	)

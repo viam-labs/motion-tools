@@ -13,6 +13,7 @@
 	import type { Snippet } from 'svelte'
 	import { provideObjects } from '$lib/hooks/useObjects.svelte'
 	import { provideMotionClient } from '$lib/hooks/useMotionClient.svelte'
+	import { provideLogs } from '$lib/hooks/useLogs.svelte'
 
 	interface Props {
 		children: Snippet<[{ focus: boolean }]>
@@ -25,6 +26,7 @@
 	provideTransformControls()
 	provideVisibility()
 	provideRefreshRates()
+	provideLogs()
 
 	provideStaticGeometries()
 	provideShapes()

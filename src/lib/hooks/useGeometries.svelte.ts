@@ -6,6 +6,7 @@ import { fromStore, toStore } from 'svelte/store'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
+import { useLogs } from './useLogs.svelte'
 
 const key = Symbol('geometries-context')
 
@@ -14,6 +15,7 @@ interface Context {
 }
 
 export const provideGeometries = (partID: () => string) => {
+	const logs = useLogs()
 	const refreshRates = useRefreshRates()
 	const arms = useResourceNames(partID, 'arm')
 	const cameras = useResourceNames(partID, 'camera')
@@ -41,6 +43,7 @@ export const provideGeometries = (partID: () => string) => {
 						throw new Error('No client')
 					}
 
+					logs.add(`Fetching geometries for ${client.current.name}...`)
 					const geometries = await client.current.getGeometries()
 					return { name: client.current.name, geometries }
 				},
