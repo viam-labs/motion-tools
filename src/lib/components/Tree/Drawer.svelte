@@ -5,12 +5,13 @@
 
 	interface Props {
 		name: string
+		defaultOpen?: boolean
 		children: Snippet
 	}
 
-	let { name, children }: Props = $props()
+	let { name, children, defaultOpen = false }: Props = $props()
 
-	const expanded = $derived(new PersistedState(`${name}-expanded`, false))
+	const expanded = $derived(new PersistedState(`${name}-expanded`, defaultOpen))
 </script>
 
 <button

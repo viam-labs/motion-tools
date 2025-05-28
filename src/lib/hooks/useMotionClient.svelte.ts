@@ -22,6 +22,7 @@ export const provideMotionClient = (partID: () => string) => {
 
 		if (motionNames.includes('builtin')) {
 			current = 'builtin'
+			return
 		}
 
 		current = motionNames[0]

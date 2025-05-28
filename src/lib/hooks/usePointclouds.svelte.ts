@@ -21,7 +21,7 @@ export const providePointclouds = (partID: () => string) => {
 	const cameras = useResourceNames(partID, 'camera')
 
 	if (!refreshRates.has('Pointclouds')) {
-		refreshRates.set('Pointclouds', 5000)
+		refreshRates.set('Pointclouds', -1)
 	}
 
 	const clients = $derived(
