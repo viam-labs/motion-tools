@@ -7,7 +7,10 @@
 	const motionClient = useMotionClient()
 </script>
 
-<Drawer name="Settings">
+<Drawer
+	name="Settings"
+	defaultOpen
+>
 	<div class="flex flex-col gap-2 p-3">
 		<RefreshRate name="Frames">
 			<option value="0">Do not fetch</option>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useXR, XR } from '@threlte/xr'
-	import OriginMarker from './xr/OriginMarker.svelte'
+	import OriginMarker from './OriginMarker.svelte'
 	import { useThrelte } from '@threlte/core'
 
 	const { renderer } = useThrelte()

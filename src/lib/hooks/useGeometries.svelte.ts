@@ -1,4 +1,4 @@
-import { ArmClient, CameraClient, Geometry } from '@viamrobotics/sdk'
+import { ArmClient, CameraClient, Geometry, GripperClient } from '@viamrobotics/sdk'
 import { createQueries, queryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
@@ -19,12 +19,19 @@ export const provideGeometries = (partID: () => string) => {
 	const refreshRates = useRefreshRates()
 	const arms = useResourceNames(partID, 'arm')
 	const cameras = useResourceNames(partID, 'camera')
-	const clients = $derived([
-		...arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name)),
-		...cameras.current.map((camera) =>
-			createResourceClient(CameraClient, partID, () => camera.name)
-		),
-	])
+	const grippers = useResourceNames(partID, 'gripper')
+	const armClients = $derived(
+		arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name))
+	)
+	const gripperClients = $derived(
+		grippers.current.map((gripper) =>
+			createResourceClient(GripperClient, partID, () => gripper.name)
+		)
+	)
+	const cameraClients = $derived(
+		cameras.current.map((camera) => createResourceClient(CameraClient, partID, () => camera.name))
+	)
+	const clients = $derived([...armClients, ...gripperClients, ...cameraClients])
 
 	if (!refreshRates.has('Geometries')) {
 		refreshRates.set('Geometries', 1000)

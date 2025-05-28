@@ -8,7 +8,7 @@
 	import SceneProviders from './SceneProviders.svelte'
 	import DomPortal from './DomPortal.svelte'
 	import { PersistedState } from 'runed'
-	import XR from '$lib/components/XR.svelte'
+	import XR from '$lib/components/xr/XR.svelte'
 	import { World } from '@threlte/rapier'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 
