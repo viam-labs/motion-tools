@@ -28,10 +28,10 @@ export const provideGeometries = (partID: () => string) => {
 			createResourceClient(GripperClient, partID, () => gripper.name)
 		)
 	)
-	const CameraClients = $derived(
+	const cameraClients = $derived(
 		cameras.current.map((camera) => createResourceClient(CameraClient, partID, () => camera.name))
 	)
-	const clients = $derived([...armClients, ...gripperClients, ...CameraClients])
+	const clients = $derived([...armClients, ...gripperClients, ...cameraClients])
 
 	if (!refreshRates.has('Geometries')) {
 		refreshRates.set('Geometries', 1000)
