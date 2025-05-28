@@ -40,7 +40,6 @@ export const provideGeometries = (partID: () => string) => {
 	const options = $derived(
 		clients.map((client) => {
 			const interval = refreshRates.get('Geometries')
-			console.log(interval)
 
 			return queryOptions({
 				enabled: interval !== -1 && client.current !== undefined,
