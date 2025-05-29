@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Ensure unique uuids for unnamed geometries
+git commit -m "export Geometry"
