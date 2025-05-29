@@ -44,7 +44,6 @@
 			},
 		},
 	})
-	console.log(client.getDefaultOptions())
 </script>
 
 <svelte:window
