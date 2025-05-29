@@ -1,7 +1,7 @@
 import { get, set } from 'idb-keyval'
 import { PersistedState } from 'runed'
 import { getContext, setContext } from 'svelte'
-import { envConfigs } from '../../routes/lib/configs'
+import { envConfigs } from '../configs'
 import { isEqual } from 'lodash-es'
 
 interface ConnectionConfig {

@@ -48,7 +48,7 @@ export const provideFrames = (partID: () => string) => {
 			if (frame) {
 				objects.push(
 					new WorldObject(
-						frame.referenceFrame,
+						frame.referenceFrame ?? 'Unnamed frame',
 						frame.poseInObserverFrame?.pose,
 						frame.poseInObserverFrame?.referenceFrame,
 						frame.physicalObject?.geometryType

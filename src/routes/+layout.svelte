@@ -4,12 +4,15 @@
 	import type { DialConf } from '@viamrobotics/sdk'
 	import { ViamProvider } from '@viamrobotics/svelte-sdk'
 	import { MotionTools } from '$lib'
-	import { provideConnectionConfigs } from '$lib/hooks'
+	import {
+		provideConnectionConfigs,
+		useActiveConnectionConfig,
+	} from './lib/hooks/useConnectionConfigs.svelte'
 	import Machines from './lib/components/Machines.svelte'
 	import { getDialConfs } from './lib/robots'
-	import { useActiveConnectionConfig } from '$lib/hooks'
 	import { PersistedState } from 'runed'
 	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
+	import { QueryClient } from '@tanstack/svelte-query'
 
 	provideConnectionConfigs()
 
@@ -33,6 +36,14 @@
 	const partID = $derived(connectionConfig.current?.partId)
 
 	const queryDevtoolsOpen = new PersistedState('query-devtools-open', false)
+
+	const client = new QueryClient({
+		defaultOptions: {
+			queries: {
+				staleTime: Infinity,
+			},
+		},
+	})
 </script>
 
 <svelte:window
@@ -45,7 +56,10 @@
 
 <Machines />
 
-<ViamProvider {dialConfigs}>
+<ViamProvider
+	{dialConfigs}
+	{client}
+>
 	<MotionTools {partID}>
 		{@render children()}
 	</MotionTools>
