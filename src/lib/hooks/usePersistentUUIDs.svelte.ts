@@ -5,7 +5,7 @@ export const usePersistentUUIDs = () => {
 	const updateUUIDs = (objects: WorldObject[]) => {
 		for (const object of objects) {
 			const ref = `${object.referenceFrame}-${object.name}`
-			console.log(object.referenceFrame, object.name)
+
 			if (uuids.has(ref) === false) {
 				uuids.set(ref, object.uuid)
 			}
