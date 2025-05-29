@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.3.7
+
+### Patch Changes
+
+- f3b29e6: export Geometry
+
 ## 0.3.6
 
 ### Patch Changes
