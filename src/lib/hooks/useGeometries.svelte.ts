@@ -78,8 +78,6 @@ export const provideGeometries = (partID: () => string) => {
 						geometryType
 					)
 				)
-
-				console.log(results.at(-1)?.name)
 			}
 		}
 
