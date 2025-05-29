@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { Keybindings } from '$lib/keybindings'
 	import { PersistedState } from 'runed'
-	import { useConnectionConfigs, useActiveConnectionConfig } from '$lib/hooks'
+	import {
+		useConnectionConfigs,
+		useActiveConnectionConfig,
+	} from '../hooks/useConnectionConfigs.svelte'
 	import { X, Radio } from 'lucide-svelte'
 
 	const connectionConfigs = useConnectionConfigs()
