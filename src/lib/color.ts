@@ -13,3 +13,5 @@ export const darkenColor = (value: ColorRepresentation, percent: number): Color 
 	hsl.l = Math.max(0, hsl.l * (1 - percent / 100))
 	return color.setHSL(hsl.h, hsl.s, hsl.l)
 }
+
+export const mapStringToColor = () => {}

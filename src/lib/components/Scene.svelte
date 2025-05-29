@@ -14,6 +14,7 @@
 	import { useFocused } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
+	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -32,6 +33,7 @@
 	})
 
 	const focused = useFocused()
+	const transformControls = useTransformControls()
 
 	const { isPresenting } = useXR()
 </script>
@@ -45,7 +47,7 @@
 	{#if focused.current === undefined}
 		{#if !$isPresenting}
 			<Camera position={[3, 3, 3]}>
-				<CameraControls>
+				<CameraControls enabled={!transformControls.active}>
 					<Gizmo />
 				</CameraControls>
 			</Camera>
