@@ -153,7 +153,7 @@
 		>
 			{#if rootChildren.length === 0}
 				<p class="text-subtle-2 px-2 py-4">No objects displayed</p>
-			{:else}
+			{:else if rootChildren.length > 200}
 				<VirtualList
 					class="w-full"
 					style="height:{Math.min(8, Math.max(rootChildren.length, 5)) * 32}px;"
@@ -163,6 +163,15 @@
 						{@render treeNode({ node: item, indexPath: [Number(index)], api })}
 					{/snippet}
 				</VirtualList>
+			{:else}
+				<div
+					style="height:{Math.min(8, Math.max(rootChildren.length, 5)) * 32}px;"
+					class="overflow-auto"
+				>
+					{#each rootChildren as node, index (node.id)}
+						{@render treeNode({ node, indexPath: [Number(index)], api })}
+					{/each}
+				</div>
 			{/if}
 		</div>
 	</div>
