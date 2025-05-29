@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Render gripper geometries
+Ensure unique uuids for unnamed geometries
