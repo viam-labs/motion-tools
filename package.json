@@ -115,6 +115,10 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js"
+		},
+		"./lib": {
+			"types": "./dist/lib.d.ts",
+			"svelte": "./dist/lib.js"
 		}
 	},
 	"repository": {

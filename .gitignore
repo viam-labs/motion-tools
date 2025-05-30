@@ -11,6 +11,7 @@ static/Big_Buck_Bunny_4K.webm
 /.svelte-kit
 /build
 /dist
+viamrobotics-motion-tools-*.tgz
 
 # OS
 .DS_Store
