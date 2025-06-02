@@ -14,14 +14,14 @@
 		Vector3,
 		Vector4,
 	} from 'three'
-	import CameraControls from 'camera-controls'
+	import CameraController from 'camera-controls'
 	import { T, useTask, useThrelte } from '@threlte/core'
 	import type { Snippet } from 'svelte'
 
 	let installed = false
 
 	const install = () => {
-		CameraControls.install({
+		CameraController.install({
 			THREE: {
 				Box3,
 				Matrix4,
@@ -40,7 +40,7 @@
 
 <script lang="ts">
 	interface Props {
-		ref?: CameraControls
+		ref?: CameraController
 		enabled?: boolean
 		children?: Snippet
 	}
@@ -53,7 +53,7 @@
 
 	const { camera, dom, invalidate } = useThrelte()
 
-	const controls = new CameraControls(camera.current as PerspectiveCamera, dom)
+	const controls = new CameraController(camera.current as PerspectiveCamera, dom)
 
 	$effect.pre(() => {
 		controls.camera = $camera as PerspectiveCamera

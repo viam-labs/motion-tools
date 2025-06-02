@@ -1,5 +1,17 @@
 # motion-tools
 
+## 0.4.0
+
+### Minor Changes
+
+- fe32e95: Split library export to /lib
+
+## 0.3.8
+
+### Patch Changes
+
+- df49e6a: Update CameraControls internal lib name for type safety
+
 ## 0.3.7
 
 ### Patch Changes
