@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.4.0
+
+### Minor Changes
+
+- fe32e95: Split library export to /lib
+
 ## 0.3.8
 
 ### Patch Changes
