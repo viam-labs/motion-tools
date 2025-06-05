@@ -1,7 +1,6 @@
-// main.js
 const worker = new Worker(new URL('./worker', import.meta.url), { type: 'module' })
 
-export const parsePCD = async (
+export const parsePcdInWorker = async (
 	array: Uint8Array<ArrayBufferLike>
 ): Promise<{ positions: ArrayBuffer; colors: ArrayBuffer | undefined }> => {
 	return new Promise((resolve, reject) => {

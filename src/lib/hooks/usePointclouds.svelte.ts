@@ -3,7 +3,7 @@ import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
-import { parsePCD } from '$lib/loaders/pcd'
+import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
@@ -47,7 +47,7 @@ export const providePointclouds = (partID: () => string) => {
 
 					if (!response) return null
 
-					const { positions, colors } = await parsePCD(new Uint8Array(response))
+					const { positions, colors } = await parsePcdInWorker(new Uint8Array(response))
 
 					return new WorldObject(
 						`${name}:pointcloud`,
