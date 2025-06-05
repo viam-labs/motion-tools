@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isInstanceOf, T } from '@threlte/core'
-	import { TrackballControls, Gizmo, type IntersectionEvent } from '@threlte/extras'
+	import { TrackballControls, Gizmo } from '@threlte/extras'
 	import { useFocused, useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { Box3, Vector3 } from 'three'
