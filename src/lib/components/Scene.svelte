@@ -65,7 +65,7 @@
 		{#if !$isPresenting}
 			<Grid
 				plane="xy"
-				sectionColor="lightgrey"
+				sectionColor="#333"
 				infiniteGrid
 				fadeOrigin={new Vector3()}
 				fadeDistance={25}

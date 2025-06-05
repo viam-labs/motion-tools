@@ -1,43 +1,54 @@
-import { PersistedState } from 'runed'
-import { setContext } from 'svelte'
-
-const key = Symbol('draggables-context')
+import { get, set } from 'idb-keyval'
 
 interface Context {
 	onDragStart: (event: MouseEvent) => void
-	onDragMove: (event: MouseEvent) => void
 	onDragEnd: (event: MouseEvent) => void
-	current: {
+	readonly current: {
 		x: number
 		y: number
 	}
 }
 
-export const provideDraggables = () => {}
-
-export const useDraggable = (name: string) => {
+export const useDraggable = (name: string): Context => {
 	const down = { x: 0, y: 0 }
+	const last = { x: 0, y: 0 }
 
-	const onDragMove = () => {}
+	let translate = $state({ x: 0, y: 0 })
+
+	const onDragMove = (event: MouseEvent) => {
+		translate.x = event.clientX - down.x + last.x
+		translate.y = event.clientY - down.y + last.y
+	}
 
 	const onDragStart = (event: MouseEvent) => {
 		down.x = event.clientX
 		down.y = event.clientY
+		last.x = translate.x
+		last.y = translate.y
+
+		window.addEventListener('pointermove', onDragMove, { passive: true })
 	}
 
-	const onDragEnd = (event: MouseEvent) => {
-		translate.current.x += event.clientX - down.x
-		translate.current.y += event.clientY - down.y
+	const onDragEnd = () => {
+		set(`${name}-draggable`, $state.snapshot(translate))
+		window.removeEventListener('pointermove', onDragMove)
 	}
 
-	const translate = new PersistedState(`${name} draggable`, { x: 0, y: 0 })
+	get(`${name}-draggable`).then((response) => {
+		if (response) {
+			translate = response
+		}
+	})
 
-	setContext<Context>(key, {
+	$effect(() => {
+		return () => window.removeEventListener('pointermove', onDragMove)
+	})
+
+	return {
 		onDragStart,
-		onDragMove,
 		onDragEnd,
 		get current() {
-			return translate.current
+			return translate
 		},
-	})
+	}
 }

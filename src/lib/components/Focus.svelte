@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isInstanceOf, T } from '@threlte/core'
-	import { TrackballControls, Gizmo } from '@threlte/extras'
+	import { TrackballControls, Gizmo, type IntersectionEvent } from '@threlte/extras'
 	import { useFocused, useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { Keybindings } from '$lib/keybindings'
 	import { Box3, Vector3 } from 'three'
@@ -14,13 +14,11 @@
 	const vec = new Vector3()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
-	// let size = $state.raw<[number, number, number]>([0, 0, 0])
 
 	$effect(() => {
 		if (object3d) {
 			box.setFromObject(object3d)
 			center = box.getCenter(vec).toArray()
-			// size = box.getSize(vec).toArray()
 		}
 	})
 

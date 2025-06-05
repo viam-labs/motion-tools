@@ -14,6 +14,7 @@
 	import { provideObjects } from '$lib/hooks/useObjects.svelte'
 	import { provideMotionClient } from '$lib/hooks/useMotionClient.svelte'
 	import { provideLogs } from '$lib/hooks/useLogs.svelte'
+	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 
 	interface Props {
 		children: Snippet<[{ focus: boolean }]>
@@ -23,6 +24,7 @@
 
 	const partID = usePartID()
 
+	provideSettings()
 	provideTransformControls()
 	provideVisibility()
 	provideRefreshRates()

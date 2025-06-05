@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { PersistedState } from 'runed'
 	import Tree from './Tree.svelte'
-	import { fly } from 'svelte/transition'
-	import { Keybindings } from '$lib/keybindings'
-	import { ListTree } from 'lucide-svelte'
+
 	import { buildTreeNodes, type TreeNode } from './buildTree'
 	import { useSelected } from '$lib/hooks/useSelection.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
@@ -11,13 +8,13 @@
 	import { useObjects } from '$lib/hooks/useObjects.svelte'
 	import Settings from './Settings.svelte'
 	import Logs from './Logs.svelte'
-
-	const showTreeview = new PersistedState('show-treeview', true)
+	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
 
 	provideTreeExpandedContext()
 
 	const selected = useSelected()
 	const objects = useObjects()
+	const draggable = useDraggable('treeview')
 
 	let rootNode = $state<TreeNode>({
 		id: 'world',
@@ -35,38 +32,22 @@
 	})
 </script>
 
-<svelte:window
-	onkeydown={({ key }) => {
-		if (key === Keybindings.TREEVIEW) {
-			showTreeview.current = !showTreeview.current
-		}
-	}}
-/>
-
-<button
-	class="absolute top-2 left-2 p-2"
-	onclick={() => (showTreeview.current = !showTreeview.current)}
+<div
+	class="bg-extralight border-medium absolute top-0 left-0 m-2 overflow-y-auto border text-xs"
+	style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
 >
-	<ListTree />
-</button>
+	{#key rootNode}
+		<Tree
+			{rootNode}
+			selections={selected.current ? [selected.current] : []}
+			onSelectionChange={(event) => {
+				selected.set(event.selectedValue[0])
+			}}
+			onDragStart={draggable.onDragStart}
+			onDragEnd={draggable.onDragEnd}
+		/>
+	{/key}
 
-{#if showTreeview.current}
-	<div
-		class="bg-extralight border-medium absolute top-0 left-0 m-2 overflow-y-auto border text-xs"
-		in:fly={{ duration: 250, x: -100 }}
-		out:fly={{ duration: 250, x: -100 }}
-	>
-		{#key rootNode}
-			<Tree
-				{rootNode}
-				selections={selected.current ? [selected.current] : []}
-				onSelectionChange={(event) => {
-					selected.set(event.selectedValue[0])
-				}}
-			/>
-		{/key}
-
-		<Logs />
-		<Settings />
-	</div>
-{/if}
+	<Logs />
+	<Settings />
+</div>
