@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { PersistedState } from 'runed'
 	import { T } from '@threlte/core'
 	import { PerspectiveCamera, OrthographicCamera } from 'three'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	let { children, ...rest } = $props()
 
-	const mode = new PersistedState<'perspective' | 'orthographic'>('camera-type', 'perspective')
+	const settings = useSettings()
+	const mode = $derived(settings.current.cameraMode)
 
 	const perspective = new PerspectiveCamera()
 	perspective.near = 0.01
@@ -18,15 +19,7 @@
 	orthographic.zoom = 200
 </script>
 
-<svelte:window
-	onkeydown={({ key }) => {
-		if (key.toLowerCase() === 'c') {
-			mode.current = mode.current === 'perspective' ? 'orthographic' : 'perspective'
-		}
-	}}
-/>
-
-{#if mode.current === 'perspective'}
+{#if mode === 'perspective'}
 	<T
 		is={perspective}
 		makeDefault
@@ -34,7 +27,7 @@
 	>
 		{@render children?.()}
 	</T>
-{:else if mode.current === 'orthographic'}
+{:else if mode === 'orthographic'}
 	<T
 		is={orthographic}
 		makeDefault

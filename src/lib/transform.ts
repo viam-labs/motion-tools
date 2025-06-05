@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { OrientationVector } from '@viamrobotics/three'
+import { OrientationVector } from './three/OrientationVector'
 import { type Object3D, MathUtils, Quaternion, Vector3 } from 'three'
 
 const ov = new OrientationVector()

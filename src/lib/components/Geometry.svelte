@@ -80,7 +80,7 @@
 		/>
 	{:else}
 		<AxesHelper
-			width={5}
+			width={3}
 			length={0.1}
 		/>
 	{/if}

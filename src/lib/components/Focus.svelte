@@ -14,13 +14,11 @@
 	const vec = new Vector3()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
-	// let size = $state.raw<[number, number, number]>([0, 0, 0])
 
 	$effect(() => {
 		if (object3d) {
 			box.setFromObject(object3d)
 			center = box.getCenter(vec).toArray()
-			// size = box.getSize(vec).toArray()
 		}
 	})
 

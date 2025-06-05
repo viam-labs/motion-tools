@@ -8,6 +8,7 @@
 	import { useExpanded } from './useExpanded.svelte'
 	import { VirtualList } from 'svelte-virtuallists'
 	import { observe } from '@threlte/core'
+	import { Icon } from '@viamrobotics/prime-core'
 
 	const visibility = useVisibility()
 	const expanded = useExpanded()
@@ -16,9 +17,11 @@
 		rootNode: TreeNode
 		selections: string[]
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
+		onDragStart?: (event: MouseEvent) => void
+		onDragEnd?: (event: MouseEvent) => void
 	}
 
-	let { rootNode, selections, onSelectionChange }: Props = $props()
+	let { rootNode, selections, onSelectionChange, onDragStart, onDragEnd }: Props = $props()
 
 	const collection = tree.collection<TreeNode>({
 		nodeToValue: (node) => node.id,
@@ -143,7 +146,13 @@
 
 <div class="root-node">
 	<div {...api.getRootProps() as object}>
-		<div class="border-medium border-b p-2">
+		<div class="border-medium flex items-center gap-1 border-b p-2">
+			<button
+				onmousedown={onDragStart}
+				onmouseup={onDragEnd}
+			>
+				<Icon name="drag" />
+			</button>
 			<h3 {...api.getLabelProps() as object}>{rootNode.name}</h3>
 		</div>
 

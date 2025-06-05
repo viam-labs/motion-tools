@@ -11,18 +11,18 @@ Open the machine config page (bottom right) and enter in connection details to v
 
 ## Todo
 
-- animated sequence
-- double click to set trackball center
-- Give error logs
-- default pointcloud color
-- remote IP access
-- ortho points are messed up size-wise
-- geometries parented to parent
-- end effector pose visualized
-- poses of all frames
+- animated sequence of motion plan
+- double click to set trackball center in object view
+- Give better fetching / connection state info
+- Set default pointcloud color in settings
+- remote IP access when custom drawing, to draw on remote computers
+- points are not sized right in ortho cam view
+- geometries need to be parented to parent
 - bounding boxes should include just the thing and not children
-- configure frames from here
+- configure frames in app
 - color pallet for resource to color
+
+- foxglove / rviz
 
 ## Env files
 
