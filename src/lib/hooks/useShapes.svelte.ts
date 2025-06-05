@@ -1,7 +1,7 @@
 import { getContext, setContext } from 'svelte'
 import { Vector3, Vector4, type Box3 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
-import { parsePCD } from '$lib/loaders/pcd'
+import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { BatchedArrow } from '$lib/three/BatchedArrow'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
@@ -57,7 +57,7 @@ export const provideShapes = () => {
 
 	const addPcd = async (data: object) => {
 		const buffer = await (data as Blob).arrayBuffer()
-		const { positions, colors } = await parsePCD(new Uint8Array(buffer))
+		const { positions, colors } = await parsePcdInWorker(new Uint8Array(buffer))
 
 		points.push(
 			new WorldObject(
