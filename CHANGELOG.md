@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.5.0
+
+### Minor Changes
+
+- 8b3c5d7: Export pcd related functions
+
 ## 0.4.0
 
 ### Minor Changes
