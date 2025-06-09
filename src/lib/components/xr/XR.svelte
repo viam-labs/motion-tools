@@ -1,20 +1,26 @@
 <script lang="ts">
-	import { useXR, XR } from '@threlte/xr'
+	import { PersistedState } from 'runed'
+	import { XR, XRButton } from '@threlte/xr'
 	import OriginMarker from './OriginMarker.svelte'
-	import { useThrelte } from '@threlte/core'
+	import DomPortal from '../DomPortal.svelte'
 
-	const { renderer } = useThrelte()
-	const { isPresenting } = useXR()
-
-	$effect.pre(() => {
-		if ($isPresenting) {
-			const [left, right] = renderer.xr.getCamera().cameras
-
-			console.log(left, right)
-		}
-	})
+	const enableXR = new PersistedState('enable-xr', false)
 </script>
 
-<XR>
-	<OriginMarker />
-</XR>
+<svelte:window
+	onkeydown={(event) => {
+		if (event.ctrlKey && event.key.toLowerCase() === 'a') {
+			enableXR.current = !enableXR.current
+		}
+	}}
+/>
+
+{#if enableXR.current}
+	<XR>
+		<OriginMarker />
+	</XR>
+
+	<DomPortal>
+		<XRButton mode="immersive-ar" />
+	</DomPortal>
+{/if}

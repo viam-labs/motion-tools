@@ -7,7 +7,7 @@
 	import { poseToObject3d } from '$lib/transform'
 
 	interface Props {
-		object: WorldObject<{ case: 'points'; value: Float32Array }>
+		object: WorldObject<{ case: 'points'; value: Float32Array<ArrayBuffer> }>
 	}
 
 	let { object }: Props = $props()
@@ -20,19 +20,19 @@
 	})
 
 	const colors = $derived(object.metadata.colors)
-	const positions = $derived(object.geometry?.value ?? [])
+	const positions = $derived(object.geometry?.value ?? new Float32Array())
 
 	$effect(() => {
 		material.vertexColors = colors !== undefined
 	})
 
 	$effect.pre(() => {
-		geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
+		geometry.setAttribute('position', new BufferAttribute(positions, 3))
 	})
 
 	$effect.pre(() => {
 		if (colors) {
-			geometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3))
+			geometry.setAttribute('color', new BufferAttribute(colors, 3))
 		}
 	})
 

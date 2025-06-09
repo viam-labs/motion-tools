@@ -1,4 +1,56 @@
 import { Color, type ColorRepresentation } from 'three'
+import twColors from 'tailwindcss/colors'
+
+// Step 3: linear sRGB → sRGB
+const linearToSrgb = (x: number) => {
+	return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055
+}
+
+// Step 4: sRGB → hex
+const toHex = (x: number) => {
+	const hex = Math.round(x * 255)
+		.toString(16)
+		.padStart(2, '0')
+	return hex
+}
+
+const oklchToHex = (raw: string) => {
+	const match = raw.match(/oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)/)
+
+	if (!match) {
+		return '#000000'
+	}
+
+	const l = parseFloat(match[1]) / 100
+	const c = parseFloat(match[2])
+	const h = parseFloat(match[3])
+
+	// Convert h from degrees to radians
+	const hRad = (h * Math.PI) / 180
+
+	// Step 1: OKLCH → OKLab
+	const aa = c * Math.cos(hRad)
+	const bb = c * Math.sin(hRad)
+
+	// Step 2: OKLab → linear sRGB
+	const l_ = l + 0.3963377774 * aa + 0.2158037573 * bb
+	const m_ = l - 0.1055613458 * aa - 0.0638541728 * bb
+	const s_ = l - 0.0894841775 * aa - 1.291485548 * bb
+
+	const l_cubed = l_ ** 3
+	const m_cubed = m_ ** 3
+	const s_cubed = s_ ** 3
+
+	const r_linear = +4.0767416621 * l_cubed - 3.3077115913 * m_cubed + 0.2309699292 * s_cubed
+	const g_linear = -1.2684380046 * l_cubed + 2.6097574011 * m_cubed - 0.3413193965 * s_cubed
+	const b_linear = -0.0041960863 * l_cubed - 0.7034186147 * m_cubed + 1.707614701 * s_cubed
+
+	const r = Math.max(0, Math.min(1, linearToSrgb(r_linear)))
+	const g = Math.max(0, Math.min(1, linearToSrgb(g_linear)))
+	const b = Math.max(0, Math.min(1, linearToSrgb(b_linear)))
+
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
 
 /**
  * Darkens a THREE.Color by a given percentage while preserving hue.
@@ -14,4 +66,7 @@ export const darkenColor = (value: ColorRepresentation, percent: number): Color 
 	return color.setHSL(hsl.h, hsl.s, hsl.l)
 }
 
-export const mapStringToColor = () => {}
+export const colors = {
+	selected: oklchToHex(twColors.red['900']),
+	default: oklchToHex(twColors.red['500']),
+} as const

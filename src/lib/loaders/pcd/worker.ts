@@ -3,11 +3,13 @@ import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 
 const loader = new PCDLoader()
 
+export interface SuccessMessage {
+	positions: Float32Array<ArrayBuffer>
+	colors: Float32Array | null
+}
+
 export type Message =
-	| {
-			positions: Float32Array
-			colors: Float32Array | null
-	  }
+	| SuccessMessage
 	| {
 			error: string
 	  }

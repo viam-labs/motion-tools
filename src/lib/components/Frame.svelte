@@ -4,6 +4,8 @@
 	import type { WorldObject } from '$lib/WorldObject'
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import Geometry from './Geometry.svelte'
+	import { useSelected } from '$lib/hooks/useSelection.svelte'
+	import { colors } from '$lib/color'
 
 	interface Props {
 		uuid: string
@@ -16,11 +18,13 @@
 
 	let { uuid, ...rest }: Props = $props()
 
+	const selected = useSelected()
 	const events = useObjectEvents(() => uuid)
 </script>
 
 <Geometry
 	{uuid}
+	color={selected.current === uuid ? colors.selected : undefined}
 	{...events}
 	{...rest}
 />
