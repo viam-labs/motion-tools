@@ -1,5 +1,13 @@
 # motion-tools
 
+## 0.5.1
+
+### Patch Changes
+
+- a2d439b: Fix geomety uuids resetting on refresh
+- 776be74: Improve PCD worker parsing
+- 4586a06: Show world position and orientation in details
+
 ## 0.5.0
 
 ### Minor Changes
