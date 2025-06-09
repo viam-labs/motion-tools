@@ -1,6 +1,6 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
-import type { Object3D } from 'three'
+import { Matrix4, Object3D } from 'three'
 import { useObjects } from './useObjects.svelte'
 import type { WorldObject } from '$lib/WorldObject'
 
@@ -116,7 +116,9 @@ export const useFocusedObject3d = (): { current: Object3D | undefined } => {
 	const focusedObject = useFocusedObject()
 	const { scene } = useThrelte()
 	const object = $derived(
-		focusedObject.current ? scene.getObjectByName(focusedObject.current.name)?.clone() : undefined
+		focusedObject.current
+			? scene.getObjectByProperty('uuid', focusedObject.current.uuid)?.clone()
+			: undefined
 	)
 
 	return {
@@ -126,12 +128,29 @@ export const useFocusedObject3d = (): { current: Object3D | undefined } => {
 	}
 }
 
+const matrix = new Matrix4()
+
 export const useSelectedObject3d = (): { current: Object3D | undefined } => {
 	const selectedObject = useSelectedObject()
 	const { scene } = useThrelte()
-	const object = $derived(
-		selectedObject.current ? scene.getObjectByName(selectedObject.current.name) : undefined
-	)
+
+	const object = $derived.by(() => {
+		if (!selectedObject.current) {
+			return
+		}
+
+		if (selectedObject.current.metadata.batched) {
+			const proxy = new Object3D()
+			const { id, object } = selectedObject.current.metadata.batched
+
+			object.getMatrixAt(id, matrix)
+			proxy.applyMatrix4(matrix)
+
+			return proxy
+		}
+
+		return scene.getObjectByProperty('uuid', selectedObject.current.uuid)
+	})
 
 	return {
 		get current() {

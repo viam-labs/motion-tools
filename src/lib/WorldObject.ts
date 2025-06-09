@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { Box3, MathUtils, Object3D, Vector3 } from 'three'
+import { BatchedMesh, Box3, MathUtils, Object3D, Vector3 } from 'three'
 import { createPose } from './transform'
 
 export type PointsGeometry = { case: 'points'; value: Float32Array<ArrayBuffer> }
@@ -14,7 +14,7 @@ export type Metadata = {
 	points?: Vector3[]
 	batched?: {
 		id: number
-		name: string
+		object: BatchedMesh
 	}
 	getBoundingBoxAt?: (box: Box3) => void
 }
