@@ -53,8 +53,8 @@ export const providePointclouds = (partID: () => string) => {
 						`${name}:pointcloud`,
 						undefined,
 						name,
-						{ case: 'points', value: new Float32Array(positions) },
-						colors ? { colors: new Float32Array(colors) } : undefined
+						{ case: 'points', value: positions },
+						colors ? { colors } : undefined
 					)
 				},
 			})

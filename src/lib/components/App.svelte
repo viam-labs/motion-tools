@@ -24,7 +24,7 @@
 
 	const enableXR = new PersistedState('enable-xr', false)
 
-	let root: HTMLElement
+	let root = $state<HTMLElement>()
 </script>
 
 <svelte:window

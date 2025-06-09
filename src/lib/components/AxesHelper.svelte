@@ -24,7 +24,7 @@
 	const VERTEX_COMPONENTS = 3
 
 	const line = new Line2()
-	const material = $state(new LineMaterial())
+	const material = new LineMaterial()
 	const geometry = new LineGeometry()
 	const color = new Color()
 	const colors = $state(new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS))
