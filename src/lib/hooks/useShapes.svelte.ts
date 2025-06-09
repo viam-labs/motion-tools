@@ -66,9 +66,9 @@ export const provideShapes = () => {
 				undefined,
 				{
 					case: 'points',
-					value: new Float32Array(positions),
+					value: positions,
 				},
-				colors ? { colors: new Float32Array(colors) } : undefined
+				colors ? { colors } : undefined
 			)
 		)
 	}

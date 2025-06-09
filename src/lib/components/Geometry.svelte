@@ -50,7 +50,12 @@
 >
 	{#if geometry?.case === 'mesh'}
 		{@const meshGeometry = plyLoader.parse(atob(geometry.value.mesh as unknown as string))}
-		<T is={meshGeometry} />
+		<T
+			is={meshGeometry}
+			oncreate={(ref) => {
+				geo = ref
+			}}
+		/>
 	{:else if geometry?.case === 'line' && metadata.points}
 		<MeshLineGeometry points={metadata.points} />
 	{:else if geometry?.case === 'box'}
@@ -100,7 +105,7 @@
 
 		{#if geo}
 			<T.LineSegments raycast={() => null}>
-				<T.EdgesGeometry args={[geo, 1]} />
+				<T.EdgesGeometry args={[geo, 0]} />
 				<T.LineBasicMaterial color={darkenColor(metadata.color ?? 'red', 10)} />
 			</T.LineSegments>
 		{/if}

@@ -1,17 +1,22 @@
+import type { Message } from './worker'
+
 const worker = new Worker(new URL('./worker', import.meta.url), { type: 'module' })
 
 export const parsePcdInWorker = async (
-	array: Uint8Array<ArrayBufferLike>
-): Promise<{ positions: ArrayBuffer; colors: ArrayBuffer | undefined }> => {
+	data: Uint8Array<ArrayBufferLike>
+): Promise<{ positions: Float32Array; colors: Float32Array | null }> => {
 	return new Promise((resolve, reject) => {
-		worker.onmessage = (event) => {
-			if (event.data.error) {
+		const onMessage = (event: MessageEvent<Message>) => {
+			worker.removeEventListener('message', onMessage)
+
+			if ('error' in event.data) {
 				return reject(event.data.error)
 			}
 
-			resolve({ positions: event.data.positionArray, colors: event.data.colorArray })
+			resolve(event.data)
 		}
 
-		worker.postMessage({ data: array }, [array.buffer])
+		worker.addEventListener('message', onMessage)
+		worker.postMessage({ data }, [data.buffer])
 	})
 }
