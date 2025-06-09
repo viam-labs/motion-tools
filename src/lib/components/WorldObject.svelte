@@ -18,6 +18,7 @@
 {#if object.metadata.gltf?.scene}
 	<T
 		is={object.metadata.gltf.scene}
+		uuid={object.uuid}
 		name={object.name}
 		{...objectProps}
 		{...rest}

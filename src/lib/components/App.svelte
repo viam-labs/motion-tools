@@ -1,13 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 	import { Canvas } from '@threlte/core'
-	import { XRButton } from '@threlte/xr'
 	import Scene from './Scene.svelte'
 	import TreeContainer from '$lib/components/Tree/TreeContainer.svelte'
 	import Details from '$lib/components/Details.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 	import DomPortal from './DomPortal.svelte'
-	import { PersistedState } from 'runed'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { World } from '@threlte/rapier'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
@@ -22,18 +20,8 @@
 
 	createPartIDContext(() => partID)
 
-	const enableXR = new PersistedState('enable-xr', false)
-
 	let root = $state<HTMLElement>()
 </script>
-
-<svelte:window
-	onkeydown={(event) => {
-		if (event.ctrlKey && event.key.toLowerCase() === 'a') {
-			enableXR.current = !enableXR.current
-		}
-	}}
-/>
 
 <div
 	class="relative h-full w-full"
@@ -46,9 +34,7 @@
 					<Scene>
 						{@render appChildren?.()}
 
-						{#if enableXR.current}
-							<XR />
-						{/if}
+						<XR />
 					</Scene>
 
 					<DomPortal element={root}>
@@ -66,7 +52,3 @@
 		</World>
 	</Canvas>
 </div>
-
-{#if enableXR.current}
-	<XRButton mode="immersive-ar" />
-{/if}

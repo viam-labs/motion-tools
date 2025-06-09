@@ -27,8 +27,8 @@
 	const material = new LineMaterial()
 	const geometry = new LineGeometry()
 	const color = new Color()
-	const colors = $state(new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS))
-	const positions = $state(new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS))
+	const colors = new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS)
+	const positions = new Float32Array(TOTAL_VERTICES * VERTEX_COMPONENTS)
 
 	// Assign colors per vertex
 	$effect.pre(() => {

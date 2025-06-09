@@ -14,8 +14,6 @@ interface Context {
 	current: WorldObject[]
 }
 
-let index = 0
-
 export const provideGeometries = (partID: () => string) => {
 	const logs = useLogs()
 	const refreshRates = useRefreshRates()
@@ -71,12 +69,7 @@ export const provideGeometries = (partID: () => string) => {
 
 			for (const { center, label, geometryType } of query.data.geometries) {
 				results.push(
-					new WorldObject(
-						label ? label : `Unnamed geometry ${++index}`,
-						center,
-						query.data.name,
-						geometryType
-					)
+					new WorldObject(label ? label : 'Unnamed geometry', center, query.data.name, geometryType)
 				)
 			}
 		}
