@@ -143,7 +143,7 @@ export const provideShapes = () => {
 					},
 					batched: {
 						id: arrowId,
-						name: batchedArrow.object3d.name,
+						object: batchedArrow.object3d,
 					},
 				})
 			)
