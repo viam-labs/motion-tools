@@ -1,6 +1,6 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
-import { MathUtils, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
+import { Matrix4, Object3D } from 'three'
 import { useObjects } from './useObjects.svelte'
 import type { WorldObject } from '$lib/WorldObject'
 
