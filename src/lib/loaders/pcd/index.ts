@@ -1,10 +1,10 @@
-import type { Message } from './worker'
+import type { Message, SuccessMessage } from './worker'
 
 const worker = new Worker(new URL('./worker', import.meta.url), { type: 'module' })
 
 export const parsePcdInWorker = async (
 	data: Uint8Array<ArrayBufferLike>
-): Promise<{ positions: Float32Array; colors: Float32Array | null }> => {
+): Promise<SuccessMessage> => {
 	return new Promise((resolve, reject) => {
 		const onMessage = (event: MessageEvent<Message>) => {
 			worker.removeEventListener('message', onMessage)
