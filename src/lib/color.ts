@@ -69,4 +69,16 @@ export const darkenColor = (value: ColorRepresentation, percent: number): Color 
 export const colors = {
 	selected: oklchToHex(twColors.red['900']),
 	default: oklchToHex(twColors.red['500']),
+	arm: {
+		selected: oklchToHex(twColors.amber['900']),
+		default: oklchToHex(twColors.amber['500']),
+	},
+	camera: {
+		selected: oklchToHex(twColors.blue['900']),
+		default: oklchToHex(twColors.blue['500']),
+	},
+	gripper: {
+		selected: oklchToHex(twColors.cyan['900']),
+		default: oklchToHex(twColors.cyan['500']),
+	},
 } as const

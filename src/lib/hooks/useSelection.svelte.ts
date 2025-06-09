@@ -116,7 +116,9 @@ export const useFocusedObject3d = (): { current: Object3D | undefined } => {
 	const focusedObject = useFocusedObject()
 	const { scene } = useThrelte()
 	const object = $derived(
-		focusedObject.current ? scene.getObjectByName(focusedObject.current.name)?.clone() : undefined
+		focusedObject.current
+			? scene.getObjectByProperty('uuid', focusedObject.current.uuid)?.clone()
+			: undefined
 	)
 
 	return {
@@ -130,7 +132,9 @@ export const useSelectedObject3d = (): { current: Object3D | undefined } => {
 	const selectedObject = useSelectedObject()
 	const { scene } = useThrelte()
 	const object = $derived(
-		selectedObject.current ? scene.getObjectByName(selectedObject.current.name) : undefined
+		selectedObject.current
+			? scene.getObjectByProperty('uuid', selectedObject.current.uuid)
+			: undefined
 	)
 
 	return {

@@ -1,13 +1,32 @@
 <script lang="ts">
-	import { useSelectedObject, useFocusedObject, useFocused } from '$lib/hooks/useSelection.svelte'
+	import { Quaternion, Vector3 } from 'three'
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
+	import {
+		useSelectedObject,
+		useFocusedObject,
+		useFocused,
+		useFocusedObject3d,
+		useSelectedObject3d,
+	} from '$lib/hooks/useSelection.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
+	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	const focused = useFocused()
-	const selectedObject = useSelectedObject()
 	const focusedObject = useFocusedObject()
+	const focusedObject3d = useFocusedObject3d()
+
+	const selectedObject = useSelectedObject()
+	const selectedObject3d = useSelectedObject3d()
+
 	const object = $derived(focusedObject.current ?? selectedObject.current)
+	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
+
+	const worldPosition = $derived(object3d?.getWorldPosition(new Vector3()))
+	const worldQuaternion = $derived(object3d?.getWorldQuaternion(new Quaternion()))
+	const worldOrientation = $derived(
+		worldQuaternion ? new OrientationVector().setFromQuaternion(worldQuaternion) : undefined
+	)
 
 	let copied = $state(false)
 
@@ -15,7 +34,7 @@
 </script>
 
 {#if object}
-	{@const { geometry, pose } = object}
+	{@const { geometry } = object}
 	<div
 		class="border-medium bg-extralight absolute top-0 right-0 z-10 m-2 w-60 border p-2 text-xs"
 		style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
@@ -53,43 +72,46 @@
 		</h3>
 
 		<div class="flex flex-col gap-2.5">
-			{#if pose}
+			{#if worldPosition}
 				<div>
-					<strong class="font-semibold">position</strong>
+					<strong class="font-semibold">world position</strong>
+
 					<div class="flex gap-3">
 						<div>
 							<span class="text-subtle-2">x</span>
-							{pose.x !== undefined ? pose.x.toFixed(2) : '-'}
+							{(worldPosition.x * 1000).toFixed(2)}
 						</div>
 						<div>
 							<span class="text-subtle-2">y</span>
-							{pose.y !== undefined ? pose.y.toFixed(2) : '-'}
+							{(worldPosition.y * 1000).toFixed(2)}
 						</div>
 						<div>
 							<span class="text-subtle-2">z</span>
-							{pose.z !== undefined ? pose.z.toFixed(2) : '-'}
+							{(worldPosition.z * 1000).toFixed(2)}
 						</div>
 					</div>
 				</div>
+			{/if}
 
+			{#if worldOrientation}
 				<div>
-					<strong class="font-semibold">orientation</strong>
+					<strong class="font-semibold">world orientation</strong>
 					<div class="flex gap-3">
 						<div>
 							<span class="text-subtle-2">x</span>
-							{pose.oX !== undefined ? pose.oX.toFixed(2) : '-'}
+							{worldOrientation.x.toFixed(2)}
 						</div>
 						<div>
 							<span class="text-subtle-2">y</span>
-							{pose.oY !== undefined ? pose.oY.toFixed(2) : '-'}
+							{worldOrientation.y.toFixed(2)}
 						</div>
 						<div>
 							<span class="text-subtle-2">z</span>
-							{pose.oZ !== undefined ? pose.oZ.toFixed(2) : '-'}
+							{worldOrientation.z.toFixed(2)}
 						</div>
 						<div>
 							<span class="text-subtle-2">th</span>
-							{pose.theta !== undefined ? pose.theta.toFixed(2) : '-'}
+							{worldOrientation.th.toFixed(2)}
 						</div>
 					</div>
 				</div>
