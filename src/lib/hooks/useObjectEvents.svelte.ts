@@ -31,7 +31,6 @@ export const useObjectEvents = (uuid: () => string) => {
 		},
 		onclick: (event: IntersectionEvent<MouseEvent>) => {
 			event.stopPropagation()
-			console.log(down.distanceToSquared(event.pointer))
 			if (down.distanceToSquared(event.pointer) < 0.1) {
 				selected.set(uuid())
 			}
