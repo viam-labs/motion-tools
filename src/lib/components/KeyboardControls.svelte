@@ -3,12 +3,17 @@
 	import { useTask } from '@threlte/core'
 	import type CameraController from 'camera-controls'
 	import { PressedKeys } from 'runed'
+	import { useFocused } from '$lib/hooks/useSelection.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	interface Props {
 		cameraControls: CameraController
 	}
 
 	let { cameraControls }: Props = $props()
+
+	const focus = useFocused()
+	const settings = useSettings()
 
 	const keys = new PressedKeys()
 	const w = $derived(keys.has('w'))
@@ -19,7 +24,7 @@
 	const left = $derived(keys.has('arrowleft'))
 	const down = $derived(keys.has('arrowdown'))
 	const right = $derived(keys.has('arrowright'))
-	const any = $derived(keys.all.length > 0)
+	const any = $derived(w || s || a || d || up || left || down || right)
 
 	const { start, stop } = useTask(
 		(delta) => {
@@ -66,5 +71,32 @@
 		} else {
 			stop()
 		}
+	})
+
+	keys.onKeys('escape', () => {
+		if (keys.has('escape')) {
+			focus.set(undefined)
+		}
+	})
+
+	keys.onKeys('c', () => {
+		settings.current.cameraMode =
+			settings.current.cameraMode === 'perspective' ? 'orthographic' : 'perspective'
+	})
+
+	keys.onKeys('1', () => {
+		settings.current.transformMode = 'translate'
+	})
+
+	keys.onKeys('2', () => {
+		settings.current.transformMode = 'rotate'
+	})
+
+	keys.onKeys('3', () => {
+		settings.current.transformMode = 'scale'
+	})
+
+	keys.onKeys(['ctrl', 'x'], () => {
+		settings.current.enableXR = !settings.current.enableXR
 	})
 </script>

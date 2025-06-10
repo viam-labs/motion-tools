@@ -5,15 +5,6 @@
 	const settings = useSettings()
 </script>
 
-<svelte:window
-	onkeydown={({ key }) => {
-		if (key.toLowerCase() === 'c') {
-			settings.current.cameraMode =
-				settings.current.cameraMode === 'perspective' ? 'orthographic' : 'perspective'
-		}
-	}}
-/>
-
 <div class="absolute top-2 flex w-full justify-center">
 	<!-- transform -->
 	<!-- <fieldset>
