@@ -5,7 +5,7 @@
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import Geometry from './Geometry.svelte'
 	import { useSelected } from '$lib/hooks/useSelection.svelte'
-	import { colors } from '$lib/color'
+	import { colors, darkenColor } from '$lib/color'
 
 	interface Props {
 		uuid: string
@@ -24,7 +24,9 @@
 
 <Geometry
 	{uuid}
-	color={selected.current === uuid ? colors.selected : undefined}
+	color={selected.current === uuid
+		? `#${darkenColor(rest.metadata.color ?? colors.default, 75).getHexString()}`
+		: undefined}
 	{...events}
 	{...rest}
 />

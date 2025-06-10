@@ -15,6 +15,7 @@
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
+	import KeyboardControls from './KeyboardControls.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -48,7 +49,10 @@
 		{#if !$isPresenting}
 			<Camera position={[3, 3, 3]}>
 				<CameraControls enabled={!transformControls.active}>
-					<Gizmo />
+					{#snippet children({ ref })}
+						<KeyboardControls cameraControls={ref} />
+						<Gizmo />
+					{/snippet}
 				</CameraControls>
 			</Camera>
 		{/if}
