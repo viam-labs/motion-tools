@@ -59,11 +59,10 @@ const oklchToHex = (raw: string) => {
  * @returns A new THREE.Color instance with the darkened color.
  */
 export const darkenColor = (value: ColorRepresentation, percent: number): Color => {
-	const color = new Color(value)
-	const hsl = { h: 0, s: 0, l: 0 }
-	color.getHSL(hsl)
+	const original = new Color(value)
+	const hsl = original.getHSL({ h: 0, s: 0, l: 0 })
 	hsl.l = Math.max(0, hsl.l * (1 - percent / 100))
-	return color.setHSL(hsl.h, hsl.s, hsl.l)
+	return new Color().setHSL(hsl.h, hsl.s, hsl.l)
 }
 
 export const colors = {

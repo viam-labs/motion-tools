@@ -42,7 +42,7 @@
 	interface Props {
 		ref?: CameraController
 		enabled?: boolean
-		children?: Snippet
+		children?: Snippet<[{ ref: CameraController }]>
 	}
 
 	let { ref = $bindable(), enabled = true, children }: Props = $props()
@@ -77,5 +77,5 @@
 	is={controls}
 	bind:ref
 >
-	{@render children?.()}
+	{@render children?.({ ref: controls })}
 </T>
