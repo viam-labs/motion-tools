@@ -5,6 +5,8 @@ const key = Symbol('dashboard-context')
 
 interface Settings {
 	cameraMode: 'orthographic' | 'perspective'
+	transformMode: 'translate' | 'rotate' | 'scale'
+	enableXR: boolean
 }
 
 interface Context {
@@ -13,6 +15,8 @@ interface Context {
 
 const defaults = (): Settings => ({
 	cameraMode: 'perspective',
+	transformMode: 'translate',
+	enableXR: false,
 })
 
 export const provideSettings = () => {
@@ -20,7 +24,7 @@ export const provideSettings = () => {
 
 	get('motion-tools-settings').then((response: Settings) => {
 		if (response) {
-			settings = response
+			settings = { ...settings, ...response }
 		}
 	})
 

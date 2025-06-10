@@ -1,21 +1,14 @@
 <script lang="ts">
-	import { PersistedState } from 'runed'
 	import { XR, XRButton } from '@threlte/xr'
 	import OriginMarker from './OriginMarker.svelte'
 	import DomPortal from '../DomPortal.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	const enableXR = new PersistedState('enable-xr', false)
+	const settings = useSettings()
+	const enableXR = $derived(settings.current.enableXR)
 </script>
 
-<svelte:window
-	onkeydown={(event) => {
-		if (event.ctrlKey && event.key.toLowerCase() === 'a') {
-			enableXR.current = !enableXR.current
-		}
-	}}
-/>
-
-{#if enableXR.current}
+{#if enableXR}
 	<XR>
 		<OriginMarker />
 	</XR>

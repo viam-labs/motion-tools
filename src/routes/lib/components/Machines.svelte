@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Keybindings } from '$lib/keybindings'
 	import { PersistedState } from 'runed'
 	import {
 		useConnectionConfigs,
@@ -11,24 +10,6 @@
 	const activeConfig = useActiveConnectionConfig()
 
 	let open = new PersistedState('machine-connection-config-open', false)
-
-	const onkeydown = (event: KeyboardEvent) => {
-		const key = event.key.toLowerCase()
-
-		if (open.current) {
-			event.stopImmediatePropagation()
-
-			if (key === 'escape') {
-				open.current = false
-			}
-
-			return
-		}
-
-		if (key === Keybindings.MACHINES) {
-			open.current = true
-		}
-	}
 
 	const onpaste = (event: ClipboardEvent) => {
 		try {
@@ -49,10 +30,7 @@
 	}
 </script>
 
-<svelte:window
-	{onkeydown}
-	{onpaste}
-/>
+<svelte:window {onpaste} />
 
 <button
 	class=" fixed right-0 bottom-0 z-10 p-2"
