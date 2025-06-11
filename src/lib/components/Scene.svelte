@@ -16,6 +16,7 @@
 	import { useXR } from '@threlte/xr'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import KeyboardControls from './KeyboardControls.svelte'
+	import { useOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -35,6 +36,7 @@
 
 	const focused = useFocused()
 	const transformControls = useTransformControls()
+	const origin = useOrigin()
 
 	const { isPresenting } = useXR()
 </script>
@@ -44,7 +46,11 @@
 	args={[new Color('white')]}
 />
 
-<T.Group rotation.x={$isPresenting ? -Math.PI / 2 : 0}>
+<T.Group
+	position={origin.position}
+	rotation.x={$isPresenting ? -Math.PI / 2 : 0}
+	rotation.z={origin.rotation}
+>
 	{#if focused.current === undefined}
 		{#if !$isPresenting}
 			<Camera position={[3, 3, 3]}>

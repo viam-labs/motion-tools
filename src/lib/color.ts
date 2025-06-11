@@ -18,7 +18,7 @@ const oklchToHex = (raw: string) => {
 	const match = raw.match(/oklch\(\s*([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\)/)
 
 	if (!match) {
-		return '#000000'
+		return raw
 	}
 
 	const l = parseFloat(match[1]) / 100

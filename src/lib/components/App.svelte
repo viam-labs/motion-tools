@@ -33,9 +33,9 @@
 				{#snippet children({ focus })}
 					<Scene>
 						{@render appChildren?.()}
-
-						<XR />
 					</Scene>
+
+					<XR />
 
 					<DomPortal element={root}>
 						<Dashboard />
