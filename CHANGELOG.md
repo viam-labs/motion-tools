@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.5.2
+
+### Patch Changes
+
+- 59bffbf: Add keyboard controls
+
 ## 0.5.1
 
 ### Patch Changes
