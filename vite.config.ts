@@ -1,3 +1,4 @@
+import devtoolsJson from 'vite-plugin-devtools-json'
 import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import { svelteTesting } from '@testing-library/svelte/vite'
@@ -12,7 +13,7 @@ const localIP = getLocalIP()
 const https = false
 
 export default defineConfig({
-	plugins: [...(https ? [basicSsl()] : []), tailwindcss(), sveltekit()],
+	plugins: [devtoolsJson(), ...(https ? [basicSsl()] : []), tailwindcss(), sveltekit()],
 
 	define: {
 		BACKEND_IP: JSON.stringify(localIP),

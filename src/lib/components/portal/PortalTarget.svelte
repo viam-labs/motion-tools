@@ -8,11 +8,11 @@
 	let { id = 'default' }: Props = $props()
 
 	const portals = usePortalContext()
-	const childArray = $derived(portals.get(id))
+	const childrenArray = $derived(portals.get(id))
 </script>
 
-{#if childArray}
-	{#each childArray as children (children)}
-		{@render children?.()}
+{#if childrenArray !== undefined}
+	{#each childrenArray as children (children)}
+		{@render children()}
 	{/each}
 {/if}

@@ -72,8 +72,8 @@ devDependencies:
     specifier: ^8.0.4
     version: 8.0.4(svelte@5.33.19)(three@0.177.0)
   '@threlte/extras':
-    specifier: ^9.2.1
-    version: 9.2.1(@types/three@0.177.0)(svelte@5.33.19)(three@0.177.0)
+    specifier: ^9.4.0
+    version: 9.4.0(@types/three@0.177.0)(svelte@5.33.19)(three@0.177.0)
   '@threlte/rapier':
     specifier: ^3.1.4
     version: 3.1.4(@dimforge/rapier3d-compat@0.17.3)(svelte@5.33.19)(three@0.177.0)
@@ -185,6 +185,9 @@ devDependencies:
   vite:
     specifier: ^6.3.5
     version: 6.3.5(tsx@4.20.1)
+  vite-plugin-devtools-json:
+    specifier: ^0.2.0
+    version: 0.2.0(vite@6.3.5)
   vite-plugin-mkcert:
     specifier: ^1.17.8
     version: 1.17.8(vite@6.3.5)
@@ -1507,18 +1510,18 @@ packages:
       three: 0.177.0
     dev: true
 
-  /@threlte/extras@9.2.1(@types/three@0.177.0)(svelte@5.33.19)(three@0.177.0):
-    resolution: {integrity: sha512-FzHGZadxtOIlD2ZAaH6m/vAiBVJWl/MWrW7O3DMl42ixYrGBR3FQwUbdxdHQR0akVqPESm6bwvwvRZlWqiOhAQ==}
+  /@threlte/extras@9.4.0(@types/three@0.177.0)(svelte@5.33.19)(three@0.177.0):
+    resolution: {integrity: sha512-XbRJXh22J/nc04wwhvFQTTMJ7yUujsd/c4eNAPrQ3fO7YgHq82RL9TC7PdlvXX2WRy8VmxmP61ur56lmNXbUtg==}
     peerDependencies:
       svelte: '>=5'
-      three: '>=0.155'
+      three: '>=0.160'
     dependencies:
       '@threejs-kit/instanced-sprite-mesh': 2.5.1(@types/three@0.177.0)(three@0.177.0)
       camera-controls: 2.10.1(three@0.177.0)
       svelte: 5.33.19
       three: 0.177.0
       three-mesh-bvh: 0.9.0(three@0.177.0)
-      three-perf: github.com/jerzakm/three-perf/322d7d38a17069f2b6e9734913edad0fc4a29169(three@0.177.0)
+      three-perf: 1.0.11(three@0.177.0)
       three-viewport-gizmo: 2.2.0(three@0.177.0)
       troika-three-text: 0.52.4(three@0.177.0)
     transitivePeerDependencies:
@@ -4742,6 +4745,16 @@ packages:
       three: 0.177.0
     dev: true
 
+  /three-perf@1.0.11(three@0.177.0):
+    resolution: {integrity: sha512-OgBpZjwL+csQKGKZjpkH/QHdbGFMxqngMbSEJeSnVNfXDYd6On7WHNv/GhUZH4YxIpNMwMahBWrNnsJvnbSJHQ==}
+    peerDependencies:
+      three: '>=0.170'
+    dependencies:
+      three: 0.177.0
+      troika-three-text: 0.52.4(three@0.177.0)
+      tweakpane: 3.1.10
+    dev: true
+
   /three-viewport-gizmo@2.2.0(three@0.177.0):
     resolution: {integrity: sha512-Jo9Liur1rUmdKk75FZumLU/+hbF+RtJHi1qsKZpntjKlCYScK6tjbYoqvJ9M+IJphrlQJF5oReFW7Sambh0N4Q==}
     peerDependencies:
@@ -4968,6 +4981,11 @@ packages:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
     dev: true
 
+  /uuid@11.1.0:
+    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
+    dev: true
+
   /vite-node@3.2.3(tsx@4.20.1):
     resolution: {integrity: sha512-gc8aAifGuDIpZHrPjuHyP4dpQmYXqWw7D1GmDnWeNWP654UEXzVfQ5IHPSK5HaHkwB/+p1atpYpSdw/2kOv8iQ==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
@@ -4991,6 +5009,15 @@ packages:
       - terser
       - tsx
       - yaml
+    dev: true
+
+  /vite-plugin-devtools-json@0.2.0(vite@6.3.5):
+    resolution: {integrity: sha512-K7PoaWOEJECZ1n3VbhJXsUAX2PsO0xY7KFMM/Leh7tUev0M5zi+lz+vnVVdCK17IOK9Jp9rdzHXc08cnQirGbg==}
+    peerDependencies:
+      vite: ^2.7.0 || ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0
+    dependencies:
+      uuid: 11.1.0
+      vite: 6.3.5(tsx@4.20.1)
     dev: true
 
   /vite-plugin-mkcert@1.17.8(vite@6.3.5):
@@ -5261,17 +5288,4 @@ packages:
 
   /zimmerframe@1.1.2:
     resolution: {integrity: sha512-rAbqEGa8ovJy4pyBxZM70hg4pE6gDgaQ0Sl9M3enG3I0d6H4XSAM3GeNGLKnsBpuijUow064sf7ww1nutC5/3w==}
-    dev: true
-
-  github.com/jerzakm/three-perf/322d7d38a17069f2b6e9734913edad0fc4a29169(three@0.177.0):
-    resolution: {tarball: https://codeload.github.com/jerzakm/three-perf/tar.gz/322d7d38a17069f2b6e9734913edad0fc4a29169}
-    id: github.com/jerzakm/three-perf/322d7d38a17069f2b6e9734913edad0fc4a29169
-    name: three-perf
-    version: 1.0.10
-    peerDependencies:
-      three: '>=0.170'
-    dependencies:
-      three: 0.177.0
-      troika-three-text: 0.52.4(three@0.177.0)
-      tweakpane: 3.1.10
     dev: true

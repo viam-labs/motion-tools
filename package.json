@@ -43,7 +43,7 @@
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.8",
 		"@threlte/core": "^8.0.4",
-		"@threlte/extras": "^9.2.1",
+		"@threlte/extras": "^9.4.0",
 		"@threlte/rapier": "^3.1.4",
 		"@threlte/xr": "^1.0.6",
 		"@types/bun": "^1.2.15",
@@ -81,6 +81,7 @@
 		"typescript": "^5.8.3",
 		"typescript-eslint": "^8.34.0",
 		"vite": "^6.3.5",
+		"vite-plugin-devtools-json": "^0.2.0",
 		"vite-plugin-mkcert": "^1.17.8",
 		"vitest": "^3.2.3"
 	},

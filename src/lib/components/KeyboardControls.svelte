@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { MathUtils } from 'three'
 	import { useTask } from '@threlte/core'
-	import type CameraController from 'camera-controls'
+	import type { CameraControlsRef } from '@threlte/extras'
 	import { PressedKeys } from 'runed'
 	import { useFocused } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	interface Props {
-		cameraControls: CameraController
+		cameraControls: CameraControlsRef
 	}
 
 	let { cameraControls }: Props = $props()
