@@ -64,7 +64,8 @@
 	{...rest}
 >
 	{#if geometry?.case === 'mesh'}
-		{@const meshGeometry = plyLoader.parse(atob(geometry.value.mesh as unknown as string))}
+		{@const mesh = geometry.value.mesh as Uint8Array<ArrayBuffer>}
+		{@const meshGeometry = plyLoader.parse(typeof mesh === 'string' ? atob(mesh) : mesh.buffer)}
 		<T
 			is={meshGeometry}
 			{oncreate}
