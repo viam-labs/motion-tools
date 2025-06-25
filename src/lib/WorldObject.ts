@@ -1,5 +1,5 @@
 import type { Geometry, Pose } from '@viamrobotics/sdk'
-import { BatchedMesh, Box3, MathUtils, Object3D, Vector3 } from 'three'
+import { BatchedMesh, Box3, MathUtils, Object3D, Vector3, type ColorRepresentation } from 'three'
 import { createPose } from './transform'
 
 export type PointsGeometry = { case: 'points'; value: Float32Array<ArrayBuffer> }
@@ -9,7 +9,7 @@ export type Geometries = Geometry['geometryType'] | PointsGeometry | LinesGeomet
 
 export type Metadata = {
 	colors?: Float32Array
-	color?: string
+	color?: ColorRepresentation
 	gltf?: { scene: Object3D }
 	points?: Vector3[]
 	batched?: {

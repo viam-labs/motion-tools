@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte'
-import { Vector3, Vector4, type Box3 } from 'three'
+import { Color, Vector3, Vector4, type Box3 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
@@ -55,8 +55,8 @@ export const provideShapes = () => {
 
 	const loader = new GLTFLoader()
 
-	const addPcd = async (data: object) => {
-		const buffer = await (data as Blob).arrayBuffer()
+	const addPcd = async (data: Blob) => {
+		const buffer = await data.arrayBuffer()
 		const { positions, colors } = await parsePcdInWorker(new Uint8Array(buffer))
 
 		points.push(
@@ -148,6 +148,45 @@ export const provideShapes = () => {
 				})
 			)
 		}
+	}
+
+	const drawPoints = async (data: Blob) => {
+		const buffer = await data.arrayBuffer()
+		const array = new Float32Array(buffer)
+
+		const [nPoints, nColors, r, g, b] = array
+
+		const pointStart = 5
+		const pointEnd = pointStart + nPoints * 3
+		const positions = array.slice(pointStart, pointEnd)
+
+		const colorStart = pointEnd
+		const colorEnd = colorStart + nColors * 3
+		const rawColors = array.slice(colorStart, colorEnd)
+
+		const colors = new Float32Array(nPoints * 3)
+		colors.set(rawColors)
+
+		for (let i = nColors; i < nPoints; i++) {
+			const offset = i * 3
+			colors[offset] = r
+			colors[offset + 1] = g
+			colors[offset + 2] = b
+		}
+		const color = new Color(r, g, b)
+
+		points.push(
+			new WorldObject(
+				`points ${++pointsIndex}`,
+				undefined,
+				undefined,
+				{
+					case: 'points',
+					value: positions,
+				},
+				colors ? { colors, color } : { color }
+			)
+		)
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -284,6 +323,8 @@ export const provideShapes = () => {
 				loadGLTF(event.data)
 			} else if (metadata?.ext === 'pcd') {
 				addPcd(event.data)
+			} else if (metadata?.ext === 'points') {
+				drawPoints(event.data)
 			}
 			return
 		}

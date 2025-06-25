@@ -3,12 +3,15 @@ package client
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
+
 	"fmt"
 	"net/http"
 
 	"os"
 
+	"github.com/golang/geo/r3"
 	"github.com/viam-labs/motion-tools/client/shapes"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -86,6 +89,46 @@ func DrawGeometries(geometries *referenceframe.GeometriesInFrame, colors []strin
 	}
 
 	return postHTTP(finalJSON, "json", "geometries")
+}
+
+func DrawPoints(
+	points []r3.Vector,
+	colors [][3]uint8,
+	defaultColor [3]uint8,
+) error {
+	nPoints := len(points)
+	nColors := len(colors)
+	total := 2 + 3 + nPoints*3 + nColors*3
+	data := make([]float32, 0, total)
+
+	// Header
+	data = append(data,
+		float32(nPoints),
+		float32(nColors),
+		float32(defaultColor[0])/255,
+		float32(defaultColor[1])/255,
+		float32(defaultColor[2])/255,
+	)
+
+	for _, pt := range points {
+		data = append(data, float32(pt.X), float32(pt.Y), float32(pt.Z))
+	}
+
+	for _, c := range colors {
+		data = append(data,
+			float32(c[0])/255,
+			float32(c[1])/255,
+			float32(c[2])/255,
+		)
+	}
+
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, data)
+	if err != nil {
+		return err
+	}
+
+	return postHTTP(buf.Bytes(), "octet-stream", "points")
 }
 
 func DrawPointCloud(pc pointcloud.PointCloud) error {

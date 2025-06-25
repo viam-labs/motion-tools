@@ -45,6 +45,13 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 				return jsonResponse(messages.success, 200)
 			}
 
+			case '/points': {
+				const buffer = await req.arrayBuffer()
+				sendToClients(JSON.stringify({ ext: 'points' }))
+				sendToClients(buffer)
+				return jsonResponse(messages.success, 200)
+			}
+
 			case '/pcd': {
 				const buffer = await req.arrayBuffer()
 				sendToClients(JSON.stringify({ ext: 'pcd' }))
