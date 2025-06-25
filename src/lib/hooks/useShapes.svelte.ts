@@ -116,28 +116,41 @@ export const provideShapes = () => {
 		nurbs.push(object)
 	}
 
+	const color = new Color()
 	const direction = new Vector3()
 	const origin = new Vector3()
 	const vec3 = new Vector3()
 	const batchedArrow = new BatchedArrow()
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const addPoses = (nextPoses: any[], colors: string[], arrowHeadAtPose: boolean) => {
-		for (let i = 0, l = nextPoses.length; i < l; i += 1) {
-			const pose = nextPoses[i]
-			const length = 0.1
+	const addPoses = async (data: Blob) => {
+		const buffer = await data.arrayBuffer()
+		const array = new Float32Array(buffer)
 
-			direction.set(pose.oX ?? 0, pose.oY ?? 0, pose.oZ ?? 0)
-			origin.set((pose.x ?? 0) / 1000, (pose.y ?? 0) / 1000, (pose.z ?? 0) / 1000)
+		const [nPoses, nColors, arrowHeadAtPose] = array
+		const posesStart = 3
+		const pointEnd = posesStart + nPoses * 6
+		const nextPoses = array.slice(posesStart, pointEnd)
 
-			if (arrowHeadAtPose) {
+		const colorStart = pointEnd
+		const colorEnd = colorStart + nColors * 3
+		const colors = array.slice(colorStart, colorEnd)
+
+		const length = 0.1
+
+		for (let i = 0, j = 0, l = nextPoses.length; i < l; i += 6, j += 3) {
+			origin.set(nextPoses[i], nextPoses[i + 1], nextPoses[i + 2]).multiplyScalar(0.001)
+			direction.set(nextPoses[i + 3], nextPoses[i + 4], nextPoses[i + 5])
+
+			if (arrowHeadAtPose === 1) {
 				// Compute the base position so the arrow ends at the origin
 				origin.sub(vec3.copy(direction).multiplyScalar(length))
 			}
 
-			const arrowId = batchedArrow.addArrow(direction, origin, length, colors[i])
+			color.set(colors[j], colors[j + 1], colors[j + 2]).convertSRGBToLinear()
+
+			const arrowId = batchedArrow.addArrow(direction, origin, length, color)
 			poses.push(
-				new WorldObject(`pose ${++poseIndex}`, pose, undefined, undefined, {
+				new WorldObject(`pose ${++poseIndex}`, undefined, undefined, undefined, {
 					getBoundingBoxAt(box3: Box3) {
 						return batchedArrow.getBoundingBoxAt(arrowId, box3)
 					},
@@ -325,6 +338,8 @@ export const provideShapes = () => {
 				addPcd(event.data)
 			} else if (metadata?.ext === 'points') {
 				drawPoints(event.data)
+			} else if (metadata?.ext === 'poses') {
+				return addPoses(event.data)
 			}
 			return
 		}
@@ -347,10 +362,6 @@ export const provideShapes = () => {
 
 		if ('Knots' in data) {
 			return addNurbs(data, data.Color)
-		}
-
-		if ('poses' in data) {
-			return addPoses(data.poses, data.colors, data.arrowHeadAtPose)
 		}
 
 		if ('geometry' in data) {

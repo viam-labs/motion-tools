@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"strings"
 
 	"fmt"
 	"net/http"
@@ -47,18 +50,33 @@ func SetURL(preferredURL string) {
 	url = preferredURL
 }
 
+func HexToRGB(hexStr string) ([3]uint8, error) {
+	var rgb [3]uint8
+
+	hexStr = strings.TrimPrefix(hexStr, "#")
+	if len(hexStr) != 6 {
+		return rgb, errors.New("invalid hex color string")
+	}
+
+	bytes, err := hex.DecodeString(hexStr)
+	if err != nil || len(bytes) != 3 {
+		return rgb, err
+	}
+
+	copy(rgb[:], bytes)
+	return rgb, nil
+}
+
 func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	data, err := protojson.Marshal(geometry.ToProtobuf())
 	if err != nil {
 		return err
 	}
 
-	wrappedData := map[string]interface{}{
+	finalJSON, err := json.Marshal(map[string]interface{}{
 		"geometry": json.RawMessage(data),
 		"color":    color,
-	}
-
-	finalJSON, err := json.Marshal(wrappedData)
+	})
 	if err != nil {
 		return err
 	}
@@ -66,29 +84,27 @@ func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	return postHTTP(finalJSON, "json", "geometry")
 }
 
-func DrawGeometries(geometries *referenceframe.GeometriesInFrame, colors []string) error {
-	geoData := make([]json.RawMessage, len(geometries.Geometries()))
+func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors []string) error {
+	geometries := make([]json.RawMessage, len(geometriesInFrame.Geometries()))
 
-	for i, geo := range geometries.Geometries() {
+	for i, geo := range geometriesInFrame.Geometries() {
 		data, err := protojson.Marshal(geo.ToProtobuf())
 		if err != nil {
 			return err
 		}
-		geoData[i] = json.RawMessage(data)
+		geometries[i] = json.RawMessage(data)
 	}
 
-	wrappedData := map[string]interface{}{
-		"geometries": geoData,
+	result, err := json.Marshal(map[string]interface{}{
+		"geometries": geometries,
 		"colors":     colors,
-		"parent":     geometries.Parent(),
-	}
-
-	finalJSON, err := json.Marshal(wrappedData)
+		"parent":     geometriesInFrame.Parent(),
+	})
 	if err != nil {
 		return err
 	}
 
-	return postHTTP(finalJSON, "json", "geometries")
+	return postHTTP(result, "json", "geometries")
 }
 
 func DrawPoints(
@@ -105,20 +121,20 @@ func DrawPoints(
 	data = append(data,
 		float32(nPoints),
 		float32(nColors),
-		float32(defaultColor[0])/255,
-		float32(defaultColor[1])/255,
-		float32(defaultColor[2])/255,
+		float32(defaultColor[0])/255.0,
+		float32(defaultColor[1])/255.0,
+		float32(defaultColor[2])/255.0,
 	)
 
 	for _, pt := range points {
-		data = append(data, float32(pt.X), float32(pt.Y), float32(pt.Z))
+		data = append(data, float32(pt.X)/1000, float32(pt.Y)/1000, float32(pt.Z)/1000)
 	}
 
 	for _, c := range colors {
 		data = append(data,
-			float32(c[0])/255,
-			float32(c[1])/255,
-			float32(c[2])/255,
+			float32(c[0])/255.0,
+			float32(c[1])/255.0,
+			float32(c[2])/255.0,
 		)
 	}
 
@@ -133,6 +149,7 @@ func DrawPoints(
 
 func DrawPointCloud(pc pointcloud.PointCloud) error {
 	var buf bytes.Buffer
+
 	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
 		return err
 	}
@@ -141,27 +158,51 @@ func DrawPointCloud(pc pointcloud.PointCloud) error {
 }
 
 func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
-	poseData := make([]json.RawMessage, len(poses))
-	for i, pose := range poses {
-		data, err := protojson.Marshal(spatialmath.PoseToProtobuf(pose))
+	nPoses := len(poses)
+	nColors := len(colors)
+	total := 3 + nPoses*6 + nColors*3
+
+	data := make([]float32, 0, total)
+
+	a := 0.
+	if arrowHeadAtPose {
+		a = 1.
+	}
+
+	// Header
+	data = append(data, float32(nPoses), float32(nColors), float32(a))
+
+	for _, pose := range poses {
+		point := pose.Point()
+		orientation := pose.Orientation().OrientationVectorDegrees()
+		data = append(data,
+			float32(point.X),
+			float32(point.Y),
+			float32(point.Z),
+			float32(orientation.OX),
+			float32(orientation.OY),
+			float32(orientation.OZ))
+	}
+
+	for _, c := range colors {
+		rgb, err := HexToRGB(c)
 		if err != nil {
 			return err
 		}
-		poseData[i] = json.RawMessage(data)
+		data = append(data,
+			float32(rgb[0])/255.0,
+			float32(rgb[1])/255.0,
+			float32(rgb[2])/255.0,
+		)
 	}
 
-	wrappedData := map[string]interface{}{
-		"poses":           poseData,
-		"colors":          colors,
-		"arrowHeadAtPose": arrowHeadAtPose,
-	}
-
-	finalJSON, err := json.Marshal(wrappedData)
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, data)
 	if err != nil {
 		return err
 	}
 
-	return postHTTP(finalJSON, "json", "poses")
+	return postHTTP(buf.Bytes(), "octet-stream", "poses")
 }
 
 func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {

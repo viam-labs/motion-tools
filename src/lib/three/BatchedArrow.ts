@@ -8,6 +8,7 @@ import {
 	Color,
 	Box3,
 	Matrix4,
+	type ColorRepresentation,
 } from 'three'
 
 const axis = new Vector3()
@@ -17,6 +18,7 @@ const box1 = new Box3()
 const box2 = new Box3()
 const mat4_1 = new Matrix4()
 const mat4_2 = new Matrix4()
+const col = new Color()
 
 interface Arrow {
 	shaftId: number
@@ -65,7 +67,7 @@ export class BatchedArrow {
 		this.coneGeoId = this.batchedMesh.addGeometry(coneGeo)
 	}
 
-	addArrow(dir: Vector3, origin: Vector3, length = 0.1, color?: string) {
+	addArrow(dir: Vector3, origin: Vector3, length = 0.1, color?: ColorRepresentation) {
 		dir.normalize()
 
 		const headLength = length * 0.2
@@ -93,7 +95,7 @@ export class BatchedArrow {
 		this.batchedMesh.setMatrixAt(headId, coneMatrix)
 
 		if (color) {
-			const col = new Color(color)
+			col.set(color)
 			this.batchedMesh.setColorAt(shaftId, col)
 			this.batchedMesh.setColorAt(headId, col)
 		}

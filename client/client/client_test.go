@@ -125,13 +125,13 @@ func TestDrawGLTF(t *testing.T) {
 }
 
 func TestDrawPoints(t *testing.T) {
-	R := 2.0
-	r := .5
+	R := 2000.0
+	r := 500.0
+	rTube := 300.0
 	p := 2
 	q := 3
 	nPath := 500
 	nRing := 50
-	rTube := 0.3
 
 	points := make([]r3.Vector, 0, nPath*nRing)
 	colors := make([][3]uint8, 0, nPath*nRing)
@@ -238,7 +238,7 @@ func TestDrawPoses(t *testing.T) {
 
 	var poses []spatialmath.Pose
 	var colors []string
-	pallet := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
+	pallet := []string{"#6200EA", "#EF5350", "#0091EA", "#E53935", "#D32F2F", "#C62828"}
 
 	for i := 0; i < numPoints; i++ {
 		phi := math.Acos(1 - 2*float64(i)/float64(numPoints))

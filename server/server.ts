@@ -38,10 +38,16 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 		switch (pathname) {
 			case '/geometry':
 			case '/geometries':
-			case '/poses':
 			case '/nurbs': {
 				const json = await req.json()
 				sendToClients(JSON.stringify(json))
+				return jsonResponse(messages.success, 200)
+			}
+
+			case '/poses': {
+				const buffer = await req.arrayBuffer()
+				sendToClients(JSON.stringify({ ext: 'poses' }))
+				sendToClients(buffer)
 				return jsonResponse(messages.success, 200)
 			}
 
