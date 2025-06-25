@@ -1,6 +1,4 @@
 // Components
-export { default as CameraControls } from './components/CameraControls.svelte'
-export { type default as CameraController } from 'camera-controls'
 export { default as Geometry } from './components/Geometry.svelte'
 export { default as AxesHelper } from './components/AxesHelper.svelte'
 

@@ -9,31 +9,6 @@ To visit the visualizer, go to `http://localhost:5173/`
 
 Open the machine config page (bottom right) and enter in connection details to visualize a specific machine.
 
-## Todo
-
------ hard -----
-
-- animated sequence of motion plan
-- Give better fetching / connection state info
-- configure frames in app
-- embed in teleop
-
------ medium -----
-
-- remote IP access when custom drawing, to draw on remote computers
-- geometries need to be parented to parent
-- color pallet for resource to color
-- measurement tool
-
------ easy ------
-
-- double click to set trackball center in object view
-- Set default pointcloud color in settings
-- points are not sized right in ortho cam view
-- bounding boxes should include just the thing and not children
-
---- action items ----
-
 ## Env files
 
 To add a list of connection configs in an `.env.local` file, use the following format:
