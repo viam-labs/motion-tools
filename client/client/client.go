@@ -108,16 +108,28 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 }
 
 func DrawPoints(
+	label string,
 	points []r3.Vector,
 	colors [][3]uint8,
 	defaultColor [3]uint8,
 ) error {
+	labelBytes := []byte(label)
+	labelLen := len(labelBytes)
+
 	nPoints := len(points)
 	nColors := len(colors)
-	total := 2 + 3 + nPoints*3 + nColors*3
+
+	// total floats:
+	// 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
+	// + 3*nPoints (positions) + 3*nColors (colors)
+	total := 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
 	data := make([]float32, 0, total)
 
-	// Header
+	data = append(data, float32(labelLen))
+	for _, b := range labelBytes {
+		data = append(data, float32(b))
+	}
+
 	data = append(data,
 		float32(nPoints),
 		float32(nColors),
@@ -127,7 +139,11 @@ func DrawPoints(
 	)
 
 	for _, pt := range points {
-		data = append(data, float32(pt.X)/1000, float32(pt.Y)/1000, float32(pt.Z)/1000)
+		data = append(data,
+			float32(pt.X)/1000,
+			float32(pt.Y)/1000,
+			float32(pt.Z)/1000,
+		)
 	}
 
 	for _, c := range colors {
@@ -139,8 +155,7 @@ func DrawPoints(
 	}
 
 	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, data)
-	if err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, data); err != nil {
 		return err
 	}
 

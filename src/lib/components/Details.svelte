@@ -21,7 +21,6 @@
 
 	const object = $derived(focusedObject.current ?? selectedObject.current)
 	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
-
 	const worldPosition = $derived(object3d?.getWorldPosition(new Vector3()))
 	const worldQuaternion = $derived(object3d?.getWorldQuaternion(new Quaternion()))
 	const worldOrientation = $derived(

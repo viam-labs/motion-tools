@@ -20,11 +20,13 @@
 	const s = $derived(keys.has('s'))
 	const a = $derived(keys.has('a'))
 	const d = $derived(keys.has('d'))
+	const r = $derived(keys.has('r'))
+	const f = $derived(keys.has('f'))
 	const up = $derived(keys.has('arrowup'))
 	const left = $derived(keys.has('arrowleft'))
 	const down = $derived(keys.has('arrowdown'))
 	const right = $derived(keys.has('arrowright'))
-	const any = $derived(w || s || a || d || up || left || down || right)
+	const any = $derived(w || s || a || d || r || f || up || left || down || right)
 
 	const { start, stop } = useTask(
 		(delta) => {
@@ -44,6 +46,14 @@
 
 			if (s) {
 				cameraControls.forward(-0.01 * dt, true)
+			}
+
+			if (r) {
+				cameraControls.dolly(0.01 * dt, true)
+			}
+
+			if (f) {
+				cameraControls.dolly(-0.01 * dt, true)
 			}
 
 			if (left) {

@@ -46,28 +46,28 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 
 			case '/poses': {
 				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ ext: 'poses' }))
+				sendToClients(JSON.stringify({ type: 'poses' }))
 				sendToClients(buffer)
 				return jsonResponse(messages.success, 200)
 			}
 
 			case '/points': {
 				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ ext: 'points' }))
+				sendToClients(JSON.stringify({ type: 'points' }))
 				sendToClients(buffer)
 				return jsonResponse(messages.success, 200)
 			}
 
 			case '/pcd': {
 				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ ext: 'pcd' }))
+				sendToClients(JSON.stringify({ type: 'pcd' }))
 				sendToClients(buffer)
 				return jsonResponse(messages.success, 200)
 			}
 
 			case '/gltf': {
 				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ ext: 'glb' }))
+				sendToClients(JSON.stringify({ type: 'glb' }))
 				sendToClients(buffer)
 				return jsonResponse(messages.success, 200)
 			}

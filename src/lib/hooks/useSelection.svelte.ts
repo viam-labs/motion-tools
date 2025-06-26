@@ -10,21 +10,19 @@ const focusKey = Symbol('focus-context')
 const selectedObjectKey = Symbol('selected-frame-context')
 const focusedObjectKey = Symbol('focused-frame-context')
 
-type UUID = string
-
 interface SelectionContext {
-	readonly current: UUID | undefined
-	set(value?: UUID): void
+	readonly current: string | undefined
+	set(value?: string): void
 }
 
 interface FocusContext {
-	readonly current: UUID | undefined
-	set(value?: UUID): void
+	readonly current: string | undefined
+	set(value?: string): void
 }
 
 interface HoverContext {
-	readonly current: UUID | undefined
-	set(value?: UUID): void
+	readonly current: string | undefined
+	set(value?: string): void
 }
 
 interface SelectedWorldObjectContext {
@@ -36,15 +34,15 @@ interface FocusedWorldObjectContext {
 }
 
 export const provideSelection = () => {
-	let selected = $state<UUID>()
-	let focused = $state<UUID>()
-	let hovered = $state<UUID>()
+	let selected = $state<string>()
+	let focused = $state<string>()
+	let hovered = $state<string>()
 
 	const selectionContext = {
 		get current() {
 			return selected
 		},
-		set(value?: UUID) {
+		set(value?: string) {
 			selected = value
 		},
 	}
@@ -54,7 +52,7 @@ export const provideSelection = () => {
 		get current() {
 			return focused
 		},
-		set(value?: UUID) {
+		set(value?: string) {
 			focused = value
 		},
 	}
@@ -64,7 +62,7 @@ export const provideSelection = () => {
 		get current() {
 			return hovered
 		},
-		set(value?: UUID) {
+		set(value?: string) {
 			hovered = value
 		},
 	}

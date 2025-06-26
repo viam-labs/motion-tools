@@ -53,9 +53,13 @@ export const provideShapes = () => {
 
 	let connectionStatus = $state<ConnectionStatus>('connecting')
 
+	const color = new Color()
+	const direction = new Vector3()
+	const origin = new Vector3()
+	const vec3 = new Vector3()
 	const loader = new GLTFLoader()
 
-	const addPcd = async (data: Blob) => {
+	const addPCD = async (data: Blob) => {
 		const buffer = await data.arrayBuffer()
 		const { positions, colors } = await parsePcdInWorker(new Uint8Array(buffer))
 
@@ -116,17 +120,15 @@ export const provideShapes = () => {
 		nurbs.push(object)
 	}
 
-	const color = new Color()
-	const direction = new Vector3()
-	const origin = new Vector3()
-	const vec3 = new Vector3()
 	const batchedArrow = new BatchedArrow()
 
 	const addPoses = async (data: Blob) => {
 		const buffer = await data.arrayBuffer()
 		const array = new Float32Array(buffer)
 
+		// metadata
 		const [nPoses, nColors, arrowHeadAtPose] = array
+
 		const posesStart = 3
 		const pointEnd = posesStart + nPoses * 6
 		const nextPoses = array.slice(posesStart, pointEnd)
@@ -163,34 +165,42 @@ export const provideShapes = () => {
 		}
 	}
 
-	const drawPoints = async (data: Blob) => {
+	const addPoints = async (data: Blob) => {
 		const buffer = await data.arrayBuffer()
 		const array = new Float32Array(buffer)
 
-		const [nPoints, nColors, r, g, b] = array
+		let i = 0
 
-		const pointStart = 5
-		const pointEnd = pointStart + nPoints * 3
-		const positions = array.slice(pointStart, pointEnd)
+		const labelLen = array[i++]
+		const label = String.fromCharCode(...array.slice(i, i + labelLen))
+		i += labelLen
 
-		const colorStart = pointEnd
-		const colorEnd = colorStart + nColors * 3
-		const rawColors = array.slice(colorStart, colorEnd)
+		const nPoints = array[i++]
+		const nColors = array[i++]
+		const [r, g, b] = array.slice(i, i + 3)
+		i += 3
+
+		const positions = array.slice(i, i + nPoints * 3)
+		i += nPoints * 3
+
+		const rawColors = array.slice(i, i + nColors * 3)
 
 		const colors = new Float32Array(nPoints * 3)
 		colors.set(rawColors)
 
+		// Cover the gap for any points not colored
 		for (let i = nColors; i < nPoints; i++) {
 			const offset = i * 3
 			colors[offset] = r
 			colors[offset + 1] = g
 			colors[offset + 2] = b
 		}
+
 		const color = new Color(r, g, b)
 
 		points.push(
 			new WorldObject(
-				`points ${++pointsIndex}`,
+				label ?? `points ${++pointsIndex}`,
 				undefined,
 				undefined,
 				{
@@ -209,6 +219,15 @@ export const provideShapes = () => {
 			addGeometry(geometry, colors[i], parent)
 			i += 1
 		}
+	}
+
+	const addGLTF = async (data: Blob) => {
+		const buffer = await data.arrayBuffer()
+		const blob = new Blob([buffer], { type: 'model/gltf-binary' })
+		const url = URL.createObjectURL(blob)
+		const gltf = await loader.loadAsync(url)
+		models.push(new WorldObject(gltf.scene.name, undefined, undefined, undefined, { gltf }))
+		URL.revokeObjectURL(url)
 	}
 
 	const remove = (names: string[]) => {
@@ -272,26 +291,17 @@ export const provideShapes = () => {
 		poseIndex = 0
 	}
 
-	let metadata: { ext: string } | undefined = undefined
+	let metadata: { type: string } | undefined = undefined
 
 	const handleMetadata = (data: string) => {
 		const json = tryParse(data)
 
-		if ('ext' in json) {
+		if ('type' in json) {
 			metadata = json
 			return true
 		}
 
 		return false
-	}
-
-	const loadGLTF = async (data: Blob) => {
-		const buffer = await data.arrayBuffer()
-		const blob = new Blob([buffer], { type: 'model/gltf-binary' })
-		const url = URL.createObjectURL(blob)
-		const gltf = await loader.loadAsync(url)
-		models.push(new WorldObject(gltf.scene.name, undefined, undefined, undefined, { gltf }))
-		URL.revokeObjectURL(url)
 	}
 
 	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
@@ -332,16 +342,19 @@ export const provideShapes = () => {
 		}
 
 		if (typeof event.data === 'object' && 'arrayBuffer' in event.data) {
-			if (metadata?.ext === 'glb') {
-				loadGLTF(event.data)
-			} else if (metadata?.ext === 'pcd') {
-				addPcd(event.data)
-			} else if (metadata?.ext === 'points') {
-				drawPoints(event.data)
-			} else if (metadata?.ext === 'poses') {
+			if (!metadata) {
+				return console.error('metadata is undefined')
+			}
+
+			if (metadata.type === 'glb') {
+				return addGLTF(event.data)
+			} else if (metadata.type === 'pcd') {
+				return addPCD(event.data)
+			} else if (metadata.type === 'points') {
+				return addPoints(event.data)
+			} else if (metadata.type === 'poses') {
 				return addPoses(event.data)
 			}
-			return
 		}
 
 		const data = tryParse(event.data)

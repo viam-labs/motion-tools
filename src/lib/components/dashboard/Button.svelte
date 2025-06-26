@@ -18,9 +18,6 @@
 		class: className = '',
 		onclick,
 	}: Props = $props()
-
-	const activeClasses = 'z-10 border-gray-5 bg-white text-gray-8'
-	const inactiveClasses = 'bg-light border-medium text-disabled'
 </script>
 
 <Tooltip
@@ -28,7 +25,11 @@
 	location="bottom"
 >
 	<label
-		class={[className, 'relative block border', active ? activeClasses : inactiveClasses]}
+		class={[
+			className,
+			'relative block border',
+			active ? 'border-gray-5 text-gray-8 z-10 bg-white' : 'bg-light border-medium text-disabled',
+		]}
 		aria-describedby={tooltipID}
 	>
 		<button

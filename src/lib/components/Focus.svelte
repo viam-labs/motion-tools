@@ -12,16 +12,18 @@
 	const vec = new Vector3()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
+	let size = $state.raw<[number, number, number]>([0, 0, 0])
 
 	$effect(() => {
 		if (object3d) {
 			box.setFromObject(object3d)
+			size = box.getSize(vec).toArray()
 			center = box.getCenter(vec).toArray()
 		}
 	})
 </script>
 
-<Camera position={[2, 0, 0]}>
+<Camera position={[size[0], 0, 0]}>
 	<TrackballControls target={center}>
 		<Gizmo />
 	</TrackballControls>

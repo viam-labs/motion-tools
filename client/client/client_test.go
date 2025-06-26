@@ -216,7 +216,7 @@ func TestDrawPoints(t *testing.T) {
 	}
 
 	defaultColor := [3]uint8{255, 0, 0}
-	test.That(t, DrawPoints(points, colors, defaultColor), test.ShouldBeNil)
+	test.That(t, DrawPoints("myPoints", points, colors, defaultColor), test.ShouldBeNil)
 }
 
 func TestDrawPointCloud(t *testing.T) {

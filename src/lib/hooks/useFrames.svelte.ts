@@ -14,16 +14,16 @@ interface FramesContext {
 const key = Symbol('frames-context')
 
 export const provideFrames = (partID: () => string) => {
+	const client = useRobotClient(partID)
+	const machineStatus = useMachineStatus(partID)
+	const logs = useLogs()
 	const refreshRates = useRefreshRates()
 
 	if (!refreshRates.has('Frames')) {
 		refreshRates.set('Frames', 1)
 	}
 
-	const logs = useLogs()
-	const client = useRobotClient(partID)
 	const query = createRobotQuery(client, 'frameSystemConfig')
-	const machineStatus = useMachineStatus(partID)
 	const revision = $derived(machineStatus.current?.config.revision)
 	const shouldFetch = $derived(refreshRates.get('Frames') === 1)
 
