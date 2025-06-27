@@ -226,6 +226,7 @@ export const provideShapes = () => {
 			// Cover the gap for any points not colored
 			for (let i = nColors; i < nPoints; i++) {
 				const offset = i * 3
+
 				colors[offset] = r
 				colors[offset + 1] = g
 				colors[offset + 2] = b
@@ -234,7 +235,6 @@ export const provideShapes = () => {
 			return colors
 		}
 
-		const color = new Color(r, g, b)
 		const pointSize = 0.01
 
 		points.push(
@@ -249,11 +249,11 @@ export const provideShapes = () => {
 				nColors > 0
 					? {
 							colors: getColors(),
-							color,
+							color: new Color(r, g, b).convertLinearToSRGB(),
 							pointSize,
 						}
 					: {
-							color,
+							color: new Color(r, g, b).convertLinearToSRGB(),
 							pointSize,
 						}
 			)

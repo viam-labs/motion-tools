@@ -229,7 +229,7 @@ func TestDrawPointCloud(t *testing.T) {
 	pc3, err := pointcloud.NewFromFile("../data/simple.pcd", logging.Global())
 	test.That(t, err, test.ShouldBeNil)
 
-	test.That(t, DrawPointCloud("octagon", pc1, &[3]uint8{0, 255, 0}), test.ShouldBeNil)
+	test.That(t, DrawPointCloud("octagon", pc1, nil), test.ShouldBeNil)
 	test.That(t, DrawPointCloud("Zaghetto", pc2, &[3]uint8{255, 0, 0}), test.ShouldBeNil)
 	test.That(t, DrawPointCloud("simple", pc3, nil), test.ShouldBeNil)
 }
@@ -247,7 +247,7 @@ func TestDrawPoses(t *testing.T) {
 
 	var poses []spatialmath.Pose
 	var colors []string
-	pallet := []string{"#6200EA", "#EF5350", "#0091EA", "#E53935", "#D32F2F", "#C62828"}
+	pallet := []string{"#6200EA", "#EF5350", "#0091EA", "#E53935", "#D32F2F", "blue"}
 
 	for i := 0; i < numPoints; i++ {
 		phi := math.Acos(1 - 2*float64(i)/float64(numPoints))

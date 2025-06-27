@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/golang/geo/r3"
+	"github.com/viam-labs/motion-tools/client/colorutil"
 	"github.com/viam-labs/motion-tools/client/shapes"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -73,9 +74,10 @@ func SetURL(preferredURL string) {
 	url = preferredURL
 }
 
-func HexToRGB(hexStr string) ([3]uint8, error) {
+func HexToRGB(input string) ([3]uint8, error) {
 	var rgb [3]uint8
 
+	hexStr, err := colorutil.NamedColorToHex(input)
 	hexStr = strings.TrimPrefix(hexStr, "#")
 	if len(hexStr) != 6 {
 		return rgb, errors.New("invalid hex color string")
