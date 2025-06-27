@@ -34,7 +34,6 @@
 
 		material.toneMapped = false
 		if (colors) {
-			console.log(colors.slice(0, 30))
 			geometry.setAttribute('color', new BufferAttribute(colors, 3))
 			geometry.attributes.color.needsUpdate = true
 		}
