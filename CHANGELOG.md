@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.5.4
+
+### Patch Changes
+
+- 5d75e8b: Allow binary mesh type, remove internal CameraControls component
+
 ## 0.5.3
 
 ### Patch Changes
