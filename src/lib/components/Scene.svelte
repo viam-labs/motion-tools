@@ -82,6 +82,8 @@
 				plane="xy"
 				sectionColor="#333"
 				infiniteGrid
+				cellSize={0.5}
+				sectionSize={10}
 				fadeOrigin={new Vector3()}
 				fadeDistance={25}
 			/>

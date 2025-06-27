@@ -7,12 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strings"
-
 	"fmt"
 	"net/http"
-
 	"os"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/golang/geo/r3"
 	"github.com/viam-labs/motion-tools/client/shapes"
@@ -25,6 +24,30 @@ import (
 
 	"github.com/viam-labs/motion-tools/mutils"
 )
+
+/**
+A lot of these methods pack requests into single float32 arrays to be sent to the viz client.
+
+Why? And why not use protobuf? Why this approach is fast, and faster than protobuf for this case:
+
+1. Zero-copy decoding with Float32Array
+We're're streaming raw float32 data.
+The JS client reads it directly using new Float32Array(buffer), which requires no parsing or allocation beyond the typed array.
+This is basically as fast as it gets in JavaScript for numerical data.
+Protobuf Decoding requires parsing the wire format (varints, field tags, lengths).
+Constructs JS objects, maps, and arrays.
+Typically incurs significant GC overhead on large binary blobs.
+Cannot be memory-mapped or used as typed arrays without full decode.
+
+2. Compact, predictable layout
+This layout is tightly packed: label -> header -> positions -> colors.
+We control the alignment and know exactly how to read it — no extra metadata or tags.
+Protobuf adds field numbers, wire types, and nested descriptors — even for flat data.
+
+3. JS performance is optimal for typed arrays
+Browsers (especially Chrome/V8) heavily optimize TypedArray access.
+Avoiding object instantiation helps stay in fast paths of the JIT.
+*/
 
 const DEFAULT_URL = "http://localhost:3000/"
 
@@ -67,6 +90,22 @@ func HexToRGB(hexStr string) ([3]uint8, error) {
 	return rgb, nil
 }
 
+func isASCIIPrintable(label string) error {
+	if !utf8.ValidString(label) {
+		return errors.New("label is not valid utf-8")
+	}
+
+	if len(label) > 100 {
+		return errors.New("label is too long (max 100 characters)")
+	}
+	for _, r := range label {
+		if r > 127 || r < 32 {
+			return errors.New("label is not ascii")
+		}
+	}
+	return nil
+}
+
 func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 	data, err := protojson.Marshal(geometry.ToProtobuf())
 	if err != nil {
@@ -107,12 +146,19 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 	return postHTTP(result, "json", "geometries")
 }
 
-func DrawPoints(
-	label string,
-	points []r3.Vector,
-	colors [][3]uint8,
-	defaultColor [3]uint8,
-) error {
+// DrawPoints sends a list of points to the visualizer.
+//
+// Parameters:
+//   - label: an identifier string used for reference in the treeview.
+//   - points: a list of poses, each representing a point
+//   - colors: Individual point color, optional, and will fallback to defaultColor
+//   - color: an optional fallback color [R, G, B] (0–255); use nil for black.
+func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, color *[3]uint8) error {
+	labelError := isASCIIPrintable(label)
+	if labelError != nil {
+		return labelError
+	}
+
 	labelBytes := []byte(label)
 	labelLen := len(labelBytes)
 
@@ -130,27 +176,33 @@ func DrawPoints(
 		data = append(data, float32(b))
 	}
 
+	fallbackColor := [3]uint8{0, 0, 0}
+	if color == nil {
+		color = &fallbackColor
+	}
+
 	data = append(data,
 		float32(nPoints),
 		float32(nColors),
-		float32(defaultColor[0])/255.0,
-		float32(defaultColor[1])/255.0,
-		float32(defaultColor[2])/255.0,
+		float32(color[0])/255.0,
+		float32(color[1])/255.0,
+		float32(color[2])/255.0,
 	)
 
-	for _, pt := range points {
+	for _, pose := range points {
+		point := pose.Point()
 		data = append(data,
-			float32(pt.X)/1000,
-			float32(pt.Y)/1000,
-			float32(pt.Z)/1000,
+			float32(point.X)/1000.0,
+			float32(point.Y)/1000.0,
+			float32(point.Z)/1000.0,
 		)
 	}
 
-	for _, c := range colors {
+	for _, color := range colors {
 		data = append(data,
-			float32(c[0])/255.0,
-			float32(c[1])/255.0,
-			float32(c[2])/255.0,
+			float32(color[0])/255.0,
+			float32(color[1])/255.0,
+			float32(color[2])/255.0,
 		)
 	}
 
@@ -162,16 +214,12 @@ func DrawPoints(
 	return postHTTP(buf.Bytes(), "octet-stream", "points")
 }
 
-func DrawPointCloud(pc pointcloud.PointCloud) error {
-	var buf bytes.Buffer
-
-	if err := pointcloud.ToPCD(pc, &buf, pointcloud.PCDBinary); err != nil {
-		return err
-	}
-
-	return postHTTP(buf.Bytes(), "octet-stream", "pcd")
-}
-
+// DrawPoses sends a list of poses to the visualizer and draws them as arrows.
+//
+// Parameters:
+//   - poses: a list of poses
+//   - colors: Individual arrow color
+//   - arrowHeadAtPose: whether the tip of the cone of the arrow will be at the pose. default is false
 func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
 	nPoses := len(poses)
 	nColors := len(colors)
@@ -218,6 +266,87 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 	}
 
 	return postHTTP(buf.Bytes(), "octet-stream", "poses")
+}
+
+// DrawPointCloud sends a PointCloud to the visualizer.
+//
+// Parameters:
+//   - label: an identifier string used for reference in the treeview.
+//   - pc: a PointCloud
+//   - color: an optional override color [R, G, B] (0–255); use nil for original color.
+func DrawPointCloud(label string, pc pointcloud.PointCloud, color *[3]uint8) error {
+	labelError := isASCIIPrintable(label)
+	if labelError != nil {
+		return labelError
+	}
+
+	labelBytes := []byte(label)
+	labelLen := len(labelBytes)
+
+	nPoints := pc.Size()
+	hasColor := pc.MetaData().HasColor && color == nil
+	nColors := 0
+	if hasColor {
+		nColors = nPoints
+	}
+
+	// total floats:
+	// 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
+	// + 3*nPoints (positions) + 3*nColors (colors)
+	total := 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
+	data := make([]float32, 0, total)
+
+	data = append(data, float32(labelLen))
+	for _, b := range labelBytes {
+		data = append(data, float32(b))
+	}
+
+	fallbackColor := [3]uint8{0, 0, 0}
+	if color == nil {
+		color = &fallbackColor
+	}
+
+	// Header: nPoints, nColors, color
+	data = append(data,
+		float32(nPoints),
+		float32(nColors),
+		float32(color[0])/255.0,
+		float32(color[1])/255.0,
+		float32(color[2])/255.0,
+	)
+
+	colors := make([]float32, 0, nColors*3)
+
+	// Iterate points
+	pc.Iterate(0, 0, func(p r3.Vector, d pointcloud.Data) bool {
+		data = append(data,
+			float32(p.X)/1000.0,
+			float32(p.Y)/1000.0,
+			float32(p.Z)/1000.0,
+		)
+
+		if hasColor && d.HasColor() {
+			col := d.Color()
+			r16, g16, b16, _ := col.RGBA()
+
+			colors = append(colors,
+				float32(r16)/65535.0,
+				float32(g16)/65535.0,
+				float32(b16)/65535.0,
+			)
+		}
+		return true
+	})
+
+	data = append(data, colors...)
+
+	// Binary write
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, data); err != nil {
+		return err
+	}
+
+	return postHTTP(buf.Bytes(), "octet-stream", "points")
 }
 
 func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
@@ -273,6 +402,7 @@ func DrawGLTF(filePath string) error {
 	if err != nil {
 		return err
 	}
+
 	defer file.Close()
 
 	fileInfo, err := file.Stat()
@@ -284,6 +414,7 @@ func DrawGLTF(filePath string) error {
 	if err != nil {
 		return err
 	}
+
 	req.Header.Set("Content-Type", "model/gltf-binary")
 	req.ContentLength = fileInfo.Size()
 
@@ -292,6 +423,7 @@ func DrawGLTF(filePath string) error {
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
@@ -306,6 +438,7 @@ func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameS
 	if err != nil {
 		return err
 	}
+
 	i := 0
 	for _, geoms := range frameGeomMap {
 		geometries := geoms.Geometries()

@@ -1,6 +1,15 @@
+<script
+	module
+	lang="ts"
+>
+	import { Points, BufferAttribute, BufferGeometry, Color, PointsMaterial } from 'three'
+
+	const defaultColor = '#888888'
+	const color = new Color()
+</script>
+
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Points, BufferAttribute, BufferGeometry, Color, PointsMaterial } from 'three'
 	import type { WorldObject } from '$lib/WorldObject'
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import { meshBounds } from '@threlte/extras'
@@ -14,15 +23,17 @@
 
 	const points = new Points()
 	const geometry = new BufferGeometry()
-	const material = new PointsMaterial({
-		size: 0.01,
-		color: object.metadata.color ?? new Color('#888888'),
-	})
+	const material = new PointsMaterial()
 
 	const colors = $derived(object.metadata.colors)
 	const positions = $derived(object.geometry?.value ?? new Float32Array())
 
-	$effect(() => {
+	$effect.pre(() => {
+		material.color = color.set(object.metadata.color ?? defaultColor)
+		material.size = object.metadata.pointSize ?? 0.01
+	})
+
+	$effect.pre(() => {
 		material.vertexColors = colors !== undefined
 	})
 
