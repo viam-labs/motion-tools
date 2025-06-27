@@ -124,18 +124,32 @@ export const provideShapes = () => {
 
 	const addPoses = async (data: Blob) => {
 		const buffer = await data.arrayBuffer()
-		const array = new Float32Array(buffer)
+		const view = new DataView(buffer)
 
-		// metadata
-		const [nPoses, nColors, arrowHeadAtPose] = array
+		let offset = 0
 
-		const posesStart = 3
-		const pointEnd = posesStart + nPoses * 6
-		const nextPoses = array.slice(posesStart, pointEnd)
+		function readFloat32() {
+			const val = view.getFloat32(offset, true) // true = little-endian
+			offset += 4
+			return val
+		}
 
-		const colorStart = pointEnd
-		const colorEnd = colorStart + nColors * 3
-		const colors = array.slice(colorStart, colorEnd)
+		// Read counts
+		const nPoints = readFloat32()
+		const nColors = readFloat32()
+		const arrowHeadAtPose = readFloat32()
+
+		// Read positions
+		const nextPoses = new Float32Array(nPoints * 6)
+		for (let i = 0; i < nPoints * 6; i++) {
+			nextPoses[i] = readFloat32()
+		}
+
+		// Read raw colors
+		const colors = new Float32Array(nColors * 3)
+		for (let i = 0; i < nColors * 3; i++) {
+			colors[i] = readFloat32()
+		}
 
 		const length = 0.1
 
@@ -167,36 +181,61 @@ export const provideShapes = () => {
 
 	const addPoints = async (data: Blob) => {
 		const buffer = await data.arrayBuffer()
-		const array = new Float32Array(buffer)
+		const view = new DataView(buffer)
 
-		let i = 0
+		let offset = 0
 
-		const labelLen = array[i++]
-		const label = String.fromCharCode(...array.slice(i, i + labelLen))
-		i += labelLen
+		function readFloat32() {
+			const val = view.getFloat32(offset, true) // true = little-endian
+			offset += 4
+			return val
+		}
 
-		const nPoints = array[i++]
-		const nColors = array[i++]
-		const [r, g, b] = array.slice(i, i + 3)
-		i += 3
+		// Read label length
+		const labelLen = readFloat32()
+		let label = ''
+		for (let i = 0; i < labelLen; i++) {
+			label += String.fromCharCode(readFloat32())
+		}
 
-		const positions = array.slice(i, i + nPoints * 3)
-		i += nPoints * 3
+		// Read counts
+		const nPoints = readFloat32()
+		const nColors = readFloat32()
 
-		const rawColors = array.slice(i, i + nColors * 3)
+		// Read default color
+		const r = readFloat32()
+		const g = readFloat32()
+		const b = readFloat32()
 
-		const colors = new Float32Array(nPoints * 3)
-		colors.set(rawColors)
+		// Read positions
+		const positions = new Float32Array(nPoints * 3)
+		for (let i = 0; i < nPoints * 3; i++) {
+			positions[i] = readFloat32()
+		}
 
-		// Cover the gap for any points not colored
-		for (let i = nColors; i < nPoints; i++) {
-			const offset = i * 3
-			colors[offset] = r
-			colors[offset + 1] = g
-			colors[offset + 2] = b
+		const getColors = () => {
+			// Read raw colors
+			const rawColors = new Float32Array(nColors * 3)
+			for (let i = 0; i < nColors * 3; i++) {
+				rawColors[i] = readFloat32()
+			}
+
+			const colors = new Float32Array(nPoints * 3)
+			colors.set(rawColors)
+
+			// Cover the gap for any points not colored
+			for (let i = nColors; i < nPoints; i++) {
+				const offset = i * 3
+				colors[offset] = r
+				colors[offset + 1] = g
+				colors[offset + 2] = b
+			}
+
+			return colors
 		}
 
 		const color = new Color(r, g, b)
+		const pointSize = 0.01
 
 		points.push(
 			new WorldObject(
@@ -207,7 +246,16 @@ export const provideShapes = () => {
 					case: 'points',
 					value: positions,
 				},
-				colors ? { colors, color } : { color }
+				nColors > 0
+					? {
+							colors: getColors(),
+							color,
+							pointSize,
+						}
+					: {
+							color,
+							pointSize,
+						}
 			)
 		)
 	}

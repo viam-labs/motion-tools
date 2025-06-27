@@ -133,7 +133,7 @@ func TestDrawPoints(t *testing.T) {
 	nPath := 500
 	nRing := 50
 
-	points := make([]r3.Vector, 0, nPath*nRing)
+	points := make([]spatialmath.Pose, 0, nPath*nRing)
 	colors := make([][3]uint8, 0, nPath*nRing)
 
 	maxT := 2 * math.Pi * float64(q)
@@ -197,11 +197,11 @@ func TestDrawPoints(t *testing.T) {
 			oy := cosT*ny1*rTube + sinT*by*rTube
 			oz := cosT*nz1*rTube + sinT*bz*rTube
 
-			points = append(points, r3.Vector{
+			points = append(points, spatialmath.NewPoseFromPoint(r3.Vector{
 				X: cx + ox,
 				Y: cy + oy,
 				Z: cz + oz,
-			})
+			}))
 
 			if j > nRing/2 {
 				continue
@@ -216,13 +216,22 @@ func TestDrawPoints(t *testing.T) {
 	}
 
 	defaultColor := [3]uint8{255, 0, 0}
-	test.That(t, DrawPoints("myPoints", points, colors, defaultColor), test.ShouldBeNil)
+	test.That(t, DrawPoints("myPoints", points, colors, &defaultColor), test.ShouldBeNil)
 }
 
 func TestDrawPointCloud(t *testing.T) {
-	pc, err := pointcloud.NewFromFile("../data/octagon.pcd", logging.Global())
+	pc1, err := pointcloud.NewFromFile("../data/octagon.pcd", logging.Global())
 	test.That(t, err, test.ShouldBeNil)
-	test.That(t, DrawPointCloud(pc), test.ShouldBeNil)
+
+	pc2, err := pointcloud.NewFromFile("../data/Zaghetto.pcd", logging.Global())
+	test.That(t, err, test.ShouldBeNil)
+
+	pc3, err := pointcloud.NewFromFile("../data/simple.pcd", logging.Global())
+	test.That(t, err, test.ShouldBeNil)
+
+	test.That(t, DrawPointCloud("octagon", pc1, &[3]uint8{0, 255, 0}), test.ShouldBeNil)
+	test.That(t, DrawPointCloud("Zaghetto", pc2, &[3]uint8{255, 0, 0}), test.ShouldBeNil)
+	test.That(t, DrawPointCloud("simple", pc3, nil), test.ShouldBeNil)
 }
 
 func TestDrawPoses(t *testing.T) {
