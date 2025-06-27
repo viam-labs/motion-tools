@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image/color"
 	"net/http"
 	"os"
 	"strings"
@@ -276,7 +277,7 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 //   - label: an identifier string used for reference in the treeview.
 //   - pc: a PointCloud
 //   - color: an optional override color [R, G, B] (0–255); use nil for original color.
-func DrawPointCloud(label string, pc pointcloud.PointCloud, color *[3]uint8) error {
+func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]uint8) error {
 	labelError := isASCIIPrintable(label)
 	if labelError != nil {
 		return labelError
@@ -286,7 +287,7 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, color *[3]uint8) err
 	labelLen := len(labelBytes)
 
 	nPoints := pc.Size()
-	hasColor := pc.MetaData().HasColor && color == nil
+	hasColor := pc.MetaData().HasColor && overrideColor == nil
 	nColors := 0
 	if hasColor {
 		nColors = nPoints
@@ -304,17 +305,17 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, color *[3]uint8) err
 	}
 
 	fallbackColor := [3]uint8{0, 0, 0}
-	if color == nil {
-		color = &fallbackColor
+	if overrideColor == nil {
+		overrideColor = &fallbackColor
 	}
 
 	// Header: nPoints, nColors, color
 	data = append(data,
 		float32(nPoints),
 		float32(nColors),
-		float32(color[0])/255.0,
-		float32(color[1])/255.0,
-		float32(color[2])/255.0,
+		float32(overrideColor[0])/255.0,
+		float32(overrideColor[1])/255.0,
+		float32(overrideColor[2])/255.0,
 	)
 
 	colors := make([]float32, 0, nColors*3)
@@ -329,12 +330,12 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, color *[3]uint8) err
 
 		if hasColor && d.HasColor() {
 			col := d.Color()
-			r16, g16, b16, _ := col.RGBA()
+			nrgba := color.NRGBAModel.Convert(col).(color.NRGBA)
 
 			colors = append(colors,
-				float32(r16)/65535.0,
-				float32(g16)/65535.0,
-				float32(b16)/65535.0,
+				float32(nrgba.R)/255.0,
+				float32(nrgba.G)/255.0,
+				float32(nrgba.B)/255.0,
 			)
 		}
 		return true

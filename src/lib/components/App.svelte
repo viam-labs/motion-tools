@@ -20,7 +20,7 @@
 
 	createPartIDContext(() => partID)
 
-	let root = $state<HTMLElement>()
+	let root = $state.raw<HTMLElement>()
 </script>
 
 <div

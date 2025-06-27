@@ -162,7 +162,7 @@ export const provideShapes = () => {
 				origin.sub(vec3.copy(direction).multiplyScalar(length))
 			}
 
-			color.set(colors[j], colors[j + 1], colors[j + 2]).convertSRGBToLinear()
+			color.set(colors[j], colors[j + 1], colors[j + 2])
 
 			const arrowId = batchedArrow.addArrow(direction, origin, length, color)
 			poses.push(
@@ -237,6 +237,18 @@ export const provideShapes = () => {
 
 		const pointSize = 0.01
 
+		const metadata =
+			nColors > 0
+				? {
+						colors: getColors(),
+						color: new Color(r, g, b).convertLinearToSRGB(),
+						pointSize,
+					}
+				: {
+						color: new Color(r, g, b).convertLinearToSRGB(),
+						pointSize,
+					}
+
 		points.push(
 			new WorldObject(
 				label ?? `points ${++pointsIndex}`,
@@ -246,16 +258,7 @@ export const provideShapes = () => {
 					case: 'points',
 					value: positions,
 				},
-				nColors > 0
-					? {
-							colors: getColors(),
-							color: new Color(r, g, b).convertLinearToSRGB(),
-							pointSize,
-						}
-					: {
-							color: new Color(r, g, b).convertLinearToSRGB(),
-							pointSize,
-						}
+				metadata
 			)
 		)
 	}

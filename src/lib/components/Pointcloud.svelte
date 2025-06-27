@@ -13,23 +13,15 @@
 
 	let { object }: Props = $props()
 
-	const points = new Points()
-	const geometry = new BufferGeometry()
-	const material = new PointsMaterial({
-		color: object.metadata.color ?? '#888888',
-		size: object.metadata.pointSize ?? 0.01,
-	})
-
 	const colors = $derived(object.metadata.colors)
 	const positions = $derived(object.geometry?.value ?? new Float32Array())
 
-	$effect.pre(() => {
-		material.color.set(object.metadata.color ?? '#888888')
-		material.size = object.metadata.pointSize ?? 0.01
-	})
+	const points = new Points()
+	const geometry = new BufferGeometry()
+	const material = new PointsMaterial()
 
 	$effect.pre(() => {
-		material.vertexColors = colors !== undefined
+		material.size = object.metadata.pointSize ?? 0.01
 	})
 
 	$effect.pre(() => {
@@ -37,8 +29,14 @@
 	})
 
 	$effect.pre(() => {
+		material.vertexColors = colors !== undefined
+		material.color.set(colors ? 0xffffff : (object.metadata.color ?? '#888888'))
+
+		material.toneMapped = false
 		if (colors) {
+			console.log(colors.slice(0, 30))
 			geometry.setAttribute('color', new BufferAttribute(colors, 3))
+			geometry.attributes.color.needsUpdate = true
 		}
 	})
 
