@@ -35,6 +35,7 @@ const tryParse = (json: string) => {
 }
 
 class Float32Reader {
+	littleEndian = true
 	offset = 0
 	buffer = new ArrayBuffer()
 	view = new DataView(this.buffer)
@@ -46,7 +47,7 @@ class Float32Reader {
 	}
 
 	read() {
-		const result = this.view.getFloat32(this.offset, true) // true = little-endian
+		const result = this.view.getFloat32(this.offset, this.littleEndian)
 		this.offset += 4
 		return result
 	}
