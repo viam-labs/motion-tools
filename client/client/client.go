@@ -169,12 +169,13 @@ func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, colo
 	nColors := len(colors)
 
 	// total floats:
-	// 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
+	// 1 (type) + 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
 	// + 3*nPoints (positions) + 3*nColors (colors)
-	total := 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
+	total := 1 + 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
 	data := make([]float32, 0, total)
 
-	data = append(data, float32(labelLen))
+	// 0 = points
+	data = append(data, float32(0), float32(labelLen))
 	for _, b := range labelBytes {
 		data = append(data, float32(b))
 	}
@@ -226,7 +227,7 @@ func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, colo
 func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
 	nPoses := len(poses)
 	nColors := len(colors)
-	total := 3 + nPoses*6 + nColors*3
+	total := 1 + 3 + nPoses*6 + nColors*3
 
 	data := make([]float32, 0, total)
 
@@ -235,8 +236,8 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 		a = 1.
 	}
 
-	// Header
-	data = append(data, float32(nPoses), float32(nColors), float32(a))
+	// Header, 1 = poses
+	data = append(data, float32(1), float32(nPoses), float32(nColors), float32(a))
 
 	for _, pose := range poses {
 		point := pose.Point()
@@ -255,6 +256,7 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 		if err != nil {
 			return err
 		}
+
 		data = append(data,
 			float32(rgb[0])/255.0,
 			float32(rgb[1])/255.0,
@@ -294,12 +296,13 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]ui
 	}
 
 	// total floats:
-	// 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
+	// 1 (type) + 1 (label length) + labelLen + 2 (nPoints, nColors) + 3 (default color)
 	// + 3*nPoints (positions) + 3*nColors (colors)
-	total := 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
+	total := 1 + 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
 	data := make([]float32, 0, total)
 
-	data = append(data, float32(labelLen))
+	// 0 = points
+	data = append(data, float32(0), float32(labelLen))
 	for _, b := range labelBytes {
 		data = append(data, float32(b))
 	}

@@ -34,6 +34,25 @@ const tryParse = (json: string) => {
 	}
 }
 
+class Float32Reader {
+	littleEndian = true
+	offset = 0
+	buffer = new ArrayBuffer()
+	view = new DataView(this.buffer)
+
+	async init(data: Blob) {
+		this.buffer = await data.arrayBuffer()
+		this.view = new DataView(this.buffer)
+		return this
+	}
+
+	read() {
+		const result = this.view.getFloat32(this.offset, this.littleEndian)
+		this.offset += 4
+		return result
+	}
+}
+
 export const provideShapes = () => {
 	let pointsIndex = 0
 	let geometryIndex = 0
@@ -59,8 +78,7 @@ export const provideShapes = () => {
 	const vec3 = new Vector3()
 	const loader = new GLTFLoader()
 
-	const addPCD = async (data: Blob) => {
-		const buffer = await data.arrayBuffer()
+	const addPCD = async (buffer: ArrayBuffer) => {
 		const { positions, colors } = await parsePcdInWorker(new Uint8Array(buffer))
 
 		points.push(
@@ -122,33 +140,22 @@ export const provideShapes = () => {
 
 	const batchedArrow = new BatchedArrow()
 
-	const addPoses = async (data: Blob) => {
-		const buffer = await data.arrayBuffer()
-		const view = new DataView(buffer)
-
-		let offset = 0
-
-		function readFloat32() {
-			const val = view.getFloat32(offset, true) // true = little-endian
-			offset += 4
-			return val
-		}
-
+	const addPoses = async (reader: Float32Reader) => {
 		// Read counts
-		const nPoints = readFloat32()
-		const nColors = readFloat32()
-		const arrowHeadAtPose = readFloat32()
+		const nPoints = reader.read()
+		const nColors = reader.read()
+		const arrowHeadAtPose = reader.read()
 
 		// Read positions
 		const nextPoses = new Float32Array(nPoints * 6)
 		for (let i = 0; i < nPoints * 6; i++) {
-			nextPoses[i] = readFloat32()
+			nextPoses[i] = reader.read()
 		}
 
 		// Read raw colors
 		const colors = new Float32Array(nColors * 3)
 		for (let i = 0; i < nColors * 3; i++) {
-			colors[i] = readFloat32()
+			colors[i] = reader.read()
 		}
 
 		const length = 0.1
@@ -179,45 +186,34 @@ export const provideShapes = () => {
 		}
 	}
 
-	const addPoints = async (data: Blob) => {
-		const buffer = await data.arrayBuffer()
-		const view = new DataView(buffer)
-
-		let offset = 0
-
-		function readFloat32() {
-			const val = view.getFloat32(offset, true) // true = little-endian
-			offset += 4
-			return val
-		}
-
+	const addPoints = async (reader: Float32Reader) => {
 		// Read label length
-		const labelLen = readFloat32()
+		const labelLen = reader.read()
 		let label = ''
 		for (let i = 0; i < labelLen; i++) {
-			label += String.fromCharCode(readFloat32())
+			label += String.fromCharCode(reader.read())
 		}
 
 		// Read counts
-		const nPoints = readFloat32()
-		const nColors = readFloat32()
+		const nPoints = reader.read()
+		const nColors = reader.read()
 
 		// Read default color
-		const r = readFloat32()
-		const g = readFloat32()
-		const b = readFloat32()
+		const r = reader.read()
+		const g = reader.read()
+		const b = reader.read()
 
 		// Read positions
 		const positions = new Float32Array(nPoints * 3)
 		for (let i = 0; i < nPoints * 3; i++) {
-			positions[i] = readFloat32()
+			positions[i] = reader.read()
 		}
 
 		const getColors = () => {
 			// Read raw colors
 			const rawColors = new Float32Array(nColors * 3)
 			for (let i = 0; i < nColors * 3; i++) {
-				rawColors[i] = readFloat32()
+				rawColors[i] = reader.read()
 			}
 
 			const colors = new Float32Array(nPoints * 3)
@@ -272,8 +268,7 @@ export const provideShapes = () => {
 		}
 	}
 
-	const addGLTF = async (data: Blob) => {
-		const buffer = await data.arrayBuffer()
+	const addGLTF = async (buffer: ArrayBuffer) => {
 		const blob = new Blob([buffer], { type: 'model/gltf-binary' })
 		const url = URL.createObjectURL(blob)
 		const gltf = await loader.loadAsync(url)
@@ -342,19 +337,6 @@ export const provideShapes = () => {
 		poseIndex = 0
 	}
 
-	let metadata: { type: string } | undefined = undefined
-
-	const handleMetadata = (data: string) => {
-		const json = tryParse(data)
-
-		if ('type' in json) {
-			metadata = json
-			return true
-		}
-
-		return false
-	}
-
 	const { BACKEND_IP, BUN_SERVER_PORT } = globalThis as unknown as {
 		BACKEND_IP?: string
 		BUN_SERVER_PORT?: string
@@ -385,26 +367,19 @@ export const provideShapes = () => {
 		ws.close()
 	}
 
-	const onMessage = (event: MessageEvent) => {
-		if (typeof event.data === 'string') {
-			if (handleMetadata(event.data)) {
-				return
-			}
-		}
-
+	const onMessage = async (event: MessageEvent) => {
 		if (typeof event.data === 'object' && 'arrayBuffer' in event.data) {
-			if (!metadata) {
-				return console.error('metadata is undefined')
-			}
+			const reader = await new Float32Reader().init(event.data)
+			const type = reader.read()
 
-			if (metadata.type === 'glb') {
-				return addGLTF(event.data)
-			} else if (metadata.type === 'pcd') {
-				return addPCD(event.data)
-			} else if (metadata.type === 'points') {
-				return addPoints(event.data)
-			} else if (metadata.type === 'poses') {
-				return addPoses(event.data)
+			if (type === 0) {
+				return addPoints(reader)
+			} else if (type === 1) {
+				return addPoses(reader)
+			} else if (type === 2) {
+				return addPCD(reader.buffer)
+			} else {
+				return addGLTF(reader.buffer)
 			}
 		}
 

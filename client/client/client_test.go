@@ -17,7 +17,7 @@ import (
 )
 
 func TestDrawGeometries(t *testing.T) {
-	t.Run("draw box", func(t *testing.T) {
+	t.Run("draw geometries", func(t *testing.T) {
 		box, err := spatialmath.NewBox(
 			spatialmath.NewPose(
 				r3.Vector{X: 1001, Y: 1, Z: 1},
@@ -80,6 +80,7 @@ func TestDrawGeometry(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(box, "purple"), test.ShouldBeNil)
 	})
+
 	t.Run("draw sphere", func(t *testing.T) {
 		box, err := spatialmath.NewSphere(
 			spatialmath.NewPose(
@@ -92,6 +93,7 @@ func TestDrawGeometry(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, DrawGeometry(box, "red"), test.ShouldBeNil)
 	})
+
 	t.Run("draw capsule", func(t *testing.T) {
 		capsule, err := spatialmath.NewCapsule(
 			spatialmath.NewPose(
@@ -253,7 +255,7 @@ func TestDrawPoses(t *testing.T) {
 	var colors []string
 	pallet := []string{"#6200EA", "#EF5350", "#0091EA", "#E53935", "#D32F2F", "blue"}
 
-	for i := 0; i < numPoints; i++ {
+	for i := range numPoints {
 		phi := math.Acos(1 - 2*float64(i)/float64(numPoints))
 		theta := math.Pi * (1 + math.Sqrt(5)) * float64(i)
 
