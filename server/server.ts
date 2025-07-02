@@ -40,47 +40,28 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 			case '/geometries':
 			case '/nurbs': {
 				const json = await req.json()
-				sendToClients(JSON.stringify(json))
-				return jsonResponse(messages.success, 200)
+				const success = sendToClients(JSON.stringify(json))
+				return jsonResponse(success)
 			}
 
-			case '/poses': {
-				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ type: 'poses' }))
-				sendToClients(buffer)
-				return jsonResponse(messages.success, 200)
-			}
-
-			case '/points': {
-				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ type: 'points' }))
-				sendToClients(buffer)
-				return jsonResponse(messages.success, 200)
-			}
-
+			case '/points':
+			case '/poses':
+			case '/gltf':
 			case '/pcd': {
 				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ type: 'pcd' }))
-				sendToClients(buffer)
-				return jsonResponse(messages.success, 200)
-			}
-
-			case '/gltf': {
-				const buffer = await req.arrayBuffer()
-				sendToClients(JSON.stringify({ type: 'glb' }))
-				sendToClients(buffer)
-				return jsonResponse(messages.success, 200)
+				const success = sendToClients(buffer)
+				return jsonResponse(success)
 			}
 
 			case '/remove-all': {
-				sendToClients(JSON.stringify({ removeAll: true }))
-				return jsonResponse(messages.success, 200)
+				const success = sendToClients(JSON.stringify({ removeAll: true }))
+				return jsonResponse(success)
 			}
 
 			case '/remove': {
 				const json = await req.json()
-				sendToClients(JSON.stringify({ remove: true, names: json }))
-				return jsonResponse(messages.success, 200)
+				const success = sendToClients(JSON.stringify({ remove: true, names: json }))
+				return jsonResponse(success)
 			}
 
 			default:
@@ -92,10 +73,9 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function jsonResponse(data: any, status = 200) {
-	return new Response(JSON.stringify(data), {
-		status,
+const jsonResponse = (success: boolean) => {
+	return new Response(JSON.stringify(success ? messages.success : messages.noClient), {
+		status: success ? 200 : 408,
 		headers: {
 			'Content-Type': 'application/json',
 			'Access-Control-Allow-Origin': '*',
