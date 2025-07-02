@@ -1,3 +1,4 @@
+import { sentrySvelteKit } from '@sentry/sveltekit'
 import devtoolsJson from 'vite-plugin-devtools-json'
 import tailwindcss from '@tailwindcss/vite'
 import basicSsl from '@vitejs/plugin-basic-ssl'
@@ -13,7 +14,18 @@ const localIP = getLocalIP()
 const https = false
 
 export default defineConfig({
-	plugins: [devtoolsJson(), ...(https ? [basicSsl()] : []), tailwindcss(), sveltekit()],
+	plugins: [
+		sentrySvelteKit({
+			sourceMapsUploadOptions: {
+				org: 'viam',
+				project: 'motion-tools',
+			},
+		}),
+		devtoolsJson(),
+		...(https ? [basicSsl()] : []),
+		tailwindcss(),
+		sveltekit(),
+	],
 
 	define: {
 		BACKEND_IP: JSON.stringify(localIP),
