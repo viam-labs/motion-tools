@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.5.5
+
+### Patch Changes
+
+- d54fb32: Improve pointcloud draw commands
+
 ## 0.5.4
 
 ### Patch Changes
