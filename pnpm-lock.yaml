@@ -111,11 +111,11 @@ devDependencies:
     specifier: 2.1.0
     version: 2.1.0(vite@6.3.5)
   '@zag-js/svelte':
-    specifier: 1.18.0
-    version: 1.18.0(svelte@5.34.8)
+    specifier: 1.18.1
+    version: 1.18.1(svelte@5.34.8)
   '@zag-js/tree-view':
-    specifier: 1.18.0
-    version: 1.18.0
+    specifier: 1.18.1
+    version: 1.18.1
   camera-controls:
     specifier: 2.10.1
     version: 2.10.1(three@0.178.0)
@@ -231,8 +231,8 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/gen-mapping': 0.3.12
+      '@jridgewell/trace-mapping': 0.3.29
     dev: true
 
   /@asamuzakjp/css-color@2.8.3:
@@ -1033,22 +1033,8 @@ packages:
       '@jridgewell/trace-mapping': 0.3.29
     dev: true
 
-  /@jridgewell/gen-mapping@0.3.8:
-    resolution: {integrity: sha512-imAbBGkb+ebQyxKgzv5Hu2nmROxoDOXHh80evxdoXNOrvAnVx7zimzc1Oo5h9RlfV4vPXaE2iM5pOFbvOCClWA==}
-    engines: {node: '>=6.0.0'}
-    dependencies:
-      '@jridgewell/set-array': 1.2.1
-      '@jridgewell/sourcemap-codec': 1.5.0
-      '@jridgewell/trace-mapping': 0.3.25
-    dev: true
-
   /@jridgewell/resolve-uri@3.1.2:
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
-    engines: {node: '>=6.0.0'}
-    dev: true
-
-  /@jridgewell/set-array@1.2.1:
-    resolution: {integrity: sha512-R8gLRTZeyp03ymzP/6Lil/28tGeGEzhx1q2k703KGWRAI1VdvPIXdG70VJc2pAMw3NA6JKL5hhFu1sJX0Mnn/A==}
     engines: {node: '>=6.0.0'}
     dev: true
 
@@ -1998,7 +1984,7 @@ packages:
       '@zag-js/radio-group': 1.7.0
       '@zag-js/rating-group': 1.7.0
       '@zag-js/slider': 1.7.0
-      '@zag-js/svelte': 1.18.0(svelte@5.34.8)
+      '@zag-js/svelte': 1.18.1(svelte@5.34.8)
       '@zag-js/switch': 1.7.0
       '@zag-js/tabs': 1.7.0
       '@zag-js/tags-input': 1.7.0
@@ -2782,8 +2768,8 @@ packages:
       '@zag-js/utils': 1.7.0
     dev: true
 
-  /@zag-js/anatomy@1.18.0:
-    resolution: {integrity: sha512-4+m72Mhv6w+EfYQf7PNhras4eeOqrypb4VR7+OZsuRJ0EPWS8WJyCTMDaBHcNsulM12tWS1Zmg1BEEzGIj4vlQ==}
+  /@zag-js/anatomy@1.18.1:
+    resolution: {integrity: sha512-qrIca7xuLCGEDe08pxmpVPNdUqD9T+X7WlEo45RK3h2KB/Exd/966AJoU4YDjTOliZ7vn8woxZp1ZnYG12NyQQ==}
     dev: true
 
   /@zag-js/anatomy@1.7.0:
@@ -2810,10 +2796,10 @@ packages:
       '@zag-js/utils': 1.7.0
     dev: true
 
-  /@zag-js/collection@1.18.0:
-    resolution: {integrity: sha512-WRXWPY4qh6G7JNgJ3d+dhjIGiDyz/Hgvk7F8Cg3Q+rOE/YUMLZFf7C1Wcp2b/8bKZ33IoIg5m067tlShe53vHA==}
+  /@zag-js/collection@1.18.1:
+    resolution: {integrity: sha512-pn6MqVDmB0bLY6DtUqGUPZEdv6eXdJEmE9J2u1MlgeFOw5cCgqJXlqe50mgV1WZKLWGiKfcOFh/489Eh7R9zmw==}
     dependencies:
-      '@zag-js/utils': 1.18.0
+      '@zag-js/utils': 1.18.1
     dev: true
 
   /@zag-js/collection@1.7.0:
@@ -2836,11 +2822,11 @@ packages:
       '@zag-js/utils': 1.7.0
     dev: true
 
-  /@zag-js/core@1.18.0:
-    resolution: {integrity: sha512-cyyfJtfKx1freGhUWyWwkhGkXxMu6lIYcaUWL1/6PP1kwClHYZCs/vHOhw1AuRU4FGDAvK+g1eGk+PSm6REITg==}
+  /@zag-js/core@1.18.1:
+    resolution: {integrity: sha512-xR7eHPj5TrQgXJ1ZyyN1mj9fA7leurcGNadIkw6ayREWkRWL/wXr4XKafboFDh360pa/oKRopjEcqvWdoHVBPg==}
     dependencies:
-      '@zag-js/dom-query': 1.18.0
-      '@zag-js/utils': 1.18.0
+      '@zag-js/dom-query': 1.18.1
+      '@zag-js/utils': 1.18.1
     dev: true
 
   /@zag-js/core@1.7.0:
@@ -2872,10 +2858,10 @@ packages:
       '@zag-js/utils': 1.7.0
     dev: true
 
-  /@zag-js/dom-query@1.18.0:
-    resolution: {integrity: sha512-RcqFfBPULvRWg7rRLXkUmCyRepkdNwxzcfFfp6fmHMSTo0PBKcNmI9rnU2o2tssvFeg9WE7DXxUWlxr3NEOnbA==}
+  /@zag-js/dom-query@1.18.1:
+    resolution: {integrity: sha512-64c/TbM3wLPTx1NP1EPOLTvVlcbA4yWCX8xtSQTUHJE1oXS6Gyi3xY0M3C02+COiEF2jWy331yUxa/xLOk+0CQ==}
     dependencies:
-      '@zag-js/types': 1.18.0
+      '@zag-js/types': 1.18.1
     dev: true
 
   /@zag-js/dom-query@1.7.0:
@@ -3027,14 +3013,14 @@ packages:
       proxy-compare: 3.0.1
     dev: true
 
-  /@zag-js/svelte@1.18.0(svelte@5.34.8):
-    resolution: {integrity: sha512-tJ901CEw86IRl8GF3JA5CiWVyfIWM+rMSNfquU9ij7xjEyQVzJD54wSAz6B5NBbt9Xr3tb/FQRNNdqzEh+cIgg==}
+  /@zag-js/svelte@1.18.1(svelte@5.34.8):
+    resolution: {integrity: sha512-U07DYscCEr6+I3o7c/gkeDUGWY+29YWzXShBCKycaTPdj4duHWxyzIbMDQTGGlNsu4wyKo1ibS0bYPXg5+s/Bg==}
     peerDependencies:
       svelte: ^5.0.0-next.1
     dependencies:
-      '@zag-js/core': 1.18.0
-      '@zag-js/types': 1.18.0
-      '@zag-js/utils': 1.18.0
+      '@zag-js/core': 1.18.1
+      '@zag-js/types': 1.18.1
+      '@zag-js/utils': 1.18.1
       svelte: 5.34.8
     dev: true
 
@@ -3097,19 +3083,19 @@ packages:
       '@zag-js/utils': 1.7.0
     dev: true
 
-  /@zag-js/tree-view@1.18.0:
-    resolution: {integrity: sha512-q/Ls0AFXWA12wmZqYdJR41uWyRgfFdo+HipOo/3eTgYk7ooPvayCZpvo1i4I0AfqQDaJaWAxevhONiSWFlqTyw==}
+  /@zag-js/tree-view@1.18.1:
+    resolution: {integrity: sha512-ChD3g5NzNZjXlvSw2ntmCtkSBF95AUIHksBei2vw52oepnk6IV6BUWRiAZlaVChiTO6BcvwtsJFcRgr5Sier4Q==}
     dependencies:
-      '@zag-js/anatomy': 1.18.0
-      '@zag-js/collection': 1.18.0
-      '@zag-js/core': 1.18.0
-      '@zag-js/dom-query': 1.18.0
-      '@zag-js/types': 1.18.0
-      '@zag-js/utils': 1.18.0
+      '@zag-js/anatomy': 1.18.1
+      '@zag-js/collection': 1.18.1
+      '@zag-js/core': 1.18.1
+      '@zag-js/dom-query': 1.18.1
+      '@zag-js/types': 1.18.1
+      '@zag-js/utils': 1.18.1
     dev: true
 
-  /@zag-js/types@1.18.0:
-    resolution: {integrity: sha512-P/5rTXukTXXDF+BZ/5imQLIlhN/zfbuFAuq4Ny5SDS/QvZFKOX5EmWrTzefbvQX2WMHt+RxpMfWAOsaSp3AoqQ==}
+  /@zag-js/types@1.18.1:
+    resolution: {integrity: sha512-+21stpMZjlMmaEJlPnuCtXnLcUztL8pYstwZK/7RLmB8k34Sjh29gbkrIwWzAC9Tw8brSy3GbCh7XVYcS5hvQw==}
     dependencies:
       csstype: 3.1.3
     dev: true
@@ -3120,8 +3106,8 @@ packages:
       csstype: 3.1.3
     dev: true
 
-  /@zag-js/utils@1.18.0:
-    resolution: {integrity: sha512-Rf7Ca61Ir2wcugU+TnNMPYGqFBreRxw4U3x5LU149urRlk2kN3iZ0NBIp17EobKOx6veK1jYnPwsifG82iuwPg==}
+  /@zag-js/utils@1.18.1:
+    resolution: {integrity: sha512-KocaggqVZ/gAwON1a9szCLNTSrgg4MHNg3pJImBeex8RGMXo4vK0G4DTm7WS8ccxoIaeP+gqeTS+vuof22+SMg==}
     dev: true
 
   /@zag-js/utils@1.7.0:
@@ -5709,7 +5695,7 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.8
+      '@jridgewell/gen-mapping': 0.3.12
       commander: 4.1.1
       glob: 10.4.5
       lines-and-columns: 1.2.4
