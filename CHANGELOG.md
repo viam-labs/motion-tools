@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.5.6
+
+### Patch Changes
+
+- bbade6c: Fix: update detail position when moving created geometries"
+
 ## 0.5.5
 
 ### Patch Changes
