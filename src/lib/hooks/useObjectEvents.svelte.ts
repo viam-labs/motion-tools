@@ -35,6 +35,8 @@ export const useObjectEvents = (uuid: () => string) => {
 				selected.set(uuid())
 			}
 		},
-		onpointermissed: () => selected.set(),
+		onpointermissed: () => {
+			selected.set()
+		},
 	}
 }

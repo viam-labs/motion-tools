@@ -78,7 +78,7 @@ func SetURL(preferredURL string) {
 func HexToRGB(input string) ([3]uint8, error) {
 	var rgb [3]uint8
 
-	hexStr, err := colorutil.NamedColorToHex(input)
+	hexStr := colorutil.NamedColorToHex(input)
 	hexStr = strings.TrimPrefix(hexStr, "#")
 	if len(hexStr) != 6 {
 		return rgb, errors.New("invalid hex color string")
@@ -117,7 +117,7 @@ func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 
 	finalJSON, err := json.Marshal(map[string]interface{}{
 		"geometry": json.RawMessage(data),
-		"color":    color,
+		"color":    colorutil.NamedColorToHex(color),
 	})
 	if err != nil {
 		return err
@@ -139,9 +139,10 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 
 	result, err := json.Marshal(map[string]interface{}{
 		"geometries": geometries,
-		"colors":     colors,
+		"colors":     colorutil.NamedColorsToHexes(colors),
 		"parent":     geometriesInFrame.Parent(),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -370,7 +371,7 @@ func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
 		"Degree":     nurbs.Degree,
 		"Weights":    nurbs.Weights,
 		"Knots":      nurbs.Knots,
-		"Color":      color,
+		"Color":      colorutil.NamedColorToHex(color),
 		"name":       name,
 	}
 

@@ -54,14 +54,23 @@ func TestDrawGeometries(t *testing.T) {
 			r3.Vector{X: -343.34, Y: -139.51, Z: 537.44},
 			&spatialmath.OrientationVectorDegrees{Theta: 90, OX: -0.9943171068536344, OY: -0.0046240014351797976, OZ: -0.10635840177882347},
 		)
-		mesh.Transform(pose)
-
+		meshInWrld := mesh.Transform(pose).(*spatialmath.Mesh)
 		test.That(t, err, test.ShouldBeNil)
 
-		geometries := []spatialmath.Geometry{box, sphere, capsule, mesh}
+		sphere2, err := spatialmath.NewSphere(
+			spatialmath.NewPose(
+				r3.Vector{X: 1, Y: 1, Z: 2000},
+				&spatialmath.OrientationVectorDegrees{Theta: 0, OX: 0, OY: 0, OZ: 1},
+			),
+			500,
+			"mySphere3",
+		)
+		test.That(t, err, test.ShouldBeNil)
+
+		geometries := []spatialmath.Geometry{box, sphere, capsule, meshInWrld, sphere2}
 		geometriesInFrame := referenceframe.NewGeometriesInFrame("myBox", geometries)
 
-		colors := []string{"#EF9A9A", "#EF5350", "#F44336", "#E53935", "#D32F2F", "#C62828"}
+		colors := []string{"#EF9A9A", "#EF5350", "#F44336", "fern", "hotpink"}
 
 		test.That(t, DrawGeometries(geometriesInFrame, colors), test.ShouldBeNil)
 	})
@@ -114,10 +123,10 @@ func TestDrawGeometry(t *testing.T) {
 			r3.Vector{X: -343.34, Y: -139.51, Z: 537.44},
 			&spatialmath.OrientationVectorDegrees{Theta: 90, OX: -0.9943171068536344, OY: -0.0046240014351797976, OZ: -0.10635840177882347},
 		)
-		mesh.Transform(pose)
+		meshInWrld := mesh.Transform(pose).(*spatialmath.Mesh)
 
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(mesh, "blue"), test.ShouldBeNil)
+		test.That(t, DrawGeometry(meshInWrld, "blue"), test.ShouldBeNil)
 	})
 }
 
