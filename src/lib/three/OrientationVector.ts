@@ -20,6 +20,8 @@ const vecF = new Vector3()
 const vecG = new Vector3()
 const vecH = new Vector3()
 
+type OrientationVectorLike = OrientationVector | { x: number; y: number; z: number; th: number }
+
 /**
  * Golang: https://github.com/viamrobotics/rdk/blob/main/spatialmath/orientationVector.go
  * Rust:   https://github.com/viamrobotics/rust-utils/blob/main/src/spatialmath/utils.rs
@@ -194,6 +196,15 @@ export class OrientationVector {
 		this.#onChangeCallback?.()
 
 		return this
+	}
+
+	equals(orientationVector: OrientationVectorLike) {
+		return (
+			this.x === orientationVector.x &&
+			this.y === orientationVector.y &&
+			this.z === orientationVector.z &&
+			this.th === orientationVector.th
+		)
 	}
 
 	fromArray(array: number[], offset = 0) {

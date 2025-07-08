@@ -17,6 +17,10 @@ import (
 )
 
 func TestDrawGeometries(t *testing.T) {
+	// fern is black
+
+	// if colors.length is mismatched then it won't draw
+
 	t.Run("draw geometries", func(t *testing.T) {
 		box, err := spatialmath.NewBox(
 			spatialmath.NewPose(
@@ -114,10 +118,10 @@ func TestDrawGeometry(t *testing.T) {
 			r3.Vector{X: -343.34, Y: -139.51, Z: 537.44},
 			&spatialmath.OrientationVectorDegrees{Theta: 90, OX: -0.9943171068536344, OY: -0.0046240014351797976, OZ: -0.10635840177882347},
 		)
-		mesh.Transform(pose)
+		meshInWrld := mesh.Transform(pose).(*spatialmath.Mesh)
 
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, DrawGeometry(mesh, "blue"), test.ShouldBeNil)
+		test.That(t, DrawGeometry(meshInWrld, "blue"), test.ShouldBeNil)
 	})
 }
 

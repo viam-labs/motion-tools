@@ -16,7 +16,7 @@
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import Shapes from '$lib/components/Shapes.svelte'
 	import Camera from '$lib/components/Camera.svelte'
-	import { useFocused } from '$lib/hooks/useSelection.svelte'
+	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
@@ -39,9 +39,11 @@
 		},
 	})
 
-	const focused = useFocused()
+	const focusedObject3d = useFocusedObject3d()
 	const transformControls = useTransformControls()
 	const origin = useOrigin()
+
+	const object3d = $derived(focusedObject3d.current)
 
 	const { isPresenting } = useXR()
 </script>
@@ -56,7 +58,9 @@
 	rotation.x={$isPresenting ? -Math.PI / 2 : 0}
 	rotation.z={origin.rotation}
 >
-	{#if focused.current === undefined}
+	{#if object3d}
+		<Focus {object3d} />
+	{:else}
 		{#if !$isPresenting}
 			<Camera position={[3, 3, 3]}>
 				<CameraControls enabled={!transformControls.active}>
@@ -88,8 +92,6 @@
 				fadeDistance={25}
 			/>
 		{/if}
-	{:else}
-		<Focus />
 	{/if}
 
 	{@render children?.()}

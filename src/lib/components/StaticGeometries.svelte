@@ -39,7 +39,10 @@
 					<TransformControls
 						object={ref}
 						{mode}
-						onmouseDown={() => transformControls.setActive(true)}
+						onmouseDown={(event) => {
+							console.log(event)
+							transformControls.setActive(true)
+						}}
 						onmouseUp={() => {
 							transformControls.setActive(false)
 

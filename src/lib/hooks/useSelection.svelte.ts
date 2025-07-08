@@ -9,6 +9,7 @@ const selectionKey = Symbol('selection-context')
 const focusKey = Symbol('focus-context')
 const selectedObjectKey = Symbol('selected-frame-context')
 const focusedObjectKey = Symbol('focused-frame-context')
+const focusedObject3dKey = Symbol('focused-object-3d-context')
 
 interface SelectionContext {
 	readonly current: string | undefined
@@ -78,14 +79,26 @@ export const provideSelection = () => {
 	}
 	setContext<SelectedWorldObjectContext>(selectedObjectKey, selectedObjectContext)
 
-	const focusedFrame = $derived(objects.current.find((object) => object.uuid === focused))
+	const focusedObject = $derived(objects.current.find((object) => object.uuid === focused))
 
-	const focusedFrameContext = {
+	const focusedObjectContext = {
 		get current() {
-			return focusedFrame
+			return focusedObject
 		},
 	}
-	setContext<FocusedWorldObjectContext>(focusedObjectKey, focusedFrameContext)
+	setContext<FocusedWorldObjectContext>(focusedObjectKey, focusedObjectContext)
+
+	const { scene } = useThrelte()
+	const uuid = $derived(focusedObject?.uuid)
+	const focusedObject3d = $derived(
+		uuid ? scene.getObjectByProperty('uuid', uuid)?.clone() : undefined
+	)
+
+	setContext(focusedObject3dKey, {
+		get current() {
+			return focusedObject3d
+		},
+	})
 
 	return {
 		selection: selectionContext,
@@ -111,19 +124,7 @@ export const useSelectedObject = (): { current: WorldObject | undefined } => {
 }
 
 export const useFocusedObject3d = (): { current: Object3D | undefined } => {
-	const focusedObject = useFocusedObject()
-	const { scene } = useThrelte()
-	const object = $derived(
-		focusedObject.current
-			? scene.getObjectByProperty('uuid', focusedObject.current.uuid)?.clone()
-			: undefined
-	)
-
-	return {
-		get current() {
-			return object
-		},
-	}
+	return getContext(focusedObject3dKey)
 }
 
 const matrix = new Matrix4()

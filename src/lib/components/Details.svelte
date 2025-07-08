@@ -11,6 +11,11 @@
 	} from '$lib/hooks/useSelection.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
 	import { OrientationVector } from '$lib/three/OrientationVector'
+	import { useTask } from '@threlte/core'
+
+	const vec3 = new Vector3()
+	const quaternion = new Quaternion()
+	const ov = new OrientationVector()
 
 	const focused = useFocused()
 	const focusedObject = useFocusedObject()
@@ -21,15 +26,42 @@
 
 	const object = $derived(focusedObject.current ?? selectedObject.current)
 	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
-	const worldPosition = $derived(object3d?.getWorldPosition(new Vector3()))
-	const worldQuaternion = $derived(object3d?.getWorldQuaternion(new Quaternion()))
-	const worldOrientation = $derived(
-		worldQuaternion ? new OrientationVector().setFromQuaternion(worldQuaternion) : undefined
-	)
+	const worldPosition = $state({ x: 0, y: 0, z: 0 })
+	const worldOrientation = $state({ x: 0, y: 0, z: 1, th: 0 })
 
 	let copied = $state(false)
 
 	const draggable = useDraggable('details')
+
+	const { start, stop } = useTask(
+		() => {
+			object3d?.getWorldPosition(vec3)
+			if (!vec3.equals(worldPosition)) {
+				worldPosition.x = vec3.x
+				worldPosition.y = vec3.y
+				worldPosition.z = vec3.z
+			}
+
+			object3d?.getWorldQuaternion(quaternion)
+			ov.setFromQuaternion(quaternion)
+
+			if (!ov.equals(worldOrientation)) {
+				worldOrientation.x = ov.x
+				worldOrientation.y = ov.y
+				worldOrientation.z = ov.z
+				worldOrientation.th = ov.th
+			}
+		},
+		{ autoStart: false }
+	)
+
+	$effect.pre(() => {
+		if (object3d) {
+			start()
+		} else {
+			stop()
+		}
+	})
 </script>
 
 {#if object}
