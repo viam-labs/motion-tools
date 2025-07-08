@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import { TrackballControls, Gizmo } from '@threlte/extras'
-	import { Box3, Vector3 } from 'three'
+	import { Box3, type Object3D, Vector3 } from 'three'
 	import Camera from './Camera.svelte'
 
-	let { object3d } = $props()
+	interface Props {
+		object3d: Object3D
+	}
+
+	let { object3d }: Props = $props()
 
 	const box = new Box3()
 	const vec = new Vector3()
@@ -17,8 +21,6 @@
 		size = box.getSize(vec).toArray()
 		center = box.getCenter(vec).toArray()
 	})
-
-	console.log(object3d)
 </script>
 
 <Camera position={[0, 0, size[0] + 1]}>

@@ -1,5 +1,16 @@
-<script lang="ts">
+<script
+	module
+	lang="ts"
+>
+	import { OrientationVector } from '$lib/three/OrientationVector'
 	import { Quaternion, Vector3 } from 'three'
+
+	const vec3 = new Vector3()
+	const quaternion = new Quaternion()
+	const ov = new OrientationVector()
+</script>
+
+<script lang="ts">
 	import { Check, Copy } from 'lucide-svelte'
 	import { Button, Icon } from '@viamrobotics/prime-core'
 	import {
@@ -10,12 +21,7 @@
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
-	import { OrientationVector } from '$lib/three/OrientationVector'
 	import { useTask } from '@threlte/core'
-
-	const vec3 = new Vector3()
-	const quaternion = new Quaternion()
-	const ov = new OrientationVector()
 
 	const focused = useFocused()
 	const focusedObject = useFocusedObject()
