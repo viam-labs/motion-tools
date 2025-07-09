@@ -21,20 +21,24 @@
 	const selected = useSelected()
 	const events = useObjectEvents(() => uuid)
 
-	const colorGroup = getColorGroup(rest.name)
+	const colorGroup = $derived(getColorGroup(rest.name))
+	const colorHelper = new Color()
+	const color = $derived.by(() => {
+		if (selected.current === uuid) {
+			return `#${darkenColor(colorGroup.default ?? rest.metadata.color ?? colors.default, 75).getHexString()}`
+		}
+
+		if (rest.metadata.color) {
+			return `#${colorHelper.set(rest.metadata.color).getHexString()}`
+		}
+
+		return colorGroup.default
+	})
 </script>
 
 <Geometry
 	{uuid}
-	color={rest.metadata.color
-		? selected.current === uuid
-			? `#${darkenColor(rest.metadata.color, 75).getHexString()}`
-			: typeof rest.metadata.color === 'string'
-				? rest.metadata.color
-				: `#${new Color(rest.metadata.color).getHexString()}`
-		: selected.current === uuid
-			? colorGroup.selected
-			: colorGroup.default}
+	{color}
 	{...events}
 	{...rest}
 />
