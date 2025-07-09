@@ -9,6 +9,7 @@
 	import { VirtualList } from 'svelte-virtuallists'
 	import { observe } from '@threlte/core'
 	import { Icon } from '@viamrobotics/prime-core'
+	import { getColorGroup } from '$lib/color'
 
 	const visibility = useVisibility()
 	const expanded = useExpanded()
@@ -70,6 +71,7 @@
 	{@const nodeState = api.getNodeState(nodeProps)}
 	{@const isVisible = visibility.get(node.id) ?? true}
 	{@const { selected } = nodeState}
+	{@const colorGroup = getColorGroup(node.name)}
 
 	{#if nodeState.isBranch}
 		{@const { expanded } = nodeState}
@@ -90,9 +92,13 @@
 					<ChevronRight size={14} />
 				</span>
 				<span
-					class="flex items-center"
+					class="flex items-center gap-2"
 					{...api.getBranchTextProps(nodeProps)}
 				>
+					<span
+						class="h-2 w-2"
+						style="background: {selected ? colorGroup.selected : colorGroup.default}"
+					></span>
 					{node.name}
 				</span>
 
@@ -124,6 +130,10 @@
 			{...api.getItemProps(nodeProps)}
 		>
 			<span class="flex items-center gap-1.5">
+				<span
+					class="flex h-2 w-2 gap-4"
+					style="background: {selected ? colorGroup.selected : colorGroup.default}"
+				></span>
 				{node.name}
 			</span>
 
