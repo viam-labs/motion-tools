@@ -72,12 +72,68 @@ export const colors = {
 		selected: oklchToHex(twColors.amber['900']),
 		default: oklchToHex(twColors.amber['500']),
 	},
+	base: {
+		selected: oklchToHex(twColors.slate['900']),
+		default: oklchToHex(twColors.slate['500']),
+	},
+	board: {
+		selected: oklchToHex(twColors.emerald['900']),
+		default: oklchToHex(twColors.emerald['500']),
+	},
+	button: {
+		selected: oklchToHex(twColors.gray['900']),
+		default: oklchToHex(twColors.gray['500']),
+	},
 	camera: {
 		selected: oklchToHex(twColors.blue['900']),
 		default: oklchToHex(twColors.blue['500']),
 	},
+	encoder: {
+		selected: oklchToHex(twColors.lime['900']),
+		default: oklchToHex(twColors.lime['500']),
+	},
+	gantry: {
+		selected: oklchToHex(twColors.purple['900']),
+		default: oklchToHex(twColors.purple['500']),
+	},
 	gripper: {
 		selected: oklchToHex(twColors.cyan['900']),
 		default: oklchToHex(twColors.cyan['500']),
+	},
+	motor: {
+		selected: oklchToHex(twColors.orange['900']),
+		default: oklchToHex(twColors.orange['500']),
+	},
+	movement_sensor: {
+		selected: oklchToHex(twColors.indigo['900']),
+		default: oklchToHex(twColors.indigo['500']),
+	},
+	pose_tracker: {
+		selected: oklchToHex(twColors.rose['900']),
+		default: oklchToHex(twColors.rose['500']),
+	},
+	power_sensor: {
+		selected: oklchToHex(twColors.violet['900']),
+		default: oklchToHex(twColors.violet['500']),
+	},
+	sensor: {
+		selected: oklchToHex(twColors.teal['900']),
+		default: oklchToHex(twColors.teal['500']),
+	},
+	servo: {
+		selected: oklchToHex(twColors.yellow['900']),
+		default: oklchToHex(twColors.yellow['500']),
+	},
+	switch: {
+		selected: oklchToHex(twColors.stone['900']),
+		default: oklchToHex(twColors.stone['500']),
+	},
+	webcam: {
+		selected: oklchToHex(twColors.sky['900']),
+		default: oklchToHex(twColors.sky['500']),
+	},
+	unnamed_geometry: {
+		selected: oklchToHex(twColors.neutral['900']),
+		default: oklchToHex(twColors.neutral['500']),
 	},
 } as const
