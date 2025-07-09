@@ -139,9 +139,12 @@ export const colors = {
 } as const
 
 export function getColorGroup(name: string) {
+	console.log('getColorGroup called with:', name)
 	let type = name.split(/[-:]/)[0].trim().toLowerCase()
+	console.log('Extracted type:', type)
 	if (type === 'unnamed geometry') type = 'unnamed_geometry'
 	const group = colors[type as keyof typeof colors]
+	console.log('Color group:', group)
 	if (group && typeof group === 'object' && 'selected' in group && 'default' in group) {
 		return group
 	}
