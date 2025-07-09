@@ -137,3 +137,16 @@ export const colors = {
 		default: oklchToHex(twColors.neutral['500']),
 	},
 } as const
+
+export function getColorGroup(name: string) {
+	let type = name.split(/[-:]/)[0].trim().toLowerCase()
+	if (type === 'unnamed geometry') type = 'unnamed_geometry'
+	const group = colors[type as keyof typeof colors]
+	if (group && typeof group === 'object' && 'selected' in group && 'default' in group) {
+		return group
+	}
+	return {
+		selected: colors.selected,
+		default: colors.default,
+	}
+}

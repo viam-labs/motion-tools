@@ -5,7 +5,7 @@
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import Geometry from './Geometry.svelte'
 	import { useSelected } from '$lib/hooks/useSelection.svelte'
-	import { colors, darkenColor } from '$lib/color'
+	import { darkenColor, getColorGroup } from '$lib/color'
 
 	interface Props {
 		uuid: string
@@ -20,23 +20,6 @@
 
 	const selected = useSelected()
 	const events = useObjectEvents(() => uuid)
-
-	// Helper to always return an object with selected/default
-	function getColorGroup(name: string) {
-		console.log('getColorGroup', name)
-		let type = name.split(/[-:]/)[0].trim().toLowerCase()
-		if (type === 'unnamed geometry') type = 'unnamed_geometry'
-		const group = colors[type as keyof typeof colors]
-		console.log('type:', type, 'group:', group)
-		if (group && typeof group === 'object' && 'selected' in group && 'default' in group) {
-			return group
-		}
-		console.warn(`Unknown resource type "${type}" from name "${name}", using fallback color.`)
-		return {
-			selected: colors.selected,
-			default: colors.default,
-		}
-	}
 
 	const colorGroup = getColorGroup(rest.name)
 </script>
