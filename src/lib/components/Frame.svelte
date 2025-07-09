@@ -24,9 +24,10 @@
 	// Helper to always return an object with selected/default
 	function getColorGroup(name: string) {
 		console.log('getColorGroup', name)
-		// Extract type before first '-' or ':' (e.g., "arm-1:base_link" → "arm")
-		const type = name.split(/[-:]/)[0].trim().toLowerCase()
+		let type = name.split(/[-:]/)[0].trim().toLowerCase()
+		if (type === 'unnamed geometry') type = 'unnamed_geometry'
 		const group = colors[type as keyof typeof colors]
+		console.log('type:', type, 'group:', group)
 		if (group && typeof group === 'object' && 'selected' in group && 'default' in group) {
 			return group
 		}
