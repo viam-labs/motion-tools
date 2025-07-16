@@ -1,6 +1,11 @@
+<script module>
+	import { Color, type Object3D } from 'three'
+
+	const colorUtil = new Color()
+</script>
+
 <script lang="ts">
 	import type { Snippet } from 'svelte'
-	import type { Object3D } from 'three'
 	import type { WorldObject } from '$lib/WorldObject'
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import Geometry from './Geometry.svelte'
@@ -20,13 +25,15 @@
 
 	const selected = useSelected()
 	const events = useObjectEvents(() => uuid)
+
+	const color = $derived(rest.metadata.color ?? colors.default)
 </script>
 
 <Geometry
 	{uuid}
 	color={selected.current === uuid
-		? `#${darkenColor(rest.metadata.color ?? colors.default, 75).getHexString()}`
-		: undefined}
+		? `#${darkenColor(color, 75).getHexString()}`
+		: `#${colorUtil.set(color).getHexString()}`}
 	{...events}
 	{...rest}
 />

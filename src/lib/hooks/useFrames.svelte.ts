@@ -1,9 +1,15 @@
 import { getContext, setContext, untrack } from 'svelte'
-import { useRobotClient, createRobotQuery, useMachineStatus } from '@viamrobotics/svelte-sdk'
+import {
+	useRobotClient,
+	createRobotQuery,
+	useMachineStatus,
+	useResourceNames,
+} from '@viamrobotics/svelte-sdk'
 import { WorldObject } from '$lib/WorldObject'
 import { useRefreshRates } from './useRefreshRates.svelte'
 import { observe } from '@threlte/core'
 import { useLogs } from './useLogs.svelte'
+import { resourceColors } from '$lib/color'
 
 interface FramesContext {
 	current: WorldObject[]
@@ -14,8 +20,10 @@ interface FramesContext {
 const key = Symbol('frames-context')
 
 export const provideFrames = (partID: () => string) => {
+	const resourceNames = useResourceNames(partID)
 	const client = useRobotClient(partID)
 	const machineStatus = useMachineStatus(partID)
+
 	const logs = useLogs()
 	const refreshRates = useRefreshRates()
 
@@ -28,7 +36,7 @@ export const provideFrames = (partID: () => string) => {
 	const shouldFetch = $derived(refreshRates.get('Frames') === 1)
 
 	observe.pre(
-		() => [revision],
+		() => [revision, resourceNames.current],
 		() => {
 			if (shouldFetch) {
 				untrack(() => query.current).refetch()
@@ -45,16 +53,26 @@ export const provideFrames = (partID: () => string) => {
 		}
 
 		for (const { frame } of query.current.data ?? []) {
-			if (frame) {
-				objects.push(
-					new WorldObject(
-						frame.referenceFrame ? frame.referenceFrame : 'Unnamed frame',
-						frame.poseInObserverFrame?.pose,
-						frame.poseInObserverFrame?.referenceFrame,
-						frame.physicalObject?.geometryType
-					)
-				)
+			if (frame === undefined) {
+				continue
 			}
+
+			const resourceName = resourceNames.current.find((item) => item.name === frame.referenceFrame)
+
+			console.log(resourceName?.subtype, resourceName?.name)
+			objects.push(
+				new WorldObject(
+					frame.referenceFrame ? frame.referenceFrame : 'Unnamed frame',
+					frame.poseInObserverFrame?.pose,
+					frame.poseInObserverFrame?.referenceFrame,
+					frame.physicalObject?.geometryType,
+					resourceName
+						? {
+								color: resourceColors[resourceName.subtype as keyof typeof resourceColors],
+							}
+						: undefined
+				)
+			)
 		}
 
 		return objects

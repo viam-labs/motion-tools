@@ -48,7 +48,7 @@
 		poseToObject3d(pose, mesh)
 	})
 
-	let geo = $state<BufferGeometry>()
+	let geo = $state.raw<BufferGeometry>()
 
 	const oncreate = (ref: BufferGeometry) => {
 		geo = ref
