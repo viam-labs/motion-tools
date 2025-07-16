@@ -159,7 +159,6 @@ var Colors = map[string]string{
 // NamedColorToHex returns the hex string for a given named color.
 // For unsupported colors, it returns an error.
 func NamedColorToHex(name string) string {
-
 	if strings.HasPrefix(name, "#") {
 		return name
 	}

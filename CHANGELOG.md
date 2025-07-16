@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.6.0
+
+### Minor Changes
+
+- fb87f90: Assign colors to different resources
+
 ## 0.5.6
 
 ### Patch Changes

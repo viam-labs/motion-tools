@@ -65,19 +65,27 @@ export const darkenColor = (value: ColorRepresentation, percent: number): Color 
 	return new Color().setHSL(hsl.h, hsl.s, hsl.l)
 }
 
+const darkness = '600'
+
 export const colors = {
-	selected: oklchToHex(twColors.red['900']),
-	default: oklchToHex(twColors.red['500']),
-	arm: {
-		selected: oklchToHex(twColors.amber['900']),
-		default: oklchToHex(twColors.amber['500']),
-	},
-	camera: {
-		selected: oklchToHex(twColors.blue['900']),
-		default: oklchToHex(twColors.blue['500']),
-	},
-	gripper: {
-		selected: oklchToHex(twColors.cyan['900']),
-		default: oklchToHex(twColors.cyan['500']),
-	},
+	default: oklchToHex(twColors.red[darkness]),
+} as const
+
+export const resourceColors = {
+	arm: oklchToHex(twColors.amber[darkness]),
+	camera: oklchToHex(twColors.blue[darkness]),
+	base: oklchToHex(twColors.slate[darkness]),
+	board: oklchToHex(twColors.emerald[darkness]),
+	button: oklchToHex(twColors.gray[darkness]),
+	encoder: oklchToHex(twColors.lime[darkness]),
+	gantry: oklchToHex(twColors.purple[darkness]),
+	gripper: oklchToHex(twColors.cyan[darkness]),
+	motor: oklchToHex(twColors.orange[darkness]),
+	movement_sensor: oklchToHex(twColors.indigo[darkness]),
+	pose_tracker: oklchToHex(twColors.rose[darkness]),
+	power_sensor: oklchToHex(twColors.violet[darkness]),
+	sensor: oklchToHex(twColors.teal[darkness]),
+	servo: oklchToHex(twColors.yellow[darkness]),
+	switch: oklchToHex(twColors.stone[darkness]),
+	webcam: oklchToHex(twColors.sky[darkness]),
 } as const
