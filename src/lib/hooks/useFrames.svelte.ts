@@ -36,7 +36,7 @@ export const provideFrames = (partID: () => string) => {
 	const shouldFetch = $derived(refreshRates.get('Frames') === 1)
 
 	observe.pre(
-		() => [revision, resourceNames.current],
+		() => [revision],
 		() => {
 			if (shouldFetch) {
 				untrack(() => query.current).refetch()
@@ -59,7 +59,6 @@ export const provideFrames = (partID: () => string) => {
 
 			const resourceName = resourceNames.current.find((item) => item.name === frame.referenceFrame)
 
-			console.log(resourceName?.subtype, resourceName?.name)
 			objects.push(
 				new WorldObject(
 					frame.referenceFrame ? frame.referenceFrame : 'Unnamed frame',
