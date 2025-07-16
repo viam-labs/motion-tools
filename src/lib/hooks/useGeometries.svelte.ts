@@ -7,6 +7,7 @@ import { useRefreshRates } from './useRefreshRates.svelte'
 import { WorldObject } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 import { useLogs } from './useLogs.svelte'
+import { resourceColors } from '$lib/color'
 
 const key = Symbol('geometries-context')
 
@@ -15,11 +16,14 @@ interface Context {
 }
 
 export const provideGeometries = (partID: () => string) => {
-	const logs = useLogs()
-	const refreshRates = useRefreshRates()
+	const resourceNames = useResourceNames(partID)
 	const arms = useResourceNames(partID, 'arm')
 	const cameras = useResourceNames(partID, 'camera')
 	const grippers = useResourceNames(partID, 'gripper')
+
+	const logs = useLogs()
+	const refreshRates = useRefreshRates()
+
 	const armClients = $derived(
 		arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name))
 	)
@@ -68,8 +72,18 @@ export const provideGeometries = (partID: () => string) => {
 			if (!query.data) continue
 
 			for (const { center, label, geometryType } of query.data.geometries) {
+				const resourceName = resourceNames.current.find((item) => item.name === query.data.name)
+
 				results.push(
-					new WorldObject(label ? label : 'Unnamed geometry', center, query.data.name, geometryType)
+					new WorldObject(
+						label ? label : 'Unnamed geometry',
+						center,
+						query.data.name,
+						geometryType,
+						resourceName
+							? { color: resourceColors[resourceName.subtype as keyof typeof resourceColors] }
+							: undefined
+					)
 				)
 			}
 		}
