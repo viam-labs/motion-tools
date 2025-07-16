@@ -5,7 +5,7 @@
 		icon: IconName
 		active?: boolean
 		description: string
-		hotkey: string
+		hotkey?: string
 		class?: string
 		onclick?: () => void
 	}
@@ -14,7 +14,7 @@
 		icon,
 		active = false,
 		description,
-		hotkey,
+		hotkey = '',
 		class: className = '',
 		onclick,
 	}: Props = $props()

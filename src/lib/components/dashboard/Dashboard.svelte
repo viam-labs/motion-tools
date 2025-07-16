@@ -5,44 +5,7 @@
 	const settings = useSettings()
 </script>
 
-<div class="absolute top-2 flex w-full justify-center">
-	<!-- transform -->
-	<!-- <fieldset>
-    <Button
-      icon="cursor-move"
-      active={$transformMode === TransformModes.TRANSLATE}
-      description="Translate"
-      hotkey="T"
-      onclick={() => transformMode.set(TransformModes.TRANSLATE)}
-    />
-    <Button
-      icon="sync"
-      active={$transformMode === TransformModes.ROTATE}
-      description="Rotate"
-      hotkey="R"
-      class="-my-px"
-      onclick={() => transformMode.set(TransformModes.ROTATE)}
-    />
-    <Button
-      icon="resize"
-      active={$transformMode === TransformModes.SCALE}
-      description="Scale"
-      hotkey="S"
-      onclick={() => transformMode.set(TransformModes.SCALE)}
-    />
-  </fieldset> -->
-
-	<!-- snapping -->
-	<!-- <fieldset>
-    <Button
-      icon={$snapMode ? 'magnet' : 'magnet-off'}
-      active={$snapMode === true}
-      description="Snapping"
-      hotkey="Spacebar"
-      onClick={() => snapMode.set(!$snapMode)}
-    />
-  </fieldset> -->
-
+<div class="absolute top-2 flex w-full justify-center gap-2">
 	<!-- camera view -->
 	<fieldset class="flex">
 		<Button
@@ -65,4 +28,51 @@
 			}}
 		/>
 	</fieldset>
+
+	<!-- transform -->
+	{#if settings.current.transforming}
+		<fieldset class="flex">
+			<Button
+				icon="cursor-move"
+				active={settings.current.transformMode === 'translate'}
+				description="Translate"
+				hotkey="1"
+				onclick={() => {
+					settings.current.transformMode = 'translate'
+				}}
+			/>
+			<Button
+				icon="sync"
+				active={settings.current.transformMode === 'rotate'}
+				description="Rotate"
+				hotkey="2"
+				class="-ml-px"
+				onclick={() => {
+					settings.current.transformMode = 'rotate'
+				}}
+			/>
+			<Button
+				icon="resize"
+				active={settings.current.transformMode === 'scale'}
+				description="Scale"
+				hotkey="3"
+				class="-ml-px"
+				onclick={() => {
+					settings.current.transformMode = 'scale'
+				}}
+			/>
+		</fieldset>
+
+		<!-- snapping -->
+		<fieldset class="flex">
+			<Button
+				icon={settings.current.snapping ? 'magnet' : 'magnet-off'}
+				active={settings.current.snapping}
+				description="Snapping"
+				onclick={() => {
+					settings.current.snapping = !settings.current.snapping
+				}}
+			/>
+		</fieldset>
+	{/if}
 </div>
