@@ -1,5 +1,12 @@
 # motion-tools
 
+## 0.6.1
+
+### Patch Changes
+
+- d3aac67: Update to latest RDK
+- 3a7a5cb: Add configurable grid settings
+
 ## 0.6.0
 
 ### Minor Changes
