@@ -440,7 +440,7 @@ func DrawGLTF(filePath string) error {
 	return nil
 }
 
-func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
+func DrawFrameSystem(fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
 	frameGeomMap, err := referenceframe.FrameSystemGeometries(fs, inputs)
 	if err != nil {
 		return err
@@ -461,7 +461,7 @@ func DrawFrameSystem(fs referenceframe.FrameSystem, inputs referenceframe.FrameS
 	return nil
 }
 
-func DrawWorldState(ws *referenceframe.WorldState, fs referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
+func DrawWorldState(ws *referenceframe.WorldState, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
 	geoms, err := ws.ObstaclesInWorldFrame(fs, inputs)
 	if err != nil {
 		return err
@@ -488,7 +488,7 @@ func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.Worl
 		return err
 	}
 
-	rf, err := referenceframe.NewFrameSystem("foo", fsCfg.Parts, fsCfg.AdditionalTransforms)
+	rf, err := referenceframe.NewFrameSystem("foo", fsCfg.Parts, nil)
 	if err != nil {
 		return err
 	}
