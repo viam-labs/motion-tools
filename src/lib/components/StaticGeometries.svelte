@@ -23,6 +23,12 @@
 
 	keys.onKeys('=', () => geometries.add())
 	keys.onKeys('-', () => geometries.remove(selected.current ?? ''))
+
+	$effect(() => {
+		settings.current.transforming = geometries.current.some(
+			(geometry) => selected.current === geometry.uuid
+		)
+	})
 </script>
 
 {#each geometries.current as object (object.uuid)}
@@ -39,6 +45,9 @@
 					<TransformControls
 						object={ref}
 						{mode}
+						translationSnap={settings.current.snapping ? 0.1 : undefined}
+						rotationSnap={settings.current.snapping ? Math.PI / 24 : undefined}
+						scaleSnap={settings.current.snapping ? 0.1 : undefined}
 						onmouseDown={() => {
 							transformControls.setActive(true)
 						}}

@@ -22,6 +22,7 @@
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import KeyboardControls from './KeyboardControls.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -39,6 +40,7 @@
 		},
 	})
 
+	const settings = useSettings()
 	const focusedObject3d = useFocusedObject3d()
 	const transformControls = useTransformControls()
 	const origin = useOrigin()
@@ -81,15 +83,15 @@
 
 		<Selected />
 
-		{#if !$isPresenting}
+		{#if !$isPresenting && settings.current.grid}
 			<Grid
 				plane="xy"
 				sectionColor="#333"
 				infiniteGrid
-				cellSize={0.5}
-				sectionSize={10}
+				cellSize={settings.current.gridCellSize}
+				sectionSize={settings.current.gridSectionSize}
 				fadeOrigin={new Vector3()}
-				fadeDistance={25}
+				fadeDistance={settings.current.gridFadeDistance}
 			/>
 		{/if}
 	{/if}
