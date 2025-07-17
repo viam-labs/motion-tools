@@ -1,5 +1,5 @@
 ---
-"@viamrobotics/motion-tools": patch
+'@viamrobotics/motion-tools': patch
 ---
 
 Update to latest RDK
