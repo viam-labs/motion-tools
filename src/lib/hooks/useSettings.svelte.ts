@@ -18,6 +18,10 @@ interface Settings {
 	gridSectionSize: number
 	gridFadeDistance: number
 
+	// Points
+	pointSize: number
+	pointColor: string
+
 	// AR Mode
 	enableXR: boolean
 
@@ -39,6 +43,9 @@ const defaults = (): Settings => ({
 	gridCellSize: 0.5,
 	gridSectionSize: 10,
 	gridFadeDistance: 25,
+
+	pointSize: 0.01,
+	pointColor: '#333',
 
 	enableXR: false,
 

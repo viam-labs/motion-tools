@@ -243,7 +243,7 @@ func TestDrawPointCloud(t *testing.T) {
 	test.That(t, err, test.ShouldBeNil)
 
 	test.That(t, DrawPointCloud("octagon", pc1, &[3]uint8{0, 255, 0}), test.ShouldBeNil)
-	test.That(t, DrawPointCloud("Zaghetto", pc2, &[3]uint8{255, 0, 0}), test.ShouldBeNil)
+	test.That(t, DrawPointCloud("Zaghetto", pc2, nil), test.ShouldBeNil)
 	test.That(t, DrawPointCloud("simple", pc3, nil), test.ShouldBeNil)
 	test.That(t, DrawPointCloud("boat", pc4, nil), test.ShouldBeNil)
 }

@@ -231,18 +231,14 @@ export const provideShapes = () => {
 			return colors
 		}
 
-		const pointSize = 0.01
-
 		const metadata =
 			nColors > 0
 				? {
 						colors: getColors(),
 						color: new Color(r, g, b).convertLinearToSRGB(),
-						pointSize,
 					}
 				: {
 						color: new Color(r, g, b).convertLinearToSRGB(),
-						pointSize,
 					}
 
 		points.push(

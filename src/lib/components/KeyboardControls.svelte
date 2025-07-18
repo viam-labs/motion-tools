@@ -16,6 +16,7 @@
 	const settings = useSettings()
 
 	const keys = new PressedKeys()
+	const meta = $derived(keys.has('meta'))
 	const w = $derived(keys.has('w'))
 	const s = $derived(keys.has('s'))
 	const a = $derived(keys.has('a'))
@@ -27,10 +28,13 @@
 	const down = $derived(keys.has('arrowdown'))
 	const right = $derived(keys.has('arrowright'))
 	const any = $derived(w || s || a || d || r || f || up || left || down || right)
-
 	const { start, stop } = useTask(
 		(delta) => {
 			const dt = delta * 1000
+
+			if (meta) {
+				return
+			}
 
 			if (a) {
 				cameraControls.truck(-0.01 * dt, 0, true)
