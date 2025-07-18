@@ -62,16 +62,17 @@
 
 	const { start, stop } = useTask(
 		() => {
-			material.size = pointSize * (camera.current as OrthographicCamera).zoom
+			material.size = pointSize * ((camera.current as OrthographicCamera).zoom / 2)
 		},
 		{ autoStart: false }
 	)
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (orthographic) {
 			start()
 		} else {
 			stop()
+			material.size = pointSize
 		}
 	})
 </script>
