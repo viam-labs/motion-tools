@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { Points, BufferAttribute, BufferGeometry, PointsMaterial } from 'three'
+	import {
+		Points,
+		BufferAttribute,
+		BufferGeometry,
+		PointsMaterial,
+		OrthographicCamera,
+	} from 'three'
 
-	import { T } from '@threlte/core'
+	import { T, useTask, useThrelte } from '@threlte/core'
 	import type { WorldObject } from '$lib/WorldObject'
 	import { useObjectEvents } from '$lib/hooks/useObjectEvents.svelte'
 	import { meshBounds } from '@threlte/extras'
@@ -14,10 +20,13 @@
 
 	let { object }: Props = $props()
 
+	const { camera } = useThrelte()
 	const settings = useSettings()
 
 	const colors = $derived(object.metadata.colors)
+	const pointSize = $derived(object.metadata.pointSize ?? settings.current.pointSize)
 	const positions = $derived(object.geometry?.value ?? new Float32Array())
+	const orthographic = $derived(settings.current.cameraMode === 'orthographic')
 
 	const points = new Points()
 	const geometry = new BufferGeometry()
@@ -25,7 +34,7 @@
 	material.toneMapped = false
 
 	$effect.pre(() => {
-		material.size = object.metadata.pointSize ?? settings.current.pointSize
+		material.size = pointSize
 	})
 
 	$effect.pre(() => {
@@ -50,6 +59,21 @@
 	})
 
 	const events = useObjectEvents(() => object.uuid)
+
+	const { start, stop } = useTask(
+		() => {
+			material.size = pointSize * (camera.current as OrthographicCamera).zoom
+		},
+		{ autoStart: false }
+	)
+
+	$effect.pre(() => {
+		if (orthographic) {
+			start()
+		} else {
+			stop()
+		}
+	})
 </script>
 
 <T

@@ -308,18 +308,21 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]ui
 		data = append(data, float32(b))
 	}
 
-	fallbackColor := [3]uint8{0, 0, 0}
-	if overrideColor == nil {
-		overrideColor = &fallbackColor
+	// We set to -1 by default to communicate intentionally no color
+	finalColor := [3]float32{-255., -255., -255.}
+	if overrideColor != nil {
+		finalColor[0] = float32(overrideColor[0])
+		finalColor[1] = float32(overrideColor[1])
+		finalColor[2] = float32(overrideColor[2])
 	}
 
 	// Header: nPoints, nColors, color
 	data = append(data,
 		float32(nPoints),
 		float32(nColors),
-		float32(overrideColor[0])/255.0,
-		float32(overrideColor[1])/255.0,
-		float32(overrideColor[2])/255.0,
+		float32(finalColor[0])/255.0,
+		float32(finalColor[1])/255.0,
+		float32(finalColor[2])/255.0,
 	)
 
 	colors := make([]float32, 0, nColors*3)

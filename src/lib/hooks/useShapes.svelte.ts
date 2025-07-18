@@ -237,9 +237,11 @@ export const provideShapes = () => {
 						colors: getColors(),
 						color: new Color(r, g, b).convertLinearToSRGB(),
 					}
-				: {
-						color: new Color(r, g, b).convertLinearToSRGB(),
-					}
+				: r === -1
+					? undefined
+					: {
+							color: new Color(r, g, b).convertLinearToSRGB(),
+						}
 
 		points.push(
 			new WorldObject(
