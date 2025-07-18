@@ -308,7 +308,8 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]ui
 		data = append(data, float32(b))
 	}
 
-	// We set to -1 by default to communicate intentionally no color
+	// Set to -1 by default to communicate intentionally no color
+	// Allows users to set default colors in the web app.
 	finalColor := [3]float32{-255., -255., -255.}
 	if overrideColor != nil {
 		finalColor[0] = float32(overrideColor[0])

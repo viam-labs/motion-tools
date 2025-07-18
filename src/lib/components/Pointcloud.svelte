@@ -62,6 +62,8 @@
 
 	const { start, stop } = useTask(
 		() => {
+			// If using an orthographic camera, points need to be
+			// resized to half zoom to take up the same screen space.
 			material.size = pointSize * ((camera.current as OrthographicCamera).zoom / 2)
 		},
 		{ autoStart: false }
