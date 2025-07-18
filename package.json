@@ -61,7 +61,7 @@
 		"camera-controls": "3.1.0",
 		"eslint": "9.31.0",
 		"eslint-config-prettier": "10.1.5",
-		"eslint-plugin-svelte": "3.11.0",
+		"eslint-plugin-svelte": "3.10.1",
 		"globals": "16.3.0",
 		"idb-keyval": "6.2.2",
 		"jsdom": "26.1.0",
