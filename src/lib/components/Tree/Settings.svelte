@@ -80,6 +80,10 @@
 					/>
 				</div>
 			</label>
+
+			<label class="flex items-center justify-between gap-2">
+				Render stats <Switch bind:on={settings.current.renderStats} />
+			</label>
 		</div>
 	</div>
 </Drawer>

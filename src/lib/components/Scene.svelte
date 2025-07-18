@@ -1,13 +1,7 @@
 <script lang="ts">
-	import { Color, Vector3 } from 'three'
+	import { Vector3 } from 'three'
 	import { T } from '@threlte/core'
-	import {
-		CameraControls,
-		type CameraControlsRef,
-		Gizmo,
-		Grid,
-		interactivity,
-	} from '@threlte/extras'
+	import { Grid, interactivity, PerfMonitor } from '@threlte/extras'
 	import { PortalTarget } from './portal'
 	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
@@ -19,10 +13,10 @@
 	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
-	import { useTransformControls } from '$lib/hooks/useControls.svelte'
-	import KeyboardControls from './KeyboardControls.svelte'
+
 	import { useOrigin } from './xr/useOrigin.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import CameraControls from './CameraControls.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -42,7 +36,6 @@
 
 	const settings = useSettings()
 	const focusedObject3d = useFocusedObject3d()
-	const transformControls = useTransformControls()
 	const origin = useOrigin()
 
 	const object3d = $derived(focusedObject3d.current)
@@ -50,10 +43,9 @@
 	const { isPresenting } = useXR()
 </script>
 
-<T.Color
-	attach="background"
-	args={[new Color('white')]}
-/>
+{#if settings.current.renderStats}
+	<PerfMonitor anchorX="right" />
+{/if}
 
 <T.Group
 	position={origin.position}
@@ -65,12 +57,7 @@
 	{:else}
 		{#if !$isPresenting}
 			<Camera position={[3, 3, 3]}>
-				<CameraControls enabled={!transformControls.active}>
-					{#snippet children({ ref }: { ref: CameraControlsRef })}
-						<KeyboardControls cameraControls={ref} />
-						<Gizmo />
-					{/snippet}
-				</CameraControls>
+				<CameraControls />
 			</Camera>
 		{/if}
 

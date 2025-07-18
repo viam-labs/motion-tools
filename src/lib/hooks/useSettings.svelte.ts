@@ -20,6 +20,8 @@ interface Settings {
 
 	// AR Mode
 	enableXR: boolean
+
+	renderStats: boolean
 }
 
 interface Context {
@@ -39,6 +41,8 @@ const defaults = (): Settings => ({
 	gridFadeDistance: 25,
 
 	enableXR: false,
+
+	renderStats: false,
 })
 
 export const provideSettings = () => {
