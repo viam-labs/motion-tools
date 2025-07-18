@@ -1,5 +1,14 @@
 # motion-tools
 
+## 0.6.2
+
+### Patch Changes
+
+- 78477b3: Add Render stats toggle
+- 78477b3: Add reset camera button
+- 78477b3: Fix orthographic point size
+- 78477b3: Add pointcloud configuration settings
+
 ## 0.6.1
 
 ### Patch Changes
