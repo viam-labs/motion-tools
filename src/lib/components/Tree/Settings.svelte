@@ -42,6 +42,32 @@
 			</Select>
 		</label>
 
+		<h3 class="text-base"><strong>Pointclouds</strong></h3>
+		<div class="flex flex-col gap-2.5">
+			<label class="flex items-center justify-between gap-2">
+				Default point size
+
+				<div class="w-20">
+					<Input
+						bind:value={settings.current.pointSize}
+						on:keydown={(event) => event.stopImmediatePropagation()}
+					/>
+				</div>
+			</label>
+
+			<label class="flex items-center justify-between gap-2">
+				Default point color
+
+				<div class="w-20">
+					<Input
+						type="color"
+						bind:value={settings.current.pointColor}
+						on:keydown={(event) => event.stopImmediatePropagation()}
+					/>
+				</div>
+			</label>
+		</div>
+
 		<h3 class="text-base"><strong>Grid</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">
@@ -79,6 +105,13 @@
 						on:keydown={(event) => event.stopImmediatePropagation()}
 					/>
 				</div>
+			</label>
+		</div>
+
+		<h3 class="text-base"><strong>Misc</strong></h3>
+		<div class="flex flex-col gap-2.5">
+			<label class="flex items-center justify-between gap-2">
+				Render stats <Switch bind:on={settings.current.renderStats} />
 			</label>
 		</div>
 	</div>

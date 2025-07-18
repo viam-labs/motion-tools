@@ -1,5 +1,6 @@
 <script>
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import PortalTarget from '../portal/PortalTarget.svelte'
 	import Button from './Button.svelte'
 
 	const settings = useSettings()
@@ -75,4 +76,6 @@
 			/>
 		</fieldset>
 	{/if}
+
+	<PortalTarget id="dashboard" />
 </div>

@@ -18,8 +18,14 @@ interface Settings {
 	gridSectionSize: number
 	gridFadeDistance: number
 
+	// Points
+	pointSize: number
+	pointColor: string
+
 	// AR Mode
 	enableXR: boolean
+
+	renderStats: boolean
 }
 
 interface Context {
@@ -38,7 +44,12 @@ const defaults = (): Settings => ({
 	gridSectionSize: 10,
 	gridFadeDistance: 25,
 
+	pointSize: 0.01,
+	pointColor: '#333',
+
 	enableXR: false,
+
+	renderStats: false,
 })
 
 export const provideSettings = () => {
