@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -52,6 +51,8 @@ Browsers (especially Chrome/V8) heavily optimize TypedArray access.
 Avoiding object instantiation helps stay in fast paths of the JIT.
 */
 
+const DEFAULT_URL = "http://localhost:3000/"
+
 // DefaultColorMap is a list of sensible colors to cycle between
 // this is also the "Set1" colormap in Matplotlib
 var DefaultColorMap = []string{"#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"}
@@ -66,36 +67,9 @@ func (cc *colorChooser) next() string {
 	return c
 }
 
-const DEFAULT_IP = "localhost"
-
-func getLocalIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return DEFAULT_IP
-	}
-
-	for _, addr := range addrs {
-		var ip net.IP
-
-		switch v := addr.(type) {
-		case *net.IPNet:
-			ip = v.IP
-		case *net.IPAddr:
-			ip = v.IP
-		}
-
-		// Skip loopback and non-IPv4 addresses
-		if ip == nil || ip.IsLoopback() || ip.To4() == nil {
-			continue
-		}
-
-		return ip.String()
-	}
-
-	return DEFAULT_IP
-}
-
-var url = "http://" + getLocalIP() + ":3000/"
+var (
+	url = DEFAULT_URL
+)
 
 func SetURL(preferredURL string) {
 	url = preferredURL
