@@ -112,7 +112,6 @@
 	})
 
 	keys.onKeys('x', () => {
-		console.log('hi')
 		settings.current.enableXR = !settings.current.enableXR
 	})
 </script>
