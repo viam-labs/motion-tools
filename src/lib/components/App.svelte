@@ -5,7 +5,6 @@
 	import TreeContainer from '$lib/components/Tree/TreeContainer.svelte'
 	import Details from '$lib/components/Details.svelte'
 	import SceneProviders from './SceneProviders.svelte'
-	import DomPortal from './DomPortal.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { World } from '@threlte/rapier'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
@@ -37,15 +36,11 @@
 
 					<XR />
 
-					<DomPortal element={root}>
-						<Dashboard />
-						<Details />
-					</DomPortal>
+					<Dashboard />
+					<Details />
 
 					{#if !focus}
-						<DomPortal element={root}>
-							<TreeContainer />
-						</DomPortal>
+						<TreeContainer />
 					{/if}
 				{/snippet}
 			</SceneProviders>

@@ -1,12 +1,16 @@
 <script>
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { domPortal } from '$lib/portal'
 	import PortalTarget from '../portal/PortalTarget.svelte'
 	import Button from './Button.svelte'
 
 	const settings = useSettings()
 </script>
 
-<div class="absolute top-2 flex w-full justify-center gap-2">
+<div
+	{@attach domPortal()}
+	class="absolute top-2 flex w-full justify-center gap-2"
+>
 	<!-- camera view -->
 	<fieldset class="flex">
 		<Button
