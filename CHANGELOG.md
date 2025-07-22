@@ -1,5 +1,11 @@
 # motion-tools
 
+## 0.6.3
+
+### Patch Changes
+
+- f42bb52: Allow IPv6 posts in websocket server
+
 ## 0.6.2
 
 ### Patch Changes
