@@ -89,7 +89,7 @@ while (true) {
 	try {
 		serve({
 			port,
-			hostname: '0.0.0.0',
+			hostname: '::',
 
 			fetch(req, server) {
 				const { pathname } = new URL(req.url)
@@ -119,20 +119,20 @@ while (true) {
 
 			websocket: {
 				open(ws) {
-					console.log('WebSocket client connected at:', ws.remoteAddress)
+					console.log('WebSocket client connected.')
 					connections.add(ws)
 				},
 				message(ws, message) {
 					console.log(`Received: ${message}`)
 				},
 				close(ws) {
-					console.log('WebSocket client closed at:', ws.remoteAddress)
+					console.log('WebSocket client closed.')
 					connections.delete(ws)
 				},
 			},
 		})
-		console.log(`Server running at http://${localIP}:${port}`)
-		console.log(`WebSocket endpoint ws://${localIP}:${port}/ws`)
+		console.log(`HTTP Server running at http://${localIP}:${port}`)
+		console.log(`WebSocket endpoint at ws://${localIP}:${port}/ws`)
 
 		launchVite(port)
 
