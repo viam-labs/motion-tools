@@ -23,7 +23,7 @@
 	} from '$lib/hooks/useSelection.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
 
-	import { domPortal } from '$lib/portal'
+	const { ...rest } = $props()
 
 	const focused = useFocused()
 	const focusedObject = useFocusedObject()
@@ -75,9 +75,9 @@
 {#if object}
 	{@const { geometry } = object}
 	<div
-		{@attach domPortal()}
 		class="border-medium bg-extralight absolute top-0 right-0 z-10 m-2 w-60 border p-2 text-xs"
 		style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
+		{...rest}
 	>
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">

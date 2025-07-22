@@ -4,7 +4,8 @@
 	import OriginMarker from './OriginMarker.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import Controllers from './Controllers.svelte'
-	import { domPortal } from '$lib/portal'
+
+	const { ...rest } = $props()
 
 	const { isPresenting } = useXR()
 	const settings = useSettings()
@@ -21,7 +22,7 @@
 	</XR>
 
 	<XRButton
-		{@attach domPortal()}
 		mode="immersive-ar"
+		{...rest}
 	/>
 {/if}

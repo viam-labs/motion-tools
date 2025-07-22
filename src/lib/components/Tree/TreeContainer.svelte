@@ -9,7 +9,8 @@
 	import Settings from './Settings.svelte'
 	import Logs from './Logs.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
-	import { domPortal } from '$lib/portal'
+
+	const { ...rest } = $props()
 
 	provideTreeExpandedContext()
 
@@ -34,9 +35,9 @@
 </script>
 
 <div
-	{@attach domPortal()}
 	class="bg-extralight border-medium absolute top-0 left-0 m-2 overflow-y-auto border text-xs"
 	style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
+	{...rest}
 >
 	{#key rootNode}
 		<Tree

@@ -6,7 +6,7 @@ export const domPortal = (target?: HTMLElement): Attachment => {
 		finalTarget.append(element)
 
 		return () => {
-			finalTarget.remove()
+			element.remove()
 		}
 	}
 }

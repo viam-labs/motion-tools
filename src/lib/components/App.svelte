@@ -9,6 +9,7 @@
 	import { World } from '@threlte/rapier'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import Dashboard from './dashboard/Dashboard.svelte'
+	import { domPortal } from '$lib/portal'
 
 	interface Props {
 		partID?: string
@@ -34,13 +35,13 @@
 						{@render appChildren?.()}
 					</Scene>
 
-					<XR />
+					<XR {@attach domPortal(root)} />
 
-					<Dashboard />
-					<Details />
+					<Dashboard {@attach domPortal(root)} />
+					<Details {@attach domPortal(root)} />
 
 					{#if !focus}
-						<TreeContainer />
+						<TreeContainer {@attach domPortal(root)} />
 					{/if}
 				{/snippet}
 			</SceneProviders>
