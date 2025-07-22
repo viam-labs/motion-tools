@@ -12,6 +12,7 @@
 
 <script lang="ts">
 	import { Check, Copy } from 'lucide-svelte'
+	import { useTask } from '@threlte/core'
 	import { Button, Icon } from '@viamrobotics/prime-core'
 	import {
 		useSelectedObject,
@@ -21,7 +22,8 @@
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
-	import { useTask } from '@threlte/core'
+
+	const { ...rest } = $props()
 
 	const focused = useFocused()
 	const focusedObject = useFocusedObject()
@@ -75,6 +77,7 @@
 	<div
 		class="border-medium bg-extralight absolute top-0 right-0 z-10 m-2 w-60 border p-2 text-xs"
 		style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
+		{...rest}
 	>
 		<div class="flex items-center justify-between gap-2 pb-2">
 			<div class="flex items-center gap-1">
