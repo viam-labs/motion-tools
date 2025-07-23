@@ -73,18 +73,16 @@ export const provideGeometries = (partID: () => string) => {
 
 			for (const { center, label, geometryType } of query.data.geometries) {
 				const resourceName = resourceNames.current.find((item) => item.name === query.data.name)
-
-				results.push(
-					new WorldObject(
-						label ? label : 'Unnamed geometry',
-						center,
-						query.data.name,
-						geometryType,
-						resourceName
-							? { color: resourceColors[resourceName.subtype as keyof typeof resourceColors] }
-							: undefined
-					)
+				const worldObject = new WorldObject(
+					label ? label : 'Unnamed geometry',
+					center,
+					query.data.name,
+					geometryType,
+					resourceName
+						? { color: resourceColors[resourceName.subtype as keyof typeof resourceColors] }
+						: undefined
 				)
+				results.push(worldObject)
 			}
 		}
 

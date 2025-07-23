@@ -3,10 +3,15 @@
 	import PortalTarget from '../portal/PortalTarget.svelte'
 	import Button from './Button.svelte'
 
+	let { ...rest } = $props()
+
 	const settings = useSettings()
 </script>
 
-<div class="absolute top-2 flex w-full justify-center gap-2">
+<div
+	class="absolute top-2 flex w-full justify-center gap-2"
+	{...rest}
+>
 	<!-- camera view -->
 	<fieldset class="flex">
 		<Button
