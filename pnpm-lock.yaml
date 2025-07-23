@@ -105,8 +105,8 @@ devDependencies:
     specifier: 0.46.0
     version: 0.46.0
   '@viamrobotics/svelte-sdk':
-    specifier: 0.4.4
-    version: 0.4.4(@tanstack/svelte-query@5.83.0)(@viamrobotics/sdk@0.46.0)(svelte@5.36.7)
+    specifier: 0.4.3
+    version: 0.4.3(@tanstack/svelte-query@5.83.0)(@viamrobotics/sdk@0.46.0)(svelte@5.36.7)
   '@vitejs/plugin-basic-ssl':
     specifier: 2.1.0
     version: 2.1.0(vite@6.3.5)
@@ -2718,8 +2718,8 @@ packages:
       exponential-backoff: 3.1.2
     dev: true
 
-  /@viamrobotics/svelte-sdk@0.4.4(@tanstack/svelte-query@5.83.0)(@viamrobotics/sdk@0.46.0)(svelte@5.36.7):
-    resolution: {integrity: sha512-8nF/BJcBAjOod1LLqazC3bbeIHJ77cT76MfDzVHbymhjVGIAwH51tltWvfFrQK2eNn3BQ+1397NO4KeCYuJ4EQ==}
+  /@viamrobotics/svelte-sdk@0.4.3(@tanstack/svelte-query@5.83.0)(@viamrobotics/sdk@0.46.0)(svelte@5.36.7):
+    resolution: {integrity: sha512-Gjuuh6feexFyJaL8OHk1rFXZuarAtK48cIRKDM2lZB/tXbhKDyWJ16pFeC9SNCGo677SJxUmRAg417SBunEwtQ==}
     peerDependencies:
       '@tanstack/svelte-query': '>=5'
       '@viamrobotics/sdk': '>=0.38'
