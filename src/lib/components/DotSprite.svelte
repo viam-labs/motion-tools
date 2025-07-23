@@ -3,28 +3,21 @@
 	lang="ts"
 >
 	import { T, type Props as ThrelteProps } from '@threlte/core'
-	import { CanvasTexture, SpriteMaterial, type Sprite, type ColorRepresentation } from 'three'
+	import { CanvasTexture, type Sprite, type ColorRepresentation } from 'three'
 
-	const generateDotTexture = (size = 64) => {
-		const canvas = document.createElement('canvas')
-		canvas.width = canvas.height = size
-		const ctx = canvas.getContext('2d')
+	const size = 128
+	const canvas = new OffscreenCanvas(size, size)
+	const ctx = canvas.getContext('2d')
 
-		if (ctx) {
-			// Transparent background
-			ctx.clearRect(0, 0, size, size)
-
-			// Draw a filled circle in the center
-			ctx.beginPath()
-			ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
-			ctx.fillStyle = 'white'
-			ctx.fill()
-		}
-
-		return canvas
+	if (ctx) {
+		ctx.clearRect(0, 0, size, size)
+		ctx.beginPath()
+		ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+		ctx.fillStyle = 'white'
+		ctx.fill()
 	}
 
-	const map = new CanvasTexture(generateDotTexture())
+	const map = new CanvasTexture(canvas)
 </script>
 
 <script lang="ts">
@@ -34,19 +27,6 @@
 	}
 
 	let { color, opacity = 1, ref = $bindable(), ...rest }: Props = $props()
-
-	const material = new SpriteMaterial({
-		map,
-		transparent: true,
-		color: 'black',
-		depthTest: false,
-	})
-
-	$effect.pre(() => {
-		if (color) {
-			material.color.set(color)
-		}
-	})
 </script>
 
 <T.Sprite
@@ -54,8 +34,11 @@
 	scale={0.05}
 	{...rest}
 >
-	<T
-		is={material}
+	<T.SpriteMaterial
+		transparent
+		depthTest={false}
+		{map}
 		{opacity}
+		color={color ?? 'black'}
 	/>
 </T.Sprite>
