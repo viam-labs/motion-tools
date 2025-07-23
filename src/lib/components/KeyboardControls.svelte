@@ -111,7 +111,7 @@
 		settings.current.transformMode = 'scale'
 	})
 
-	keys.onKeys(['ctrl', 'x'], () => {
+	keys.onKeys('x', () => {
 		settings.current.enableXR = !settings.current.enableXR
 	})
 </script>

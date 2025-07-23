@@ -2,9 +2,10 @@
 	import { T } from '@threlte/core'
 	import { useXR, XR, XRButton } from '@threlte/xr'
 	import OriginMarker from './OriginMarker.svelte'
-	import DomPortal from '../DomPortal.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import Controllers from './Controllers.svelte'
+
+	const { ...rest } = $props()
 
 	const { isPresenting } = useXR()
 	const settings = useSettings()
@@ -20,7 +21,8 @@
 		<Controllers />
 	</XR>
 
-	<DomPortal>
-		<XRButton mode="immersive-ar" />
-	</DomPortal>
+	<XRButton
+		mode="immersive-ar"
+		{...rest}
+	/>
 {/if}
