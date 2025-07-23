@@ -2,6 +2,9 @@
 	module
 	lang="ts"
 >
+	import { T, type Props as ThrelteProps } from '@threlte/core'
+	import { CanvasTexture, SpriteMaterial, type Sprite, type ColorRepresentation } from 'three'
+
 	const generateDotTexture = (size = 64) => {
 		const canvas = document.createElement('canvas')
 		canvas.width = canvas.height = size
@@ -20,12 +23,11 @@
 
 		return canvas
 	}
+
+	const map = new CanvasTexture(generateDotTexture())
 </script>
 
 <script lang="ts">
-	import { T, type Props as ThrelteProps } from '@threlte/core'
-	import { CanvasTexture, SpriteMaterial, type Sprite, type ColorRepresentation } from 'three'
-
 	interface Props extends ThrelteProps<typeof Sprite> {
 		color?: ColorRepresentation
 		opacity?: number
@@ -34,7 +36,7 @@
 	let { color, opacity = 1, ref = $bindable(), ...rest }: Props = $props()
 
 	const material = new SpriteMaterial({
-		map: new CanvasTexture(generateDotTexture()),
+		map,
 		transparent: true,
 		color: 'black',
 		depthTest: false,
