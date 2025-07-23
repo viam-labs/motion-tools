@@ -5,11 +5,11 @@
 	import TreeContainer from '$lib/components/Tree/TreeContainer.svelte'
 	import Details from '$lib/components/Details.svelte'
 	import SceneProviders from './SceneProviders.svelte'
-	import DomPortal from './DomPortal.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { World } from '@threlte/rapier'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import Dashboard from './dashboard/Dashboard.svelte'
+	import { domPortal } from '$lib/portal'
 
 	interface Props {
 		partID?: string
@@ -35,17 +35,13 @@
 						{@render appChildren?.()}
 					</Scene>
 
-					<XR />
+					<XR {@attach domPortal(root)} />
 
-					<DomPortal element={root}>
-						<Dashboard />
-						<Details />
-					</DomPortal>
+					<Dashboard {@attach domPortal(root)} />
+					<Details {@attach domPortal(root)} />
 
 					{#if !focus}
-						<DomPortal element={root}>
-							<TreeContainer />
-						</DomPortal>
+						<TreeContainer {@attach domPortal(root)} />
 					{/if}
 				{/snippet}
 			</SceneProviders>

@@ -10,6 +10,8 @@
 	import Logs from './Logs.svelte'
 	import { useDraggable } from '$lib/hooks/useDraggable.svelte'
 
+	const { ...rest } = $props()
+
 	provideTreeExpandedContext()
 
 	const selected = useSelected()
@@ -35,6 +37,7 @@
 <div
 	class="bg-extralight border-medium absolute top-0 left-0 m-2 overflow-y-auto border text-xs"
 	style:transform="translate({draggable.current.x}px, {draggable.current.y}px)"
+	{...rest}
 >
 	{#key rootNode}
 		<Tree
