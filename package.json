@@ -54,7 +54,7 @@
 		"@typescript-eslint/parser": "8.38.0",
 		"@viamrobotics/prime-core": "0.1.5",
 		"@viamrobotics/sdk": "0.46.0",
-		"@viamrobotics/svelte-sdk": "0.4.4",
+		"@viamrobotics/svelte-sdk": "0.4.3",
 		"@vitejs/plugin-basic-ssl": "2.1.0",
 		"@zag-js/svelte": "1.19.0",
 		"@zag-js/tree-view": "1.19.0",

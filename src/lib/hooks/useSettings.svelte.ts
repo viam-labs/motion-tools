@@ -25,6 +25,8 @@ interface Settings {
 	// AR Mode
 	enableXR: boolean
 
+	enableMeasure: boolean
+
 	renderStats: boolean
 }
 
@@ -46,6 +48,8 @@ const defaults = (): Settings => ({
 
 	pointSize: 0.01,
 	pointColor: '#333',
+
+	enableMeasure: false,
 
 	enableXR: false,
 

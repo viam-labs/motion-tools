@@ -17,6 +17,7 @@
 	import { useOrigin } from './xr/useOrigin.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import CameraControls from './CameraControls.svelte'
+	import MeasureTool from './MeasureTool.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -63,6 +64,7 @@
 
 		<PortalTarget id="world" />
 
+		<MeasureTool />
 		<StaticGeometries />
 		<Frames />
 		<Pointclouds />
