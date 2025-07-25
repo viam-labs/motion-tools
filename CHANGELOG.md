@@ -1,5 +1,15 @@
 # motion-tools
 
+## 0.7.0
+
+### Minor Changes
+
+- ff124ba: Add measure tool
+
+### Patch Changes
+
+- 8380f14: Replace DomPortal component with attachment
+
 ## 0.6.3
 
 ### Patch Changes
