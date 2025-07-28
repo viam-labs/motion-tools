@@ -13,6 +13,8 @@ export type Metadata = {
 	gltf?: { scene: Object3D }
 	points?: Vector3[]
 	pointSize?: number
+	lineWidth?: number
+	lineDotColor?: ColorRepresentation
 	batched?: {
 		id: number
 		object: BatchedMesh

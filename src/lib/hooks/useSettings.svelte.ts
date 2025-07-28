@@ -22,6 +22,10 @@ interface Settings {
 	pointSize: number
 	pointColor: string
 
+	// Lines
+	lineWidth: number
+	lineDotSize: number
+
 	// AR Mode
 	enableXR: boolean
 
@@ -47,7 +51,10 @@ const defaults = (): Settings => ({
 	gridFadeDistance: 25,
 
 	pointSize: 0.01,
-	pointColor: '#333',
+	pointColor: '#333333',
+
+	lineWidth: 0.005,
+	lineDotSize: 0.01,
 
 	enableMeasure: false,
 

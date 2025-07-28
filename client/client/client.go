@@ -71,6 +71,12 @@ var (
 	url = DEFAULT_URL
 )
 
+const (
+	PointsType = 0
+	PosesType  = 1
+	LineType   = 2
+)
+
 func SetURL(preferredURL string) {
 	url = preferredURL
 }
@@ -150,6 +156,71 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 	return postHTTP(result, "json", "geometries")
 }
 
+func DrawLine(label string, points []spatialmath.Pose, color *[3]uint8, dotColor *[3]uint8) error {
+	labelError := isASCIIPrintable(label)
+	if labelError != nil {
+		return labelError
+	}
+
+	labelBytes := []byte(label)
+	labelLen := len(labelBytes)
+
+	nPoints := len(points)
+
+	// total floats:
+	// 1 (type) + 1 (label length) + labelLen + 1 (nPoints) + 3 (default color)
+	// + 3 (default dot color) + 3*nPoints (positions)
+	total := 1 + 1 + labelLen + 1 + 3 + 3 + nPoints*3
+	data := make([]float32, 0, total)
+
+	data = append(data, float32(LineType), float32(labelLen))
+	for _, b := range labelBytes {
+		data = append(data, float32(b))
+	}
+
+	// Set to -1 by default to communicate intentionally no color
+	// Allows users to set default colors in the web app.
+	finalColor := [3]float32{-255., -255., -255.}
+	if color != nil {
+		finalColor[0] = float32(color[0])
+		finalColor[1] = float32(color[1])
+		finalColor[2] = float32(color[2])
+	}
+
+	finalDotColor := [3]float32{-255., -255., -255.}
+	if dotColor != nil {
+		finalDotColor[0] = float32(dotColor[0])
+		finalDotColor[1] = float32(dotColor[1])
+		finalDotColor[2] = float32(dotColor[2])
+	}
+
+	data = append(data,
+		float32(nPoints),
+		finalColor[0]/255.0,
+		finalColor[1]/255.0,
+		finalColor[2]/255.0,
+		finalDotColor[0]/255.0,
+		finalDotColor[1]/255.0,
+		finalDotColor[2]/255.0,
+	)
+
+	for _, pose := range points {
+		point := pose.Point()
+		data = append(data,
+			float32(point.X)/1000.0,
+			float32(point.Y)/1000.0,
+			float32(point.Z)/1000.0,
+		)
+	}
+
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, data); err != nil {
+		return err
+	}
+
+	return postHTTP(buf.Bytes(), "octet-stream", "line")
+}
+
 // DrawPoints sends a list of points to the visualizer.
 //
 // Parameters:
@@ -175,8 +246,7 @@ func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, colo
 	total := 1 + 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
 	data := make([]float32, 0, total)
 
-	// 0 = points
-	data = append(data, float32(0), float32(labelLen))
+	data = append(data, float32(PointsType), float32(labelLen))
 	for _, b := range labelBytes {
 		data = append(data, float32(b))
 	}
@@ -237,8 +307,8 @@ func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) 
 		a = 1.
 	}
 
-	// Header, 1 = poses
-	data = append(data, float32(1), float32(nPoses), float32(nColors), float32(a))
+	// Header
+	data = append(data, float32(PosesType), float32(nPoses), float32(nColors), float32(a))
 
 	for _, pose := range poses {
 		point := pose.Point()
@@ -302,8 +372,7 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]ui
 	total := 1 + 1 + labelLen + 2 + 3 + nPoints*3 + nColors*3
 	data := make([]float32, 0, total)
 
-	// 0 = points
-	data = append(data, float32(0), float32(labelLen))
+	data = append(data, float32(PointsType), float32(labelLen))
 	for _, b := range labelBytes {
 		data = append(data, float32(b))
 	}

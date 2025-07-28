@@ -4,6 +4,7 @@
 	import { useShapes } from '$lib/hooks/useShapes.svelte'
 	import WorldObject from './WorldObject.svelte'
 	import Frame from './Frame.svelte'
+	import Line from './Line.svelte'
 
 	const shapes = useShapes()
 </script>
@@ -46,4 +47,8 @@
 	<WorldObject {object}>
 		<PortalTarget id={object.name} />
 	</WorldObject>
+{/each}
+
+{#each shapes.lines as object (object.uuid)}
+	<Line {object} />
 {/each}

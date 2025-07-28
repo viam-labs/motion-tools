@@ -101,7 +101,7 @@
 	{#if geometry?.case === 'line'}
 		<MeshLineMaterial
 			{color}
-			width={0.005}
+			width={metadata.lineWidth ?? 0.005}
 		/>
 	{:else if geometry}
 		<T.MeshToonMaterial

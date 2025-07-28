@@ -108,6 +108,31 @@
 			</label>
 		</div>
 
+		<h3 class="text-base"><strong>Lines</strong></h3>
+		<div class="flex flex-col gap-2.5">
+			<label class="flex items-center justify-between gap-2">
+				Thickness
+
+				<div class="w-20">
+					<Input
+						bind:value={settings.current.lineWidth}
+						on:keydown={(event) => event.stopImmediatePropagation()}
+					/>
+				</div>
+			</label>
+
+			<label class="flex items-center justify-between gap-2">
+				Dot size
+
+				<div class="w-20">
+					<Input
+						bind:value={settings.current.lineDotSize}
+						on:keydown={(event) => event.stopImmediatePropagation()}
+					/>
+				</div>
+			</label>
+		</div>
+
 		<h3 class="text-base"><strong>Misc</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">

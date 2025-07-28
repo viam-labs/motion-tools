@@ -11,6 +11,7 @@ type ConnectionStatus = 'connecting' | 'open' | 'closed'
 
 interface Context {
 	points: WorldObject<PointsGeometry>[]
+	lines: WorldObject[]
 	meshes: WorldObject[]
 	poses: WorldObject[]
 	nurbs: WorldObject[]
@@ -65,6 +66,7 @@ export const provideShapes = () => {
 	let ws: WebSocket
 
 	const points = $state<WorldObject<PointsGeometry>[]>([])
+	const lines = $state<WorldObject[]>([])
 	const meshes = $state<WorldObject[]>([])
 	const poses = $state<WorldObject[]>([])
 	const nurbs = $state<WorldObject[]>([])
@@ -257,6 +259,55 @@ export const provideShapes = () => {
 		)
 	}
 
+	const addLine = async (reader: Float32Reader) => {
+		// Read label length
+		const labelLen = reader.read()
+		let label = ''
+		for (let i = 0; i < labelLen; i++) {
+			label += String.fromCharCode(reader.read())
+		}
+
+		// Read counts
+		const nPoints = reader.read()
+
+		// Read default color
+		const lineR = reader.read()
+		const lineG = reader.read()
+		const lineB = reader.read()
+
+		const dotR = reader.read()
+		const dotG = reader.read()
+		const dotB = reader.read()
+
+		// Read positions
+		const positions = new Float32Array(nPoints * 3)
+		for (let i = 0; i < nPoints * 3; i++) {
+			positions[i] = reader.read()
+		}
+
+		const points = []
+		for (let i = 0; i < positions.length; i += 3) {
+			points.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]))
+		}
+
+		lines.push(
+			new WorldObject(
+				label,
+				undefined,
+				undefined,
+				{
+					case: 'line',
+					value: positions,
+				},
+				{
+					points,
+					color: lineR === -1 ? undefined : new Color().setRGB(lineR, lineG, lineB),
+					lineDotColor: dotR === -1 ? undefined : new Color().setRGB(dotR, dotG, dotB),
+				}
+			)
+		)
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const addGeometries = (geometries: any[], colors: string[], parent: string) => {
 		let i = 0
@@ -317,11 +368,19 @@ export const provideShapes = () => {
 				models.splice(index, 1)
 				continue
 			}
+
+			index = lines.findIndex((m) => m.name === name)
+
+			if (index !== -1) {
+				lines.splice(index, 1)
+				continue
+			}
 		}
 	}
 
 	const removeAll = () => {
 		points.splice(0, points.length)
+		lines.splice(0, lines.length)
 		meshes.splice(0, meshes.length)
 
 		nurbs.splice(0, nurbs.length)
@@ -375,6 +434,8 @@ export const provideShapes = () => {
 			} else if (type === 1) {
 				return addPoses(reader)
 			} else if (type === 2) {
+				return addLine(reader)
+			} else if (type === 3) {
 				return addPCD(reader.buffer)
 			} else {
 				return addGLTF(reader.buffer)
@@ -422,6 +483,9 @@ export const provideShapes = () => {
 	setContext<Context>(key, {
 		get points() {
 			return points
+		},
+		get lines() {
+			return lines
 		},
 		get meshes() {
 			return meshes
