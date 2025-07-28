@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Fix reactivity issues with refresh reates
+Fix reactivity issues with refresh rates
