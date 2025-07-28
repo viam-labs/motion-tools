@@ -38,6 +38,7 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 		switch (pathname) {
 			case '/geometry':
 			case '/geometries':
+			case '/camera':
 			case '/nurbs': {
 				const json = await req.json()
 				const success = sendToClients(JSON.stringify(json))

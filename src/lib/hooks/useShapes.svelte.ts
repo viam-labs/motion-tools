@@ -21,6 +21,14 @@ interface Context {
 	object3ds: {
 		batchedArrow: BatchedArrow
 	}
+
+	camera:
+		| {
+				position: Vector3
+				lookAt: Vector3
+				animate: boolean
+		  }
+		| undefined
 }
 
 const key = Symbol('websocket-context-key')
@@ -70,6 +78,7 @@ export const provideShapes = () => {
 	const nurbs = $state<WorldObject[]>([])
 	const models = $state<WorldObject[]>([])
 
+	let camera = $state<Context['camera']>()
 	let connectionStatus = $state<ConnectionStatus>('connecting')
 
 	const color = new Color()
@@ -385,6 +394,14 @@ export const provideShapes = () => {
 
 		if (!data) return
 
+		if ('setCameraPose' in data) {
+			camera = {
+				position: new Vector3(data.Position.X, data.Position.Y, data.Position.Z),
+				lookAt: new Vector3(data.LookAt.X, data.LookAt.Y, data.LookAt.Z),
+				animate: data.Animate,
+			}
+		}
+
 		if ('geometries' in data) {
 			return addGeometries(data.geometries, data.colors, data.parent)
 		}
@@ -440,6 +457,9 @@ export const provideShapes = () => {
 		},
 		object3ds: {
 			batchedArrow,
+		},
+		get camera() {
+			return camera
 		},
 	})
 }
