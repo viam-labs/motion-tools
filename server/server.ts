@@ -46,6 +46,7 @@ async function handlePost(req: Request, pathname: string): Promise<Response> {
 
 			case '/points':
 			case '/poses':
+			case '/line':
 			case '/gltf':
 			case '/pcd': {
 				const buffer = await req.arrayBuffer()

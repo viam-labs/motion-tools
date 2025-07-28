@@ -27,6 +27,7 @@ export const provideObjects = () => {
 		...shapes.models,
 		...shapes.nurbs,
 		...shapes.points,
+		...shapes.lines,
 		...statics.current,
 		...shapes.poses,
 	])
