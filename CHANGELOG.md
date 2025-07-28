@@ -1,5 +1,12 @@
 # motion-tools
 
+## 0.8.0
+
+### Minor Changes
+
+- 9bd8ea2: Add DrawLine function
+- 39abdc9: Add SetCameraPose function
+
 ## 0.7.0
 
 ### Minor Changes
