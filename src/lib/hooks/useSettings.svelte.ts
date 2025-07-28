@@ -29,6 +29,8 @@ interface Settings {
 	// AR Mode
 	enableXR: boolean
 
+	enableMeasure: boolean
+
 	renderStats: boolean
 }
 
@@ -53,6 +55,8 @@ const defaults = (): Settings => ({
 
 	lineWidth: 0.005,
 	lineDotSize: 0.01,
+
+	enableMeasure: false,
 
 	enableXR: false,
 

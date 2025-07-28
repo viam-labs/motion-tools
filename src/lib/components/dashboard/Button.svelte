@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Icon, type IconName, Tooltip } from '@viamrobotics/prime-core'
+	import { Ruler } from 'lucide-svelte'
 
 	interface Props {
-		icon: IconName
+		icon: IconName | 'ruler'
 		active?: boolean
 		description: string
 		hotkey?: string
@@ -39,7 +40,11 @@
 			aria-checked={active}
 			{onclick}
 		>
-			<Icon name={icon} />
+			{#if icon === 'ruler'}
+				<Ruler size="16" />
+			{:else}
+				<Icon name={icon} />
+			{/if}
 		</button>
 	</label>
 	<p slot="description">
