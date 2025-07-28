@@ -12,7 +12,6 @@
 	let { object }: Props = $props()
 
 	const settings = useSettings()
-	$inspect(object.metadata.points)
 </script>
 
 <Frame

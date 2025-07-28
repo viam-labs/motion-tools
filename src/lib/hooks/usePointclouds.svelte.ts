@@ -1,10 +1,10 @@
-import { createQueries, queryOptions } from '@tanstack/svelte-query'
+import { createQueries, queryOptions, type CreateQueryOptions } from '@tanstack/svelte-query'
 import { CameraClient } from '@viamrobotics/sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
-import { useRefreshRates } from './useRefreshRates.svelte'
+import { useMachineSettings } from './useMachineSettings.svelte'
 import { WorldObject, type PointsGeometry } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 import { useLogs } from './useLogs.svelte'
@@ -17,7 +17,7 @@ interface Context {
 
 export const providePointclouds = (partID: () => string) => {
 	const logs = useLogs()
-	const refreshRates = useRefreshRates()
+	const { refreshRates, disabledCameras } = useMachineSettings()
 	const cameras = useResourceNames(partID, 'camera')
 
 	if (!refreshRates.has('Pointclouds')) {
@@ -28,13 +28,23 @@ export const providePointclouds = (partID: () => string) => {
 		cameras.current.map((camera) => createResourceClient(CameraClient, partID, () => camera.name))
 	)
 
-	const options = $derived(
-		clients.map((cameraClient) => {
-			const name = cameraClient.current?.name ?? ''
-			const interval = refreshRates.get('Pointclouds')
+	const options = $derived.by(() => {
+		const interval = refreshRates.get('Pointclouds')
+		const results: CreateQueryOptions<
+			WorldObject<PointsGeometry> | null,
+			Error,
+			WorldObject<PointsGeometry> | null,
+			string[]
+		>[] = []
 
-			return queryOptions({
-				enabled: interval !== -1 && cameraClient.current !== undefined,
+		for (const cameraClient of clients) {
+			const name = cameraClient.current?.name ?? ''
+
+			const options = queryOptions({
+				enabled:
+					interval !== -1 &&
+					cameraClient.current !== undefined &&
+					disabledCameras.get(name) !== true,
 				refetchInterval: interval === 0 ? false : interval,
 				queryKey: ['partID', partID(), name, 'getPointCloud'],
 				queryFn: async (): Promise<WorldObject<PointsGeometry> | null> => {
@@ -58,8 +68,12 @@ export const providePointclouds = (partID: () => string) => {
 					)
 				},
 			})
-		})
-	)
+
+			results.push(options)
+		}
+
+		return results
+	})
 
 	const { updateUUIDs } = usePersistentUUIDs()
 	const queries = fromStore(

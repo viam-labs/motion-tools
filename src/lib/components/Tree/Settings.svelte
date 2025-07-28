@@ -4,8 +4,14 @@
 	import { useMotionClient } from '$lib/hooks/useMotionClient.svelte'
 	import Drawer from './Drawer.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useMachineSettings } from '$lib/hooks/useMachineSettings.svelte'
 
+	const partID = usePartID()
+	const cameras = useResourceNames(() => partID.current, 'camera')
 	const settings = useSettings()
+	const { disabledCameras } = useMachineSettings()
 	const motionClient = useMotionClient()
 </script>
 
@@ -14,20 +20,30 @@
 	defaultOpen
 >
 	<div class="flex h-100 flex-col gap-2 overflow-scroll p-3">
-		<h3 class="text-base"><strong>Refresh rates</strong></h3>
+		<h3 class="text-sm"><strong>Machine connection</strong></h3>
 
-		<RefreshRate name="Frames">
-			<option value="0">Do not fetch</option>
-			<option value="1">Fetch on reconfigure</option>
-		</RefreshRate>
-		<RefreshRate name="Pointclouds" />
 		<RefreshRate name="Geometries" />
 		<RefreshRate name="Poses" />
-
-		<h3 class="text-base"><strong>Motion</strong></h3>
+		<RefreshRate name="Pointclouds" />
+		<div>
+			<div>Enabled pointcloud cameras</div>
+			{#each cameras.current as camera (camera)}
+				<div class="flex items-center justify-between gap-4 py-2">
+					{camera.name}
+					<Switch
+						on={disabledCameras.get(camera.name) !== true}
+						on:change={(event) => {
+							disabledCameras.set(camera.name, !event.detail)
+						}}
+					/>
+				</div>
+			{:else}
+				No cameras detected
+			{/each}
+		</div>
 
 		<label class="flex flex-col gap-1">
-			Client
+			Motion client
 			<Select
 				onchange={(event: InputEvent) => {
 					if (event.target instanceof HTMLSelectElement) {
@@ -42,7 +58,7 @@
 			</Select>
 		</label>
 
-		<h3 class="text-base"><strong>Pointclouds</strong></h3>
+		<h3 class="pt-2 text-sm"><strong>Pointclouds</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">
 				Default point size
@@ -68,7 +84,7 @@
 			</label>
 		</div>
 
-		<h3 class="text-base"><strong>Grid</strong></h3>
+		<h3 class="pt-2 text-sm"><strong>Grid</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">
 				Enabled <Switch bind:on={settings.current.grid} />
@@ -108,7 +124,7 @@
 			</label>
 		</div>
 
-		<h3 class="text-base"><strong>Lines</strong></h3>
+		<h3 class="pt-2 text-sm"><strong>Lines</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">
 				Thickness
@@ -133,7 +149,7 @@
 			</label>
 		</div>
 
-		<h3 class="text-base"><strong>Misc</strong></h3>
+		<h3 class="pt-2 text-sm"><strong>Misc</strong></h3>
 		<div class="flex flex-col gap-2.5">
 			<label class="flex items-center justify-between gap-2">
 				Render stats <Switch bind:on={settings.current.renderStats} />

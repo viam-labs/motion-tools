@@ -3,7 +3,7 @@ import { MotionClient, PoseInFrame, ResourceName } from '@viamrobotics/sdk'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
-import { useRefreshRates } from './useRefreshRates.svelte'
+import { useMachineSettings } from './useMachineSettings.svelte'
 
 const key = Symbol('poses-context')
 
@@ -16,7 +16,7 @@ interface Context {
 }
 
 export const providePoses = (partID: () => string) => {
-	const refreshRates = useRefreshRates()
+	const { refreshRates } = useMachineSettings()
 	const resources = useResourceNames(partID)
 	const components = $derived(resources.current.filter(({ type }) => type === 'component'))
 	const motionResources = useResourceNames(partID, 'motion')
