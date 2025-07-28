@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Select } from '@viamrobotics/prime-core'
-	import { useRefreshRates } from '$lib/hooks/useRefreshRates.svelte'
+	import { useMachineSettings } from '$lib/hooks/useMachineSettings.svelte'
 	import type { Snippet } from 'svelte'
 
 	interface Props {
@@ -10,8 +10,8 @@
 
 	let { name, children }: Props = $props()
 
-	const pollingRates = useRefreshRates()
-	const rate = $derived(pollingRates.get(name))
+	const { refreshRates } = useMachineSettings()
+	const rate = $derived(refreshRates.get(name))
 </script>
 
 <label class="flex flex-col gap-1">
@@ -20,7 +20,7 @@
 		onchange={(event: InputEvent) => {
 			if (event.target instanceof HTMLSelectElement) {
 				const { value } = event.target
-				pollingRates.set(name, Number.parseInt(value, 10))
+				refreshRates.set(name, Number.parseInt(value, 10))
 			}
 		}}
 		value={String(rate ?? '')}

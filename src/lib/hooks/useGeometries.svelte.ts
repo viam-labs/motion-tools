@@ -1,9 +1,9 @@
 import { ArmClient, CameraClient, Geometry, GripperClient } from '@viamrobotics/sdk'
-import { createQueries, queryOptions } from '@tanstack/svelte-query'
+import { createQueries, queryOptions, type CreateQueryOptions } from '@tanstack/svelte-query'
 import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { setContext, getContext } from 'svelte'
 import { fromStore, toStore } from 'svelte/store'
-import { useRefreshRates } from './useRefreshRates.svelte'
+import { useMachineSettings } from './useMachineSettings.svelte'
 import { WorldObject } from '$lib/WorldObject'
 import { usePersistentUUIDs } from './usePersistentUUIDs.svelte'
 import { useLogs } from './useLogs.svelte'
@@ -22,7 +22,7 @@ export const provideGeometries = (partID: () => string) => {
 	const grippers = useResourceNames(partID, 'gripper')
 
 	const logs = useLogs()
-	const refreshRates = useRefreshRates()
+	const { refreshRates } = useMachineSettings()
 
 	const armClients = $derived(
 		arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name))
@@ -41,11 +41,23 @@ export const provideGeometries = (partID: () => string) => {
 		refreshRates.set('Geometries', 1000)
 	}
 
-	const options = $derived(
-		clients.map((client) => {
-			const interval = refreshRates.get('Geometries')
+	const options = $derived.by(() => {
+		const interval = refreshRates.get('Geometries')
+		const results: CreateQueryOptions<
+			{
+				name: string
+				geometries: Geometry[]
+			},
+			Error,
+			{
+				name: string
+				geometries: Geometry[]
+			},
+			(string | undefined)[]
+		>[] = []
 
-			return queryOptions({
+		for (const client of clients) {
+			const options = queryOptions({
 				enabled: interval !== -1 && client.current !== undefined,
 				refetchInterval: interval === 0 ? false : interval,
 				queryKey: ['partID', partID(), client.current?.name, 'getGeometries'],
@@ -59,8 +71,12 @@ export const provideGeometries = (partID: () => string) => {
 					return { name: client.current.name, geometries }
 				},
 			})
-		})
-	)
+
+			results.push(options)
+		}
+
+		return results
+	})
 
 	const { updateUUIDs } = usePersistentUUIDs()
 	const queries = fromStore(createQueries({ queries: toStore(() => options) }))

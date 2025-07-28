@@ -6,7 +6,6 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { WorldObject } from '$lib/WorldObject'
-import { useRefreshRates } from './useRefreshRates.svelte'
 import { observe } from '@threlte/core'
 import { useLogs } from './useLogs.svelte'
 import { resourceColors } from '$lib/color'
@@ -23,34 +22,20 @@ export const provideFrames = (partID: () => string) => {
 	const resourceNames = useResourceNames(partID)
 	const client = useRobotClient(partID)
 	const machineStatus = useMachineStatus(partID)
-
 	const logs = useLogs()
-	const refreshRates = useRefreshRates()
-
-	if (!refreshRates.has('Frames')) {
-		refreshRates.set('Frames', 1)
-	}
-
 	const query = createRobotQuery(client, 'frameSystemConfig')
 	const revision = $derived(machineStatus.current?.config.revision)
-	const shouldFetch = $derived(refreshRates.get('Frames') === 1)
 
 	observe.pre(
 		() => [revision],
 		() => {
-			if (shouldFetch) {
-				untrack(() => query.current).refetch()
-				logs.add('Fetching frames...')
-			}
+			untrack(() => query.current).refetch()
+			logs.add('Fetching frames...')
 		}
 	)
 
 	const current = $derived.by(() => {
 		const objects: WorldObject[] = []
-
-		if (!shouldFetch) {
-			return objects
-		}
 
 		for (const { frame } of query.current.data ?? []) {
 			if (frame === undefined) {

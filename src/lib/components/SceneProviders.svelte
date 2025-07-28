@@ -7,7 +7,7 @@
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
 	import { provideShapes } from '$lib/hooks/useShapes.svelte'
-	import { provideRefreshRates } from '$lib/hooks/useRefreshRates.svelte'
+	import { provideMachineSettings } from '$lib/hooks/useMachineSettings.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import type { Snippet } from 'svelte'
 	import { provideObjects } from '$lib/hooks/useObjects.svelte'
@@ -27,7 +27,7 @@
 	provideSettings()
 	provideTransformControls()
 	provideVisibility()
-	provideRefreshRates()
+	provideMachineSettings()
 	provideLogs()
 
 	provideOrigin()
