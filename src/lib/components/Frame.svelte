@@ -16,7 +16,7 @@
 		uuid: string
 		name: string
 		geometry?: WorldObject['geometry']
-		pose: WorldObject['pose']
+		pose?: WorldObject['pose']
 		metadata: WorldObject['metadata']
 		children?: Snippet<[{ ref: Object3D }]>
 	}

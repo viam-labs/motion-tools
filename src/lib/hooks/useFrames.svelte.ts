@@ -12,6 +12,7 @@ import { resourceColors } from '$lib/color'
 
 interface FramesContext {
 	current: WorldObject[]
+	byName: Record<string, WorldObject | undefined>
 	error?: Error
 	fetching: boolean
 }
@@ -44,6 +45,7 @@ export const provideFrames = (partID: () => string) => {
 
 			const resourceName = resourceNames.current.find((item) => item.name === frame.referenceFrame)
 
+			console.log(frame.physicalObject)
 			objects.push(
 				new WorldObject(
 					frame.referenceFrame ? frame.referenceFrame : 'Unnamed frame',
@@ -64,9 +66,14 @@ export const provideFrames = (partID: () => string) => {
 	const error = $derived(query.current.error ?? undefined)
 	const fetching = $derived(query.current.isFetching)
 
+	const byName = $derived(Object.fromEntries(current.map((value) => [value.name, value])))
+
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get byName() {
+			return byName
 		},
 		get error() {
 			return error

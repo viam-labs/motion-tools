@@ -3,7 +3,6 @@
 	import { T } from '@threlte/core'
 	import { Grid, interactivity, PerfMonitor } from '@threlte/extras'
 	import { PortalTarget } from './portal'
-	import Frames from '$lib/components/Frames.svelte'
 	import Pointclouds from '$lib/components/Pointclouds.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import Focus from '$lib/components/Focus.svelte'
@@ -13,11 +12,11 @@
 	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import type { Snippet } from 'svelte'
 	import { useXR } from '@threlte/xr'
-
 	import { useOrigin } from './xr/useOrigin.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import CameraControls from './CameraControls.svelte'
 	import MeasureTool from './MeasureTool.svelte'
+	import Resources from './Resources.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -66,10 +65,11 @@
 
 		<MeasureTool />
 		<StaticGeometries />
-		<Frames />
+
 		<Pointclouds />
 		<Shapes />
 
+		<Resources />
 		<Selected />
 
 		{#if !$isPresenting && settings.current.grid}

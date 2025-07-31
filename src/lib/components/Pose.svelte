@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { usePose } from '$lib/hooks/usePose.svelte'
-	import type { Pose } from '@viamrobotics/sdk'
+	import type { Pose, ResourceName } from '@viamrobotics/sdk'
 	import type { Snippet } from 'svelte'
 
 	interface Props {
-		name: string
+		resourceName: ResourceName
 		parent?: string
 		children: Snippet<[{ pose: Pose | undefined }]>
 	}
-	let { name, parent, children }: Props = $props()
+	let { resourceName, parent = 'world', children }: Props = $props()
 
 	const pose = usePose(
-		() => name,
-		() => parent ?? 'world'
+		() => resourceName,
+		() => parent
 	)
 </script>
 

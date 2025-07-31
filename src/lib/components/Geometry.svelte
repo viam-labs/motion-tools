@@ -16,7 +16,7 @@
 		uuid: string
 		name: string
 		geometry?: WorldObject['geometry']
-		pose: WorldObject['pose']
+		pose?: WorldObject['pose']
 		metadata: WorldObject['metadata']
 		children?: Snippet<[{ ref: Object3D }]>
 		color?: string
@@ -45,7 +45,9 @@
 	})
 
 	$effect.pre(() => {
-		poseToObject3d(pose, mesh)
+		if (pose) {
+			poseToObject3d(pose, mesh)
+		}
 	})
 
 	let geo = $state.raw<BufferGeometry>()

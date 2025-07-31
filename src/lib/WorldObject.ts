@@ -1,4 +1,4 @@
-import type { Geometry, Pose } from '@viamrobotics/sdk'
+import type { Geometry, Pose, ResourceName } from '@viamrobotics/sdk'
 import { BatchedMesh, Box3, MathUtils, Object3D, Vector3, type ColorRepresentation } from 'three'
 import { createPose } from './transform'
 
@@ -20,6 +20,7 @@ export type Metadata = {
 		object: BatchedMesh
 	}
 	getBoundingBoxAt?: (box: Box3) => void
+	resourceName?: ResourceName
 }
 
 export class WorldObject<T extends Geometries = Geometries> {

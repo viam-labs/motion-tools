@@ -27,6 +27,7 @@ export const provideGeometries = (partID: () => string) => {
 	const armClients = $derived(
 		arms.current.map((arm) => createResourceClient(ArmClient, partID, () => arm.name))
 	)
+
 	const gripperClients = $derived(
 		grippers.current.map((gripper) =>
 			createResourceClient(GripperClient, partID, () => gripper.name)
