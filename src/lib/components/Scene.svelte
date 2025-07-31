@@ -70,6 +70,7 @@
 		<Shapes />
 
 		<Resources />
+
 		<Selected />
 
 		{#if !$isPresenting && settings.current.grid}

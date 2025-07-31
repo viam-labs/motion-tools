@@ -14,14 +14,14 @@ interface Context {
 
 export const provideObjects = () => {
 	const frames = useFrames()
-	const geometries = useGeometries()
+	// const geometries = useGeometries()
 	const statics = useStaticGeometries()
 	const shapes = useShapes()
 	const points = usePointClouds()
 
 	const objects = $derived<WorldObject[]>([
 		...frames.current,
-		...geometries.current,
+		// ...geometries.current,
 		...points.current,
 		...shapes.meshes,
 		...shapes.models,

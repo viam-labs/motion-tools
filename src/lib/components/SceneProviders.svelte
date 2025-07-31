@@ -35,7 +35,6 @@
 	provideShapes()
 
 	provideFrames(() => partID.current)
-	provideGeometries(() => partID.current)
 	providePointclouds(() => partID.current)
 	provideMotionClient(() => partID.current)
 	provideObjects()

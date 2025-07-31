@@ -21,9 +21,9 @@ export const useResourceGeometries = (partID: () => string, resourceName: () => 
 		refetchInterval: refreshRates.get('Geometries') ?? 1000,
 	})
 
-	const query = (() => {
-		const { subtype, name } = resourceName()
-
+	const name = $derived(resourceName().name)
+	const subtype = $derived(resourceName().subtype)
+	const query = $derived.by(() => {
 		if (subtype === 'arm') {
 			const client = createResourceClient(ArmClient, partID, () => name)
 			return createResourceQuery(client, 'getGeometries', () => options)
@@ -35,17 +35,19 @@ export const useResourceGeometries = (partID: () => string, resourceName: () => 
 			return createResourceQuery(client, 'getGeometries', () => options)
 		} else if (subtype === 'gantry') {
 			const client = createResourceClient(GantryClient, partID, () => name)
-			return createResourceQuery(client, 'getGeometries')
+			return createResourceQuery(client, 'getGeometries', () => options)
 		} else if (subtype === 'gripper') {
 			const client = createResourceClient(GripperClient, partID, () => name)
 			return createResourceQuery(client, 'getGeometries', () => options)
 		}
-	})()
+	})
 
 	const geometry = $derived.by(() => {
 		const resource = resourceName()
 		const geometries = query?.current.data
 		const results: WorldObject[] = []
+
+		console.log(resource.name, geometries)
 
 		if (!geometries) return results
 

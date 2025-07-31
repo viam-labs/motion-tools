@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { T } from '@threlte/core'
 	import { usePose } from '$lib/hooks/usePose.svelte'
 	import type { Pose, ResourceName } from '@viamrobotics/sdk'
 	import type { Snippet } from 'svelte'
+	import { Group } from 'three'
+	import { poseToObject3d } from '$lib/transform'
 
 	interface Props {
 		resourceName: ResourceName
@@ -14,6 +17,14 @@
 		() => resourceName,
 		() => parent
 	)
+
+	const group = new Group()
+
+	$effect(() => {
+		if (pose.current) poseToObject3d(pose.current, group)
+	})
 </script>
 
-{@render children({ pose: pose.current })}
+<T is={group}>
+	{@render children({ pose: pose.current })}
+</T>

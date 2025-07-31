@@ -45,7 +45,6 @@ export const provideFrames = (partID: () => string) => {
 
 			const resourceName = resourceNames.current.find((item) => item.name === frame.referenceFrame)
 
-			console.log(frame.physicalObject)
 			objects.push(
 				new WorldObject(
 					frame.referenceFrame ? frame.referenceFrame : 'Unnamed frame',

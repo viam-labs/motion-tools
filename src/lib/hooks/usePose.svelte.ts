@@ -29,37 +29,8 @@ export const usePose = (resourceName: () => ResourceName, parent: () => string |
 		() => options
 	)
 
-	// const options = $derived(
-	// 	queryOptions({
-	// 		enabled: interval !== -1 && client.current !== undefined && resource !== undefined,
-	// 		refetchInterval: interval === 0 ? false : interval,
-	// 		queryKey: [
-	// 			'partID',
-	// 			partID.current,
-	// 			client.current?.name,
-	// 			'getPose',
-	// 			resource?.name,
-	// 			parent(),
-	// 		],
-	// 		queryFn: async () => {
-	// 			if (!client.current || !resource) {
-	// 				throw new Error('No client')
-	// 			}
-
-	// 			const pose = await client.current.getPose(resource, parent() ?? 'world', [])
-
-	// 			return pose
-	// 		},
-	// 	})
-	// )
-
-	// const query = fromStore(createQuery(toStore(() => options)))
-
 	return {
 		get current() {
-			if (resource?.subtype === 'arm') {
-				return
-			}
 			return query.current.data?.pose
 		},
 	}
