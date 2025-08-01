@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import { Portal, PortalTarget } from './portal'
-	import { useShapes } from '$lib/hooks/useShapes.svelte'
+	import { useDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
 	import WorldObject from './WorldObject.svelte'
 	import Frame from './Frame.svelte'
 	import Line from './Line.svelte'
 
-	const shapes = useShapes()
+	const drawAPI = useDrawAPI()
 </script>
 
 <T
-	name={shapes.object3ds.batchedArrow.object3d.name}
-	is={shapes.object3ds.batchedArrow.object3d}
+	name={drawAPI.object3ds.batchedArrow.object3d.name}
+	is={drawAPI.object3ds.batchedArrow.object3d}
 	dispose={false}
 />
 
-{#each shapes.meshes as object (object.uuid)}
+{#each drawAPI.meshes as object (object.uuid)}
 	<Portal id={object.referenceFrame}>
 		<Frame
 			uuid={object.uuid}
@@ -29,7 +29,7 @@
 	</Portal>
 {/each}
 
-{#each shapes.nurbs as object (object.uuid)}
+{#each drawAPI.nurbs as object (object.uuid)}
 	<Portal id={object.referenceFrame}>
 		<Frame
 			uuid={object.uuid}
@@ -43,12 +43,12 @@
 	</Portal>
 {/each}
 
-{#each shapes.models as object (object.uuid)}
+{#each drawAPI.models as object (object.uuid)}
 	<WorldObject {object}>
 		<PortalTarget id={object.name} />
 	</WorldObject>
 {/each}
 
-{#each shapes.lines as object (object.uuid)}
+{#each drawAPI.lines as object (object.uuid)}
 	<Line {object} />
 {/each}

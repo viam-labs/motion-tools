@@ -2,7 +2,7 @@ import { getContext, setContext } from 'svelte'
 import { useFrames } from './useFrames.svelte'
 import { useGeometries } from './useGeometries.svelte'
 import { useStaticGeometries } from './useStaticGeometries.svelte'
-import { useShapes } from './useShapes.svelte'
+import { useDrawAPI } from './useDrawAPI.svelte'
 import { usePointClouds } from './usePointclouds.svelte'
 import type { WorldObject } from '$lib/WorldObject'
 
@@ -16,20 +16,20 @@ export const provideObjects = () => {
 	const frames = useFrames()
 	const geometries = useGeometries()
 	const statics = useStaticGeometries()
-	const shapes = useShapes()
+	const drawAPI = useDrawAPI()
 	const points = usePointClouds()
 
 	const objects = $derived<WorldObject[]>([
 		...frames.current,
 		...geometries.current,
 		...points.current,
-		...shapes.meshes,
-		...shapes.models,
-		...shapes.nurbs,
-		...shapes.points,
-		...shapes.lines,
 		...statics.current,
-		...shapes.poses,
+		...drawAPI.meshes,
+		...drawAPI.models,
+		...drawAPI.nurbs,
+		...drawAPI.points,
+		...drawAPI.lines,
+		...drawAPI.poses,
 	])
 
 	setContext<Context>(key, {

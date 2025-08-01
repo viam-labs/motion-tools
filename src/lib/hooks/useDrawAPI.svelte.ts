@@ -30,9 +30,10 @@ interface Context {
 				animate: boolean
 		  }
 		| undefined
+	clearCamera: () => void
 }
 
-const key = Symbol('websocket-context-key')
+const key = Symbol('draw-api-context-key')
 
 const tryParse = (json: string) => {
 	try {
@@ -62,7 +63,7 @@ class Float32Reader {
 	}
 }
 
-export const provideShapes = () => {
+export const provideDrawAPI = () => {
 	let pointsIndex = 0
 	let geometryIndex = 0
 	let poseIndex = 0
@@ -80,7 +81,7 @@ export const provideShapes = () => {
 	const nurbs = $state<WorldObject[]>([])
 	const models = $state<WorldObject[]>([])
 
-	let camera = $state<Context['camera']>()
+	let camera = $state.raw<Context['camera']>()
 	let connectionStatus = $state<ConnectionStatus>('connecting')
 
 	const color = new Color()
@@ -256,7 +257,7 @@ export const provideShapes = () => {
 
 		points.push(
 			new WorldObject(
-				label ?? `points ${++pointsIndex}`,
+				label,
 				undefined,
 				undefined,
 				{
@@ -525,9 +526,12 @@ export const provideShapes = () => {
 		get camera() {
 			return camera
 		},
+		clearCamera: () => {
+			camera = undefined
+		},
 	})
 }
 
-export const useShapes = () => {
+export const useDrawAPI = () => {
 	return getContext<Context>(key)
 }
