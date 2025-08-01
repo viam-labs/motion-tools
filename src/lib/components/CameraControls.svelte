@@ -4,18 +4,19 @@
 	import KeyboardControls from './KeyboardControls.svelte'
 	import Portal from './portal/Portal.svelte'
 	import Button from './dashboard/Button.svelte'
-	import { useShapes } from '$lib/hooks/useShapes.svelte'
+	import { useDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
 
-	const shapes = useShapes()
+	const drawAPI = useDrawAPI()
 	const transformControls = useTransformControls()
 
 	let ref = $state.raw<CameraControlsRef>()
 
 	$effect(() => {
-		if (shapes.camera) {
-			const { position, lookAt, animate } = shapes.camera
+		if (drawAPI.camera) {
+			const { position, lookAt, animate } = drawAPI.camera
 			ref?.setPosition(position.x, position.y, position.z, animate)
 			ref?.setLookAt(position.x, position.y, position.z, lookAt.x, lookAt.y, lookAt.z, animate)
+			drawAPI.clearCamera()
 		}
 	})
 </script>

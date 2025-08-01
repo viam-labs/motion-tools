@@ -6,7 +6,7 @@
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideStaticGeometries } from '$lib/hooks/useStaticGeometries.svelte'
 	import { provideVisibility } from '$lib/hooks/useVisibility.svelte'
-	import { provideShapes } from '$lib/hooks/useShapes.svelte'
+	import { provideDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
 	import { provideMachineSettings } from '$lib/hooks/useMachineSettings.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import type { Snippet } from 'svelte'
@@ -32,7 +32,7 @@
 
 	provideOrigin()
 	provideStaticGeometries()
-	provideShapes()
+	provideDrawAPI()
 
 	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)

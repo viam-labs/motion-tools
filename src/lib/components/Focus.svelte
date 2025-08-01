@@ -23,7 +23,7 @@
 	})
 </script>
 
-<Camera position={[0, 0, size[0] + 1]}>
+<Camera position={[size[0] + 1, size[0] + 1, size[0] + 1]}>
 	<TrackballControls target={center}>
 		<Gizmo />
 	</TrackballControls>
