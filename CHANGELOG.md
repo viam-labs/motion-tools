@@ -1,5 +1,16 @@
 # motion-tools
 
+## 0.9.0
+
+### Minor Changes
+
+- dbcac64: Allow disabling pointcloud fetching for specific cameras
+
+### Patch Changes
+
+- a74de32: Fix trackball controls in object view
+- dbcac64: Fix reactivity issues with refresh rates
+
 ## 0.8.0
 
 ### Minor Changes
