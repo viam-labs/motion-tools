@@ -142,11 +142,11 @@ importers:
         specifier: 0.1.5
         version: 0.1.5(svelte@5.55.0)
       '@viamrobotics/sdk':
-        specifier: 0.58.0
-        version: 0.58.0
+        specifier: 0.69.0
+        version: 0.69.0
       '@viamrobotics/svelte-sdk':
-        specifier: 1.0.1
-        version: 1.0.1(@viamrobotics/sdk@0.58.0)(svelte@5.55.0)
+        specifier: 1.2.1
+        version: 1.2.1(@viamrobotics/sdk@0.69.0)(svelte@5.55.0)
       '@vitest/browser':
         specifier: 3.2.4
         version: 3.2.4(playwright@1.55.0)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))(vitest@3.2.4)
@@ -964,6 +964,26 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       tweakpane: ^4.0.0
+
+  '@loglayer/context-manager@2.0.2':
+    resolution: {integrity: sha512-IVt/iqACGw2GnucKOpyJ69MbGQSRzsArOwsTNMuOAfzm36zTphGIH4K7g7lhRvcd2jY0dZzvWA6tCqannpgXXg==}
+    engines: {node: '>=18'}
+
+  '@loglayer/log-level-manager@2.0.2':
+    resolution: {integrity: sha512-hq6hjkXzrYyz0DwYUqizP0hS3jhPl5S/7U33Cd0EPbfLmDjYWzzcM0mQKUdtBi6qNX4DAPpag3oBGytB2zmghg==}
+    engines: {node: '>=18'}
+
+  '@loglayer/plugin@3.0.2':
+    resolution: {integrity: sha512-ghIYpuPw/Q0jdlr7ErkaySfsSCsIigwIb1lvR5qhZrz3oEqGotDFZzhgU1YeO7BacA042ygv/xww3Ip3ROokeg==}
+    engines: {node: '>=18'}
+
+  '@loglayer/shared@4.1.0':
+    resolution: {integrity: sha512-hGSWhLhMF9L7sB0rXippvKhku9D9dT8imZ5OFpa4VHAVnclY0DQ+3wIPE37rzu0QAiBbyR3/HH03Q1Cgik8zYA==}
+    engines: {node: '>=18'}
+
+  '@loglayer/transport@3.0.2':
+    resolution: {integrity: sha512-5t0lj/ibQQxGPpghNta8u10zl8owU0my/i2fHF/LdcCAtpw/IHblmpKSgOzdH9XE19Ub/i0VYj0JrFrFv8/NXw==}
+    engines: {node: '>=18'}
 
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
@@ -1859,13 +1879,13 @@ packages:
     peerDependencies:
       svelte: '>=5 <6'
 
-  '@viamrobotics/sdk@0.58.0':
-    resolution: {integrity: sha512-jJe071qOFbLjkbbjCdo95dBUL52N1rfrhT+9OPPI7BdGSPMX0Wp0+8hrYFDNuw0icAuEJR3p4NDNzgYneGu2Dw==}
+  '@viamrobotics/sdk@0.69.0':
+    resolution: {integrity: sha512-xyJqF+4kJEmLiGiwWjf7hdcq/FBMcCcPF4kGyz3WQ/XeBC4HrkizD05ka6eNkevMFoAseGbNgOqOochEs0XTLA==}
 
-  '@viamrobotics/svelte-sdk@1.0.1':
-    resolution: {integrity: sha512-ywVzZpyOyr0BFZ1GoeUE+9cIZxfCdxpw+K/kZqzHDQM4AddHL5A4WrJezwO5SfQtn+jwrNX+ehj4pZDJB1zXXg==}
+  '@viamrobotics/svelte-sdk@1.2.1':
+    resolution: {integrity: sha512-C29m8RksUmSP78V/C9MVo7/CM4vW1PsSLw9lRjG1pCyTF/+AnREjHmewaXNC3jDk322EZZ21fGJloVaAjkaPZg==}
     peerDependencies:
-      '@viamrobotics/sdk': '>=0.51'
+      '@viamrobotics/sdk': '>=0.57'
       svelte: '>=5'
 
   '@vitest/browser@3.2.4':
@@ -3179,6 +3199,10 @@ packages:
 
   lodash.startcase@4.4.0:
     resolution: {integrity: sha512-+WKqsK294HMSc2jEbNgpHpd0JfIBhp7rEV4aqXWqFr6AlXov+SlcgB1Fv01y2kGe3Gc8nMW7VA0SrGuSkRfIEg==}
+
+  loglayer@9.1.0:
+    resolution: {integrity: sha512-KFCtoydUtfshszDMIEMa180MMT4jDgBz7FkkO0r3mLDzOkfqGUCbtH9DRszK/pEPrG7999FXfBsyv4DNhvmrag==}
+    engines: {node: '>=18'}
 
   loupe@3.2.1:
     resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
@@ -5047,6 +5071,24 @@ snapshots:
       '@tweakpane/core': 2.0.5
       tweakpane: 4.0.5
 
+  '@loglayer/context-manager@2.0.2':
+    dependencies:
+      '@loglayer/shared': 4.1.0
+
+  '@loglayer/log-level-manager@2.0.2':
+    dependencies:
+      '@loglayer/shared': 4.1.0
+
+  '@loglayer/plugin@3.0.2':
+    dependencies:
+      '@loglayer/shared': 4.1.0
+
+  '@loglayer/shared@4.1.0': {}
+
+  '@loglayer/transport@3.0.2':
+    dependencies:
+      '@loglayer/shared': 4.1.0
+
   '@manypkg/find-root@1.1.0':
     dependencies:
       '@babel/runtime': 7.28.4
@@ -6076,7 +6118,7 @@ snapshots:
       prismjs: 1.30.0
       svelte: 5.55.0
 
-  '@viamrobotics/sdk@0.58.0':
+  '@viamrobotics/sdk@0.69.0':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
       '@connectrpc/connect': 1.7.0(@bufbuild/protobuf@1.10.1)
@@ -6084,11 +6126,12 @@ snapshots:
       bsonfy: 1.0.2
       exponential-backoff: 3.1.3
 
-  '@viamrobotics/svelte-sdk@1.0.1(@viamrobotics/sdk@0.58.0)(svelte@5.55.0)':
+  '@viamrobotics/svelte-sdk@1.2.1(@viamrobotics/sdk@0.69.0)(svelte@5.55.0)':
     dependencies:
       '@tanstack/svelte-query': 6.0.18(svelte@5.55.0)
       '@tanstack/svelte-query-devtools': 6.0.2(@tanstack/svelte-query@6.0.18(svelte@5.55.0))(svelte@5.55.0)
-      '@viamrobotics/sdk': 0.58.0
+      '@viamrobotics/sdk': 0.69.0
+      loglayer: 9.1.0
       runed: 0.29.2(svelte@5.55.0)
       svelte: 5.55.0
 
@@ -7591,6 +7634,14 @@ snapshots:
   lodash-es@4.18.1: {}
 
   lodash.startcase@4.4.0: {}
+
+  loglayer@9.1.0:
+    dependencies:
+      '@loglayer/context-manager': 2.0.2
+      '@loglayer/log-level-manager': 2.0.2
+      '@loglayer/plugin': 3.0.2
+      '@loglayer/shared': 4.1.0
+      '@loglayer/transport': 3.0.2
 
   loupe@3.2.1: {}
 
