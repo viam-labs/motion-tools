@@ -1,5 +1,19 @@
 # motion-tools
 
+## 1.23.2
+
+### Patch Changes
+
+- 645d74b: Fix unreadable text in the Details panel under dark mode by swapping
+  `dark:text-black` for `dark:text-white` on the panel container so child
+  text contrasts against dark surroundings rather than disappearing.
+
+## 1.23.1
+
+### Patch Changes
+
+- 7e52e42: Capture save keyboard event before hitting input bindings
+
 ## 1.23.0
 
 ### Minor Changes

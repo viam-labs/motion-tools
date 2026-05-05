@@ -1,6 +1,6 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.23.0",
+	"version": "1.23.2",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -112,7 +112,7 @@
 		"vite": "7.3.2",
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
-		"vite-plugin-mkcert": "1.17.8",
+		"vite-plugin-mkcert": "1.17.9",
 		"vitest": "3.2.4"
 	},
 	"peerDependencies": {
@@ -148,7 +148,10 @@
 			"@sentry/cli",
 			"@tailwindcss/oxide",
 			"esbuild"
-		]
+		],
+		"overrides": {
+			"uuid": ">=14.0.0"
+		}
 	},
 	"packageManager": "pnpm@10.18.0",
 	"engines": {
