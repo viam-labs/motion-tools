@@ -50,25 +50,15 @@
 			if (renderOrder) {
 				entityTraits.push(traits.RenderOrder(renderOrder))
 			}
-			const materialOptions: {
-				depthTest?: boolean
-				depthWrite?: boolean
-				color?: number | string
-			} = {}
-			if (depthTest !== undefined) {
-				materialOptions.depthTest = depthTest
-			}
-			if (depthWrite !== undefined) {
-				materialOptions.depthWrite = depthWrite
-			}
 
+			if (depthTest !== undefined || depthWrite !== undefined) {
+				entityTraits.push(
+					traits.Material({ depthTest: depthTest ?? true, depthWrite: depthWrite ?? true })
+				)
+			}
 			if (color !== undefined) {
 				geometry.deleteAttribute('color')
 				entityTraits.push(traits.Color({ r: color.r, g: color.g, b: color.b }))
-			}
-
-			if (Object.keys(materialOptions).length > 0) {
-				entityTraits.push(traits.Material(materialOptions))
 			}
 			if (interactionLayers?.includes('selectTool')) {
 				entityTraits.push(traits.SelectToolInteractionLayer)
