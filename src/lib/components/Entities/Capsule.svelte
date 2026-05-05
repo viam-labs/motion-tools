@@ -17,9 +17,10 @@ midsection has length `l - 2r`.
 	const unitCylinder = new CylinderGeometry(1, 1, 1, 16, 1, true)
 	unitCylinder.rotateX(Math.PI / 2)
 
-	// Hemisphere with rounded part toward +Z, open boundary on the XY plane.
-	// 6 height segments matches the existing sphere's per-hemisphere density
-	// (`Mesh.svelte` uses `SphereGeometry(1, 16, 12)`).
+	/**
+	 * Hemisphere with rounded part toward +Z and an open boundary on the XY plane.
+	 * 6 height segments matches the existing sphere's density (`Mesh.svelte` uses `SphereGeometry(1, 16, 12)`).
+	 */
 	const unitHemisphere = new SphereGeometry(1, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2)
 	unitHemisphere.rotateX(Math.PI / 2)
 
