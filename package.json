@@ -46,7 +46,7 @@
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
-		"@playwright/test": "1.55.0",
+		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
 		"@skeletonlabs/skeleton": "3.2.0",
 		"@skeletonlabs/skeleton-svelte": "1.5.1",
