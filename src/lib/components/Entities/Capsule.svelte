@@ -61,6 +61,7 @@ midsection has length `l - 2r`.
 		material.opacity = opacity
 		material.depthWrite = opacity === 1
 		material.depthTest = depthTest
+		lineMaterial.depthTest = depthTest
 		if (material.transparent !== isTransparent) {
 			material.transparent = isTransparent
 			material.needsUpdate = true
