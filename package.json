@@ -148,7 +148,10 @@
 			"@sentry/cli",
 			"@tailwindcss/oxide",
 			"esbuild"
-		]
+		],
+		"overrides": {
+			"uuid": ">=14.0.0"
+		}
 	},
 	"packageManager": "pnpm@10.18.0",
 	"engines": {
