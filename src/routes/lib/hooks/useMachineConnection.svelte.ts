@@ -61,8 +61,9 @@ export const provideMachineConnection = (
 
 	const scheduleRetry = () => {
 		const delay = Math.min(INITIAL_DELAY_MS * BACKOFF_FACTOR ** attempts, MAX_DELAY_MS)
-		nextRetryAt = performance.now() + delay
-		now = performance.now()
+		const timestamp = performance.now()
+		nextRetryAt = timestamp + delay
+		now = timestamp
 		retryTimer = window.setTimeout(tryConnect, delay)
 		ticker = window.setInterval(() => {
 			now = performance.now()
