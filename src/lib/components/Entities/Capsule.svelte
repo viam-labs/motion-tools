@@ -1,20 +1,12 @@
 <!--
 @component
 
-Compound capsule. Renders a shared open-ended unit cylinder + two unit
+A compound capsule via a shared open-ended unit cylinder and two
 hemispheres, each scaled per `r` and `l`, so dimension changes update
-transforms only — no geometry rebuild.
+transforms only and cause no geometry rebuild.
 
-Viam's capsule `l` is the *total* length including the rounded caps, so the
-cylindrical midsection has length `l - 2r` (clamped at 0 for degenerate
-capsules, where it collapses to a single sphere visual).
-
-Axis is +Z to match Viam's convention (`CapsuleGeometry.ts:21`).
-
-The cylinder is open-ended and the hemispheres are open at their equator,
-so under semi-transparent rendering you don't see internal disk caps or
-the back-half of cap spheres through the cylinder wall. Edges match the
-`<Mesh>` look (built once from the same shared unit geometries).
+Viam's capsule `l` is the *total* length, including the rounded caps, so the 
+midsection has length `l - 2r`.
 -->
 <script
 	module

@@ -4,8 +4,10 @@
 >
 	import { BoxGeometry, EdgesGeometry, SphereGeometry } from 'three'
 
-	// Shared unit geometries — every box/sphere mesh references these and drives
-	// dimensions through `mesh.scale`, so resizing never rebuilds GPU buffers.
+	/**
+	 * Shared unit geometries — every mesh references these and sets
+	 * dimensions through `mesh.scale`, so resizing never rebuilds GPU buffers.
+	 */
 	const unitBox = new BoxGeometry(1, 1, 1)
 	const unitSphere = new SphereGeometry(1, 16, 12)
 	const unitBoxEdges = new EdgesGeometry(unitBox, 0)
