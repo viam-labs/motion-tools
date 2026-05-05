@@ -51,7 +51,11 @@ midsection has length `l - 2r`.
 
 	$effect(() => {
 		material.color.set(color)
+	$effect(() => {
+		material.color.set(color)
 		lineMaterial.color.set(darkenColor(color, 10))
+		invalidate()
+	})
 	})
 
 	$effect(() => {
