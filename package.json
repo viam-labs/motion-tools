@@ -148,7 +148,10 @@
 			"@sentry/cli",
 			"@tailwindcss/oxide",
 			"esbuild"
-		]
+		],
+		"overrides": {
+			"js-yaml@^3": "3.14.2"
+		}
 	},
 	"packageManager": "pnpm@10.18.0",
 	"engines": {
