@@ -104,7 +104,7 @@
 		"svelte-virtuallists": "1.4.2",
 		"tailwindcss": "4.1.13",
 		"three": "0.183.2",
-		"threlte-uikit": "1.2.1",
+		"threlte-uikit": "^2.0.0",
 		"tsx": "4.20.5",
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
