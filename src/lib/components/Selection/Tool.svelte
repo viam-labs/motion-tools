@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { useThrelte } from '@threlte/core'
@@ -6,6 +7,7 @@
 	import { ElementRect } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Popover from '../overlay/Popover.svelte'
@@ -28,7 +30,8 @@
 	const settings = useSettings()
 	const isSelectionMode = $derived(settings.current.interactionMode === 'select')
 
-	provideSelectionPlugin()
+	const selectionPlugin = provideSelectionPlugin()
+	const selectedEntity = useSelectedEntity()
 	let selectionType = $state<SelectionType>('lasso')
 
 	$effect(() => {
@@ -41,6 +44,19 @@
 		if (enabled) {
 			settings.current.interactionMode = 'select'
 		}
+	})
+
+	// Each time a new entity appears in the selection set, point
+	// `selectedEntity` at it so the Details panel reflects the latest selection.
+	let previousEntities: Entity[] = []
+	$effect(() => {
+		const current = selectionPlugin.current
+		const newEntities = current.filter((entity) => !previousEntities.includes(entity))
+		previousEntities = [...current]
+
+		const newest = newEntities.at(-1)
+		if (newest === undefined) return
+		selectedEntity.set(newest)
 	})
 
 	const rect = new ElementRect(() => dom)
