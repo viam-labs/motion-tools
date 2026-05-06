@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { Button, Icon, IconButton, Input, Switch } from '@viamrobotics/prime-core'
 	import { MachineConnectionEvent } from '@viamrobotics/sdk'
-	import { useConnectionStatus } from '@viamrobotics/svelte-sdk'
 
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import {
 		useActiveConnectionConfig,
 		useConnectionConfigs,
 	} from '../hooks/useConnectionConfigs.svelte'
+	import { useMachineConnection } from '../hooks/useMachineConnection.svelte'
 	import Collapsible from './Collapsible.svelte'
 
 	interface Props {
@@ -20,24 +19,34 @@
 
 	const connectionConfigs = useConnectionConfigs()
 	const activeConfig = useActiveConnectionConfig()
-	const partID = usePartID()
-	const connectionStatus = useConnectionStatus(() => partID.current)
-	const connected = $derived(connectionStatus.current === MachineConnectionEvent.CONNECTED)
-	const disconnected = $derived(connectionStatus.current === MachineConnectionEvent.DISCONNECTED)
+	const machineConnection = useMachineConnection()
+	const connected = $derived(
+		machineConnection.connectionStatus === MachineConnectionEvent.CONNECTED
+	)
+	const disconnected = $derived(
+		machineConnection.connectionStatus === MachineConnectionEvent.DISCONNECTED ||
+			machineConnection.connectionStatus === MachineConnectionEvent.RECONNECTION_FAILED
+	)
 	const text = $derived.by(() => {
-		if (connectionStatus.current === MachineConnectionEvent.CONNECTING) {
-			return 'connecting...'
+		switch (machineConnection.connectionStatus) {
+			case MachineConnectionEvent.CONNECTING:
+			case MachineConnectionEvent.DIALING: {
+				return 'connecting...'
+			}
+			case MachineConnectionEvent.RECONNECTING: {
+				return 'reconnecting...'
+			}
+			case MachineConnectionEvent.CONNECTED: {
+				return 'live'
+			}
+			case MachineConnectionEvent.DISCONNECTED:
+			case MachineConnectionEvent.RECONNECTION_FAILED: {
+				return 'offline'
+			}
+			default: {
+				return 'connect'
+			}
 		}
-
-		if (connectionStatus.current === MachineConnectionEvent.CONNECTED) {
-			return 'live'
-		}
-
-		if (connectionStatus.current === MachineConnectionEvent.DISCONNECTED) {
-			return 'offline'
-		}
-
-		return 'connect'
 	})
 
 	const onpaste = (event: ClipboardEvent) => {
@@ -64,26 +73,48 @@
 <fieldset>
 	<div class="text-default relative">
 		<div class="flex items-center">
-			<button
-				aria-label="Machine connection configs"
-				class={[
-					'flex items-center gap-2 border px-2.5 py-1.5 text-xs ',
-					{
-						'border-gray-5 bg-white': !connected && !disconnected,
-						'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
-							connected,
-						'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
-							disconnected,
-					},
-				]}
-				onclick={() => {
-					isOpen = !isOpen
-				}}
-			>
-				<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
-				<span class="truncate whitespace-nowrap capitalize">{text}</span>
-				<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
-			</button>
+			{#if machineConnection.isAwaitingRetry}
+				<button
+					aria-label="Machine connection configs"
+					class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+					onclick={() => {
+						isOpen = !isOpen
+					}}
+				>
+					<Icon name="broadcast-off" />
+					<span class="truncate whitespace-nowrap"
+						>Retry in {machineConnection.secondsUntilRetry}s...</span
+					>
+				</button>
+				<button
+					aria-label="Reconnect now"
+					class="border-danger-medium bg-danger-light text-danger-dark flex items-center border px-2 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+					onclick={machineConnection.retryNow}
+				>
+					<Icon name="refresh" />
+				</button>
+			{:else}
+				<button
+					aria-label="Machine connection configs"
+					class={[
+						'flex items-center gap-2 border px-2.5 py-1.5 text-xs ',
+						{
+							'border-gray-5 bg-white': !connected && !disconnected,
+							'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
+								connected,
+							'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
+								disconnected,
+						},
+					]}
+					onclick={() => {
+						isOpen = !isOpen
+					}}
+				>
+					<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
+					<span class="truncate whitespace-nowrap capitalize">{text}</span>
+					<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
+				</button>
+			{/if}
 		</div>
 	</div>
 </fieldset>

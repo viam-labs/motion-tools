@@ -52,6 +52,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Trigger docs review on version PR
+        if: steps.changesets.outputs.pullRequestNumber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run claude-version-pr-docs.yml \
+            -f pr_number=${{ steps.changesets.outputs.pullRequestNumber }}
+
       - name: Extract version from package.json
         id: version
         if: steps.changesets.outputs.published == 'true'
