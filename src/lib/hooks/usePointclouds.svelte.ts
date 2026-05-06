@@ -154,6 +154,7 @@ export const providePointclouds = (partID: () => string) => {
 						}
 
 						if (existing) {
+							hierarchy.setParent(existing, name)
 							const geometry = existing.get(traits.BufferGeometry)
 
 							if (geometry) {

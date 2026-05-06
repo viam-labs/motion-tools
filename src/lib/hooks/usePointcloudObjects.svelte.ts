@@ -230,6 +230,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 							const existing = entities.get(geometryLabel)
 
 							if (existing) {
+								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
 								existing.set(traits.Center, center)
 								traits.updateGeometryTrait(existing, geometry)
 							} else {

@@ -157,6 +157,7 @@ export const provideGeometries = (partID: () => string) => {
 						const existing = entities.get(entityKey)
 
 						if (existing) {
+							hierarchy.setParent(existing, name)
 							existing.set(traits.Center, center)
 							updateGeometryTrait(existing, geometry)
 							continue
