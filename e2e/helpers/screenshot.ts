@@ -9,11 +9,26 @@ import { expect, type Page } from '@playwright/test'
  * can collect failures and assert at the end of a test.
  */
 export const screenshotCanvas = async (page: Page, name: string): Promise<string> => {
-	const style = await page.addStyleTag({
-		content: `* { visibility: hidden !important; } canvas { visibility: visible !important; }`,
+	const canvas = page.locator('canvas').first()
+
+	await canvas.evaluate((node) => {
+		const hidden: HTMLElement[] = []
+		let el: Element | null = node
+		while (el && el.parentElement) {
+			for (const sibling of el.parentElement.children) {
+				if (sibling !== el && sibling instanceof HTMLElement) {
+					hidden.push(sibling)
+					sibling.dataset.screenshotPrevDisplay = sibling.style.display
+					sibling.style.display = 'none'
+				}
+			}
+			el = el.parentElement
+		}
+		;(globalThis as unknown as { __screenshotHidden: HTMLElement[] }).__screenshotHidden = hidden
 	})
+
 	try {
-		await expect(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`, {
+		await expect(canvas).toHaveScreenshot(`${name}.png`, {
 			threshold: 0.1,
 		})
 		return ''
@@ -21,6 +36,13 @@ export const screenshotCanvas = async (page: Page, name: string): Promise<string
 		console.warn(error)
 		return `${name}.png`
 	} finally {
-		await style.evaluate((node: Element) => node.remove())
+		await page.evaluate(() => {
+			const store = globalThis as unknown as { __screenshotHidden?: HTMLElement[] }
+			for (const el of store.__screenshotHidden ?? []) {
+				el.style.display = el.dataset.screenshotPrevDisplay ?? ''
+				delete el.dataset.screenshotPrevDisplay
+			}
+			delete store.__screenshotHidden
+		})
 	}
 }
