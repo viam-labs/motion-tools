@@ -32,7 +32,7 @@ test.beforeAll(() => {
 
 for (const snapshot of snapshots) {
 	test(`drops ${snapshot.file}`, async ({ browser }) => {
-		const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)
+		const { page, dropFile, screenshotCanvas, assertScreenshots } = await createPage(browser)
 
 		await dropFile(path.resolve(snapshotsDir, `${snapshot.file}.pb.gz`))
 		await expect(page.getByText(`${snapshot.file}.pb.gz loaded.`)).toBeVisible({
@@ -51,7 +51,7 @@ for (const snapshot of snapshots) {
 			})
 		}
 
-		await takeScreenshot(`SNAPSHOT_DROP_${snapshot.name.toUpperCase()}_PB_GZ`)
+		await screenshotCanvas(`SNAPSHOT_DROP_${snapshot.name.toUpperCase()}_PB_GZ`)
 		assertScreenshots()
 	})
 }

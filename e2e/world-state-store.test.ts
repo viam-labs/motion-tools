@@ -70,27 +70,27 @@ withRobot('world state store geometry rendering', async ({ robotPage }) => {
 	await expect(page.getByText('test-mesh', { exact: true })).toBeVisible()
 	await expect(page.getByText('test-axes-helper', { exact: true })).toBeVisible()
 
-	await robotPage.takeScreenshot('WORLD-STATE-0-transforms-loaded')
+	await robotPage.screenshotCanvas('WORLD-STATE-0-transforms-loaded')
 
 	await page.getByText('test-box', { exact: true }).click()
 	await expect(page.getByTestId('details-header')).toBeVisible()
-	await robotPage.takeScreenshot('WORLD-STATE-1-box-selected')
+	await robotPage.screenshotCanvas('WORLD-STATE-1-box-selected')
 
 	await page.getByText('test-sphere', { exact: true }).click()
 	await expect(page.getByTestId('details-header')).toBeVisible()
-	await robotPage.takeScreenshot('WORLD-STATE-2-sphere-selected')
+	await robotPage.screenshotCanvas('WORLD-STATE-2-sphere-selected')
 
 	await page.getByText('test-capsule', { exact: true }).click()
 	await expect(page.getByTestId('details-header')).toBeVisible()
-	await robotPage.takeScreenshot('WORLD-STATE-3-capsule-selected')
+	await robotPage.screenshotCanvas('WORLD-STATE-3-capsule-selected')
 
 	await page.getByText('test-pointcloud', { exact: true }).click()
 	await expect(page.getByTestId('details-header')).toBeVisible()
-	await robotPage.takeScreenshot('WORLD-STATE-4-pointcloud-selected')
+	await robotPage.screenshotCanvas('WORLD-STATE-4-pointcloud-selected')
 
 	await page.getByText('test-mesh', { exact: true }).click()
 	await expect(page.getByTestId('details-header')).toBeVisible()
-	await robotPage.takeScreenshot('WORLD-STATE-5-mesh-selected')
+	await robotPage.screenshotCanvas('WORLD-STATE-5-mesh-selected')
 
 	robotPage.assertScreenshots()
 })
@@ -102,31 +102,31 @@ withRobot('world state store transform update', async ({ robotPage }) => {
 
 	runGoTest('^TestTransformUpdate$/AddTransform')
 	await expect(page.getByText('dynamic-sphere', { exact: true })).toBeVisible({ timeout: 10000 })
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-0-added')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-0-added')
 
 	runGoTest('^TestTransformUpdate$/MoveTransform')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-1-moved')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-1-moved')
 
 	runGoTest('^TestTransformUpdate$/RotateTransform')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-2-rotated')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-2-rotated')
 
 	runGoTest('^TestTransformUpdate$/UpdateColor')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-3-colored')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-3-colored')
 
 	runGoTest('^TestTransformUpdate$/UpdateOpacity')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-4-translucent')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-4-translucent')
 
 	runGoTest('^TestTransformUpdate$/ToggleAxesHelper')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-5-axes-hidden')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-5-axes-hidden')
 
 	runGoTest('^TestTransformUpdate$/ToggleInvisibility')
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-UPDATE-6-invisible')
+	await robotPage.screenshotCanvas('WORLD-STATE-UPDATE-6-invisible')
 
 	runGoTest('^TestTransformUpdate$/Cleanup')
 	await expect(page.getByText('dynamic-sphere', { exact: true })).toBeHidden({ timeout: 10000 })
@@ -143,13 +143,13 @@ withRobot('world state store transform removal', async ({ robotPage }) => {
 	await expect(page.getByText('removable-sphere', { exact: true })).toBeVisible({
 		timeout: 10000,
 	})
-	await robotPage.takeScreenshot('WORLD-STATE-REMOVE-0-added')
+	await robotPage.screenshotCanvas('WORLD-STATE-REMOVE-0-added')
 
 	runGoTest('^TestTransformRemoval$/RemoveTransform')
 	await expect(page.getByText('removable-sphere', { exact: true })).toBeHidden({
 		timeout: 10000,
 	})
-	await robotPage.takeScreenshot('WORLD-STATE-REMOVE-1-removed')
+	await robotPage.screenshotCanvas('WORLD-STATE-REMOVE-1-removed')
 
 	robotPage.assertScreenshots()
 })
@@ -164,12 +164,12 @@ withRobot('world state store point cloud update', async ({ robotPage }) => {
 		timeout: 10000,
 	})
 
-	await robotPage.takeScreenshot('WORLD-STATE-POINTCLOUD-UPDATE-0-initial')
+	await robotPage.screenshotCanvas('WORLD-STATE-POINTCLOUD-UPDATE-0-initial')
 
 	runGoTest('^TestPointCloudUpdate$/UpdatePointCloud')
 	// wait for changes
 	await page.waitForTimeout(2000)
-	await robotPage.takeScreenshot('WORLD-STATE-POINTCLOUD-UPDATE-1-updated')
+	await robotPage.screenshotCanvas('WORLD-STATE-POINTCLOUD-UPDATE-1-updated')
 
 	// Cleanup removes the entity AND resets the camera.
 	runGoTest('^TestPointCloudUpdate$/Cleanup')
@@ -191,7 +191,7 @@ withRobot('world state store point cloud chunking', async ({ robotPage }) => {
 
 	const progressBar = page.getByRole('progressbar')
 	await expect(progressBar).toBeHidden({ timeout: 30000 })
-	await robotPage.takeScreenshot('WORLD-STATE-CHUNK-0-loaded')
+	await robotPage.screenshotCanvas('WORLD-STATE-CHUNK-0-loaded')
 
 	runGoTest('^TestPointCloudChunking$/Cleanup')
 	await expect(page.getByText('chunked-cloud', { exact: true })).toBeHidden({ timeout: 10000 })
