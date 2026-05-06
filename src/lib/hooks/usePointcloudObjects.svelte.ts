@@ -11,7 +11,7 @@ import { getContext, setContext, untrack } from 'svelte'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
 import { createPose } from '$lib/transform'
 
@@ -235,7 +235,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 							} else {
 								const entityTraits: ConfigurableTrait[] = [
 									traits.Name(geometryLabel),
-									...traits.getParentTrait(geometriesInFrame.referenceFrame),
+									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
 									traits.Center(center),
 									traits.GeometriesAPI,
 									traits.Geometry(geometry),

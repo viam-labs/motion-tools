@@ -10,7 +10,7 @@ import { Color } from 'three'
 
 import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
 import { createPose } from '$lib/transform'
 
@@ -163,7 +163,7 @@ export const provideGeometries = (partID: () => string) => {
 						}
 
 						const entityTraits: ConfigurableTrait[] = [
-							traits.Parent(name),
+							...hierarchy.parentTraits(name),
 							traits.Name(label),
 							traits.Center(center),
 							traits.GeometriesAPI,

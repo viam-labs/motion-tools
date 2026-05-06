@@ -7,7 +7,7 @@
 	import { Line2, LineMaterial } from 'three/examples/jsm/Addons.js'
 
 	import { isVertexColors, STRIDE } from '$lib/buffer'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
@@ -24,7 +24,7 @@
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const pose = useTrait(() => entity, traits.Pose)
 	const color = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)

@@ -1,7 +1,7 @@
 import { createWorld, type World } from 'koota'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { relations } from '$lib/ecs'
+import { hierarchy, relations } from '$lib/ecs'
 
 vi.mock('$lib/loaders/pcd', () => ({
 	parsePcdInWorker: vi.fn(() => Promise.resolve({ positions: new Float32Array(), colors: null })),
@@ -54,13 +54,12 @@ describe('drawTransform', () => {
 		const { entity } = drawTransform(world, transform, traits.SnapshotAPI)
 
 		expect(entity.get(traits.Name)).toBe('box-frame')
-		expect(entity.get(traits.Parent)).toBe('arm')
+		expect(hierarchy.getParentName(entity)).toBe('arm')
 		expect(entity.get(traits.Pose)).toStrictEqual(createPose({ x: 100, y: 200, z: 300 }))
 		expect(entity.get(traits.Box)).toStrictEqual({ x: 10, y: 20, z: 30 })
 		expect(entity.has(traits.ReferenceFrame)).toBe(false)
 		expect(entity.has(traits.ShowAxesHelper)).toBe(false)
 		expect(entity.has(traits.Removable)).toBe(true)
-		expect(entity.get(traits.Parent)).toBe('arm')
 		expect(entity.has(traits.SnapshotAPI)).toBe(true)
 	})
 
@@ -114,7 +113,7 @@ describe('drawTransform', () => {
 		expect(entity.has(traits.Removable)).toBe(false)
 	})
 
-	it('does not attach Parent trait when parent is world', () => {
+	it('does not attach a parent trait when parent is world', () => {
 		world = createWorld()
 		const transform = new Transform({
 			referenceFrame: 'arm',
@@ -123,7 +122,8 @@ describe('drawTransform', () => {
 
 		const { entity } = drawTransform(world, transform, traits.SnapshotAPI)
 
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
+		expect(entity.has(traits.Orphan)).toBe(false)
 	})
 
 	it('adds Color trait for pointcloud with uniform color', async () => {
@@ -203,7 +203,7 @@ describe('drawDrawing', () => {
 		const { entity } = drawDrawing(world, drawing, traits.SnapshotAPI, { removable: true })
 
 		expect(entity.get(traits.Name)).toBe('line-1')
-		expect(entity.get(traits.Parent)).toBe('base')
+		expect(hierarchy.getParentName(entity)).toBe('base')
 		expect(entity.has(traits.LinePositions)).toBe(true)
 		expect(entity.get(traits.LineWidth)).toBe(3)
 		expect(entity.get(traits.DotSize)).toBe(6)
@@ -338,9 +338,10 @@ describe('drawDrawing', () => {
 
 		expect(rootEntity.has(traits.ReferenceFrame)).toBe(true)
 		expect(rootEntity.get(traits.Name)).toBe('robot-model')
-		expect(rootEntity.get(traits.Parent)).toBe('arm')
+		expect(hierarchy.getParentName(rootEntity)).toBe('arm')
 		expect(rootEntity.has(traits.SnapshotAPI)).toBe(true)
-		expect(assetEntity.get(traits.Parent)).toBe('robot-model')
+		expect(hierarchy.getParentName(assetEntity)).toBe('robot-model')
+		expect(assetEntity.targetFor(relations.ChildOf)).toBe(rootEntity)
 		expect(assetEntity.has(traits.SnapshotAPI)).toBe(true)
 		expect(assetEntity.get(traits.Scale)).toStrictEqual({ x: 2, y: 2, z: 2 })
 		expect(assetEntity.get(traits.GLTF)).toStrictEqual({
@@ -378,7 +379,7 @@ describe('updateTransform', () => {
 	let world: World
 	afterEach(() => world?.destroy())
 
-	it("removes the Parent trait when a frame's parent changes back to 'world'", () => {
+	it("clears the parent ref when a frame's parent changes back to 'world'", () => {
 		world = createWorld()
 
 		const initial = new Transform({
@@ -386,17 +387,17 @@ describe('updateTransform', () => {
 			poseInObserverFrame: { referenceFrame: 'arm', pose: createPose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
-		expect(entity.get(traits.Parent)).toBe('arm')
+		expect(hierarchy.getParentName(entity)).toBe('arm')
 
 		updateTransform(entity, {
 			...initial,
 			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
 		} as Transform)
 
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
 	})
 
-	it("adds the Parent trait when a frame's parent changes from 'world' to a named frame", () => {
+	it("attaches a parent when a frame's parent changes from 'world' to a named frame", () => {
 		world = createWorld()
 
 		const initial = new Transform({
@@ -404,14 +405,14 @@ describe('updateTransform', () => {
 			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
 
 		updateTransform(entity, {
 			...initial,
 			poseInObserverFrame: { referenceFrame: 'base', pose: createPose() },
 		} as Transform)
 
-		expect(entity.get(traits.Parent)).toBe('base')
+		expect(hierarchy.getParentName(entity)).toBe('base')
 	})
 })
 
@@ -482,81 +483,200 @@ describe('updateMetadata', () => {
 	})
 })
 
-describe('setParentTrait', () => {
-	let world: World
-	afterEach(() => world?.destroy())
-
-	it('leaves the Parent trait absent when parent is undefined', () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, undefined)
-
-		expect(entity.has(traits.Parent)).toBe(false)
-	})
-
-	it("removes the Parent trait when parent is 'world'", () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Parent('arm'))
-
-		traits.setParentTrait(entity, 'world')
-
-		expect(entity.has(traits.Parent)).toBe(false)
-	})
-
-	it('adds the Parent trait when transitioning from unset to a named parent', () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, 'arm')
-
-		expect(entity.get(traits.Parent)).toBe('arm')
-	})
-
-	it('updates the Parent trait when switching named parents', () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Parent('arm'))
-
-		traits.setParentTrait(entity, 'base')
-
-		expect(entity.get(traits.Parent)).toBe('base')
-	})
-
-	it("removes the Parent trait after a named -> 'world' round-trip (regression)", () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, 'arm')
-		expect(entity.get(traits.Parent)).toBe('arm')
-
-		traits.setParentTrait(entity, 'world')
-		expect(entity.has(traits.Parent)).toBe(false)
-
-		traits.setParentTrait(entity, 'base')
-		expect(entity.get(traits.Parent)).toBe('base')
-	})
-})
-
-describe('getParentTrait', () => {
+describe('hierarchy.parentTraits', () => {
 	let world: World
 	afterEach(() => world?.destroy())
 
 	it('returns an empty list for undefined, empty, or world parents', () => {
-		expect(traits.getParentTrait(undefined)).toEqual([])
-		expect(traits.getParentTrait('')).toEqual([])
-		expect(traits.getParentTrait('world')).toEqual([])
+		expect(hierarchy.parentTraits(undefined)).toEqual([])
+		expect(hierarchy.parentTraits('')).toEqual([])
+		expect(hierarchy.parentTraits('world')).toEqual([])
 	})
 
-	it('spawns without Parent trait when parent is world-like', () => {
+	it('spawns without Orphan/ChildOf when parent is world-like', () => {
 		world = createWorld()
-		const entity = world.spawn(traits.Name('child'), ...traits.getParentTrait('world'))
-		expect(entity.has(traits.Parent)).toBe(false)
+		const entity = world.spawn(traits.Name('child'), ...hierarchy.parentTraits('world'))
+		expect(entity.has(traits.Orphan)).toBe(false)
+		expect(entity.targetFor(relations.ChildOf)).toBeUndefined()
 	})
 
-	it('spawns with Parent trait when parent is a named frame', () => {
+	it('emits Orphan(name) for a named parent — resolver swaps it later', () => {
 		world = createWorld()
-		const entity = world.spawn(traits.Name('child'), ...traits.getParentTrait('arm'))
-		expect(entity.get(traits.Parent)).toBe('arm')
+		const entity = world.spawn(traits.Name('child'), ...hierarchy.parentTraits('arm'))
+		expect(entity.get(traits.Orphan)).toBe('arm')
+		expect(entity.targetFor(relations.ChildOf)).toBeUndefined()
+	})
+})
+
+describe('hierarchy.setParent', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	it('is a no-op state when parent is undefined and entity had no parent', () => {
+		world = createWorld()
+		const entity = world.spawn()
+
+		hierarchy.setParent(entity, undefined)
+
+		expect(entity.has(traits.Orphan)).toBe(false)
+		expect(entity.targetFor(relations.ChildOf)).toBeUndefined()
+	})
+
+	it("strips the parent ref when name is 'world'", () => {
+		world = createWorld()
+		const entity = world.spawn(traits.Orphan('arm'))
+
+		hierarchy.setParent(entity, 'world')
+
+		expect(entity.has(traits.Orphan)).toBe(false)
+		expect(entity.targetFor(relations.ChildOf)).toBeUndefined()
+	})
+
+	it('writes Orphan(name) when transitioning from unset to a named parent', () => {
+		world = createWorld()
+		const entity = world.spawn()
+
+		hierarchy.setParent(entity, 'arm')
+
+		expect(entity.get(traits.Orphan)).toBe('arm')
+	})
+
+	it('replaces an existing Orphan when switching named parents', () => {
+		world = createWorld()
+		const entity = world.spawn(traits.Orphan('arm'))
+
+		hierarchy.setParent(entity, 'base')
+
+		expect(entity.get(traits.Orphan)).toBe('base')
+	})
+
+	it('replaces an existing ChildOf when switching named parents', () => {
+		world = createWorld()
+		const arm = world.spawn(traits.Name('arm'))
+		const child = world.spawn(relations.ChildOf(arm))
+
+		hierarchy.setParent(child, 'base')
+
+		expect(child.targetFor(relations.ChildOf)).toBeUndefined()
+		expect(child.get(traits.Orphan)).toBe('base')
+	})
+
+	it('survives an arm -> world -> base round-trip', () => {
+		world = createWorld()
+		const entity = world.spawn()
+
+		hierarchy.setParent(entity, 'arm')
+		expect(entity.get(traits.Orphan)).toBe('arm')
+
+		hierarchy.setParent(entity, 'world')
+		expect(entity.has(traits.Orphan)).toBe(false)
+
+		hierarchy.setParent(entity, 'base')
+		expect(entity.get(traits.Orphan)).toBe('base')
+	})
+})
+
+describe('hierarchy.resolveOrphans', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	it('converts Orphan to ChildOf once a parent with that name appears', () => {
+		world = createWorld()
+		const child = world.spawn(traits.Name('child'), traits.Orphan('arm'))
+		expect(child.targetFor(relations.ChildOf)).toBeUndefined()
+
+		const arm = world.spawn(traits.Name('arm'))
+
+		hierarchy.resolveOrphans(world)
+
+		expect(child.has(traits.Orphan)).toBe(false)
+		expect(child.targetFor(relations.ChildOf)).toBe(arm)
+	})
+
+	it('leaves orphans untouched when no matching parent exists', () => {
+		world = createWorld()
+		const child = world.spawn(traits.Name('child'), traits.Orphan('missing'))
+
+		hierarchy.resolveOrphans(world)
+
+		expect(child.get(traits.Orphan)).toBe('missing')
+		expect(child.targetFor(relations.ChildOf)).toBeUndefined()
+	})
+
+	it('is idempotent — second call with no new parents is a no-op', () => {
+		world = createWorld()
+		const child = world.spawn(traits.Orphan('missing'))
+
+		hierarchy.resolveOrphans(world)
+		hierarchy.resolveOrphans(world)
+
+		expect(child.get(traits.Orphan)).toBe('missing')
+	})
+
+	it('resolves multiple orphans with the same parent in a single pass', () => {
+		world = createWorld()
+		const a = world.spawn(traits.Orphan('arm'))
+		const b = world.spawn(traits.Orphan('arm'))
+		const arm = world.spawn(traits.Name('arm'))
+
+		hierarchy.resolveOrphans(world)
+
+		expect(a.targetFor(relations.ChildOf)).toBe(arm)
+		expect(b.targetFor(relations.ChildOf)).toBe(arm)
+	})
+})
+
+describe('hierarchy.getParentName', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	it('returns undefined for a world-root entity', () => {
+		world = createWorld()
+		const entity = world.spawn()
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
+	})
+
+	it('reads through ChildOf to the parent name', () => {
+		world = createWorld()
+		const arm = world.spawn(traits.Name('arm'))
+		const child = world.spawn(relations.ChildOf(arm))
+		expect(hierarchy.getParentName(child)).toBe('arm')
+	})
+
+	it('falls back to Orphan when the parent is unresolved', () => {
+		world = createWorld()
+		const child = world.spawn(traits.Orphan('missing'))
+		expect(hierarchy.getParentName(child)).toBe('missing')
+	})
+})
+
+describe('hierarchy.destroyEntityTree', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	it('destroys a root and every ChildOf descendant', () => {
+		world = createWorld()
+		const root = world.spawn(traits.Name('root'))
+		const child = world.spawn(relations.ChildOf(root))
+		const grandchild = world.spawn(relations.ChildOf(child))
+
+		hierarchy.destroyEntityTree(world, root)
+
+		expect(root.isAlive()).toBe(false)
+		expect(child.isAlive()).toBe(false)
+		expect(grandchild.isAlive()).toBe(false)
+	})
+
+	it('leaves siblings outside the subtree alone', () => {
+		world = createWorld()
+		const root = world.spawn(traits.Name('root'))
+		const sibling = world.spawn(traits.Name('sibling'))
+		const child = world.spawn(relations.ChildOf(root))
+
+		hierarchy.destroyEntityTree(world, root)
+
+		expect(sibling.isAlive()).toBe(true)
+		expect(child.isAlive()).toBe(false)
 	})
 })
 

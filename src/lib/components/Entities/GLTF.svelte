@@ -19,7 +19,7 @@
 	import { Portal, PortalTarget, type ThrelteGltf, useGltfAnimations } from '@threlte/extras'
 	import { Group, type Object3D } from 'three'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
@@ -35,7 +35,7 @@
 	const { gltf, actions } = useGltfAnimations()
 
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const pose = useTrait(() => entity, traits.Pose)
 	const gltfTrait = useTrait(() => entity, traits.GLTF)
 	const scale = useTrait(() => entity, traits.Scale)
