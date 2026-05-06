@@ -9,6 +9,9 @@ import { expect, type Page } from '@playwright/test'
  * can collect failures and assert at the end of a test.
  */
 export const screenshotCanvas = async (page: Page, name: string): Promise<string> => {
+	const style = await page.addStyleTag({
+		content: `* { visibility: hidden !important; } canvas { visibility: visible !important; }`,
+	})
 	try {
 		await expect(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`, {
 			threshold: 0.1,
@@ -17,5 +20,7 @@ export const screenshotCanvas = async (page: Page, name: string): Promise<string
 	} catch (error) {
 		console.warn(error)
 		return `${name}.png`
+	} finally {
+		await style.evaluate((node: Element) => node.remove())
 	}
 }
