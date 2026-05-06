@@ -5,6 +5,8 @@ import { ViamClientOptions } from '@viamrobotics/sdk'
 import { ViamClient } from '@viamrobotics/sdk'
 import fs from 'node:fs'
 
+import { screenshotCanvas } from './helpers/screenshot'
+
 const getTestConfig = () => ({
 	host: process.env.VIAM_E2E_HOST ?? '',
 	name: process.env.VIAM_E2E_MACHINE_NAME ?? '',
@@ -23,6 +25,7 @@ interface TestPage {
 	failedScreenshots: string[]
 	refresh: () => Promise<void>
 	takeScreenshot: (testPrefix: string) => Promise<void>
+	screenshotCanvas: (testPrefix: string) => Promise<void>
 	assertScreenshots: () => void
 	dropFile: (file: string | { name: string; content: string }) => Promise<void>
 	connect: () => Promise<ViamClient>
@@ -60,6 +63,13 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		} catch (error) {
 			console.warn(error)
 			failedScreenshots.push(`${testPrefix}.png`)
+		}
+	}
+
+	const takeCanvasScreenshot = async (testPrefix: string) => {
+		const failure = await screenshotCanvas(page, testPrefix)
+		if (failure) {
+			failedScreenshots.push(failure)
 		}
 	}
 
@@ -149,6 +159,7 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		dropFile,
 		connect,
 		takeScreenshot,
+		screenshotCanvas: takeCanvasScreenshot,
 		assertScreenshots,
 	}
 }
