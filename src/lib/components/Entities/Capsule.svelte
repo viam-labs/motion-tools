@@ -31,7 +31,7 @@ midsection has length `l - 2r`.
 <script lang="ts">
 	import type { ColorRepresentation } from 'three'
 
-	import { T } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { LineBasicMaterial, MeshToonMaterial } from 'three'
 
 	import { darkenColor } from '$lib/color'
@@ -46,19 +46,27 @@ midsection has length `l - 2r`.
 
 	let { r, l, color, opacity = 1, depthTest = true }: Props = $props()
 
+	const { invalidate } = useThrelte()
 	const material = new MeshToonMaterial()
 	const lineMaterial = new LineBasicMaterial()
 
 	$effect(() => {
 		material.color.set(color)
 		lineMaterial.color.set(darkenColor(color, 10))
+		invalidate()
 	})
 
 	$effect(() => {
+		const isTransparent = opacity < 1
 		material.opacity = opacity
-		material.transparent = opacity < 1
 		material.depthWrite = opacity === 1
 		material.depthTest = depthTest
+		lineMaterial.depthTest = depthTest
+		if (material.transparent !== isTransparent) {
+			material.transparent = isTransparent
+			material.needsUpdate = true
+		}
+		invalidate()
 	})
 
 	const midsection = $derived(Math.max(0, l - 2 * r))
