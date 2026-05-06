@@ -1,6 +1,7 @@
 export { provideWorld, useWorld } from './useWorld'
 export { useQuery } from './useQuery.svelte'
 export { useTrait } from './useTrait.svelte'
+export { useTarget } from './useTarget.svelte'
 export { useParentName } from './useParentName.svelte'
 export { provideHierarchy } from './provideHierarchy.svelte'
 
