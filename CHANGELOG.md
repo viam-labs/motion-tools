@@ -1,5 +1,15 @@
 # motion-tools
 
+## 1.25.0
+
+### Minor Changes
+
+- 7a31f2e: Add reconnection backoff and a manual reconnection button
+
+### Patch Changes
+
+- a3ead32: Improve `Mesh.svelte` performance by geometry pooling
+
 ## 1.24.0
 
 ### Minor Changes

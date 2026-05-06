@@ -1,10 +1,20 @@
 name: Version PR Docs Review
 
 on:
+  # pull_request fires for human follow-up pushes (e.g. after `@claude apply`).
+  # The initial creation by changesets/action uses GITHUB_TOKEN, which does NOT
+  # dispatch pull_request events — main.yml triggers us via workflow_dispatch
+  # in that case.
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [main]
     paths: ['**/CHANGELOG.md']
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Version PR number to review'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,7 +23,10 @@ jobs:
   review:
     if: >-
       github.repository_owner == 'viamrobotics' &&
-      github.event.pull_request.head.ref == 'changeset-release/main'
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.event.pull_request.head.ref == 'changeset-release/main'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,21 +34,46 @@ jobs:
       issues: write
       id-token: write
     steps:
+      - name: Resolve PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR_NUMBER="${{ inputs.pr_number }}"
+            DATA=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefName,headRefOid,baseRefName)
+            HEAD_REF=$(echo "$DATA" | jq -r '.headRefName')
+            HEAD_SHA=$(echo "$DATA" | jq -r '.headRefOid')
+            BASE_REF=$(echo "$DATA" | jq -r '.baseRefName')
+            if [ "$HEAD_REF" != "changeset-release/main" ]; then
+              echo "PR #$PR_NUMBER head is '$HEAD_REF', expected 'changeset-release/main'" >&2
+              exit 1
+            fi
+          else
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_REF="${{ github.event.pull_request.base.ref }}"
+          fi
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA"   >> "$GITHUB_OUTPUT"
+          echo "base_ref=$BASE_REF"   >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         # actions/checkout@v6
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ steps.pr.outputs.head_sha }}
 
       - name: Review changelog and propose docs
         # anthropics/claude-code-action — pin to the SHA you use elsewhere
         uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          PR_HEAD_SHA: ${{ steps.pr.outputs.head_sha }}
+          PR_BASE_REF: ${{ steps.pr.outputs.base_ref }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           max_turns: 60
