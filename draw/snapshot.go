@@ -34,19 +34,11 @@ func (snapshot *Snapshot) UUID() []byte {
 	return snapshot.uuid
 }
 
-// SetUUID overrides the snapshot's auto-generated UUID. Use this when emitting
-// a sequence of snapshots that represent successive states of the same scene
-// — the visualizer reconciles per-entity when consecutive snapshots share a
-// UUID, and wipes-and-respawns when the UUID changes.
+// SetUUID overrides the snapshot's auto-generated UUID.
 func (snapshot *Snapshot) SetUUID(id uuid.UUID) {
 	snapshot.uuid = id[:]
 }
 
-// deriveEntityUUID returns a UUID v5 derived from the snapshot's UUID as
-// namespace and key as input. Two snapshots with different UUIDs that contain
-// entities sharing the same key produce different entity UUIDs, so the
-// visualizer's reconciler treats them as distinct entities. Two snapshots
-// sharing a UUID produce the same entity UUIDs, so reconciliation matches.
 func (snapshot *Snapshot) deriveEntityUUID(key string) []byte {
 	var ns uuid.UUID
 	copy(ns[:], snapshot.uuid)
@@ -54,9 +46,6 @@ func (snapshot *Snapshot) deriveEntityUUID(key string) []byte {
 	return derived[:]
 }
 
-// entityKey is the per-entity identifier used as the input to
-// deriveEntityUUID. Reference frame name plus parent uniquely identifies an
-// entity within a snapshot.
 func entityKey(name, parent string) string {
 	return name + ":" + parent
 }
