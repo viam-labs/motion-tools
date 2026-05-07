@@ -1,6 +1,5 @@
-import { observe } from '@threlte/core'
-import { commonApi, Pose } from '@viamrobotics/sdk'
-import { createRobotQuery, useRobotClient } from '@viamrobotics/svelte-sdk'
+import { commonApi, MachineConnectionEvent, Pose } from '@viamrobotics/sdk'
+import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
@@ -16,10 +15,11 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
 const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 export const usePose = (name: () => string | undefined, parent: () => string | undefined) => {
+	const partID = usePartID()
+	const connectionStatus = useConnectionStatus(() => partID.current)
 	const environment = useEnvironment()
 	const logs = useLogs()
 	const settings = useSettings()
-	const partID = usePartID()
 	const robotClient = useRobotClient(() => partID.current)
 	const currentName = $derived(name())
 	const currentParent = $derived(parent())
@@ -72,14 +72,15 @@ export const usePose = (name: () => string | undefined, parent: () => string | u
 		}
 	})
 
-	observe.pre(
-		() => [environment.current.viewerMode, frames.current],
-		() => {
-			if (environment.current.viewerMode === 'monitor') {
-				untrack(() => query.refetch())
-			}
+	$effect(() => {
+		if (
+			environment.current.viewerMode === 'monitor' &&
+			frames.current &&
+			connectionStatus.current === MachineConnectionEvent.CONNECTED
+		) {
+			untrack(() => query.refetch())
 		}
-	)
+	})
 
 	return {
 		get current() {

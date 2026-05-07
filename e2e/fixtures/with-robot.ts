@@ -7,6 +7,8 @@ import {
 	type ViamClientOptions,
 } from '@viamrobotics/sdk'
 
+import { screenshotCanvas } from '../helpers/screenshot'
+
 const getE2EConfig = () => {
 	const host = process.env.VIAM_E2E_HOST
 	const partId = process.env.VIAM_E2E_PART_ID
@@ -44,6 +46,7 @@ export interface RobotTestPage {
 	viamClient: ViamClient
 	failedScreenshots: string[]
 	takeScreenshot: (testPrefix: string) => Promise<void>
+	screenshotCanvas: (testPrefix: string) => Promise<void>
 	assertScreenshots: () => void
 }
 
@@ -198,6 +201,13 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 			}
 		}
 
+		const takeCanvasScreenshot = async (testPrefix: string) => {
+			const failure = await screenshotCanvas(page, testPrefix)
+			if (failure) {
+				failedScreenshots.push(failure)
+			}
+		}
+
 		const assertScreenshots = () => {
 			if (failedScreenshots.length > 0) {
 				console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
@@ -211,6 +221,7 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 			viamClient: client,
 			failedScreenshots,
 			takeScreenshot,
+			screenshotCanvas: takeCanvasScreenshot,
 			assertScreenshots,
 		})
 

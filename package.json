@@ -1,6 +1,6 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.23.2",
+	"version": "1.25.0",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -46,7 +46,7 @@
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
-		"@playwright/test": "1.55.0",
+		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
 		"@skeletonlabs/skeleton": "3.2.0",
 		"@skeletonlabs/skeleton-svelte": "1.5.1",
@@ -72,7 +72,7 @@
 		"@typescript-eslint/parser": "8.56.1",
 		"@viamrobotics/prime-core": "0.1.5",
 		"@viamrobotics/sdk": "0.69.0",
-		"@viamrobotics/svelte-sdk": "1.0.1",
+		"@viamrobotics/svelte-sdk": "1.2.2",
 		"@vitest/browser": "3.2.4",
 		"@vitest/coverage-v8": "^3.2.4",
 		"@zag-js/collapsible": "1.22.1",
@@ -104,7 +104,7 @@
 		"svelte-virtuallists": "1.4.2",
 		"tailwindcss": "4.1.13",
 		"three": "0.183.2",
-		"threlte-uikit": "2.0.0",
+		"threlte-uikit": "^2.0.0",
 		"tsx": "4.20.5",
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
@@ -150,6 +150,7 @@
 			"esbuild"
 		],
 		"overrides": {
+			"js-yaml@^3": "3.14.2",
 			"uuid": ">=14.0.0"
 		}
 	},
