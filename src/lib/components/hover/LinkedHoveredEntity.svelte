@@ -3,8 +3,7 @@
 
 	import { compileExpression } from 'filtrex'
 
-	import { relations, traits } from '$lib/ecs'
-	import { useTrait } from '$lib/ecs'
+	import { relations, traits, useTrait } from '$lib/ecs'
 	import { SubEntityLinkType } from '$lib/ecs/relations'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useFocusedEntity } from '$lib/hooks/useSelection.svelte'
