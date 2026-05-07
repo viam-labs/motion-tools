@@ -16,7 +16,8 @@ docs/src/content/docs/api
 
 # Snapshots
 draw/__snapshots__
-e2e/*.ts-snapshots 
+e2e/*.ts-snapshots
+static/test-fixtures
 
 # IDE
 .cursor
