@@ -1,5 +1,13 @@
 # motion-tools
 
+## 1.25.1
+
+### Patch Changes
+
+- fb8b7ca: Use Koota relations for parent / child interactions
+- e4ca46e: Allow updating Snapshot entities
+- 8c60f88: Screenshot only canvas for UI-unrelated e2e tests
+
 ## 1.25.0
 
 ### Minor Changes
