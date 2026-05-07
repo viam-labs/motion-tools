@@ -1447,4 +1447,95 @@ func TestGeneratingSnapshots(t *testing.T) {
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_metadata.json")
 	})
+
+	// generates a sequence of three snapshots that share per-entity UUIDs so the
+	// frontend reconciler can be exercised end-to-end: entities are added,
+	// updated in place, and removed across versions. The JSON files are also
+	// copied to static/test-fixtures/ so the /snapshot/reconcile route can
+	// fetch them at runtime.
+	t.Run("snapshot reconcile", func(t *testing.T) {
+		writeFixture := func(snapshot *Snapshot, filename string) {
+			t.Helper()
+			writeSnapshot(t, snapshot, filename)
+
+			jsonBytes, err := snapshot.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			staticDir := filepath.Join("..", "static", "test-fixtures")
+			if err := os.MkdirAll(staticDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			staticPath := filepath.Join(staticDir, filename)
+			if err := os.WriteFile(staticPath, jsonBytes, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		camera := WithSceneCamera(NewSceneCamera(
+			r3.Vector{X: 2000, Y: -2000, Z: 1500},
+			r3.Vector{X: 0, Y: 0, Z: 250},
+		))
+
+		stableID := func(name string) uuid.UUID {
+			return uuid.NewSHA1(uuidNamespace, []byte("reconcile/"+name))
+		}
+
+		drawSphere := func(s *Snapshot, name string, pose spatialmath.Pose, color Color) {
+			id := stableID(name)
+			geo, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 200, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			config := NewDrawConfig(name,
+				WithUUID(id[:]),
+				WithParent("world"),
+				WithPose(pose),
+				WithAxesHelper(false),
+			)
+			transform := NewTransform(config, geo, WithMetadataColors(color))
+			s.transforms = append(s.transforms, transform)
+		}
+
+		v1 := NewSnapshot(camera, WithGrid(false))
+		drawSphere(v1, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v1, "reconcile-moving",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 250}),
+			NewColor(WithName("limegreen")),
+		)
+		drawSphere(v1, "reconcile-removed",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 250}),
+			NewColor(WithName("crimson")),
+		)
+		writeFixture(v1, "visualization_snapshot_reconcile_v1.json")
+
+		v2 := NewSnapshot(camera, WithGrid(false))
+		drawSphere(v2, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v2, "reconcile-moving",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 750}),
+			NewColor(WithName("limegreen")),
+		)
+		drawSphere(v2, "reconcile-added",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 250}),
+			NewColor(WithName("orchid")),
+		)
+		writeFixture(v2, "visualization_snapshot_reconcile_v2.json")
+
+		v3 := NewSnapshot(camera, WithGrid(false))
+		drawSphere(v3, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v3, "reconcile-added",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 750}),
+			NewColor(WithName("orchid")),
+		)
+		writeFixture(v3, "visualization_snapshot_reconcile_v3.json")
+	})
 }

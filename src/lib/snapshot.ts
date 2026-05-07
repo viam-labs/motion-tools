@@ -9,7 +9,14 @@ import { traits } from '$lib/ecs'
 import type { Relationship } from './metadata'
 
 import { rgbToHex } from './color'
-import { drawDrawing, drawTransform } from './draw'
+import {
+	drawDrawing,
+	drawTransform,
+	updateDrawing,
+	updateModel,
+	updateTransform,
+	uuidBytesToString,
+} from './draw'
 
 export type SnapshotEntity = {
 	entity: Entity
@@ -91,6 +98,93 @@ export const spawnSnapshotEntities = (world: World, snapshot: Snapshot): Snapsho
 	}
 
 	return entities
+}
+
+export interface ReconcileResult {
+	current: Map<string, SnapshotEntity>
+	unkeyed: SnapshotEntity[]
+	spawned: SnapshotEntity[]
+	updated: SnapshotEntity[]
+}
+
+export const reconcileSnapshotEntities = (
+	world: World,
+	snapshot: Snapshot,
+	prev: Map<string, SnapshotEntity>
+): ReconcileResult => {
+	const options = { removable: true, showAxesHelper: false }
+	const next = new Map(prev)
+	const seen = new Set<string>()
+	const unkeyed: SnapshotEntity[] = []
+	const spawned: SnapshotEntity[] = []
+	const updated: SnapshotEntity[] = []
+
+	for (const transform of snapshot.transforms) {
+		const uuidStr = uuidBytesToString(transform.uuid)
+		if (!uuidStr) {
+			const result = drawTransform(world, transform, traits.SnapshotAPI, options)
+			const entry = { entity: result.entity, relationships: result.relationships }
+			unkeyed.push(entry)
+			spawned.push(entry)
+			continue
+		}
+
+		const existing = next.get(uuidStr)
+		if (existing && world.has(existing.entity)) {
+			const result = updateTransform(existing.entity, transform, options)
+			const entry = { entity: result.entity, relationships: result.relationships }
+			next.set(uuidStr, entry)
+			updated.push(entry)
+		} else {
+			const result = drawTransform(world, transform, traits.SnapshotAPI, options)
+			const entry = { entity: result.entity, relationships: result.relationships }
+			next.set(uuidStr, entry)
+			spawned.push(entry)
+		}
+		seen.add(uuidStr)
+	}
+
+	for (const drawing of snapshot.drawings) {
+		const uuidStr = uuidBytesToString(drawing.uuid)
+		if (!uuidStr) {
+			const result = drawDrawing(world, drawing, traits.SnapshotAPI, options)
+			const entry = { entity: result.entity, relationships: result.relationships }
+			unkeyed.push(entry)
+			spawned.push(entry)
+			continue
+		}
+
+		const existing = next.get(uuidStr)
+		const isModel = drawing.physicalObject?.geometryType.case === 'model'
+
+		if (existing && world.has(existing.entity)) {
+			if (isModel) {
+				const result = updateModel(world, existing.entity, drawing, traits.SnapshotAPI, options)
+				const entry = { entity: result.entity, relationships: result.relationships }
+				next.set(uuidStr, entry)
+				spawned.push(entry)
+			} else {
+				const result = updateDrawing(world, existing.entity, drawing, options)
+				const entry = { entity: result.entity, relationships: result.relationships }
+				next.set(uuidStr, entry)
+				updated.push(entry)
+			}
+		} else {
+			const result = drawDrawing(world, drawing, traits.SnapshotAPI, options)
+			const entry = { entity: result.entity, relationships: result.relationships }
+			next.set(uuidStr, entry)
+			spawned.push(entry)
+		}
+		seen.add(uuidStr)
+	}
+
+	for (const [uuid, entry] of prev) {
+		if (seen.has(uuid)) continue
+		if (world.has(entry.entity)) entry.entity.destroy()
+		next.delete(uuid)
+	}
+
+	return { current: next, unkeyed, spawned, updated }
 }
 
 const getRenderArmModels = (
