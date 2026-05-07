@@ -1,10 +1,10 @@
 import type { Entity, World } from 'koota'
 
-import { traits } from '$lib/ecs'
+import { hierarchy, traits } from '$lib/ecs'
 
 export const createEntityFixture = (world: World): Entity => {
 	return world.spawn(
-		traits.Parent('parent_frame'),
+		...hierarchy.parentTraits('parent_frame'),
 		traits.Name('Test Object'),
 		traits.Pose({
 			x: 10,

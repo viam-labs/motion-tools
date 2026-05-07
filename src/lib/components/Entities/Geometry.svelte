@@ -10,7 +10,7 @@ Renders a Viam Geometry object
 	import { T, useThrelte } from '@threlte/core'
 	import { Portal } from '@threlte/extras'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { use3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { poseToObject3d } from '$lib/transform'
@@ -31,7 +31,7 @@ Renders a Viam Geometry object
 	const models = use3DModels()
 
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const center = useTrait(() => entity, traits.Center)
 	const invisible = useTrait(() => entity, traits.Invisible)
 

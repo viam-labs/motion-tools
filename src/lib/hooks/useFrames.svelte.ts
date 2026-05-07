@@ -9,7 +9,7 @@ import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createPose } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
@@ -217,7 +217,7 @@ export const provideFrames = (partID: () => string) => {
 						continue
 					}
 
-					traits.setParentTrait(existing, parent)
+					hierarchy.setParent(existing, parent)
 
 					if (color) {
 						existing.set(traits.Color, color)
@@ -258,7 +258,7 @@ export const provideFrames = (partID: () => string) => {
 					traits.FramesAPI,
 					traits.Transformable,
 					traits.ShowAxesHelper,
-					...traits.getParentTrait(parent),
+					...hierarchy.parentTraits(parent),
 				]
 
 				if (color) {

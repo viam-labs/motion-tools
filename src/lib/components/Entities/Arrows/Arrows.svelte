@@ -8,7 +8,7 @@
 
 	import AxesHelper from '$lib/components/AxesHelper.svelte'
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { meshBoundsRaycast, raycast } from '$lib/three/InstancedArrows/raycast'
 
@@ -19,7 +19,7 @@
 
 	let { entity, arrows }: Props = $props()
 
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const invisible = useTrait(() => entity, traits.Invisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 

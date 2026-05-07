@@ -1,6 +1,6 @@
 import type { Entity, QueryResult, Trait } from 'koota'
 
-import { traits } from '$lib/ecs'
+import { hierarchy, traits } from '$lib/ecs'
 
 export interface TreeNode {
 	entity: Entity
@@ -23,7 +23,7 @@ export const buildTreeNodes = (entities: QueryResult<[Trait]>) => {
 	const childNodes: TreeNode[] = []
 
 	for (const entity of entities) {
-		const parent = entity.get(traits.Parent)
+		const parent = hierarchy.getParentName(entity)
 		const name = entity.get(traits.Name) ?? ''
 		const node: TreeNode = { entity }
 
@@ -37,7 +37,7 @@ export const buildTreeNodes = (entities: QueryResult<[Trait]>) => {
 	}
 
 	for (const node of childNodes) {
-		const parent = node.entity.get(traits.Parent)
+		const parent = hierarchy.getParentName(node.entity)
 
 		if (parent) {
 			const parentNode = nodeMap[parent]
