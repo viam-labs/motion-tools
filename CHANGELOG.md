@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.25.2
+
+### Patch Changes
+
+- 1e0d80c: Update snapshots with the same UUID, rerender snapshots with different UUIDs, add `SetUUID` to `Snapshot`
+
 ## 1.25.1
 
 ### Patch Changes
