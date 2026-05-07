@@ -5,8 +5,10 @@
 	import { Snapshot as SnapshotProto } from '$lib/buf/draw/v1/snapshot_pb'
 	import Snapshot from '$lib/components/Snapshot.svelte'
 
-	const versions = ['v1', 'v2', 'v3'] as const
+	const versions = ['v1', 'v2', 'v3', 'new'] as const
 	type Version = (typeof versions)[number]
+
+	const labelFor = (version: Version) => (version === 'new' ? 'Load new' : `Load ${version}`)
 
 	let snapshot = $state.raw<SnapshotProto | undefined>(undefined)
 	let active = $state<Version | undefined>(undefined)
@@ -34,7 +36,7 @@
 				]}
 				onclick={() => load(version)}
 			>
-				Load {version}
+				{labelFor(version)}
 			</button>
 		{/each}
 	</fieldset>

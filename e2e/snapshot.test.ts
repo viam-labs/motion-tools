@@ -56,7 +56,27 @@ for (const snapshot of snapshots) {
 	})
 }
 
-test('reconciles entities by per-entity UUID across snapshot updates', async ({ browser }) => {
+test('drops visualization_snapshot_metadata', async ({ browser }) => {
+	const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)
+	const filename = 'visualization_snapshot_metadata.pb.gz'
+
+	await dropFile(path.resolve(snapshotsDir, filename))
+	await expect(page.getByText(`${filename} loaded.`)).toBeVisible({ timeout: 10000 })
+	await page.getByRole('button', { name: 'Dismiss toast' }).click()
+	await expect(page.getByText(`${filename} loaded.`)).not.toBeVisible()
+
+	// Select the arrows drawing that carries a HoverLink relationship to the capsule
+	await page.getByText('relationship-arrows', { exact: true }).first().click()
+
+	// The details panel should show the Relationships section with the linked entity
+	await expect(page.getByText('Relationships')).toBeVisible()
+	await expect(page.getByText('relationship-capsule (HoverLink)')).toBeVisible()
+
+	await takeScreenshot('SNAPSHOT_METADATA_RELATIONSHIP_DETAILS')
+	assertScreenshots()
+})
+
+test('updates snapshots with the same UUID', async ({ browser }) => {
 	const { page, screenshotCanvas, assertScreenshots } = await createPage(browser)
 
 	await page.goto('/snapshot/reconcile')
@@ -64,6 +84,7 @@ test('reconciles entities by per-entity UUID across snapshot updates', async ({ 
 	const loadV1 = page.getByRole('button', { name: 'Load v1' })
 	const loadV2 = page.getByRole('button', { name: 'Load v2' })
 	const loadV3 = page.getByRole('button', { name: 'Load v3' })
+	const loadNew = page.getByRole('button', { name: 'Load new' })
 
 	await expect(loadV1).toBeVisible({ timeout: 15000 })
 
@@ -92,25 +113,16 @@ test('reconciles entities by per-entity UUID across snapshot updates', async ({ 
 	await expect(page.getByText('reconcile-added', { exact: true }).first()).toBeVisible()
 	await screenshotCanvas('SNAPSHOT_RECONCILE_V3')
 
-	assertScreenshots()
-})
+	// A snapshot with a different snapshot.uuid should wipe all prior entities
+	await loadNew.click()
+	await expect(page.getByText('wiped-cube-left', { exact: true }).first()).toBeVisible({
+		timeout: 10000,
+	})
+	await expect(page.getByText('wiped-cube-center', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('wiped-cube-right', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('reconcile-static', { exact: true })).toHaveCount(0)
+	await expect(page.getByText('reconcile-added', { exact: true })).toHaveCount(0)
+	await screenshotCanvas('SNAPSHOT_RECONCILE_NEW')
 
-test('drops visualization_snapshot_metadata', async ({ browser }) => {
-	const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)
-	const filename = 'visualization_snapshot_metadata.pb.gz'
-
-	await dropFile(path.resolve(snapshotsDir, filename))
-	await expect(page.getByText(`${filename} loaded.`)).toBeVisible({ timeout: 10000 })
-	await page.getByRole('button', { name: 'Dismiss toast' }).click()
-	await expect(page.getByText(`${filename} loaded.`)).not.toBeVisible()
-
-	// Select the arrows drawing that carries a HoverLink relationship to the capsule
-	await page.getByText('relationship-arrows', { exact: true }).first().click()
-
-	// The details panel should show the Relationships section with the linked entity
-	await expect(page.getByText('Relationships')).toBeVisible()
-	await expect(page.getByText('relationship-capsule (HoverLink)')).toBeVisible()
-
-	await takeScreenshot('SNAPSHOT_METADATA_RELATIONSHIP_DETAILS')
 	assertScreenshots()
 })
