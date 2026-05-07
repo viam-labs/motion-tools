@@ -30,11 +30,8 @@ export default defineConfig(
 			},
 		},
 	},
+
 	includeIgnoreFile(gitignorePath),
-	{
-		ignores: ['draw/DOCS.md', 'draw/__snapshots__'],
-		name: 'ignores',
-	},
 
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
@@ -131,6 +128,7 @@ export default defineConfig(
 			'unicorn/prefer-top-level-await': 'off',
 			'unicorn/prevent-abbreviations': 'off',
 			'unicorn/require-module-specifiers': 'off',
+			'unicorn/prefer-global-this': 'off',
 
 			// TODO
 			// 'unicorn/filename-case': [

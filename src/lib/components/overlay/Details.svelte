@@ -11,12 +11,6 @@
 	const quaternion = new Quaternion()
 	const ov = new OrientationVector()
 	const euler = new Euler()
-
-	ThemeUtils.setGlobalDefaultTheme({
-		...ThemeUtils.presets.light,
-		baseBackgroundColor: '#fbfbfc',
-		baseShadowColor: 'transparent',
-	})
 </script>
 
 <script lang="ts">
@@ -24,7 +18,7 @@
 	import type { Snippet } from 'svelte'
 
 	import { draggable } from '@neodrag/svelte'
-	import { isInstanceOf, useTask } from '@threlte/core'
+	import { isInstanceOf, useTask, useThrelte } from '@threlte/core'
 	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
@@ -44,7 +38,7 @@
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
-	import { relations, traits, useTrait, useWorld } from '$lib/ecs'
+	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
@@ -68,6 +62,7 @@
 	const { details }: Props = $props()
 
 	const world = useWorld()
+	const { invalidate } = useThrelte()
 	const drawService = useDrawService()
 	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
@@ -84,7 +79,7 @@
 	const worldOrientation = $state({ x: 0, y: 0, z: 1, th: 0 })
 	const linkedEntities = useLinkedEntities()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const localPose = useTrait(() => entity, traits.EditedPose)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
@@ -92,6 +87,7 @@
 	const removable = useTrait(() => entity, traits.Removable)
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
+	const opacity = useTrait(() => entity, traits.Opacity)
 
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const isFrameNode = $derived(!!framesAPI.current)
@@ -138,8 +134,6 @@
 			z: MathUtils.radToDeg(euler.z),
 		}
 	})
-
-	const formatTwoDecimals = (value: number) => value.toFixed(2)
 
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
@@ -205,11 +199,28 @@
 		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
+	const opacityValue = $derived(opacity.current ?? 1)
+
+	const handleOpacityChange = (event: SliderChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !entity) return
+		const next = event.detail.value
+		// No trait === fully opaque, so drop the trait when the user returns to 1
+		// instead of leaving an Opacity(1) entry on the entity.
+		if (next >= 1) {
+			entity.remove(traits.Opacity)
+		} else if (entity.has(traits.Opacity)) {
+			entity.set(traits.Opacity, next)
+		} else {
+			entity.add(traits.Opacity(next))
+		}
+		invalidate()
+	}
+
 	const handleParentChange = (event: ListChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		traits.setParentTrait(entity, value)
+		hierarchy.setParent(entity, value)
 		detailConfigUpdater.setFrameParent(entity, value)
 	}
 
@@ -295,6 +306,12 @@
 			2
 		)
 	}
+
+	ThemeUtils.setGlobalDefaultTheme({
+		...ThemeUtils.presets.light,
+		baseBackgroundColor: '#fbfbfc',
+		baseShadowColor: 'transparent',
+	})
 </script>
 
 {#snippet ImmutableField({
@@ -321,9 +338,7 @@
 {#if entity}
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 {showEditFrameOptions
-			? 'w-80'
-			: 'w-60'} border p-2 text-xs dark:text-black"
+		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs dark:text-white"
 		use:draggable={{
 			bounds: 'body',
 			handle: dragElement,
@@ -492,7 +507,6 @@
 									y: localPose.current.y,
 									z: localPose.current.z,
 								}}
-								format={formatTwoDecimals}
 								on:change={handlePositionChange}
 							/>
 						</div>
@@ -531,7 +545,6 @@
 											z: localPose.current.oZ,
 											w: localPose.current.theta,
 										}}
-										format={formatTwoDecimals}
 										on:change={handleOrientationOVChange}
 									/>
 								</TabPage>
@@ -578,48 +591,49 @@
 					<div aria-label="mutable geometry">
 						<TabGroup bind:selectedIndex={geometryTabIndex}>
 							<TabPage title="None" />
-							<TabPage title="Box" />
-							<TabPage title="Sphere" />
-							<TabPage title="Capsule" />
+							<TabPage title="Box">
+								{#if box.current}
+									<div aria-label="mutable box dimensions">
+										<Point
+											value={{
+												x: box.current.x,
+												y: box.current.y,
+												z: box.current.z,
+											}}
+											on:change={handleBoxChange}
+										/>
+									</div>
+								{/if}
+							</TabPage>
+							<TabPage title="Sphere">
+								{#if sphere.current}
+									<div aria-label="mutable sphere dimensions">
+										<Slider
+											label="r"
+											value={sphere.current.r}
+											on:change={handleSphereRChange}
+										/>
+									</div>
+								{/if}
+							</TabPage>
+							<TabPage title="Capsule">
+								{#if capsule.current}
+									<div aria-label="mutable capsule dimensions">
+										<Slider
+											label="r"
+											value={capsule.current.r}
+											on:change={handleCapsuleRChange}
+										/>
+										<Slider
+											label="l"
+											value={capsule.current.l}
+											on:change={handleCapsuleLChange}
+										/>
+									</div>
+								{/if}
+							</TabPage>
 						</TabGroup>
 					</div>
-					{#if geometryTabIndex === 1 && box.current}
-						<div aria-label="mutable box dimensions">
-							<Point
-								value={{
-									x: box.current.x,
-									y: box.current.y,
-									z: box.current.z,
-								}}
-								format={formatTwoDecimals}
-								on:change={handleBoxChange}
-							/>
-						</div>
-					{:else if geometryTabIndex === 2 && sphere.current}
-						<div aria-label="mutable sphere dimensions">
-							<Slider
-								label="r"
-								value={sphere.current.r}
-								format={formatTwoDecimals}
-								on:change={handleSphereRChange}
-							/>
-						</div>
-					{:else if geometryTabIndex === 3 && capsule.current}
-						<div aria-label="mutable capsule dimensions">
-							<Slider
-								label="r"
-								value={capsule.current.r}
-								format={formatTwoDecimals}
-								on:change={handleCapsuleRChange}
-							/>
-							<Slider
-								label="l"
-								value={capsule.current.l}
-								format={formatTwoDecimals}
-								on:change={handleCapsuleLChange}
-							/>
-						</div>
-					{/if}
 				</div>
 			{:else if box.current}
 				<div>
@@ -672,6 +686,20 @@
 					</div>
 				</div>
 			{/if}
+
+			<div>
+				<strong class="font-semibold">opacity</strong>
+				<div aria-label="mutable opacity">
+					<Slider
+						value={opacityValue}
+						min={0}
+						max={1}
+						step={0.01}
+						format={(v) => v.toFixed(2)}
+						on:change={handleOpacityChange}
+					/>
+				</div>
+			</div>
 
 			{#if isInstanceOf(object3d, 'Points')}
 				<div>

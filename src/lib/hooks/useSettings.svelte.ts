@@ -18,9 +18,8 @@ export interface Settings {
 	disabledVisionServices: Record<string, boolean>
 
 	// Transform controls
-	transforming: boolean
 	snapping: boolean
-	transformMode: 'translate' | 'rotate' | 'scale'
+	transformMode: 'none' | 'translate' | 'rotate' | 'scale'
 
 	// Grid
 	grid: boolean
@@ -42,7 +41,6 @@ export interface Settings {
 	enableMeasureAxisZ: boolean
 
 	enableLabels: boolean
-	enableKeybindings: boolean
 	enableQueryDevtools: boolean
 
 	// Widgets
@@ -96,9 +94,8 @@ const defaults = (): Settings => ({
 	disabledCameras: {},
 	disabledVisionServices: {},
 
-	transforming: false,
 	snapping: false,
-	transformMode: 'translate',
+	transformMode: 'none',
 
 	grid: true,
 	gridCellSize: 0.5,
@@ -118,7 +115,6 @@ const defaults = (): Settings => ({
 	enableMeasureAxisZ: true,
 
 	enableLabels: false,
-	enableKeybindings: true,
 	enableQueryDevtools: false,
 
 	enableArmPositionsWidget: false,

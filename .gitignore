@@ -2,6 +2,7 @@ test-results
 node_modules
 
 static/Big_Buck_Bunny_4K.webm
+static/test-fixtures
 
 # Temp files (disk-backed chunk storage)
 .tmp
@@ -12,13 +13,22 @@ static/Big_Buck_Bunny_4K.webm
 .netlify
 .wrangler
 .svelte-kit
+.astro
 build
 src/lib/**/__tests__/__screenshots__
+__snapshots__
 coverage
 dist
 .bin
 draw-server
+/examples
+docs/public/playground
+docs/src/content/docs/api/*.md
 viamrobotics-motion-tools-*.tgz
+
+# Logs
+*-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store

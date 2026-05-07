@@ -1,7 +1,7 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
-import { type ConfigurableTrait, type Entity, trait } from 'koota'
+import { type Entity, trait } from 'koota'
 import { BufferGeometry as ThreeBufferGeometry } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
@@ -11,11 +11,20 @@ import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { parsePlyInput } from '$lib/ply'
 
 export const Name = trait(() => '')
-export const Parent = trait(() => 'world')
 export const UUID = trait(() => '')
+
+/**
+ * Set on an entity whose desired parent (by name) doesn't yet exist in the
+ * world. Replaced with `relations.ChildOf(parentEntity)` once a frame with
+ * the matching `Name` is added. Managed by the hierarchy module — call sites
+ * should use `hierarchy.setParent` / `hierarchy.parentTraits` rather than
+ * adding this trait directly.
+ */
+export const Orphan = trait(() => '')
 
 export const Pose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 export const EditedPose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
+export const LivePose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 export const Center = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 
 export const InstancedPose = trait({
@@ -134,6 +143,13 @@ export const SnapshotAPI = trait(() => true)
  */
 export const DroppedFile = trait(() => true)
 
+/**
+ * Marker trait for entities the dashboard's TransformControls may attach to —
+ * editable frames and ad-hoc custom geometries. Other entity kinds (lines,
+ * points, batched arrows, etc.) are deliberately excluded.
+ */
+export const Transformable = trait(() => true)
+
 export const ShowAxesHelper = trait(() => true)
 
 /**
@@ -197,22 +213,6 @@ export const Geometry = (geometry: ViamGeometry) => {
 	}
 
 	return ReferenceFrame
-}
-
-export const getParentTrait = (parent: string | undefined): ConfigurableTrait[] =>
-	!parent || parent === 'world' ? [] : [Parent(parent)]
-
-export const setParentTrait = (entity: Entity, parent: string | undefined) => {
-	if (!parent || parent === 'world') {
-		entity.remove(Parent)
-		return
-	}
-
-	if (entity.has(Parent)) {
-		entity.set(Parent, parent)
-	} else {
-		entity.add(Parent(parent))
-	}
 }
 
 export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => {

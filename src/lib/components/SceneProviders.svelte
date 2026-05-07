@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
+	import { provideHierarchy } from '$lib/ecs'
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
@@ -12,6 +13,7 @@
 	} from '$lib/hooks/useControls.svelte'
 	import { provideDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
 	import { provideDrawService } from '$lib/hooks/useDrawService.svelte'
+	import { provideFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
@@ -40,6 +42,7 @@
 	provideTransformControls()
 	provideLogs()
 
+	provideHierarchy()
 	provideOrigin()
 	provideDrawAPI()
 	provideRelationships()
@@ -47,6 +50,7 @@
 
 	provideResourceByName(() => partID.current)
 	provideConfigFrames()
+	provideFrameEditSession(() => partID.current)
 	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)

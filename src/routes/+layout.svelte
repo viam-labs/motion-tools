@@ -8,6 +8,7 @@
 	import { MotionTools } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
 
+	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
 	import {
 		provideConnectionConfigs,
@@ -35,6 +36,7 @@
 	})
 
 	const partID = $derived(connectionConfig.current?.partId)
+	const dialConfig = $derived(partID ? dialConfigs[partID] : undefined)
 
 	let isMachinesPageOpen = $state(false)
 </script>
@@ -57,16 +59,21 @@
 			authEntity: connectionConfig.current?.apiKeyId ?? '',
 		}}
 	>
-		<MotionTools
+		<MachineConnectionProvider
 			{partID}
-			enableKeybindings={!isMachinesPageOpen}
-			drawConnectionConfig={{ backendIP, websocketPort }}
+			{dialConfig}
 		>
-			{@render children()}
+			<MotionTools
+				{partID}
+				inputBindingsEnabled={!isMachinesPageOpen}
+				drawConnectionConfig={{ backendIP, websocketPort }}
+			>
+				{@render children()}
 
-			{#snippet dashboard()}
-				<Machines bind:isOpen={isMachinesPageOpen} />
-			{/snippet}
-		</MotionTools>
+				{#snippet dashboard()}
+					<Machines bind:isOpen={isMachinesPageOpen} />
+				{/snippet}
+			</MotionTools>
+		</MachineConnectionProvider>
 	</ViamAppProvider>
 </ViamProvider>

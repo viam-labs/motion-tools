@@ -1,5 +1,82 @@
 # motion-tools
 
+## 1.25.1
+
+### Patch Changes
+
+- fb8b7ca: Use Koota relations for parent / child interactions
+- e4ca46e: Allow updating Snapshot entities
+- 8c60f88: Screenshot only canvas for UI-unrelated e2e tests
+
+## 1.25.0
+
+### Minor Changes
+
+- 7a31f2e: Add reconnection backoff and a manual reconnection button
+
+### Patch Changes
+
+- a3ead32: Improve `Mesh.svelte` performance by geometry pooling
+
+## 1.24.0
+
+### Minor Changes
+
+- 20644de: add pcd color prop
+- 76d38d0: Wire up the `ID` field on `DrawGeometriesInFrame`, `DrawFrames`, `DrawFrameSystem`, and `DrawWorldState`.
+
+### Patch Changes
+
+- 116682a: Security patches
+- 76d38d0: Fix `NewColorChooser` pre-allocating zero-valued entries before appending named colors, which produced a doubled-length slice with transparent-black entries at the front.
+
+## 1.23.2
+
+### Patch Changes
+
+- 645d74b: Fix unreadable text in the Details panel under dark mode by swapping
+  `dark:text-black` for `dark:text-white` on the panel container so child
+  text contrasts against dark surroundings rather than disappearing.
+
+## 1.23.1
+
+### Patch Changes
+
+- 7e52e42: Capture save keyboard event before hitting input bindings
+
+## 1.23.0
+
+### Minor Changes
+
+- 29903ad: Enable draw service API by default, add migration doc
+
+### Patch Changes
+
+- 29903ad: Fix frames not rendering for offline parts when the embedder skips dialing. The merge fallback now triggers whenever the connection is not actively `CONNECTED`, instead of only when explicitly `DISCONNECTED`, so config-derived frames render even when `connectionStatus` is `undefined` or `CONNECTING`.
+- 29903ad: useInputMap for navigation controls
+- 29903ad: Add opacity slider to `Details` panel
+
+## 1.22.0
+
+### Minor Changes
+
+- 8ead73e: Add transform controls.
+
+### Patch Changes
+
+- b54ac3b: Fix file drop being triggered by dragging numbers
+
+## 1.21.0
+
+### Minor Changes
+
+- 40cbf95: wire up RenderOrder and Material traits, add depthWrite support
+
+### Patch Changes
+
+- 40cbf95: Use koota relations for model sub-entities
+- 40cbf95: Prevent selection, focus, and hover interactions on invisible entities
+
 ## 1.20.0
 
 ### Minor Changes

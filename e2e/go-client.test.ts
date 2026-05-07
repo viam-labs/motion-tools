@@ -1,6 +1,8 @@
 import { Browser, expect, Page, test } from '@playwright/test'
 import { execSync } from 'node:child_process'
 
+import { screenshotCanvas } from './helpers/screenshot'
+
 const createPage = async (browser: Browser): Promise<Page> => {
 	const context = await browser.newContext()
 	const page = await context.newPage()
@@ -47,7 +49,7 @@ const assertNoFailedScreenshots = (failedScreenshots: string[]) => {
 }
 
 const assertTestSuccess = async (page: Page, testPrefix: string) => {
-	const failedScreenshot = await takeScreenshot(page, testPrefix)
+	const failedScreenshot = await screenshotCanvas(page, testPrefix)
 	await cleanup(page)
 	assertNoFailedScreenshots([failedScreenshot])
 }

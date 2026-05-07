@@ -4,7 +4,7 @@ import type { Vector3Like } from 'three'
 
 import type { Frame } from '$lib/frame'
 
-import { traits } from '$lib/ecs'
+import { hierarchy, traits } from '$lib/ecs'
 
 type UpdateFrameCallback = {
 	(componentName: string, referenceFrame: string, pose: Pose, geometry?: Frame['geometry']): void
@@ -24,9 +24,7 @@ export class FrameConfigUpdater {
 	}
 
 	public updateLocalPosition = (entity: Entity, position: Partial<Vector3Like>) => {
-		const x = this.sanitizeFloatValue(position.x)
-		const y = this.sanitizeFloatValue(position.y)
-		const z = this.sanitizeFloatValue(position.z)
+		const { x, y, z } = position
 
 		if (x === undefined && y === undefined && z === undefined) return
 
@@ -38,7 +36,7 @@ export class FrameConfigUpdater {
 		entity.set(traits.EditedPose, change)
 
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const updatedPose = entity.get(traits.EditedPose)
 
 		if (name && updatedPose) {
@@ -55,10 +53,7 @@ export class FrameConfigUpdater {
 			theta?: number
 		}
 	) => {
-		const oX = this.sanitizeFloatValue(orientation.oX)
-		const oY = this.sanitizeFloatValue(orientation.oY)
-		const oZ = this.sanitizeFloatValue(orientation.oZ)
-		const theta = this.sanitizeFloatValue(orientation.theta)
+		const { oX, oY, oZ, theta } = orientation
 
 		if (oX === undefined && oY === undefined && oZ === undefined && theta === undefined) {
 			return
@@ -73,7 +68,7 @@ export class FrameConfigUpdater {
 		entity.set(traits.EditedPose, change)
 
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const updatedPose = entity.get(traits.EditedPose)
 
 		if (name && updatedPose) {
@@ -83,13 +78,11 @@ export class FrameConfigUpdater {
 
 	public updateGeometry = (entity: Entity, geometry: Partial<Frame['geometry']>) => {
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const pose = entity.get(traits.EditedPose)
 
 		if (geometry?.type === 'box') {
-			const x = this.sanitizeFloatValue(geometry.x)
-			const y = this.sanitizeFloatValue(geometry.y)
-			const z = this.sanitizeFloatValue(geometry.z)
+			const { x, y, z } = geometry
 
 			if (x === undefined && y === undefined && z === undefined) return
 
@@ -106,7 +99,7 @@ export class FrameConfigUpdater {
 				this.updateFrame(name, parent, pose, { type: 'box', ...box })
 			}
 		} else if (geometry?.type === 'sphere') {
-			const r = this.sanitizeFloatValue(geometry.r)
+			const { r } = geometry
 
 			if (r === undefined) return
 
@@ -118,8 +111,7 @@ export class FrameConfigUpdater {
 				this.updateFrame(name, parent, pose, { type: 'sphere', ...sphere })
 			}
 		} else if (geometry?.type === 'capsule') {
-			const r = this.sanitizeFloatValue(geometry.r)
-			const l = this.sanitizeFloatValue(geometry.l)
+			const { r, l } = geometry
 
 			if (r === undefined && l === undefined) return
 
@@ -127,7 +119,7 @@ export class FrameConfigUpdater {
 			if (r !== undefined) change.r = r
 			if (l !== undefined) change.l = l
 
-			entity.set(traits.Capsule, { r, l })
+			entity.set(traits.Capsule, change)
 
 			const capsule = entity.get(traits.Capsule)
 
@@ -156,7 +148,7 @@ export class FrameConfigUpdater {
 
 	public setGeometryType = (entity: Entity, type: 'none' | 'box' | 'sphere' | 'capsule') => {
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const pose = entity.get(traits.EditedPose)
 
 		if (!name || !pose) return
@@ -170,19 +162,5 @@ export class FrameConfigUpdater {
 		} else if (type === 'capsule') {
 			this.updateFrame(name, parent, pose, { type: 'capsule', r: 20, l: 100 })
 		}
-	}
-
-	private sanitizeFloatValue = (value?: number): number | undefined => {
-		if (value === undefined) {
-			return undefined
-		}
-
-		const num = Number.parseFloat(value.toFixed(2))
-
-		if (Number.isNaN(num)) {
-			return undefined
-		}
-
-		return value
 	}
 }

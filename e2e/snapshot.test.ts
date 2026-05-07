@@ -32,7 +32,7 @@ test.beforeAll(() => {
 
 for (const snapshot of snapshots) {
 	test(`drops ${snapshot.file}`, async ({ browser }) => {
-		const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)
+		const { page, dropFile, screenshotCanvas, assertScreenshots } = await createPage(browser)
 
 		await dropFile(path.resolve(snapshotsDir, `${snapshot.file}.pb.gz`))
 		await expect(page.getByText(`${snapshot.file}.pb.gz loaded.`)).toBeVisible({
@@ -51,10 +51,49 @@ for (const snapshot of snapshots) {
 			})
 		}
 
-		await takeScreenshot(`SNAPSHOT_DROP_${snapshot.name.toUpperCase()}_PB_GZ`)
+		await screenshotCanvas(`SNAPSHOT_DROP_${snapshot.name.toUpperCase()}_PB_GZ`)
 		assertScreenshots()
 	})
 }
+
+test('reconciles entities by per-entity UUID across snapshot updates', async ({ browser }) => {
+	const { page, screenshotCanvas, assertScreenshots } = await createPage(browser)
+
+	await page.goto('/snapshot/reconcile')
+
+	const loadV1 = page.getByRole('button', { name: 'Load v1' })
+	const loadV2 = page.getByRole('button', { name: 'Load v2' })
+	const loadV3 = page.getByRole('button', { name: 'Load v3' })
+
+	await expect(loadV1).toBeVisible({ timeout: 15000 })
+
+	await loadV1.click()
+	await expect(page.getByText('reconcile-static', { exact: true }).first()).toBeVisible({
+		timeout: 10000,
+	})
+	await expect(page.getByText('reconcile-moving', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('reconcile-removed', { exact: true }).first()).toBeVisible()
+	await screenshotCanvas('SNAPSHOT_RECONCILE_V1')
+
+	await loadV2.click()
+	await expect(page.getByText('reconcile-removed', { exact: true })).toHaveCount(0, {
+		timeout: 10000,
+	})
+	await expect(page.getByText('reconcile-added', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('reconcile-static', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('reconcile-moving', { exact: true }).first()).toBeVisible()
+	await screenshotCanvas('SNAPSHOT_RECONCILE_V2')
+
+	await loadV3.click()
+	await expect(page.getByText('reconcile-moving', { exact: true })).toHaveCount(0, {
+		timeout: 10000,
+	})
+	await expect(page.getByText('reconcile-static', { exact: true }).first()).toBeVisible()
+	await expect(page.getByText('reconcile-added', { exact: true }).first()).toBeVisible()
+	await screenshotCanvas('SNAPSHOT_RECONCILE_V3')
+
+	assertScreenshots()
+})
 
 test('drops visualization_snapshot_metadata', async ({ browser }) => {
 	const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)

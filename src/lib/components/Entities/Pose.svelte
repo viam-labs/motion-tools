@@ -3,10 +3,10 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePose } from '$lib/hooks/usePose.svelte'
-	import { matrixToPose, poseToMatrix } from '$lib/transform'
+	import { composeRenderedPose } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
@@ -16,7 +16,7 @@
 
 	const partConfig = usePartConfig()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const editedPose = useTrait(() => entity, traits.EditedPose)
 	const entityPose = useTrait(() => entity, traits.Pose)
 
@@ -25,22 +25,27 @@
 		() => parent.current
 	)
 
+	$effect.pre(() => {
+		if (pose.current === undefined) return
+
+		if (entity.has(traits.LivePose)) {
+			entity.set(traits.LivePose, pose.current)
+		} else {
+			entity.add(traits.LivePose(pose.current))
+		}
+	})
+
+	// Always render through the live blend: live × network⁻¹ × edited. With
+	// `edited === network` (no edits) this collapses to `live`, so the rendered
+	// pose tracks the robot's kinematics-resolved position. With edits, the
+	// formula composes the staged delta on top of live. Input handlers that
+	// drive edits (gizmo onChange, Details panel) compute `edited` such that
+	// the blend renders to the user's intent.
 	const resolvedPose = $derived.by(() => {
-		if (pose.current === undefined || partConfig.hasPendingSave) {
-			return editedPose.current
-		}
+		if (pose.current === undefined || partConfig.hasPendingSave) return editedPose.current
+		if (!entityPose.current || !editedPose.current) return undefined
 
-		if (!entityPose.current || !editedPose.current) {
-			return
-		}
-
-		const poseNetwork = poseToMatrix(entityPose.current)
-		const poseUsePose = poseToMatrix(pose.current)
-		const poseLocalEditedPose = poseToMatrix(editedPose.current)
-
-		const poseNetworkInverse = poseNetwork.invert()
-		const resultMatrix = poseUsePose.multiply(poseNetworkInverse).multiply(poseLocalEditedPose)
-		return matrixToPose(resultMatrix)
+		return composeRenderedPose(pose.current, entityPose.current, editedPose.current)
 	})
 </script>
 
