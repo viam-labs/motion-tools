@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.25.3
+
+### Patch Changes
+
+- 8a420db: hotfix: Bail out line dot effect when positions is undefined
+
 ## 1.25.2
 
 ### Patch Changes
