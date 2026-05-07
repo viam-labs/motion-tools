@@ -1,4 +1,10 @@
-import { type ConfigurableTrait, type Entity, type World } from 'koota'
+import {
+	type ConfigurableTrait,
+	type Entity,
+	type QueryResult,
+	type Trait,
+	type World,
+} from 'koota'
 
 import { ChildOf } from './relations'
 import { Name, Orphan } from './traits'
@@ -63,14 +69,18 @@ export const destroyEntityTree = (world: World, entity: Entity): void => {
  * change or when a `Name` is renamed; also exposed for tests so they can
  * drive resolution without mounting a component.
  */
-export const resolveOrphans = (world: World): void => {
+export const resolveOrphans = (
+	named: QueryResult<[Trait<() => string>]>,
+	orphans: QueryResult<[Trait<() => string>]>
+): void => {
 	const index = new Map<string, Entity>()
-	for (const entity of world.query(Name)) {
+
+	for (const entity of named) {
 		const name = entity.get(Name)
 		if (name) index.set(name, entity)
 	}
 
-	for (const orphan of world.query(Orphan)) {
+	for (const orphan of orphans) {
 		const wantedName = orphan.get(Orphan)
 		if (!wantedName) continue
 		const parent = index.get(wantedName)

@@ -25,15 +25,10 @@ export const provideHierarchy = (): void => {
 	const named = useQuery(Name)
 
 	$effect(() => {
-		// Touch both queries so this effect re-runs on membership changes.
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		orphans.current
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		named.current
-		resolveOrphans(world)
+		resolveOrphans(named.current, orphans.current)
 	})
 
 	$effect(() => {
-		return world.onChange(Name, () => resolveOrphans(world))
+		return world.onChange(Name, () => resolveOrphans(named.current, orphans.current))
 	})
 }
