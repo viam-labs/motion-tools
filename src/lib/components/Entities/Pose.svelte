@@ -2,9 +2,11 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
+	import { Matrix4 } from 'three'
+
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { usePose } from '$lib/hooks/usePose.svelte'
-	import { newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+	import { poseToMatrixInto } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
@@ -20,19 +22,20 @@
 		() => parent.current
 	)
 
-	const tempMatrix = newMatrixTrait()
-
 	// Mirror the robot's live kinematics-resolved pose into LiveMatrix so
 	// Frame.svelte can compose the rendered transform via
-	// `composeRenderedMatrix(live, baseline, edited)`.
+	// `composeRenderedMatrix(live, baseline, edited)`. Mutate the stored
+	// `Matrix4` in place when present and notify via `entity.changed` —
+	// allocate only on first add.
 	$effect.pre(() => {
 		if (pose.current === undefined) return
 
-		const matrixFields = poseToMatrixTrait(pose.current, tempMatrix)
-		if (entity.has(traits.LiveMatrix)) {
-			entity.set(traits.LiveMatrix, matrixFields)
+		const live = entity.get(traits.LiveMatrix)
+		if (live) {
+			poseToMatrixInto(pose.current, live)
+			entity.changed(traits.LiveMatrix)
 		} else {
-			entity.add(traits.LiveMatrix(matrixFields))
+			entity.add(traits.LiveMatrix(poseToMatrixInto(pose.current, new Matrix4())))
 		}
 	})
 </script>

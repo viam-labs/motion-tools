@@ -15,13 +15,13 @@ Renders a Viam Frame object
 
 	import { T, useThrelte } from '@threlte/core'
 	import { Portal, PortalTarget } from '@threlte/extras'
-	import { Group, Matrix4, type Object3D } from 'three'
+	import { Group, type Object3D } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, resourceColors } from '$lib/color'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { composeRenderedMatrix, readTraitToMatrix } from '$lib/transform'
+	import { composeRenderedMatrix } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 	import Mesh from './Mesh.svelte'
@@ -70,20 +70,13 @@ Renders a Viam Frame object
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
-	const tempLiveMatrix = new Matrix4()
-	const tempBaselineMatrix = new Matrix4()
-	const tempEditedMatrix = new Matrix4()
-
 	$effect.pre(() => {
 		if (liveMatrix.current && matrix.current && editedMatrix.current) {
-			readTraitToMatrix(liveMatrix.current, tempLiveMatrix)
-			readTraitToMatrix(matrix.current, tempBaselineMatrix)
-			readTraitToMatrix(editedMatrix.current, tempEditedMatrix)
-			composeRenderedMatrix(tempLiveMatrix, tempBaselineMatrix, tempEditedMatrix, group.matrix)
+			composeRenderedMatrix(liveMatrix.current, matrix.current, editedMatrix.current, group.matrix)
 		} else if (editedMatrix.current) {
-			readTraitToMatrix(editedMatrix.current, group.matrix)
+			group.matrix.copy(editedMatrix.current)
 		} else if (matrix.current) {
-			readTraitToMatrix(matrix.current, group.matrix)
+			group.matrix.copy(matrix.current)
 		} else {
 			return
 		}

@@ -7,11 +7,8 @@ import { traits, useTrait } from '$lib/ecs'
 import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
 import { OrientationVector } from '$lib/three/OrientationVector'
-import { newMatrixTrait, readTraitToMatrix, writeMatrixToTrait } from '$lib/transform'
 
-const tempWorldMatrix = new Matrix4()
 const tempHoverMatrix = new Matrix4()
-const tempInstancedTrait = { ...newMatrixTrait(), index: -1 }
 const hoverQuat = new Quaternion()
 const hoverOv = new OrientationVector()
 
@@ -48,9 +45,12 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (hoverInfo) {
 				buildHoverMatrix(hoverInfo, tempHoverMatrix)
-				writeMatrixToTrait(tempHoverMatrix, tempInstancedTrait)
-				tempInstancedTrait.index = hoverInfo.index
-				currentEntity.add(traits.InstancedMatrix(tempInstancedTrait))
+				currentEntity.add(
+					traits.InstancedMatrix({
+						matrix: new Matrix4().copy(tempHoverMatrix),
+						index: hoverInfo.index,
+					})
+				)
 			}
 			currentEntity.add(traits.Hovered)
 		}
@@ -69,17 +69,17 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 
 			buildHoverMatrix(hoverInfo, tempHoverMatrix)
 
-			const worldMatrixTrait = currentEntity.get(traits.WorldMatrix)
-			if (worldMatrixTrait) {
-				readTraitToMatrix(worldMatrixTrait, tempWorldMatrix)
-			} else {
-				tempWorldMatrix.identity()
-			}
-			tempWorldMatrix.multiply(tempHoverMatrix)
+			const instanced = currentEntity.get(traits.InstancedMatrix)
+			if (!instanced) return
 
-			writeMatrixToTrait(tempWorldMatrix, tempInstancedTrait)
-			tempInstancedTrait.index = hoverInfo.index
-			currentEntity.set(traits.InstancedMatrix, tempInstancedTrait)
+			const worldMatrix = currentEntity.get(traits.WorldMatrix)
+			if (worldMatrix) {
+				instanced.matrix.copy(worldMatrix).multiply(tempHoverMatrix)
+			} else {
+				instanced.matrix.copy(tempHoverMatrix)
+			}
+			instanced.index = hoverInfo.index
+			currentEntity.changed(traits.InstancedMatrix)
 		}
 	}
 

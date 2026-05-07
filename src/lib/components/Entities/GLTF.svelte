@@ -20,7 +20,6 @@
 	import { Group, type Object3D } from 'three'
 
 	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -50,7 +49,7 @@
 
 	$effect.pre(() => {
 		if (matrix.current) {
-			readTraitToMatrix(matrix.current, group.matrix)
+			group.matrix.copy(matrix.current)
 			group.updateMatrixWorld()
 		}
 	})

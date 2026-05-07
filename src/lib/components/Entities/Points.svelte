@@ -9,7 +9,6 @@
 	import { asColor, isSingleColor } from '$lib/buffer'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -100,7 +99,7 @@
 
 	$effect.pre(() => {
 		if (matrix.current) {
-			readTraitToMatrix(matrix.current, points.matrix)
+			points.matrix.copy(matrix.current)
 			points.updateMatrixWorld()
 		}
 	})

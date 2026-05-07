@@ -14,11 +14,8 @@
 		composeEditedMatrixForRenderedMatrix,
 		createPose,
 		matrixToPoseInto,
-		matrixTraitToPose,
-		newMatrixTrait,
-		poseToMatrixTrait,
+		poseToMatrixInto,
 		quaternionToPose,
-		readTraitToMatrix,
 		vector3ToPose,
 	} from '$lib/transform'
 
@@ -59,9 +56,6 @@
 	const quaternion = new Quaternion()
 	const vector3 = new Vector3()
 	const refPose = createPose()
-	const tempMatrix = newMatrixTrait()
-	const tempNetworkMatrix = new Matrix4()
-	const tempLiveMatrix = new Matrix4()
 	const tempRefMatrix = new Matrix4()
 	const tempEditedMatrix = new Matrix4()
 	const tempPose = createPose()
@@ -120,16 +114,17 @@
 			if (isFrameEntity) {
 				stageFrameTransform()
 			} else {
-				const matrixTrait = entity.get(traits.Matrix)
-				if (matrixTrait) {
-					matrixTraitToPose(matrixTrait, tempPose)
+				const matrix = entity.get(traits.Matrix)
+				if (matrix) {
+					matrixToPoseInto(matrix, tempPose)
 					if (activeMode === 'translate') {
 						vector3ToPose(ref.getWorldPosition(vector3), tempPose)
 					} else {
 						quaternionToPose(ref.getWorldQuaternion(quaternion), tempPose)
 						ref.quaternion.copy(quaternion)
 					}
-					entity.set(traits.Matrix, poseToMatrixTrait(tempPose, tempMatrix))
+					poseToMatrixInto(tempPose, matrix)
+					entity.changed(traits.Matrix)
 				}
 			}
 		} else {
@@ -217,19 +212,11 @@
 			return
 		}
 
-		readTraitToMatrix(network, tempNetworkMatrix)
-		readTraitToMatrix(live, tempLiveMatrix)
-		// refPose is in mm; build a matrix at the same scale for compose.
-		// poseToMatrixTrait routes through poseToMatrixInto which writes mm.
-		poseToMatrixTrait(refPose, tempMatrix)
-		readTraitToMatrix(tempMatrix, tempRefMatrix)
+		// refPose is in mm; convert to a metres-space Matrix4 to compose with
+		// network/live matrices (also in metres).
+		poseToMatrixInto(refPose, tempRefMatrix)
 
-		composeEditedMatrixForRenderedMatrix(
-			tempNetworkMatrix,
-			tempLiveMatrix,
-			tempRefMatrix,
-			tempEditedMatrix
-		)
+		composeEditedMatrixForRenderedMatrix(network, live, tempRefMatrix, tempEditedMatrix)
 		matrixToPoseInto(tempEditedMatrix, tempPose)
 		session?.stagePose(entity, { ...tempPose })
 	}

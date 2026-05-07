@@ -3,11 +3,11 @@
 
 	import { T } from '@threlte/core'
 	import { Portal } from '@threlte/extras'
-	import { Color, Matrix4, Vector3 } from 'three'
+	import { Color, Quaternion, Vector3 } from 'three'
 
 	import { hierarchy, traits, useWorld } from '$lib/ecs'
 	import { BatchedArrow } from '$lib/three/BatchedArrow'
-	import { createPose, matrixToPoseInto, readTraitToMatrix } from '$lib/transform'
+	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	const arrowBatchMap = $state<Record<string, BatchedArrow>>({
 		world: new BatchedArrow(),
@@ -19,8 +19,21 @@
 	const direction = new Vector3()
 	const origin = new Vector3()
 	const color = new Color()
-	const tempMatrix = new Matrix4()
-	const tempPose = createPose()
+	const tempQuat = new Quaternion()
+	const tempScale = new Vector3()
+	const tempOv = new OrientationVector()
+
+	// Decompose the matrix in metres directly into the arrow's direction
+	// (OV components from the rotation) and origin (translation). No mm/m
+	// boundary conversion — the matrix layer is metres throughout.
+	const decompose = (entity: Entity): boolean => {
+		const matrix = entity.get(traits.Matrix)
+		if (!matrix) return false
+		matrix.decompose(origin, tempQuat, tempScale)
+		tempOv.setFromQuaternion(tempQuat)
+		direction.set(tempOv.x, tempOv.y, tempOv.z)
+		return true
+	}
 
 	const onAdd = (entity: Entity) => {
 		const parent = hierarchy.getParentName(entity) ?? 'world'
@@ -28,17 +41,16 @@
 		arrowBatchMap[parent] ??= new BatchedArrow()
 		const batched = arrowBatchMap[parent]
 
-		const matrix = entity.get(traits.Matrix)
 		const colorRGB = entity.get(traits.Color)
 
-		if (matrix) {
-			readTraitToMatrix(matrix, tempMatrix)
-			matrixToPoseInto(tempMatrix, tempPose)
+		if (!decompose(entity)) {
+			direction.set(0, 0, 0)
+			origin.set(0, 0, 0)
 		}
 
 		const instanceID = batched.addArrow(
-			direction.set(tempPose.oX, tempPose.oY, tempPose.oZ),
-			origin.set(tempPose.x, tempPose.y, tempPose.z).multiplyScalar(0.001),
+			direction,
+			origin,
 			colorRGB ? color.set(colorRGB.r, colorRGB.g, colorRGB.b) : color.set('yellow')
 		)
 
@@ -51,16 +63,9 @@
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const batch = arrowBatchMap[parent]
 		const instanceID = entity.get(traits.Instance)?.instanceID
-		const matrix = entity.get(traits.Matrix)
 
-		if (instanceID && instanceID !== -1 && matrix) {
-			readTraitToMatrix(matrix, tempMatrix)
-			matrixToPoseInto(tempMatrix, tempPose)
-			batch?.updateArrow(
-				instanceID,
-				direction.set(tempPose.oX, tempPose.oY, tempPose.oZ),
-				origin.set(tempPose.x, tempPose.y, tempPose.z).multiplyScalar(0.001)
-			)
+		if (instanceID && instanceID !== -1 && decompose(entity)) {
+			batch?.updateArrow(instanceID, direction, origin)
 		}
 	}
 

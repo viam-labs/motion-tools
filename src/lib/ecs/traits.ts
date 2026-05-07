@@ -2,7 +2,7 @@ import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js
 
 import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
-import { BufferGeometry as ThreeBufferGeometry } from 'three'
+import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
@@ -31,119 +31,45 @@ export const Orphan = trait(() => '')
 export const Center = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 
 /**
- * Local transform: column-major 4×4 matrix stored as 16 numeric fields
- * (SoA-friendly under koota). Use `readTraitToMatrix` / `writeMatrixToTrait`
- * (in `transform.ts`) to bridge to / from `Matrix4`. Identity by default.
+ * Local-to-parent transform. Stored AoS — one `Matrix4` instance per entity —
+ * not as 16 SoA fields. Every consumer reads all 16 elements of one entity at
+ * a time (`Object3D.matrix.copy`, batched-mesh per-instance writes, the
+ * world-matrix walk). SoA would allocate a fresh 16-field object on every
+ * `entity.get(Matrix)`; AoS returns the `Matrix4` reference, zero allocation
+ * per read, and plugs straight into Three.js. The trade-off — losing
+ * column-iteration locality — is fine because no system iterates a single
+ * matrix element across entities.
  *
- * `m0..m3` is the first column, `m4..m7` the second, etc. — matches
- * `Matrix4.elements`. So `m12,m13,m14` is the translation column.
+ * Update pattern: read the `Matrix4` and mutate in place, then call
+ * `entity.changed(Matrix)` so `onChange` listeners (the `WorldMatrix` system,
+ * etc.) fire. Allocate a fresh `Matrix4` only on add.
  */
-export const Matrix = trait({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
-})
+export const Matrix = trait(() => new Matrix4())
 
-/** User-staged local transform during a `FrameEditSession`. Same layout as `Matrix`. */
-export const EditedMatrix = trait({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
-})
+/** User-staged local transform during a `FrameEditSession`. */
+export const EditedMatrix = trait(() => new Matrix4())
 
 /**
  * Live local transform from the robot's kinematics. Composed with `Matrix`
  * (network baseline) and `EditedMatrix` to produce the rendered transform.
  */
-export const LiveMatrix = trait({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
-})
+export const LiveMatrix = trait(() => new Matrix4())
 
 /**
  * Cumulative world-space transform — `parent.WorldMatrix × local rendered`.
  * Maintained by `provideWorldMatrix`. Read by hover label placement,
  * batched-mesh population, and any other consumer that needs world-space.
  */
-export const WorldMatrix = trait({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
-})
+export const WorldMatrix = trait(() => new Matrix4())
 
-/** World-space transform of a hovered instance inside a points/arrows batch. */
-export const InstancedMatrix = trait({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
+/**
+ * World-space transform of a hovered instance inside a points/arrows batch,
+ * paired with the instance index in the parent batched mesh.
+ */
+export const InstancedMatrix = trait(() => ({
+	matrix: new Matrix4(),
 	index: -1,
-})
+}))
 
 export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)

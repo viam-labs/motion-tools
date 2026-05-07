@@ -1,7 +1,7 @@
 import type { TransformWithUUID } from '@viamrobotics/sdk'
 import type { ConfigurableTrait, Entity, Trait, World } from 'koota'
 
-import { Vector3, Vector4 } from 'three'
+import { Matrix4, Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { UuidTool } from 'uuid-tool'
 
@@ -27,14 +27,13 @@ import {
 import { hierarchy, relations, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
-import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+import { createPose, poseToMatrixInto } from '$lib/transform'
 
 import { ColorFormat } from './buf/draw/v1/metadata_pb'
 import { isPointCloud } from './geometry'
 
 const vec3 = new Vector3()
 const rgb = { r: 0, g: 0, b: 0 }
-const tempMatrix = newMatrixTrait()
 
 const DEFAULT_LINE_WIDTH = 5
 const DEFAULT_POINT_SIZE = 10
@@ -84,7 +83,7 @@ export const drawTransform = (
 ) => {
 	const entityTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrixTrait(createPose(poseInObserverFrame?.pose), newMatrixTrait())),
+		traits.Matrix(poseToMatrixInto(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 	]
 
@@ -152,7 +151,7 @@ export const drawDrawing = (
 
 	const entity = world.spawn(
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrixTrait(createPose(poseInObserverFrame?.pose), newMatrixTrait())),
+		traits.Matrix(poseToMatrixInto(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 		...uuidTraits
@@ -172,7 +171,15 @@ export const updateTransform = (
 	{ poseInObserverFrame, physicalObject, metadata }: Transform,
 	{ removable = true }: DrawOptions = {}
 ) => {
-	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), tempMatrix))
+	const matrix = entity.get(traits.Matrix)
+	if (matrix) {
+		poseToMatrixInto(createPose(poseInObserverFrame?.pose), matrix)
+		entity.changed(traits.Matrix)
+	} else {
+		entity.add(
+			traits.Matrix(poseToMatrixInto(createPose(poseInObserverFrame?.pose), new Matrix4()))
+		)
+	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
@@ -233,7 +240,15 @@ export const updateDrawing = (
 
 	if (!world.has(entity)) return { entity, relationships: metadata?.relationships }
 
-	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), tempMatrix))
+	const matrix = entity.get(traits.Matrix)
+	if (matrix) {
+		poseToMatrixInto(createPose(poseInObserverFrame?.pose), matrix)
+		entity.changed(traits.Matrix)
+	} else {
+		entity.add(
+			traits.Matrix(poseToMatrixInto(createPose(poseInObserverFrame?.pose), new Matrix4()))
+		)
+	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
@@ -392,7 +407,7 @@ const drawModel = (
 
 	const baseTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrixTrait(createPose(poseInObserverFrame?.pose), newMatrixTrait())),
+		traits.Matrix(poseToMatrixInto(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 	]

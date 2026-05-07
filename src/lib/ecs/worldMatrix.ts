@@ -1,21 +1,12 @@
 import { type Entity, type World } from 'koota'
 import { Matrix4, Vector3 } from 'three'
 
-import {
-	composeRenderedMatrix,
-	newMatrixTrait,
-	readTraitToMatrix,
-	writeMatrixToTrait,
-} from '$lib/transform'
+import { composeRenderedMatrix } from '$lib/transform'
 
 import { ChildOf } from './relations'
 import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
 
-const tempLiveMatrix = new Matrix4()
-const tempBaselineMatrix = new Matrix4()
-const tempEditedMatrix = new Matrix4()
 const scaleVec = new Vector3()
-const tempMatrixTrait = newMatrixTrait()
 
 /**
  * Compute the local rendered transform of an entity into `out`. Mirrors the
@@ -25,7 +16,7 @@ const tempMatrixTrait = newMatrixTrait()
  * - All three matrix traits present: `live × baseline⁻¹ × edited`.
  * - Otherwise: prefer `EditedMatrix` over `Matrix`.
  *
- * Returns the same `out` for chaining; returns `false` and leaves `out`
+ * Returns `true` after writing to `out`; returns `false` and leaves `out`
  * untouched when the entity has no matrix-shaped trait.
  */
 const writeLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
@@ -34,20 +25,17 @@ const writeLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
 	const liveMatrix = entity.get(LiveMatrix)
 
 	if (liveMatrix && matrix && editedMatrix) {
-		readTraitToMatrix(liveMatrix, tempLiveMatrix)
-		readTraitToMatrix(matrix, tempBaselineMatrix)
-		readTraitToMatrix(editedMatrix, tempEditedMatrix)
-		composeRenderedMatrix(tempLiveMatrix, tempBaselineMatrix, tempEditedMatrix, out)
+		composeRenderedMatrix(liveMatrix, matrix, editedMatrix, out)
 		return true
 	}
 
 	if (editedMatrix) {
-		readTraitToMatrix(editedMatrix, out)
+		out.copy(editedMatrix)
 		return true
 	}
 
 	if (matrix) {
-		readTraitToMatrix(matrix, out)
+		out.copy(matrix)
 		return true
 	}
 
@@ -110,11 +98,12 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 		if (!entity.isAlive()) continue
 		const worldMat = recomputeWorldMatrix(world, entity, cache)
 		if (!worldMat) continue
-		writeMatrixToTrait(worldMat, tempMatrixTrait)
-		if (entity.has(WorldMatrix)) {
-			entity.set(WorldMatrix, tempMatrixTrait)
+		const stored = entity.get(WorldMatrix)
+		if (stored) {
+			stored.copy(worldMat)
+			entity.changed(WorldMatrix)
 		} else {
-			entity.add(WorldMatrix(tempMatrixTrait))
+			entity.add(WorldMatrix(worldMat.clone()))
 		}
 	}
 }

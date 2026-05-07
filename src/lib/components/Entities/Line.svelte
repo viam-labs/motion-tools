@@ -8,7 +8,6 @@
 
 	import { isVertexColors, STRIDE } from '$lib/buffer'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -67,7 +66,7 @@
 
 	$effect.pre(() => {
 		if (matrix.current) {
-			readTraitToMatrix(matrix.current, mesh.matrix)
+			mesh.matrix.copy(matrix.current)
 			mesh.updateMatrixWorld()
 			invalidate()
 		}

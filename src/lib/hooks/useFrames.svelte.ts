@@ -7,12 +7,11 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
+import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
-import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
-
-const tempMatrix = newMatrixTrait()
+import { createPose, poseToMatrixInto } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -232,11 +231,15 @@ export const provideFrames = (partID: () => string) => {
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
 					if (!isEditMode && !partConfig.hasPendingSave) {
-						existing.set(traits.Matrix, poseToMatrixTrait(pose, tempMatrix))
+						const baseline = existing.get(traits.Matrix)
+						if (baseline) {
+							poseToMatrixInto(pose, baseline)
+							existing.changed(traits.Matrix)
+						}
 					}
 
 					if (!existing.has(traits.LiveMatrix)) {
-						existing.add(traits.LiveMatrix(poseToMatrixTrait(pose, newMatrixTrait())))
+						existing.add(traits.LiveMatrix(poseToMatrixInto(pose, new Matrix4())))
 					}
 
 					// Skip the EditedMatrix overwrite while in edit mode. The merged
@@ -246,7 +249,11 @@ export const provideFrames = (partID: () => string) => {
 					// into — the gizmo's drag target moves underneath it. Once we're
 					// back in monitor mode, the next sync resumes the overwrite.
 					if (!isEditMode) {
-						existing.set(traits.EditedMatrix, poseToMatrixTrait(pose, tempMatrix))
+						const edited = existing.get(traits.EditedMatrix)
+						if (edited) {
+							poseToMatrixInto(pose, edited)
+							existing.changed(traits.EditedMatrix)
+						}
 					}
 
 					continue
@@ -254,9 +261,9 @@ export const provideFrames = (partID: () => string) => {
 
 				const entityTraits: ConfigurableTrait[] = [
 					traits.Name(name),
-					traits.Matrix(poseToMatrixTrait(pose, newMatrixTrait())),
-					traits.EditedMatrix(poseToMatrixTrait(pose, newMatrixTrait())),
-					traits.LiveMatrix(poseToMatrixTrait(pose, newMatrixTrait())),
+					traits.Matrix(poseToMatrixInto(pose, new Matrix4())),
+					traits.EditedMatrix(poseToMatrixInto(pose, new Matrix4())),
+					traits.LiveMatrix(poseToMatrixInto(pose, new Matrix4())),
 					traits.FramesAPI,
 					traits.Transformable,
 					traits.ShowAxesHelper,

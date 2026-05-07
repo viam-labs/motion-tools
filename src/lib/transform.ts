@@ -12,30 +12,6 @@ const ov = new OrientationVector()
 const translation = new Vector3()
 const scale = new Vector3()
 const matA = new Matrix4()
-const matC = new Matrix4()
-
-/**
- * Shape of any matrix-shaped trait (Matrix / EditedMatrix / LiveMatrix /
- * WorldMatrix / InstancedMatrix). Column-major to mirror `Matrix4.elements`.
- */
-export interface MatrixTraitFields {
-	m0: number
-	m1: number
-	m2: number
-	m3: number
-	m4: number
-	m5: number
-	m6: number
-	m7: number
-	m8: number
-	m9: number
-	m10: number
-	m11: number
-	m12: number
-	m13: number
-	m14: number
-	m15: number
-}
 
 export const createPose = (pose?: Partial<Pose>): Pose => {
 	// We should only default to the 0,0,1,0 orientation vector if the entire vector component is missing
@@ -183,77 +159,13 @@ export const isFinitePose = (pose: Pose): boolean =>
 	Number.isFinite(pose.oZ) &&
 	Number.isFinite(pose.theta)
 
-/** Fresh identity matrix-shaped trait object. Used at spawn sites. */
-export const newMatrixTrait = (): MatrixTraitFields => ({
-	m0: 1,
-	m1: 0,
-	m2: 0,
-	m3: 0,
-	m4: 0,
-	m5: 1,
-	m6: 0,
-	m7: 0,
-	m8: 0,
-	m9: 0,
-	m10: 1,
-	m11: 0,
-	m12: 0,
-	m13: 0,
-	m14: 0,
-	m15: 1,
-})
-
-/** Copy a matrix-shaped trait's 16 fields into a `Matrix4`. */
-export const readTraitToMatrix = (trait: MatrixTraitFields, out: Matrix4): Matrix4 => {
-	const e = out.elements
-	e[0] = trait.m0
-	e[1] = trait.m1
-	e[2] = trait.m2
-	e[3] = trait.m3
-	e[4] = trait.m4
-	e[5] = trait.m5
-	e[6] = trait.m6
-	e[7] = trait.m7
-	e[8] = trait.m8
-	e[9] = trait.m9
-	e[10] = trait.m10
-	e[11] = trait.m11
-	e[12] = trait.m12
-	e[13] = trait.m13
-	e[14] = trait.m14
-	e[15] = trait.m15
-	return out
-}
-
-/** Copy a `Matrix4`'s 16 elements into a matrix-shaped trait object. */
-export const writeMatrixToTrait = <T extends MatrixTraitFields>(matrix: Matrix4, out: T): T => {
-	const e = matrix.elements
-	out.m0 = e[0]
-	out.m1 = e[1]
-	out.m2 = e[2]
-	out.m3 = e[3]
-	out.m4 = e[4]
-	out.m5 = e[5]
-	out.m6 = e[6]
-	out.m7 = e[7]
-	out.m8 = e[8]
-	out.m9 = e[9]
-	out.m10 = e[10]
-	out.m11 = e[11]
-	out.m12 = e[12]
-	out.m13 = e[13]
-	out.m14 = e[14]
-	out.m15 = e[15]
-	return out
-}
-
 /**
  * Build a TRS `Matrix4` from a `Pose`, writing into `out`. Pool-friendly.
  *
- * `Pose` translation is in millimetres (Viam wire convention); `Matrix4`
- * here is rendered directly into Three.js objects whose units are metres.
- * We divide by 1000 at the boundary so the matrix layer is metres throughout
- * and `group.matrix.copy(matrixTrait)` lands the entity at the correct
+ * `Pose` translation is in millimetres (Viam wire convention); `Matrix4` is
+ * rendered directly into Three.js objects whose units are metres. We divide
+ * by 1000 at the boundary so the matrix layer is metres throughout and
+ * `group.matrix.copy(entity.get(Matrix))` lands the entity at the correct
  * world-space position.
  */
 export const poseToMatrixInto = (pose: Pose, out: Matrix4): Matrix4 => {
@@ -283,28 +195,9 @@ export const matrixToPoseInto = (matrix: Matrix4, out: Pose): Pose => {
 }
 
 /**
- * Convenience: convert a `Pose` directly into a matrix-shaped trait (fills
- * 16 m-fields). Used at RPC ingestion and Details-panel commit boundaries.
- */
-export const poseToMatrixTrait = <T extends MatrixTraitFields>(pose: Pose, out: T): T => {
-	poseToMatrixInto(pose, matC)
-	return writeMatrixToTrait(matC, out)
-}
-
-/**
- * Convenience: convert a matrix-shaped trait directly into a `Pose` (fills
- * the 7 pose fields). Used at Details-panel display and RPC egress
- * boundaries.
- */
-export const matrixTraitToPose = (trait: MatrixTraitFields, out: Pose): Pose => {
-	readTraitToMatrix(trait, matC)
-	return matrixToPoseInto(matC, out)
-}
-
-/**
- * Pool-friendly composeRenderedPose for matrices: writes
+ * Pool-friendly compose of the rendered local transform: writes
  * `live × baseline⁻¹ × edited` into `out`. Mirrors the formula
- * `Pose.svelte` uses to drive the rendered local transform.
+ * `Frame.svelte` uses to blend live kinematics with user-staged edits.
  */
 export const composeRenderedMatrix = (
 	live: Matrix4,
@@ -334,21 +227,11 @@ export const composeEditedMatrixForRenderedMatrix = (
 	return out
 }
 
-/** Whether every element of a matrix trait is finite (no NaN, no ±∞). */
-export const isFiniteMatrixTrait = (trait: MatrixTraitFields): boolean =>
-	Number.isFinite(trait.m0) &&
-	Number.isFinite(trait.m1) &&
-	Number.isFinite(trait.m2) &&
-	Number.isFinite(trait.m3) &&
-	Number.isFinite(trait.m4) &&
-	Number.isFinite(trait.m5) &&
-	Number.isFinite(trait.m6) &&
-	Number.isFinite(trait.m7) &&
-	Number.isFinite(trait.m8) &&
-	Number.isFinite(trait.m9) &&
-	Number.isFinite(trait.m10) &&
-	Number.isFinite(trait.m11) &&
-	Number.isFinite(trait.m12) &&
-	Number.isFinite(trait.m13) &&
-	Number.isFinite(trait.m14) &&
-	Number.isFinite(trait.m15)
+/** Whether every element of a `Matrix4` is finite (no NaN, no ±∞). */
+export const isFiniteMatrix = (matrix: Matrix4): boolean => {
+	const e = matrix.elements
+	for (let i = 0; i < 16; i++) {
+		if (!Number.isFinite(e[i])) return false
+	}
+	return true
+}

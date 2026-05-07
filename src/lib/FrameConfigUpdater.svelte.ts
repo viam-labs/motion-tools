@@ -5,9 +5,8 @@ import type { Vector3Like } from 'three'
 import type { Frame } from '$lib/frame'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPose, matrixTraitToPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+import { createPose, matrixToPoseInto, poseToMatrixInto } from '$lib/transform'
 
-const tempMatrix = newMatrixTrait()
 const tempPose = createPose()
 
 type UpdateFrameCallback = {
@@ -34,12 +33,13 @@ export class FrameConfigUpdater {
 
 		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
-		matrixTraitToPose(current, tempPose)
+		matrixToPoseInto(current, tempPose)
 		if (x !== undefined) tempPose.x = x
 		if (y !== undefined) tempPose.y = y
 		if (z !== undefined) tempPose.z = z
 
-		entity.set(traits.EditedMatrix, poseToMatrixTrait(tempPose, tempMatrix))
+		poseToMatrixInto(tempPose, current)
+		entity.changed(traits.EditedMatrix)
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
@@ -66,13 +66,14 @@ export class FrameConfigUpdater {
 
 		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
-		matrixTraitToPose(current, tempPose)
+		matrixToPoseInto(current, tempPose)
 		if (oX !== undefined) tempPose.oX = oX
 		if (oY !== undefined) tempPose.oY = oY
 		if (oZ !== undefined) tempPose.oZ = oZ
 		if (theta !== undefined) tempPose.theta = theta
 
-		entity.set(traits.EditedMatrix, poseToMatrixTrait(tempPose, tempMatrix))
+		poseToMatrixInto(tempPose, current)
+		entity.changed(traits.EditedMatrix)
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
@@ -86,7 +87,7 @@ export class FrameConfigUpdater {
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const matrix = entity.get(traits.EditedMatrix)
-		if (matrix) matrixTraitToPose(matrix, tempPose)
+		if (matrix) matrixToPoseInto(matrix, tempPose)
 
 		if (geometry?.type === 'box') {
 			const { x, y, z } = geometry
@@ -141,7 +142,7 @@ export class FrameConfigUpdater {
 		const matrix = entity.get(traits.EditedMatrix)
 
 		if (name && matrix) {
-			matrixTraitToPose(matrix, tempPose)
+			matrixToPoseInto(matrix, tempPose)
 			this.updateFrame(name, parentName, { ...tempPose })
 		}
 	}
@@ -160,7 +161,7 @@ export class FrameConfigUpdater {
 		const matrix = entity.get(traits.EditedMatrix)
 
 		if (!name || !matrix) return
-		matrixTraitToPose(matrix, tempPose)
+		matrixToPoseInto(matrix, tempPose)
 		const pose: Pose = { ...tempPose }
 
 		if (type === 'none') {

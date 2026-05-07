@@ -53,7 +53,7 @@
 		useSelectedEntity,
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
-	import { createPose, matrixTraitToPose } from '$lib/transform'
+	import { createPose, matrixToPoseInto } from '$lib/transform'
 
 	interface Props {
 		details?: Snippet<[{ entity: Entity }]>
@@ -82,11 +82,11 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const localPose = $derived.by((): Pose | undefined => {
 		if (!editedMatrix.current) return undefined
-		return matrixTraitToPose(editedMatrix.current, createPose())
+		return matrixToPoseInto(editedMatrix.current, createPose())
 	})
 	const worldPose = $derived.by((): Pose | undefined => {
 		if (!worldMatrix.current) return undefined
-		return matrixTraitToPose(worldMatrix.current, createPose())
+		return matrixToPoseInto(worldMatrix.current, createPose())
 	})
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)

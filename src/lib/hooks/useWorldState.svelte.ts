@@ -14,6 +14,7 @@ import {
 	createResourceStream,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
+import { Matrix4 } from 'three'
 
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
@@ -21,9 +22,7 @@ import { drawTransform, updateMetadata } from '$lib/draw'
 import { traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
 import { metadataFromStruct } from '$lib/metadata'
-import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
-
-const tempMatrix = newMatrixTrait()
+import { createPose, poseToMatrixInto } from '$lib/transform'
 
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
@@ -188,10 +187,17 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		for (const path of changes) {
 			if (typeof path === 'string') {
 				if (path.startsWith('poseInObserverFrame.pose')) {
-					entity.set(
-						traits.Matrix,
-						poseToMatrixTrait(createPose(transform.poseInObserverFrame?.pose), tempMatrix)
-					)
+					const matrix = entity.get(traits.Matrix)
+					if (matrix) {
+						poseToMatrixInto(createPose(transform.poseInObserverFrame?.pose), matrix)
+						entity.changed(traits.Matrix)
+					} else {
+						entity.add(
+							traits.Matrix(
+								poseToMatrixInto(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
+							)
+						)
+					}
 				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
 					traits.updateGeometryTrait(entity, transform.physicalObject)
 				} else if (path.startsWith('metadata')) {

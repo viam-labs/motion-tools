@@ -4,10 +4,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { relations, traits } from '$lib/ecs'
 import { installWorldMatrixListeners } from '$lib/ecs/worldMatrix'
-import { createPose, newMatrixTrait, poseToMatrixTrait, readTraitToMatrix } from '$lib/transform'
+import { createPose, poseToMatrixInto } from '$lib/transform'
 
 const matrixOf = (pose: Parameters<typeof createPose>[0]) =>
-	poseToMatrixTrait(createPose(pose), newMatrixTrait())
+	poseToMatrixInto(createPose(pose), new Matrix4())
 
 describe('worldMatrix system', () => {
 	let world: World
@@ -32,19 +32,16 @@ describe('worldMatrix system', () => {
 
 		const worldMat = entity.get(traits.WorldMatrix)
 		expect(worldMat).toBeDefined()
-		expect(worldMat?.m12).toBeCloseTo(0.1)
-		expect(worldMat?.m13).toBeCloseTo(0.2)
-		expect(worldMat?.m14).toBeCloseTo(0.3)
+		expect(worldMat?.elements[12]).toBeCloseTo(0.1)
+		expect(worldMat?.elements[13]).toBeCloseTo(0.2)
+		expect(worldMat?.elements[14]).toBeCloseTo(0.3)
 	})
 
-	it("composes parent.WorldMatrix × child.Matrix for a child", async () => {
+	it('composes parent.WorldMatrix × child.Matrix for a child', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const parent = world.spawn(
-			traits.Name('arm'),
-			traits.Matrix(matrixOf({ x: 100, y: 0, z: 0 }))
-		)
+		const parent = world.spawn(traits.Name('arm'), traits.Matrix(matrixOf({ x: 100, y: 0, z: 0 })))
 		const child = world.spawn(
 			relations.ChildOf(parent),
 			traits.Matrix(matrixOf({ x: 50, y: 0, z: 0 }))
@@ -52,20 +49,20 @@ describe('worldMatrix system', () => {
 		await tick()
 
 		const worldMat = child.get(traits.WorldMatrix)
-		expect(worldMat?.m12).toBeCloseTo(0.15)
+		expect(worldMat?.elements[12]).toBeCloseTo(0.15)
 	})
 
-	it("falls back to EditedMatrix when LiveMatrix or Matrix is missing", async () => {
+	it('falls back to EditedMatrix when LiveMatrix or Matrix is missing', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
 		const entity = world.spawn(traits.EditedMatrix(matrixOf({ x: 42 })))
 		await tick()
 
-		expect(entity.get(traits.WorldMatrix)?.m12).toBeCloseTo(0.042)
+		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.042)
 	})
 
-	it("blends live × baseline⁻¹ × edited when all three are present", async () => {
+	it('blends live × baseline⁻¹ × edited when all three are present', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
@@ -79,31 +76,28 @@ describe('worldMatrix system', () => {
 		)
 		await tick()
 
-		expect(entity.get(traits.WorldMatrix)?.m12).toBeCloseTo(0.03)
+		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.03)
 	})
 
-	it("propagates parent updates to descendants on the next microtask", async () => {
+	it('propagates parent updates to descendants on the next microtask', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const parent = world.spawn(
-			traits.Name('arm'),
-			traits.Matrix(matrixOf({ x: 100, y: 0, z: 0 }))
-		)
-		const child = world.spawn(
-			relations.ChildOf(parent),
-			traits.Matrix(matrixOf({ x: 50 }))
-		)
+		const parent = world.spawn(traits.Name('arm'), traits.Matrix(matrixOf({ x: 100, y: 0, z: 0 })))
+		const child = world.spawn(relations.ChildOf(parent), traits.Matrix(matrixOf({ x: 50 })))
 		await tick()
-		expect(child.get(traits.WorldMatrix)?.m12).toBeCloseTo(0.15)
+		expect(child.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.15)
 
-		parent.set(traits.Matrix, matrixOf({ x: 200 }))
+		// Mutate parent.Matrix in place + entity.changed — same idiom call sites use.
+		const parentMatrix = parent.get(traits.Matrix)!
+		poseToMatrixInto(createPose({ x: 200 }), parentMatrix)
+		parent.changed(traits.Matrix)
 		await tick()
 
-		expect(child.get(traits.WorldMatrix)?.m12).toBeCloseTo(0.25)
+		expect(child.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.25)
 	})
 
-	it("applies Scale to the local transform", async () => {
+	it('applies Scale to the local transform', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
@@ -113,25 +107,28 @@ describe('worldMatrix system', () => {
 		)
 		await tick()
 
-		const worldMat = entity.get(traits.WorldMatrix)
-		const m = readTraitToMatrix(worldMat!, new Matrix4())
-		// Scale 2 means m0/m5/m10 should be 2 (along the diagonal of a pure-scale matrix at origin).
-		expect(m.elements[0]).toBeCloseTo(2)
-		expect(m.elements[5]).toBeCloseTo(2)
-		expect(m.elements[10]).toBeCloseTo(2)
+		const worldMat = entity.get(traits.WorldMatrix)!
+		// Scale 2 means elements[0]/[5]/[10] should be 2 (diagonal of a pure-scale matrix at origin).
+		expect(worldMat.elements[0]).toBeCloseTo(2)
+		expect(worldMat.elements[5]).toBeCloseTo(2)
+		expect(worldMat.elements[10]).toBeCloseTo(2)
 	})
 
-	it("coalesces multiple changes into a single flush", async () => {
+	it('coalesces multiple changes into a single flush', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
 		const entity = world.spawn(traits.Matrix(matrixOf({ x: 0 })))
+		const matrix = entity.get(traits.Matrix)!
 
-		entity.set(traits.Matrix, matrixOf({ x: 1 }))
-		entity.set(traits.Matrix, matrixOf({ x: 2 }))
-		entity.set(traits.Matrix, matrixOf({ x: 3 }))
+		poseToMatrixInto(createPose({ x: 1 }), matrix)
+		entity.changed(traits.Matrix)
+		poseToMatrixInto(createPose({ x: 2 }), matrix)
+		entity.changed(traits.Matrix)
+		poseToMatrixInto(createPose({ x: 3 }), matrix)
+		entity.changed(traits.Matrix)
 		await tick()
 
-		expect(entity.get(traits.WorldMatrix)?.m12).toBeCloseTo(0.003)
+		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.003)
 	})
 })
