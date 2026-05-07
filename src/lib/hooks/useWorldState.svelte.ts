@@ -23,7 +23,7 @@ import { isPointCloud } from '$lib/geometry'
 import { metadataFromStruct } from '$lib/metadata'
 import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
 
-const matrixScratch = newMatrixTrait()
+const tempMatrix = newMatrixTrait()
 
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
@@ -190,7 +190,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 				if (path.startsWith('poseInObserverFrame.pose')) {
 					entity.set(
 						traits.Matrix,
-						poseToMatrixTrait(createPose(transform.poseInObserverFrame?.pose), matrixScratch)
+						poseToMatrixTrait(createPose(transform.poseInObserverFrame?.pose), tempMatrix)
 					)
 				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
 					traits.updateGeometryTrait(entity, transform.physicalObject)

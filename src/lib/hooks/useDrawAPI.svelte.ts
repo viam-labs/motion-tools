@@ -16,7 +16,7 @@ import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePlyInput } from '$lib/ply'
 import { createPose, createPoseFromFrame, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
 
-const matrixScratch = newMatrixTrait()
+const tempMatrix = newMatrixTrait()
 
 import { useCameraControls } from './useControls.svelte'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
@@ -166,7 +166,7 @@ export const provideDrawAPI = () => {
 			const existing = entities.get(name)
 
 			if (existing) {
-				existing.set(traits.Matrix, poseToMatrixTrait(pose, matrixScratch))
+				existing.set(traits.Matrix, poseToMatrixTrait(pose, tempMatrix))
 				hierarchy.setParent(existing, parent)
 				continue
 			}
@@ -211,7 +211,7 @@ export const provideDrawAPI = () => {
 		const existing = entities.get(name)
 
 		if (existing) {
-			existing.set(traits.Matrix, poseToMatrixTrait(pose, matrixScratch))
+			existing.set(traits.Matrix, poseToMatrixTrait(pose, tempMatrix))
 			return
 		}
 

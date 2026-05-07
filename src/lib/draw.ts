@@ -34,7 +34,7 @@ import { isPointCloud } from './geometry'
 
 const vec3 = new Vector3()
 const rgb = { r: 0, g: 0, b: 0 }
-const matrixScratch = newMatrixTrait()
+const tempMatrix = newMatrixTrait()
 
 const DEFAULT_LINE_WIDTH = 5
 const DEFAULT_POINT_SIZE = 10
@@ -172,7 +172,7 @@ export const updateTransform = (
 	{ poseInObserverFrame, physicalObject, metadata }: Transform,
 	{ removable = true }: DrawOptions = {}
 ) => {
-	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), matrixScratch))
+	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), tempMatrix))
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
@@ -233,7 +233,7 @@ export const updateDrawing = (
 
 	if (!world.has(entity)) return { entity, relationships: metadata?.relationships }
 
-	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), matrixScratch))
+	entity.set(traits.Matrix, poseToMatrixTrait(createPose(poseInObserverFrame?.pose), tempMatrix))
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 

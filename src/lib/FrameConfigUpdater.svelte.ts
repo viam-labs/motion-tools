@@ -7,8 +7,8 @@ import type { Frame } from '$lib/frame'
 import { hierarchy, traits } from '$lib/ecs'
 import { createPose, matrixTraitToPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
 
-const matrixScratch = newMatrixTrait()
-const poseScratch = createPose()
+const tempMatrix = newMatrixTrait()
+const tempPose = createPose()
 
 type UpdateFrameCallback = {
 	(componentName: string, referenceFrame: string, pose: Pose, geometry?: Frame['geometry']): void
@@ -34,18 +34,18 @@ export class FrameConfigUpdater {
 
 		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
-		matrixTraitToPose(current, poseScratch)
-		if (x !== undefined) poseScratch.x = x
-		if (y !== undefined) poseScratch.y = y
-		if (z !== undefined) poseScratch.z = z
+		matrixTraitToPose(current, tempPose)
+		if (x !== undefined) tempPose.x = x
+		if (y !== undefined) tempPose.y = y
+		if (z !== undefined) tempPose.z = z
 
-		entity.set(traits.EditedMatrix, poseToMatrixTrait(poseScratch, matrixScratch))
+		entity.set(traits.EditedMatrix, poseToMatrixTrait(tempPose, tempMatrix))
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 
 		if (name) {
-			this.updateFrame(name, parent, { ...poseScratch })
+			this.updateFrame(name, parent, { ...tempPose })
 		}
 	}
 
@@ -66,19 +66,19 @@ export class FrameConfigUpdater {
 
 		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
-		matrixTraitToPose(current, poseScratch)
-		if (oX !== undefined) poseScratch.oX = oX
-		if (oY !== undefined) poseScratch.oY = oY
-		if (oZ !== undefined) poseScratch.oZ = oZ
-		if (theta !== undefined) poseScratch.theta = theta
+		matrixTraitToPose(current, tempPose)
+		if (oX !== undefined) tempPose.oX = oX
+		if (oY !== undefined) tempPose.oY = oY
+		if (oZ !== undefined) tempPose.oZ = oZ
+		if (theta !== undefined) tempPose.theta = theta
 
-		entity.set(traits.EditedMatrix, poseToMatrixTrait(poseScratch, matrixScratch))
+		entity.set(traits.EditedMatrix, poseToMatrixTrait(tempPose, tempMatrix))
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 
 		if (name) {
-			this.updateFrame(name, parent, { ...poseScratch })
+			this.updateFrame(name, parent, { ...tempPose })
 		}
 	}
 
@@ -86,7 +86,7 @@ export class FrameConfigUpdater {
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const matrix = entity.get(traits.EditedMatrix)
-		if (matrix) matrixTraitToPose(matrix, poseScratch)
+		if (matrix) matrixTraitToPose(matrix, tempPose)
 
 		if (geometry?.type === 'box') {
 			const { x, y, z } = geometry
@@ -103,7 +103,7 @@ export class FrameConfigUpdater {
 			const box = entity.get(traits.Box)
 
 			if (name && box && matrix) {
-				this.updateFrame(name, parent, { ...poseScratch }, { type: 'box', ...box })
+				this.updateFrame(name, parent, { ...tempPose }, { type: 'box', ...box })
 			}
 		} else if (geometry?.type === 'sphere') {
 			const { r } = geometry
@@ -115,7 +115,7 @@ export class FrameConfigUpdater {
 			const sphere = entity.get(traits.Sphere)
 
 			if (name && sphere && matrix) {
-				this.updateFrame(name, parent, { ...poseScratch }, { type: 'sphere', ...sphere })
+				this.updateFrame(name, parent, { ...tempPose }, { type: 'sphere', ...sphere })
 			}
 		} else if (geometry?.type === 'capsule') {
 			const { r, l } = geometry
@@ -131,7 +131,7 @@ export class FrameConfigUpdater {
 			const capsule = entity.get(traits.Capsule)
 
 			if (name && capsule && matrix) {
-				this.updateFrame(name, parent, { ...poseScratch }, { type: 'capsule', ...capsule })
+				this.updateFrame(name, parent, { ...tempPose }, { type: 'capsule', ...capsule })
 			}
 		}
 	}
@@ -141,8 +141,8 @@ export class FrameConfigUpdater {
 		const matrix = entity.get(traits.EditedMatrix)
 
 		if (name && matrix) {
-			matrixTraitToPose(matrix, poseScratch)
-			this.updateFrame(name, parentName, { ...poseScratch })
+			matrixTraitToPose(matrix, tempPose)
+			this.updateFrame(name, parentName, { ...tempPose })
 		}
 	}
 
@@ -160,8 +160,8 @@ export class FrameConfigUpdater {
 		const matrix = entity.get(traits.EditedMatrix)
 
 		if (!name || !matrix) return
-		matrixTraitToPose(matrix, poseScratch)
-		const pose: Pose = { ...poseScratch }
+		matrixTraitToPose(matrix, tempPose)
+		const pose: Pose = { ...tempPose }
 
 		if (type === 'none') {
 			this.updateFrame(name, parent, pose, { type: 'none' })

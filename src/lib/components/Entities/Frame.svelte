@@ -70,16 +70,16 @@ Renders a Viam Frame object
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
-	const liveScratch = new Matrix4()
-	const baselineScratch = new Matrix4()
-	const editedScratch = new Matrix4()
+	const tempLiveMatrix = new Matrix4()
+	const tempBaselineMatrix = new Matrix4()
+	const tempEditedMatrix = new Matrix4()
 
 	$effect.pre(() => {
 		if (liveMatrix.current && matrix.current && editedMatrix.current) {
-			readTraitToMatrix(liveMatrix.current, liveScratch)
-			readTraitToMatrix(matrix.current, baselineScratch)
-			readTraitToMatrix(editedMatrix.current, editedScratch)
-			composeRenderedMatrix(liveScratch, baselineScratch, editedScratch, group.matrix)
+			readTraitToMatrix(liveMatrix.current, tempLiveMatrix)
+			readTraitToMatrix(matrix.current, tempBaselineMatrix)
+			readTraitToMatrix(editedMatrix.current, tempEditedMatrix)
+			composeRenderedMatrix(tempLiveMatrix, tempBaselineMatrix, tempEditedMatrix, group.matrix)
 		} else if (editedMatrix.current) {
 			readTraitToMatrix(editedMatrix.current, group.matrix)
 		} else if (matrix.current) {

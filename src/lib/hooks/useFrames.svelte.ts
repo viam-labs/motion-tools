@@ -12,7 +12,7 @@ import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
 
-const matrixScratch = newMatrixTrait()
+const tempMatrix = newMatrixTrait()
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -232,7 +232,7 @@ export const provideFrames = (partID: () => string) => {
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
 					if (!isEditMode && !partConfig.hasPendingSave) {
-						existing.set(traits.Matrix, poseToMatrixTrait(pose, matrixScratch))
+						existing.set(traits.Matrix, poseToMatrixTrait(pose, tempMatrix))
 					}
 
 					if (!existing.has(traits.LiveMatrix)) {
@@ -246,7 +246,7 @@ export const provideFrames = (partID: () => string) => {
 					// into — the gizmo's drag target moves underneath it. Once we're
 					// back in monitor mode, the next sync resumes the overwrite.
 					if (!isEditMode) {
-						existing.set(traits.EditedMatrix, poseToMatrixTrait(pose, matrixScratch))
+						existing.set(traits.EditedMatrix, poseToMatrixTrait(pose, tempMatrix))
 					}
 
 					continue

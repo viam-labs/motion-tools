@@ -19,8 +19,8 @@
 	const direction = new Vector3()
 	const origin = new Vector3()
 	const color = new Color()
-	const scratchMatrix = new Matrix4()
-	const scratchPose = createPose()
+	const tempMatrix = new Matrix4()
+	const tempPose = createPose()
 
 	const onAdd = (entity: Entity) => {
 		const parent = hierarchy.getParentName(entity) ?? 'world'
@@ -32,13 +32,13 @@
 		const colorRGB = entity.get(traits.Color)
 
 		if (matrix) {
-			readTraitToMatrix(matrix, scratchMatrix)
-			matrixToPoseInto(scratchMatrix, scratchPose)
+			readTraitToMatrix(matrix, tempMatrix)
+			matrixToPoseInto(tempMatrix, tempPose)
 		}
 
 		const instanceID = batched.addArrow(
-			direction.set(scratchPose.oX, scratchPose.oY, scratchPose.oZ),
-			origin.set(scratchPose.x, scratchPose.y, scratchPose.z).multiplyScalar(0.001),
+			direction.set(tempPose.oX, tempPose.oY, tempPose.oZ),
+			origin.set(tempPose.x, tempPose.y, tempPose.z).multiplyScalar(0.001),
 			colorRGB ? color.set(colorRGB.r, colorRGB.g, colorRGB.b) : color.set('yellow')
 		)
 
@@ -54,12 +54,12 @@
 		const matrix = entity.get(traits.Matrix)
 
 		if (instanceID && instanceID !== -1 && matrix) {
-			readTraitToMatrix(matrix, scratchMatrix)
-			matrixToPoseInto(scratchMatrix, scratchPose)
+			readTraitToMatrix(matrix, tempMatrix)
+			matrixToPoseInto(tempMatrix, tempPose)
 			batch?.updateArrow(
 				instanceID,
-				direction.set(scratchPose.oX, scratchPose.oY, scratchPose.oZ),
-				origin.set(scratchPose.x, scratchPose.y, scratchPose.z).multiplyScalar(0.001)
+				direction.set(tempPose.oX, tempPose.oY, tempPose.oZ),
+				origin.set(tempPose.x, tempPose.y, tempPose.z).multiplyScalar(0.001)
 			)
 		}
 	}

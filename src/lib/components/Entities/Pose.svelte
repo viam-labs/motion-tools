@@ -20,7 +20,7 @@
 		() => parent.current
 	)
 
-	const matrixScratch = newMatrixTrait()
+	const tempMatrix = newMatrixTrait()
 
 	// Mirror the robot's live kinematics-resolved pose into LiveMatrix so
 	// Frame.svelte can compose the rendered transform via
@@ -28,7 +28,7 @@
 	$effect.pre(() => {
 		if (pose.current === undefined) return
 
-		const matrixFields = poseToMatrixTrait(pose.current, matrixScratch)
+		const matrixFields = poseToMatrixTrait(pose.current, tempMatrix)
 		if (entity.has(traits.LiveMatrix)) {
 			entity.set(traits.LiveMatrix, matrixFields)
 		} else {

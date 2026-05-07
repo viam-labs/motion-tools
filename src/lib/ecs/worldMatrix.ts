@@ -11,11 +11,11 @@ import {
 import { ChildOf } from './relations'
 import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
 
-const liveScratch = new Matrix4()
-const baselineScratch = new Matrix4()
-const editedScratch = new Matrix4()
+const tempLiveMatrix = new Matrix4()
+const tempBaselineMatrix = new Matrix4()
+const tempEditedMatrix = new Matrix4()
 const scaleVec = new Vector3()
-const traitScratch = newMatrixTrait()
+const tempMatrixTrait = newMatrixTrait()
 
 /**
  * Compute the local rendered transform of an entity into `out`. Mirrors the
@@ -34,10 +34,10 @@ const writeLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
 	const liveMatrix = entity.get(LiveMatrix)
 
 	if (liveMatrix && matrix && editedMatrix) {
-		readTraitToMatrix(liveMatrix, liveScratch)
-		readTraitToMatrix(matrix, baselineScratch)
-		readTraitToMatrix(editedMatrix, editedScratch)
-		composeRenderedMatrix(liveScratch, baselineScratch, editedScratch, out)
+		readTraitToMatrix(liveMatrix, tempLiveMatrix)
+		readTraitToMatrix(matrix, tempBaselineMatrix)
+		readTraitToMatrix(editedMatrix, tempEditedMatrix)
+		composeRenderedMatrix(tempLiveMatrix, tempBaselineMatrix, tempEditedMatrix, out)
 		return true
 	}
 
@@ -110,11 +110,11 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 		if (!entity.isAlive()) continue
 		const worldMat = recomputeWorldMatrix(world, entity, cache)
 		if (!worldMat) continue
-		writeMatrixToTrait(worldMat, traitScratch)
+		writeMatrixToTrait(worldMat, tempMatrixTrait)
 		if (entity.has(WorldMatrix)) {
-			entity.set(WorldMatrix, traitScratch)
+			entity.set(WorldMatrix, tempMatrixTrait)
 		} else {
-			entity.add(WorldMatrix(traitScratch))
+			entity.add(WorldMatrix(tempMatrixTrait))
 		}
 	}
 }

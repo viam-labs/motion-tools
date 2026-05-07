@@ -59,12 +59,12 @@
 	const quaternion = new Quaternion()
 	const vector3 = new Vector3()
 	const refPose = createPose()
-	const matrixScratch = newMatrixTrait()
-	const networkScratch = new Matrix4()
-	const liveScratch = new Matrix4()
-	const refMatrixScratch = new Matrix4()
-	const editedScratch = new Matrix4()
-	const decomposedPose = createPose()
+	const tempMatrix = newMatrixTrait()
+	const tempNetworkMatrix = new Matrix4()
+	const tempLiveMatrix = new Matrix4()
+	const tempRefMatrix = new Matrix4()
+	const tempEditedMatrix = new Matrix4()
+	const tempPose = createPose()
 
 	let session: FrameEditSession | undefined
 	let scaleStart:
@@ -122,14 +122,14 @@
 			} else {
 				const matrixTrait = entity.get(traits.Matrix)
 				if (matrixTrait) {
-					matrixTraitToPose(matrixTrait, decomposedPose)
+					matrixTraitToPose(matrixTrait, tempPose)
 					if (activeMode === 'translate') {
-						vector3ToPose(ref.getWorldPosition(vector3), decomposedPose)
+						vector3ToPose(ref.getWorldPosition(vector3), tempPose)
 					} else {
-						quaternionToPose(ref.getWorldQuaternion(quaternion), decomposedPose)
+						quaternionToPose(ref.getWorldQuaternion(quaternion), tempPose)
 						ref.quaternion.copy(quaternion)
 					}
-					entity.set(traits.Matrix, poseToMatrixTrait(decomposedPose, matrixScratch))
+					entity.set(traits.Matrix, poseToMatrixTrait(tempPose, tempMatrix))
 				}
 			}
 		} else {
@@ -217,21 +217,21 @@
 			return
 		}
 
-		readTraitToMatrix(network, networkScratch)
-		readTraitToMatrix(live, liveScratch)
+		readTraitToMatrix(network, tempNetworkMatrix)
+		readTraitToMatrix(live, tempLiveMatrix)
 		// refPose is in mm; build a matrix at the same scale for compose.
 		// poseToMatrixTrait routes through poseToMatrixInto which writes mm.
-		poseToMatrixTrait(refPose, matrixScratch)
-		readTraitToMatrix(matrixScratch, refMatrixScratch)
+		poseToMatrixTrait(refPose, tempMatrix)
+		readTraitToMatrix(tempMatrix, tempRefMatrix)
 
 		composeEditedMatrixForRenderedMatrix(
-			networkScratch,
-			liveScratch,
-			refMatrixScratch,
-			editedScratch
+			tempNetworkMatrix,
+			tempLiveMatrix,
+			tempRefMatrix,
+			tempEditedMatrix
 		)
-		matrixToPoseInto(editedScratch, decomposedPose)
-		session?.stagePose(entity, { ...decomposedPose })
+		matrixToPoseInto(tempEditedMatrix, tempPose)
+		session?.stagePose(entity, { ...tempPose })
 	}
 </script>
 

@@ -1,23 +1,32 @@
 import type { Entity } from 'koota'
 
 import { type IntersectionEvent, useCursor } from '@threlte/extras'
-import { Matrix4, Vector2 } from 'three'
+import { MathUtils, Matrix4, Quaternion, Vector2 } from 'three'
 
 import { traits, useTrait } from '$lib/ecs'
 import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
-import { updateHoverInfo } from '$lib/HoverUpdater.svelte'
-import {
-	createPose,
-	newMatrixTrait,
-	poseToMatrixInto,
-	readTraitToMatrix,
-	writeMatrixToTrait,
-} from '$lib/transform'
+import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
+import { OrientationVector } from '$lib/three/OrientationVector'
+import { newMatrixTrait, readTraitToMatrix, writeMatrixToTrait } from '$lib/transform'
 
-const hoverPose = createPose()
-const worldMatrixScratch = new Matrix4()
-const hoverMatrixScratch = new Matrix4()
-const instancedScratch = { ...newMatrixTrait(), index: -1 }
+const tempWorldMatrix = new Matrix4()
+const tempHoverMatrix = new Matrix4()
+const tempInstancedTrait = { ...newMatrixTrait(), index: -1 }
+const hoverQuat = new Quaternion()
+const hoverOv = new OrientationVector()
+
+/**
+ * Build the hover point's local transform matrix in metres. `HoverInfo`
+ * already carries position in metres (point/arrow positions inside a
+ * BufferGeometry are in metres) so no mm→m boundary conversion is needed
+ * here — unlike `poseToMatrixInto`, which is for `Pose` ingestion (mm).
+ */
+const buildHoverMatrix = (info: HoverInfo, out: Matrix4) => {
+	hoverOv.set(info.oX, info.oY, info.oZ, MathUtils.degToRad(info.theta))
+	hoverOv.toQuaternion(hoverQuat)
+	out.makeRotationFromQuaternion(hoverQuat)
+	out.setPosition(info.x, info.y, info.z)
+}
 
 export const useEntityEvents = (entity: () => Entity | undefined) => {
 	const down = new Vector2()
@@ -38,17 +47,10 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		if (currentEntity && !currentEntity.has(traits.Hovered)) {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (hoverInfo) {
-				hoverPose.x = hoverInfo.x
-				hoverPose.y = hoverInfo.y
-				hoverPose.z = hoverInfo.z
-				hoverPose.oX = hoverInfo.oX
-				hoverPose.oY = hoverInfo.oY
-				hoverPose.oZ = hoverInfo.oZ
-				hoverPose.theta = hoverInfo.theta
-				poseToMatrixInto(hoverPose, hoverMatrixScratch)
-				writeMatrixToTrait(hoverMatrixScratch, instancedScratch)
-				instancedScratch.index = hoverInfo.index
-				currentEntity.add(traits.InstancedMatrix(instancedScratch))
+				buildHoverMatrix(hoverInfo, tempHoverMatrix)
+				writeMatrixToTrait(tempHoverMatrix, tempInstancedTrait)
+				tempInstancedTrait.index = hoverInfo.index
+				currentEntity.add(traits.InstancedMatrix(tempInstancedTrait))
 			}
 			currentEntity.add(traits.Hovered)
 		}
@@ -65,26 +67,19 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (!hoverInfo) return
 
-			hoverPose.x = hoverInfo.x
-			hoverPose.y = hoverInfo.y
-			hoverPose.z = hoverInfo.z
-			hoverPose.oX = 0
-			hoverPose.oY = 0
-			hoverPose.oZ = 1
-			hoverPose.theta = 0
-			poseToMatrixInto(hoverPose, hoverMatrixScratch)
+			buildHoverMatrix(hoverInfo, tempHoverMatrix)
 
 			const worldMatrixTrait = currentEntity.get(traits.WorldMatrix)
 			if (worldMatrixTrait) {
-				readTraitToMatrix(worldMatrixTrait, worldMatrixScratch)
+				readTraitToMatrix(worldMatrixTrait, tempWorldMatrix)
 			} else {
-				worldMatrixScratch.identity()
+				tempWorldMatrix.identity()
 			}
-			worldMatrixScratch.multiply(hoverMatrixScratch)
+			tempWorldMatrix.multiply(tempHoverMatrix)
 
-			writeMatrixToTrait(worldMatrixScratch, instancedScratch)
-			instancedScratch.index = hoverInfo.index
-			currentEntity.set(traits.InstancedMatrix, instancedScratch)
+			writeMatrixToTrait(tempWorldMatrix, tempInstancedTrait)
+			tempInstancedTrait.index = hoverInfo.index
+			currentEntity.set(traits.InstancedMatrix, tempInstancedTrait)
 		}
 	}
 
