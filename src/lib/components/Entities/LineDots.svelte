@@ -40,6 +40,7 @@
 	})
 
 	$effect(() => {
+		if (!positions) return
 		for (let i = 0, l = positions.length; i < l; i += 3) {
 			const dotIndex = i / 3
 			const instance = mesh.addInstance(geometryID)

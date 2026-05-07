@@ -1,5 +1,25 @@
 # motion-tools
 
+## 1.25.3
+
+### Patch Changes
+
+- 8a420db: hotfix: Bail out line dot effect when positions is undefined
+
+## 1.25.2
+
+### Patch Changes
+
+- 1e0d80c: Update snapshots with the same UUID, rerender snapshots with different UUIDs, add `SetUUID` to `Snapshot`
+
+## 1.25.1
+
+### Patch Changes
+
+- fb8b7ca: Use Koota relations for parent / child interactions
+- e4ca46e: Allow updating Snapshot entities
+- 8c60f88: Screenshot only canvas for UI-unrelated e2e tests
+
 ## 1.25.0
 
 ### Minor Changes
