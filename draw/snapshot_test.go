@@ -1477,27 +1477,22 @@ func TestGeneratingSnapshots(t *testing.T) {
 			r3.Vector{X: 0, Y: 0, Z: 250},
 		))
 
-		stableID := func(name string) uuid.UUID {
-			return uuid.NewSHA1(uuidNamespace, []byte("reconcile/"+name))
-		}
+		// All three versions share a snapshot UUID so the frontend reconciles
+		// per-entity rather than wiping. The snapshot itself stamps each entity
+		// with a UUID derived from its (snapshot UUID, name, parent) triple.
+		sharedSnapshotUUID := uuid.NewSHA1(uuidNamespace, []byte("reconcile/snapshot"))
 
 		drawSphere := func(s *Snapshot, name string, pose spatialmath.Pose, color Color) {
-			id := stableID(name)
 			geo, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 200, name)
 			if err != nil {
 				t.Fatal(err)
 			}
-			config := NewDrawConfig(name,
-				WithUUID(id[:]),
-				WithParent("world"),
-				WithPose(pose),
-				WithAxesHelper(false),
-			)
-			transform := NewTransform(config, geo, WithMetadataColors(color))
-			s.transforms = append(s.transforms, transform)
+			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
+			s.DrawFrame(name, "world", pose, geo, meta)
 		}
 
 		v1 := NewSnapshot(camera, WithGrid(false))
+		v1.SetUUID(sharedSnapshotUUID)
 		drawSphere(v1, "reconcile-static",
 			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
 			NewColor(WithName("dodgerblue")),
@@ -1513,6 +1508,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		writeFixture(v1, "visualization_snapshot_reconcile_v1.json")
 
 		v2 := NewSnapshot(camera, WithGrid(false))
+		v2.SetUUID(sharedSnapshotUUID)
 		drawSphere(v2, "reconcile-static",
 			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
 			NewColor(WithName("dodgerblue")),
@@ -1528,6 +1524,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		writeFixture(v2, "visualization_snapshot_reconcile_v2.json")
 
 		v3 := NewSnapshot(camera, WithGrid(false))
+		v3.SetUUID(sharedSnapshotUUID)
 		drawSphere(v3, "reconcile-static",
 			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
 			NewColor(WithName("dodgerblue")),
@@ -1537,5 +1534,35 @@ func TestGeneratingSnapshots(t *testing.T) {
 			NewColor(WithName("orchid")),
 		)
 		writeFixture(v3, "visualization_snapshot_reconcile_v3.json")
+
+		// "new" carries a different snapshot UUID and visually distinct content
+		// (boxes instead of spheres). When the visualizer receives this after
+		// the v1/v2/v3 sequence, it should wipe the existing entities and
+		// render the new scene fresh rather than reconciling.
+		drawBox := func(s *Snapshot, name string, pose spatialmath.Pose, color Color) {
+			geo, err := spatialmath.NewBox(spatialmath.NewZeroPose(),
+				r3.Vector{X: 400, Y: 400, Z: 400}, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
+			s.DrawFrame(name, "world", pose, geo, meta)
+		}
+
+		vNew := NewSnapshot(camera, WithGrid(false))
+		vNew.SetUUID(uuid.NewSHA1(uuidNamespace, []byte("reconcile/snapshot-new")))
+		drawBox(vNew, "wiped-cube-left",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 200}),
+			NewColor(WithName("orange")),
+		)
+		drawBox(vNew, "wiped-cube-center",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 200}),
+			NewColor(WithName("gold")),
+		)
+		drawBox(vNew, "wiped-cube-right",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 200}),
+			NewColor(WithName("tomato")),
+		)
+		writeFixture(vNew, "visualization_snapshot_reconcile_new.json")
 	})
 }
