@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TransformControls } from '@threlte/extras'
-	import { Quaternion, Vector3 } from 'three'
+	import { Matrix4, Quaternion, Vector3 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
@@ -11,9 +11,14 @@
 	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
-		composeEditedPoseForRenderedPose,
+		composeEditedMatrixForRenderedMatrix,
 		createPose,
+		matrixToPoseInto,
+		matrixTraitToPose,
+		newMatrixTrait,
+		poseToMatrixTrait,
 		quaternionToPose,
+		readTraitToMatrix,
 		vector3ToPose,
 	} from '$lib/transform'
 
@@ -27,8 +32,8 @@
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selectedEntity.current)
 	const transformable = useTrait(() => entity, traits.Transformable)
-	const networkPose = useTrait(() => entity, traits.Pose)
-	const livePose = useTrait(() => entity, traits.LivePose)
+	const networkMatrix = useTrait(() => entity, traits.Matrix)
+	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -54,6 +59,12 @@
 	const quaternion = new Quaternion()
 	const vector3 = new Vector3()
 	const refPose = createPose()
+	const matrixScratch = newMatrixTrait()
+	const networkScratch = new Matrix4()
+	const liveScratch = new Matrix4()
+	const refMatrixScratch = new Matrix4()
+	const editedScratch = new Matrix4()
+	const decomposedPose = createPose()
 
 	let session: FrameEditSession | undefined
 	let scaleStart:
@@ -109,15 +120,16 @@
 			if (isFrameEntity) {
 				stageFrameTransform()
 			} else {
-				const pose = entity.get(traits.Pose)
-				if (pose) {
+				const matrixTrait = entity.get(traits.Matrix)
+				if (matrixTrait) {
+					matrixTraitToPose(matrixTrait, decomposedPose)
 					if (activeMode === 'translate') {
-						vector3ToPose(ref.getWorldPosition(vector3), pose)
+						vector3ToPose(ref.getWorldPosition(vector3), decomposedPose)
 					} else {
-						quaternionToPose(ref.getWorldQuaternion(quaternion), pose)
+						quaternionToPose(ref.getWorldQuaternion(quaternion), decomposedPose)
 						ref.quaternion.copy(quaternion)
 					}
-					entity.set(traits.Pose, pose)
+					entity.set(traits.Matrix, poseToMatrixTrait(decomposedPose, matrixScratch))
 				}
 			}
 		} else {
@@ -165,29 +177,29 @@
 		transformControls.setActive(false)
 	}
 
-	// Pose.svelte renders frame entities through the live blend
+	// Frame.svelte renders frame entities through the live blend
 	//   render = M(live) × M(network)⁻¹ × M(edited)
-	// so for the user's drag to render where they pulled the gizmo to, EditedPose
-	// must satisfy
+	// so for the user's drag to render where they pulled the gizmo to,
+	// EditedMatrix must satisfy
 	//   M(edited) = M(network) × M(live)⁻¹ × M(ref)
 	// where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
-	// When live ≈ network (no kinematic offset), this collapses to M(edited) =
-	// M(ref) — the same as the naive writeback. When they diverge (e.g. an arm
-	// whose joints have moved away from its config pose), this composition is
-	// what keeps the rendering anchored to the user's pointer instead of
-	// shearing through the live × baseline⁻¹ offset.
+	// When live ≈ network (no kinematic offset), this collapses to
+	// M(edited) = M(ref) — the same as the naive writeback. When they diverge
+	// (e.g. an arm whose joints have moved away from its config pose), this
+	// composition is what keeps the rendering anchored to the user's pointer
+	// instead of shearing through the live × baseline⁻¹ offset.
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
 		vector3ToPose(ref.position, refPose)
 		quaternionToPose(ref.quaternion, refPose)
 
-		const live = livePose.current
-		const network = networkPose.current
+		const live = liveMatrix.current
+		const network = networkMatrix.current
 
 		if (!live || !network) {
-			// No live pose available — Pose.svelte's blend short-circuits to
-			// editedPose, so naive writeback is correct.
+			// No live matrix available — Frame.svelte's blend short-circuits to
+			// editedMatrix, so naive writeback is correct.
 			if (activeMode === 'translate') {
 				session?.stagePose(entity, {
 					x: refPose.x,
@@ -205,7 +217,21 @@
 			return
 		}
 
-		session?.stagePose(entity, composeEditedPoseForRenderedPose(network, live, refPose))
+		readTraitToMatrix(network, networkScratch)
+		readTraitToMatrix(live, liveScratch)
+		// refPose is in mm; build a matrix at the same scale for compose.
+		// poseToMatrixTrait routes through poseToMatrixInto which writes mm.
+		poseToMatrixTrait(refPose, matrixScratch)
+		readTraitToMatrix(matrixScratch, refMatrixScratch)
+
+		composeEditedMatrixForRenderedMatrix(
+			networkScratch,
+			liveScratch,
+			refMatrixScratch,
+			editedScratch
+		)
+		matrixToPoseInto(editedScratch, decomposedPose)
+		session?.stagePose(entity, { ...decomposedPose })
 	}
 </script>
 

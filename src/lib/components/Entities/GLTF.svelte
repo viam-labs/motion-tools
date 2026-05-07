@@ -20,7 +20,7 @@
 	import { Group, type Object3D } from 'three'
 
 	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { poseToObject3d } from '$lib/transform'
+	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -36,7 +36,7 @@
 
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
-	const pose = useTrait(() => entity, traits.Pose)
+	const matrix = useTrait(() => entity, traits.Matrix)
 	const gltfTrait = useTrait(() => entity, traits.GLTF)
 	const scale = useTrait(() => entity, traits.Scale)
 	const invisible = useTrait(() => entity, traits.Invisible)
@@ -46,10 +46,12 @@
 	const animationName = $derived(gltfTrait.current?.animationName)
 
 	const group = new Group()
+	group.matrixAutoUpdate = false
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, group)
+		if (matrix.current) {
+			readTraitToMatrix(matrix.current, group.matrix)
+			group.updateMatrixWorld()
 		}
 	})
 

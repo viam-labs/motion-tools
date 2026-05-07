@@ -22,7 +22,7 @@
 	const focusedEntity = useFocusedEntity()
 	const displayEntity = $derived(selectedEntity.current ?? focusedEntity.current)
 
-	const displayedHoverInfo = useTrait(() => displayEntity, traits.InstancedPose)
+	const displayedHoverInfo = useTrait(() => displayEntity, traits.InstancedMatrix)
 
 	let hoverInfo = $state.raw<HoverInfo | null>(null)
 

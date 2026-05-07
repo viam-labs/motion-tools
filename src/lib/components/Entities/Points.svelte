@@ -9,7 +9,7 @@
 	import { asColor, isSingleColor } from '$lib/buffer'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { poseToObject3d } from '$lib/transform'
+	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -25,7 +25,7 @@
 	const settings = useSettings()
 
 	const parent = useParentName(() => entity)
-	const pose = useTrait(() => entity, traits.Pose)
+	const matrix = useTrait(() => entity, traits.Matrix)
 	const geometry = useTrait(() => entity, traits.BufferGeometry)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
@@ -42,6 +42,7 @@
 	const orthographic = $derived(settings.current.cameraMode === 'orthographic')
 
 	const points = new Points()
+	points.matrixAutoUpdate = false
 	const material = points.material as PointsMaterial
 	material.toneMapped = false
 
@@ -98,8 +99,9 @@
 	})
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, points)
+		if (matrix.current) {
+			readTraitToMatrix(matrix.current, points.matrix)
+			points.updateMatrixWorld()
 		}
 	})
 

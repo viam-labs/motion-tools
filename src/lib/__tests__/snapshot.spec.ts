@@ -58,7 +58,8 @@ describe('reconcileSnapshotEntities', () => {
 		const initial = reconcileSnapshotEntities(world, first, new Map())
 		const initialEntity = initial.current.get(UUID_A)?.entity
 		expect(initialEntity).toBeDefined()
-		expect(initialEntity?.get(traits.Pose)?.x).toBe(1)
+		// Pose translation is in mm; matrix translation is in m (× 0.001).
+		expect(initialEntity?.get(traits.Matrix)?.m12).toBeCloseTo(0.001)
 
 		const second = new Snapshot({ transforms: [transformWith(UUID_A, { x: 5 })] })
 		const next = reconcileSnapshotEntities(world, second, initial.current)
@@ -66,7 +67,7 @@ describe('reconcileSnapshotEntities', () => {
 		expect(next.current.get(UUID_A)?.entity).toBe(initialEntity)
 		expect(next.spawned).toHaveLength(0)
 		expect(next.updated).toHaveLength(1)
-		expect(initialEntity?.get(traits.Pose)?.x).toBe(5)
+		expect(initialEntity?.get(traits.Matrix)?.m12).toBeCloseTo(0.005)
 	})
 
 	it('spawns entities for UUIDs not present in the previous map', () => {
@@ -168,7 +169,7 @@ describe('reconcileSnapshotEntities', () => {
 		)
 
 		expect(next.current.get(UUID_A)?.entity).toBe(keptEntity)
-		expect(keptEntity?.get(traits.Pose)?.x).toBe(9)
+		expect(keptEntity?.get(traits.Matrix)?.m12).toBeCloseTo(0.009)
 		expect(removedEntity && world.has(removedEntity)).toBe(false)
 		expect(next.current.has(UUID_C)).toBe(true)
 		expect(next.current.size).toBe(2)

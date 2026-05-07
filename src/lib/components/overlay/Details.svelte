@@ -3,22 +3,22 @@
 	lang="ts"
 >
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
-	import { BufferAttribute, Euler, MathUtils, Quaternion, Vector3 } from 'three'
+	import { BufferAttribute, Euler, MathUtils, Quaternion } from 'three'
 
 	import { OrientationVector } from '$lib/three/OrientationVector'
 
-	const vec3 = new Vector3()
 	const quaternion = new Quaternion()
 	const ov = new OrientationVector()
 	const euler = new Euler()
 </script>
 
 <script lang="ts">
+	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { draggable } from '@neodrag/svelte'
-	import { isInstanceOf, useTask, useThrelte } from '@threlte/core'
+	import { isInstanceOf, useThrelte } from '@threlte/core'
 	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
@@ -53,7 +53,7 @@
 		useSelectedEntity,
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
-	import { createPose } from '$lib/transform'
+	import { createPose, matrixTraitToPose } from '$lib/transform'
 
 	interface Props {
 		details?: Snippet<[{ entity: Entity }]>
@@ -75,12 +75,19 @@
 	const focusedObject3d = useFocusedObject3d()
 	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
 	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
-	const worldPosition = $state({ x: 0, y: 0, z: 0 })
-	const worldOrientation = $state({ x: 0, y: 0, z: 1, th: 0 })
 	const linkedEntities = useLinkedEntities()
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
-	const localPose = useTrait(() => entity, traits.EditedPose)
+	const editedMatrix = useTrait(() => entity, traits.EditedMatrix)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
+	const localPose = $derived.by((): Pose | undefined => {
+		if (!editedMatrix.current) return undefined
+		return matrixTraitToPose(editedMatrix.current, createPose())
+	})
+	const worldPose = $derived.by((): Pose | undefined => {
+		if (!worldMatrix.current) return undefined
+		return matrixTraitToPose(worldMatrix.current, createPose())
+	})
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -120,13 +127,8 @@
 	let dragElement = $state.raw<HTMLElement>()
 
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
-		if (!localPose.current) return { x: 0, y: 0, z: 0 }
-		ov.set(
-			localPose.current.oX,
-			localPose.current.oY,
-			localPose.current.oZ,
-			MathUtils.degToRad(localPose.current.theta)
-		)
+		if (!localPose) return { x: 0, y: 0, z: 0 }
+		ov.set(localPose.oX, localPose.oY, localPose.oZ, MathUtils.degToRad(localPose.theta))
 		ov.toEuler(euler)
 		return {
 			x: MathUtils.radToDeg(euler.x),
@@ -236,65 +238,28 @@
 		}
 	}
 
-	useTask(
-		() => {
-			object3d?.getWorldPosition(vec3)
-			if (!vec3.equals(worldPosition)) {
-				worldPosition.x = vec3.x
-				worldPosition.y = vec3.y
-				worldPosition.z = vec3.z
-			}
-
-			object3d?.getWorldQuaternion(quaternion)
-			ov.setFromQuaternion(quaternion)
-
-			if (!ov.equals(worldOrientation)) {
-				worldOrientation.x = ov.x
-				worldOrientation.y = ov.y
-				worldOrientation.z = ov.z
-				worldOrientation.th = ov.th
-			}
-		},
-		{
-			autoInvalidate: false,
-			running: () => object3d !== undefined,
-		}
-	)
-
-	$effect(() => {
-		if (entity) {
-			const worldPose = createPose({
-				x: worldPosition.x,
-				y: worldPosition.y,
-				z: worldPosition.z,
-				oX: worldOrientation.x,
-				oY: worldOrientation.y,
-				oZ: worldOrientation.z,
-				theta: MathUtils.radToDeg(worldOrientation.th),
-			})
-			if (entity.has(traits.WorldPose)) {
-				entity.set(traits.WorldPose, worldPose)
-			} else {
-				entity.add(traits.WorldPose(worldPose))
-			}
-		}
-	})
-
 	const getCopyClipboardText = () => {
 		return JSON.stringify(
 			{
-				worldPosition: worldPosition,
-				worldOrientation: worldOrientation,
+				worldPosition: worldPose ? { x: worldPose.x, y: worldPose.y, z: worldPose.z } : null,
+				worldOrientation: worldPose
+					? {
+							x: worldPose.oX,
+							y: worldPose.oY,
+							z: worldPose.oZ,
+							th: MathUtils.degToRad(worldPose.theta),
+						}
+					: null,
 				localPosition: {
-					x: localPose.current?.x,
-					y: localPose.current?.y,
-					z: localPose.current?.z,
+					x: localPose?.x,
+					y: localPose?.y,
+					z: localPose?.z,
 				},
 				localOrientation: {
-					x: localPose.current?.oX,
-					y: localPose.current?.oY,
-					z: localPose.current?.oZ,
-					th: localPose.current?.theta,
+					x: localPose?.oX,
+					y: localPose?.oY,
+					z: localPose?.oZ,
+					th: localPose?.theta,
 				},
 				geometry: {
 					type: geometryType,
@@ -438,15 +403,15 @@
 				<div class="flex gap-3">
 					<div>
 						<span class="text-subtle-2">x</span>
-						{(worldPosition.x * 1000).toFixed(2)}
+						{(worldPose?.x ?? 0).toFixed(2)}
 					</div>
 					<div>
 						<span class="text-subtle-2">y</span>
-						{(worldPosition.y * 1000).toFixed(2)}
+						{(worldPose?.y ?? 0).toFixed(2)}
 					</div>
 					<div>
 						<span class="text-subtle-2">z</span>
-						{(worldPosition.z * 1000).toFixed(2)}
+						{(worldPose?.z ?? 0).toFixed(2)}
 					</div>
 				</div>
 			</div>
@@ -457,19 +422,19 @@
 				<div class="flex gap-3">
 					<div>
 						<span class="text-subtle-2">x</span>
-						{worldOrientation.x.toFixed(2)}
+						{(worldPose?.oX ?? 0).toFixed(2)}
 					</div>
 					<div>
 						<span class="text-subtle-2">y</span>
-						{worldOrientation.y.toFixed(2)}
+						{(worldPose?.oY ?? 0).toFixed(2)}
 					</div>
 					<div>
 						<span class="text-subtle-2">z</span>
-						{worldOrientation.z.toFixed(2)}
+						{(worldPose?.oZ ?? 0).toFixed(2)}
 					</div>
 					<div>
 						<span class="text-subtle-2">th</span>
-						{MathUtils.radToDeg(worldOrientation.th).toFixed(2)}
+						{(worldPose?.theta ?? 0).toFixed(2)}
 					</div>
 				</div>
 			</div>
@@ -494,7 +459,7 @@
 				{/if}
 			</div>
 
-			{#if localPose.current}
+			{#if localPose}
 				<div>
 					<strong class="font-semibold">local position</strong>
 					<span class="text-subtle-2">(mm)</span>
@@ -503,9 +468,9 @@
 						<div aria-label="mutable local position">
 							<Point
 								value={{
-									x: localPose.current.x,
-									y: localPose.current.y,
-									z: localPose.current.z,
+									x: localPose.x,
+									y: localPose.y,
+									z: localPose.z,
 								}}
 								on:change={handlePositionChange}
 							/>
@@ -515,17 +480,17 @@
 							{@render ImmutableField({
 								label: 'x',
 								ariaLabel: 'local position x coordinate',
-								value: localPose.current.x,
+								value: localPose.x,
 							})}
 							{@render ImmutableField({
 								label: 'y',
 								ariaLabel: 'local position y coordinate',
-								value: localPose.current.y,
+								value: localPose.y,
 							})}
 							{@render ImmutableField({
 								label: 'z',
 								ariaLabel: 'local position z coordinate',
-								value: localPose.current.z,
+								value: localPose.z,
 							})}
 						</div>
 					{/if}
@@ -540,10 +505,10 @@
 								<TabPage title="OV (deg)">
 									<Point
 										value={{
-											x: localPose.current.oX,
-											y: localPose.current.oY,
-											z: localPose.current.oZ,
-											w: localPose.current.theta,
+											x: localPose.oX,
+											y: localPose.oY,
+											z: localPose.oZ,
+											w: localPose.theta,
 										}}
 										on:change={handleOrientationOVChange}
 									/>
@@ -562,22 +527,22 @@
 							{@render ImmutableField({
 								label: 'x',
 								ariaLabel: 'local orientation x coordinate',
-								value: localPose.current.oX,
+								value: localPose.oX,
 							})}
 							{@render ImmutableField({
 								label: 'y',
 								ariaLabel: 'local orientation y coordinate',
-								value: localPose.current.oY,
+								value: localPose.oY,
 							})}
 							{@render ImmutableField({
 								label: 'z',
 								ariaLabel: 'local orientation z coordinate',
-								value: localPose.current.oZ,
+								value: localPose.oZ,
 							})}
 							{@render ImmutableField({
 								label: 'th',
 								ariaLabel: 'local orientation theta degrees',
-								value: localPose.current.theta,
+								value: localPose.theta,
 							})}
 						</div>
 					{/if}

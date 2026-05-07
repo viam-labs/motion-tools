@@ -4,7 +4,16 @@ import type { Entity } from 'koota'
 import type { Frame } from '$lib/frame'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { isFinitePose } from '$lib/transform'
+import {
+	createPose,
+	isFinitePose,
+	matrixTraitToPose,
+	newMatrixTrait,
+	poseToMatrixTrait,
+} from '$lib/transform'
+
+const matrixScratch = newMatrixTrait()
+const poseScratch = createPose()
 
 export type UpdateFrameFn = (
 	componentName: string,
@@ -100,13 +109,14 @@ export class FrameEditSession {
 
 		for (const entity of entities) {
 			const name = entity.get(traits.Name)
-			const editedPose = entity.get(traits.EditedPose)
-			if (!name || !editedPose) continue
+			const editedMatrix = entity.get(traits.EditedMatrix)
+			if (!name || !editedMatrix) continue
 
+			matrixTraitToPose(editedMatrix, poseScratch)
 			this.snapshots.set(entity, {
 				name,
 				parent: hierarchy.getParentName(entity) ?? 'world',
-				editedPose: { ...editedPose },
+				editedPose: { ...poseScratch },
 				geometry: captureGeometry(entity),
 			})
 		}
@@ -124,11 +134,12 @@ export class FrameEditSession {
 		const snap = this.snapshots.get(entity)
 		if (!snap || this.#closed) return
 
-		const current = entity.get(traits.EditedPose)
+		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
 
-		const next: Pose = { ...current, ...pose }
-		entity.set(traits.EditedPose, next)
+		matrixTraitToPose(current, poseScratch)
+		const next: Pose = { ...poseScratch, ...pose }
+		entity.set(traits.EditedMatrix, poseToMatrixTrait(next, matrixScratch))
 		this.updateFrame(
 			snap.name,
 			hierarchy.getParentName(entity) ?? 'world',
@@ -152,9 +163,15 @@ export class FrameEditSession {
 			restoreGeometryTrait(entity, { type: 'capsule', capsule: { r: geometry.r, l: geometry.l } })
 		}
 
-		const editedPose = entity.get(traits.EditedPose)
-		if (editedPose) {
-			this.updateFrame(snap.name, hierarchy.getParentName(entity) ?? 'world', editedPose, geometry)
+		const editedMatrix = entity.get(traits.EditedMatrix)
+		if (editedMatrix) {
+			matrixTraitToPose(editedMatrix, poseScratch)
+			this.updateFrame(
+				snap.name,
+				hierarchy.getParentName(entity) ?? 'world',
+				{ ...poseScratch },
+				geometry
+			)
 		}
 	}
 
@@ -164,9 +181,10 @@ export class FrameEditSession {
 
 		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
 
-		const editedPose = entity.get(traits.EditedPose)
-		if (editedPose) {
-			this.updateFrame(snap.name, parent, editedPose, liveGeometry(entity))
+		const editedMatrix = entity.get(traits.EditedMatrix)
+		if (editedMatrix) {
+			matrixTraitToPose(editedMatrix, poseScratch)
+			this.updateFrame(snap.name, parent, { ...poseScratch }, liveGeometry(entity))
 		}
 	}
 
@@ -184,10 +202,13 @@ export class FrameEditSession {
 		if (this.#closed) return false
 
 		for (const [entity] of this.snapshots) {
-			const pose = entity.get(traits.EditedPose)
-			if (pose && !isFinitePose(pose)) {
-				this.abort()
-				return false
+			const matrix = entity.get(traits.EditedMatrix)
+			if (matrix) {
+				matrixTraitToPose(matrix, poseScratch)
+				if (!isFinitePose(poseScratch)) {
+					this.abort()
+					return false
+				}
 			}
 		}
 
@@ -204,7 +225,7 @@ export class FrameEditSession {
 
 		for (const [entity, snap] of this.snapshots) {
 			if (entity.isAlive()) {
-				entity.set(traits.EditedPose, snap.editedPose)
+				entity.set(traits.EditedMatrix, poseToMatrixTrait(snap.editedPose, matrixScratch))
 				hierarchy.setParent(entity, snap.parent === 'world' ? undefined : snap.parent)
 				restoreGeometryTrait(entity, snap.geometry)
 			}

@@ -8,7 +8,7 @@
 
 	import { isVertexColors, STRIDE } from '$lib/buffer'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { poseToObject3d } from '$lib/transform'
+	import { readTraitToMatrix } from '$lib/transform'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -25,7 +25,7 @@
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
-	const pose = useTrait(() => entity, traits.Pose)
+	const matrix = useTrait(() => entity, traits.Matrix)
 	const color = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
 	const dotColors = useTrait(() => entity, traits.DotColors)
@@ -63,10 +63,12 @@
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
 	const mesh = new Line2()
+	mesh.matrixAutoUpdate = false
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, mesh)
+		if (matrix.current) {
+			readTraitToMatrix(matrix.current, mesh.matrix)
+			mesh.updateMatrixWorld()
 			invalidate()
 		}
 	})

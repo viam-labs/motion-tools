@@ -5,6 +5,10 @@ import type { Vector3Like } from 'three'
 import type { Frame } from '$lib/frame'
 
 import { hierarchy, traits } from '$lib/ecs'
+import { createPose, matrixTraitToPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+
+const matrixScratch = newMatrixTrait()
+const poseScratch = createPose()
 
 type UpdateFrameCallback = {
 	(componentName: string, referenceFrame: string, pose: Pose, geometry?: Frame['geometry']): void
@@ -28,19 +32,20 @@ export class FrameConfigUpdater {
 
 		if (x === undefined && y === undefined && z === undefined) return
 
-		const change: { x?: number; y?: number; z?: number } = {}
-		if (x !== undefined) change.x = x
-		if (y !== undefined) change.y = y
-		if (z !== undefined) change.z = z
+		const current = entity.get(traits.EditedMatrix)
+		if (!current) return
+		matrixTraitToPose(current, poseScratch)
+		if (x !== undefined) poseScratch.x = x
+		if (y !== undefined) poseScratch.y = y
+		if (z !== undefined) poseScratch.z = z
 
-		entity.set(traits.EditedPose, change)
+		entity.set(traits.EditedMatrix, poseToMatrixTrait(poseScratch, matrixScratch))
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
-		const updatedPose = entity.get(traits.EditedPose)
 
-		if (name && updatedPose) {
-			this.updateFrame(name, parent, updatedPose)
+		if (name) {
+			this.updateFrame(name, parent, { ...poseScratch })
 		}
 	}
 
@@ -59,27 +64,29 @@ export class FrameConfigUpdater {
 			return
 		}
 
-		const change: { oX?: number; oY?: number; oZ?: number; theta?: number } = {}
-		if (oX !== undefined) change.oX = oX
-		if (oY !== undefined) change.oY = oY
-		if (oZ !== undefined) change.oZ = oZ
-		if (theta !== undefined) change.theta = theta
+		const current = entity.get(traits.EditedMatrix)
+		if (!current) return
+		matrixTraitToPose(current, poseScratch)
+		if (oX !== undefined) poseScratch.oX = oX
+		if (oY !== undefined) poseScratch.oY = oY
+		if (oZ !== undefined) poseScratch.oZ = oZ
+		if (theta !== undefined) poseScratch.theta = theta
 
-		entity.set(traits.EditedPose, change)
+		entity.set(traits.EditedMatrix, poseToMatrixTrait(poseScratch, matrixScratch))
 
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
-		const updatedPose = entity.get(traits.EditedPose)
 
-		if (name && updatedPose) {
-			this.updateFrame(name, parent, updatedPose)
+		if (name) {
+			this.updateFrame(name, parent, { ...poseScratch })
 		}
 	}
 
 	public updateGeometry = (entity: Entity, geometry: Partial<Frame['geometry']>) => {
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
-		const pose = entity.get(traits.EditedPose)
+		const matrix = entity.get(traits.EditedMatrix)
+		if (matrix) matrixTraitToPose(matrix, poseScratch)
 
 		if (geometry?.type === 'box') {
 			const { x, y, z } = geometry
@@ -95,8 +102,8 @@ export class FrameConfigUpdater {
 
 			const box = entity.get(traits.Box)
 
-			if (name && box && pose) {
-				this.updateFrame(name, parent, pose, { type: 'box', ...box })
+			if (name && box && matrix) {
+				this.updateFrame(name, parent, { ...poseScratch }, { type: 'box', ...box })
 			}
 		} else if (geometry?.type === 'sphere') {
 			const { r } = geometry
@@ -107,8 +114,8 @@ export class FrameConfigUpdater {
 
 			const sphere = entity.get(traits.Sphere)
 
-			if (name && sphere && pose) {
-				this.updateFrame(name, parent, pose, { type: 'sphere', ...sphere })
+			if (name && sphere && matrix) {
+				this.updateFrame(name, parent, { ...poseScratch }, { type: 'sphere', ...sphere })
 			}
 		} else if (geometry?.type === 'capsule') {
 			const { r, l } = geometry
@@ -123,18 +130,19 @@ export class FrameConfigUpdater {
 
 			const capsule = entity.get(traits.Capsule)
 
-			if (name && capsule && pose) {
-				this.updateFrame(name, parent, pose, { type: 'capsule', ...capsule })
+			if (name && capsule && matrix) {
+				this.updateFrame(name, parent, { ...poseScratch }, { type: 'capsule', ...capsule })
 			}
 		}
 	}
 
 	public setFrameParent = (entity: Entity, parentName: string) => {
 		const name = entity.get(traits.Name)
-		const pose = entity.get(traits.EditedPose)
+		const matrix = entity.get(traits.EditedMatrix)
 
-		if (name && pose) {
-			this.updateFrame(name, parentName, pose)
+		if (name && matrix) {
+			matrixTraitToPose(matrix, poseScratch)
+			this.updateFrame(name, parentName, { ...poseScratch })
 		}
 	}
 
@@ -149,9 +157,11 @@ export class FrameConfigUpdater {
 	public setGeometryType = (entity: Entity, type: 'none' | 'box' | 'sphere' | 'capsule') => {
 		const name = entity.get(traits.Name)
 		const parent = hierarchy.getParentName(entity) ?? 'world'
-		const pose = entity.get(traits.EditedPose)
+		const matrix = entity.get(traits.EditedMatrix)
 
-		if (!name || !pose) return
+		if (!name || !matrix) return
+		matrixTraitToPose(matrix, poseScratch)
+		const pose: Pose = { ...poseScratch }
 
 		if (type === 'none') {
 			this.updateFrame(name, parent, pose, { type: 'none' })

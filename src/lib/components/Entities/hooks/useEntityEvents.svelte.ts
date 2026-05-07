@@ -1,12 +1,23 @@
 import type { Entity } from 'koota'
 
 import { type IntersectionEvent, useCursor } from '@threlte/extras'
-import { Vector2 } from 'three'
+import { Matrix4, Vector2 } from 'three'
 
 import { traits, useTrait } from '$lib/ecs'
 import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 import { updateHoverInfo } from '$lib/HoverUpdater.svelte'
-import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+import {
+	createPose,
+	newMatrixTrait,
+	poseToMatrixInto,
+	readTraitToMatrix,
+	writeMatrixToTrait,
+} from '$lib/transform'
+
+const hoverPose = createPose()
+const worldMatrixScratch = new Matrix4()
+const hoverMatrixScratch = new Matrix4()
+const instancedScratch = { ...newMatrixTrait(), index: -1 }
 
 export const useEntityEvents = (entity: () => Entity | undefined) => {
 	const down = new Vector2()
@@ -27,18 +38,17 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		if (currentEntity && !currentEntity.has(traits.Hovered)) {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (hoverInfo) {
-				currentEntity.add(
-					traits.InstancedPose({
-						index: hoverInfo.index,
-						x: hoverInfo.x,
-						y: hoverInfo.y,
-						z: hoverInfo.z,
-						oX: hoverInfo.oX,
-						oY: hoverInfo.oY,
-						oZ: hoverInfo.oZ,
-						theta: hoverInfo.theta,
-					})
-				)
+				hoverPose.x = hoverInfo.x
+				hoverPose.y = hoverInfo.y
+				hoverPose.z = hoverInfo.z
+				hoverPose.oX = hoverInfo.oX
+				hoverPose.oY = hoverInfo.oY
+				hoverPose.oZ = hoverInfo.oZ
+				hoverPose.theta = hoverInfo.theta
+				poseToMatrixInto(hoverPose, hoverMatrixScratch)
+				writeMatrixToTrait(hoverMatrixScratch, instancedScratch)
+				instancedScratch.index = hoverInfo.index
+				currentEntity.add(traits.InstancedMatrix(instancedScratch))
 			}
 			currentEntity.add(traits.Hovered)
 		}
@@ -53,38 +63,28 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 
 		if (currentEntity?.has(traits.Hovered)) {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
-			const hoverPose = createPose(
-				hoverInfo
-					? {
-							x: hoverInfo.x,
-							y: hoverInfo.y,
-							z: hoverInfo.z,
-							oX: 0,
-							oY: 0,
-							oZ: 1,
-							theta: 0,
-						}
-					: undefined
-			)
+			if (!hoverInfo) return
 
-			const worldPose = currentEntity.get(traits.WorldPose) ?? createPose()
-			const hoverPoseMatrix = poseToMatrix(hoverPose)
-			const worldPoseMatrix = poseToMatrix(worldPose)
-			const resultMatrix = worldPoseMatrix.multiply(hoverPoseMatrix)
-			const resultPose = matrixToPose(resultMatrix)
+			hoverPose.x = hoverInfo.x
+			hoverPose.y = hoverInfo.y
+			hoverPose.z = hoverInfo.z
+			hoverPose.oX = 0
+			hoverPose.oY = 0
+			hoverPose.oZ = 1
+			hoverPose.theta = 0
+			poseToMatrixInto(hoverPose, hoverMatrixScratch)
 
-			if (hoverInfo) {
-				currentEntity.set(traits.InstancedPose, {
-					index: hoverInfo.index,
-					x: resultPose.x,
-					y: resultPose.y,
-					z: resultPose.z,
-					oX: resultPose.oX,
-					oY: resultPose.oY,
-					oZ: resultPose.oZ,
-					theta: resultPose.theta,
-				})
+			const worldMatrixTrait = currentEntity.get(traits.WorldMatrix)
+			if (worldMatrixTrait) {
+				readTraitToMatrix(worldMatrixTrait, worldMatrixScratch)
+			} else {
+				worldMatrixScratch.identity()
 			}
+			worldMatrixScratch.multiply(hoverMatrixScratch)
+
+			writeMatrixToTrait(worldMatrixScratch, instancedScratch)
+			instancedScratch.index = hoverInfo.index
+			currentEntity.set(traits.InstancedMatrix, instancedScratch)
 		}
 	}
 
@@ -97,8 +97,8 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		if (currentEntity?.has(traits.Hovered)) {
 			currentEntity.remove(traits.Hovered)
 		}
-		if (currentEntity?.has(traits.InstancedPose)) {
-			currentEntity.remove(traits.InstancedPose)
+		if (currentEntity?.has(traits.InstancedMatrix)) {
+			currentEntity.remove(traits.InstancedMatrix)
 		}
 	}
 
@@ -136,8 +136,8 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			if (currentEntity?.has(traits.Hovered)) {
 				currentEntity.remove(traits.Hovered)
 			}
-			if (currentEntity?.has(traits.InstancedPose)) {
-				currentEntity.remove(traits.InstancedPose)
+			if (currentEntity?.has(traits.InstancedMatrix)) {
+				currentEntity.remove(traits.InstancedMatrix)
 			}
 		}
 	})

@@ -22,30 +22,127 @@ export const UUID = trait(() => '')
  */
 export const Orphan = trait(() => '')
 
-export const Pose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
-export const EditedPose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
-export const LivePose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
+/**
+ * Static positional offset (e.g. center of a geometry). Stored as a Pose
+ * for the rare cases that need OV+theta semantics (currently unused).
+ * Never composed through the parent chain — the `WorldMatrix` system
+ * doesn't read it.
+ */
 export const Center = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 
-export const InstancedPose = trait({
-	x: 0,
-	y: 0,
-	z: 0,
-	oX: 0,
-	oY: 0,
-	oZ: 1,
-	theta: 0,
-	index: -1,
+/**
+ * Local transform: column-major 4×4 matrix stored as 16 numeric fields
+ * (SoA-friendly under koota). Use `readTraitToMatrix` / `writeMatrixToTrait`
+ * (in `transform.ts`) to bridge to / from `Matrix4`. Identity by default.
+ *
+ * `m0..m3` is the first column, `m4..m7` the second, etc. — matches
+ * `Matrix4.elements`. So `m12,m13,m14` is the translation column.
+ */
+export const Matrix = trait({
+	m0: 1,
+	m1: 0,
+	m2: 0,
+	m3: 0,
+	m4: 0,
+	m5: 1,
+	m6: 0,
+	m7: 0,
+	m8: 0,
+	m9: 0,
+	m10: 1,
+	m11: 0,
+	m12: 0,
+	m13: 0,
+	m14: 0,
+	m15: 1,
 })
 
-export const WorldPose = trait({
-	x: 0,
-	y: 0,
-	z: 0,
-	oX: 0,
-	oY: 0,
-	oZ: 1,
-	theta: 0,
+/** User-staged local transform during a `FrameEditSession`. Same layout as `Matrix`. */
+export const EditedMatrix = trait({
+	m0: 1,
+	m1: 0,
+	m2: 0,
+	m3: 0,
+	m4: 0,
+	m5: 1,
+	m6: 0,
+	m7: 0,
+	m8: 0,
+	m9: 0,
+	m10: 1,
+	m11: 0,
+	m12: 0,
+	m13: 0,
+	m14: 0,
+	m15: 1,
+})
+
+/**
+ * Live local transform from the robot's kinematics. Composed with `Matrix`
+ * (network baseline) and `EditedMatrix` to produce the rendered transform.
+ */
+export const LiveMatrix = trait({
+	m0: 1,
+	m1: 0,
+	m2: 0,
+	m3: 0,
+	m4: 0,
+	m5: 1,
+	m6: 0,
+	m7: 0,
+	m8: 0,
+	m9: 0,
+	m10: 1,
+	m11: 0,
+	m12: 0,
+	m13: 0,
+	m14: 0,
+	m15: 1,
+})
+
+/**
+ * Cumulative world-space transform — `parent.WorldMatrix × local rendered`.
+ * Maintained by `provideWorldMatrix`. Read by hover label placement,
+ * batched-mesh population, and any other consumer that needs world-space.
+ */
+export const WorldMatrix = trait({
+	m0: 1,
+	m1: 0,
+	m2: 0,
+	m3: 0,
+	m4: 0,
+	m5: 1,
+	m6: 0,
+	m7: 0,
+	m8: 0,
+	m9: 0,
+	m10: 1,
+	m11: 0,
+	m12: 0,
+	m13: 0,
+	m14: 0,
+	m15: 1,
+})
+
+/** World-space transform of a hovered instance inside a points/arrows batch. */
+export const InstancedMatrix = trait({
+	m0: 1,
+	m1: 0,
+	m2: 0,
+	m3: 0,
+	m4: 0,
+	m5: 1,
+	m6: 0,
+	m7: 0,
+	m8: 0,
+	m9: 0,
+	m10: 1,
+	m11: 0,
+	m12: 0,
+	m13: 0,
+	m14: 0,
+	m15: 1,
+	index: -1,
 })
 
 export const Hovered = trait(() => true)

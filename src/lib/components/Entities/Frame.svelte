@@ -10,30 +10,28 @@ Renders a Viam Frame object
 </script>
 
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
 	import { Portal, PortalTarget } from '@threlte/extras'
-	import { Group, type Object3D } from 'three'
+	import { Group, Matrix4, type Object3D } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, resourceColors } from '$lib/color'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { poseToObject3d } from '$lib/transform'
+	import { composeRenderedMatrix, readTraitToMatrix } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 	import Mesh from './Mesh.svelte'
 
 	interface Props {
 		entity: Entity
-		pose?: Pose
 		children?: Snippet<[{ ref: Object3D }]>
 	}
 
-	let { entity, pose, children }: Props = $props()
+	let { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const resourceByName = useResourceByName()
@@ -42,7 +40,9 @@ Renders a Viam Frame object
 	const parent = useParentName(() => entity)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
-	const entityPose = useTrait(() => entity, traits.Pose)
+	const matrix = useTrait(() => entity, traits.Matrix)
+	const editedMatrix = useTrait(() => entity, traits.EditedMatrix)
+	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const invisible = useTrait(() => entity, traits.Invisible)
 
@@ -68,13 +68,27 @@ Renders a Viam Frame object
 	})
 
 	const group = new Group()
+	group.matrixAutoUpdate = false
 
-	const resolvedPose = $derived(pose ?? entityPose.current)
+	const liveScratch = new Matrix4()
+	const baselineScratch = new Matrix4()
+	const editedScratch = new Matrix4()
+
 	$effect.pre(() => {
-		if (resolvedPose) {
-			poseToObject3d(resolvedPose, group)
-			invalidate()
+		if (liveMatrix.current && matrix.current && editedMatrix.current) {
+			readTraitToMatrix(liveMatrix.current, liveScratch)
+			readTraitToMatrix(matrix.current, baselineScratch)
+			readTraitToMatrix(editedMatrix.current, editedScratch)
+			composeRenderedMatrix(liveScratch, baselineScratch, editedScratch, group.matrix)
+		} else if (editedMatrix.current) {
+			readTraitToMatrix(editedMatrix.current, group.matrix)
+		} else if (matrix.current) {
+			readTraitToMatrix(matrix.current, group.matrix)
+		} else {
+			return
 		}
+		group.updateMatrixWorld()
+		invalidate()
 	})
 </script>
 

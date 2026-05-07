@@ -21,7 +21,9 @@ import { drawTransform, updateMetadata } from '$lib/draw'
 import { traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
 import { metadataFromStruct } from '$lib/metadata'
-import { createPose } from '$lib/transform'
+import { createPose, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+
+const matrixScratch = newMatrixTrait()
 
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
@@ -186,7 +188,10 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		for (const path of changes) {
 			if (typeof path === 'string') {
 				if (path.startsWith('poseInObserverFrame.pose')) {
-					entity.set(traits.Pose, transform.poseInObserverFrame?.pose ?? createPose())
+					entity.set(
+						traits.Matrix,
+						poseToMatrixTrait(createPose(transform.poseInObserverFrame?.pose), matrixScratch)
+					)
 				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
 					traits.updateGeometryTrait(entity, transform.physicalObject)
 				} else if (path.startsWith('metadata')) {

@@ -14,7 +14,9 @@ import { asRGB, STRIDE } from '$lib/buffer'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePlyInput } from '$lib/ply'
-import { createPose, createPoseFromFrame } from '$lib/transform'
+import { createPose, createPoseFromFrame, newMatrixTrait, poseToMatrixTrait } from '$lib/transform'
+
+const matrixScratch = newMatrixTrait()
 
 import { useCameraControls } from './useControls.svelte'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
@@ -164,7 +166,7 @@ export const provideDrawAPI = () => {
 			const existing = entities.get(name)
 
 			if (existing) {
-				existing.set(traits.Pose, pose)
+				existing.set(traits.Matrix, poseToMatrixTrait(pose, matrixScratch))
 				hierarchy.setParent(existing, parent)
 				continue
 			}
@@ -189,7 +191,7 @@ export const provideDrawAPI = () => {
 
 			entityTraits.push(
 				traits.Name(name),
-				traits.Pose(pose),
+				traits.Matrix(poseToMatrixTrait(pose, newMatrixTrait())),
 				traits.DrawAPI,
 				traits.ReferenceFrame,
 				traits.Removable,
@@ -209,7 +211,7 @@ export const provideDrawAPI = () => {
 		const existing = entities.get(name)
 
 		if (existing) {
-			existing.set(traits.Pose, pose)
+			existing.set(traits.Matrix, poseToMatrixTrait(pose, matrixScratch))
 			return
 		}
 
@@ -231,7 +233,7 @@ export const provideDrawAPI = () => {
 		const entityTraits: ConfigurableTrait[] = [
 			traits.Name(data.label ?? ++geometryIndex),
 			...hierarchy.parentTraits(parent),
-			traits.Pose(pose),
+			traits.Matrix(poseToMatrixTrait(pose, newMatrixTrait())),
 			traits.Color(colorUtil.set(color)),
 			geometryTrait(),
 			traits.DrawAPI,
