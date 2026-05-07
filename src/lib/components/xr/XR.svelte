@@ -167,7 +167,7 @@
 				'hit-test',
 			],
 		}}
-		style="color: #555; border-color: #555; backdrop-filter: blur(4px);"
+		style="color: #555; border-color: #ccc; backdrop-filter: blur(4px); background: rgba(255,255,255,0.5)"
 		{...rest}
 	/>
 {/if}
