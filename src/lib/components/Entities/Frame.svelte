@@ -20,7 +20,7 @@ Renders a Viam Frame object
 
 	import { asColor } from '$lib/buffer'
 	import { colors, resourceColors } from '$lib/color'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { poseToObject3d } from '$lib/transform'
 
@@ -39,7 +39,7 @@ Renders a Viam Frame object
 	const resourceByName = useResourceByName()
 
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const entityPose = useTrait(() => entity, traits.Pose)

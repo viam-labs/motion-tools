@@ -24,7 +24,7 @@ import {
 	isVertexColors,
 	STRIDE,
 } from '$lib/buffer'
-import { relations, traits } from '$lib/ecs'
+import { hierarchy, relations, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
 import { createPose } from '$lib/transform'
@@ -100,7 +100,7 @@ export const drawTransform = (
 
 	if (removable) entityTraits.push(traits.Removable)
 
-	entityTraits.push(...traits.getParentTrait(poseInObserverFrame?.referenceFrame))
+	entityTraits.push(...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame))
 
 	const parsedMetadata = metadataFromStruct(metadata?.fields)
 	if (parsedMetadata.showAxesHelper) entityTraits.push(traits.ShowAxesHelper)
@@ -153,7 +153,7 @@ export const drawDrawing = (
 		traits.Name(referenceFrame),
 		traits.Pose(createPose(poseInObserverFrame?.pose)),
 		api,
-		...traits.getParentTrait(poseInObserverFrame?.referenceFrame),
+		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 		...uuidTraits
 	)
 
@@ -173,7 +173,7 @@ export const updateTransform = (
 ) => {
 	entity.set(traits.Pose, createPose(poseInObserverFrame?.pose))
 
-	traits.setParentTrait(entity, poseInObserverFrame?.referenceFrame)
+	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
 	if (physicalObject) {
 		traits.updateGeometryTrait(entity, physicalObject)
@@ -234,7 +234,7 @@ export const updateDrawing = (
 
 	entity.set(traits.Pose, createPose(poseInObserverFrame?.pose))
 
-	traits.setParentTrait(entity, poseInObserverFrame?.referenceFrame)
+	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
 	if (metadata?.showAxesHelper) entity.add(traits.ShowAxesHelper)
 	if (!metadata?.showAxesHelper) entity.remove(traits.ShowAxesHelper)
@@ -257,7 +257,7 @@ export const updateModel = (
 	api: Trait,
 	{ removable = true }: DrawOptions = {}
 ): DrawingResult => {
-	if (world.has(entity)) entity.destroy()
+	if (world.has(entity)) hierarchy.destroyEntityTree(world, entity)
 
 	return drawDrawing(world, drawing, api, { removable })
 }
@@ -393,7 +393,7 @@ const drawModel = (
 		traits.Name(referenceFrame),
 		traits.Pose(createPose(poseInObserverFrame?.pose)),
 		api,
-		...traits.getParentTrait(poseInObserverFrame?.referenceFrame),
+		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 	]
 
 	const uuidStr = uuidBytesToString(uuid)
@@ -408,7 +408,6 @@ const drawModel = (
 	for (const asset of assets) {
 		const subEntityTraits: ConfigurableTrait[] = [
 			traits.Name(`${referenceFrame} model ${i++}`),
-			traits.Parent(referenceFrame),
 			relations.ChildOf(root),
 			api,
 		]

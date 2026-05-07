@@ -21,6 +21,7 @@
 	import CameraControls from './CameraControls.svelte'
 	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
+	import XRPlugins from './xr/XRPlugins.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -60,6 +61,10 @@
 
 <PointerMissBox />
 <MeasureTool />
+
+{#if $isPresenting}
+	<XRPlugins />
+{/if}
 
 {#if focusedObject}
 	<Focus object3d={focusedObject} />

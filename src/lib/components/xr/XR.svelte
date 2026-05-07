@@ -162,10 +162,12 @@
 				// `session.restorePersistentAnchor()` on Quest Browser.
 				'persistent-anchors',
 				'plane-detection',
+				'hand-tracking',
 				'layers',
 				'hit-test',
 			],
 		}}
+		style="color: #555; border-color: #555; backdrop-filter: blur(4px);"
 		{...rest}
 	/>
 {/if}
