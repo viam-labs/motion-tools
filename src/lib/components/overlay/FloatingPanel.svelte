@@ -92,8 +92,7 @@
 		<!--
 			Skip rendering the body subtree while collapsed. zag-js controls
 			visibility via attributes (the panel chrome stays mounted), but the
-			children — which can be heavy, e.g. the 200-row Logs each block —
-			don't need to react to upstream state when the user can't see them.
+			children don't need to react to upstream state when the user can't see them.
 			Children mount fresh on open.
 		-->
 		<div
