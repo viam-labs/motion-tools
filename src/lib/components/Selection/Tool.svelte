@@ -19,12 +19,18 @@
 	interface Props {
 		/** Whether to auto-enable lasso mode when the component mounts */
 		enabled?: boolean
+		/**
+		 * When true, each new entity added to the selection set is set as the
+		 * `selectedEntity`, which causes the Details panel to focus it. Off by
+		 * default so consumers can opt in to this opinionated behavior.
+		 */
+		autoSelectNewEntities?: boolean
 		children?: Snippet
 	}
 
 	type SelectionType = 'lasso' | 'ellipse'
 
-	let { enabled = false, children }: Props = $props()
+	let { enabled = false, autoSelectNewEntities = false, children }: Props = $props()
 
 	const { dom } = useThrelte()
 	const settings = useSettings()
@@ -46,10 +52,10 @@
 		}
 	})
 
-	// Each time a new entity appears in the selection set, point
-	// `selectedEntity` at it so the Details panel reflects the latest selection.
 	let previousEntities: Entity[] = []
 	$effect(() => {
+		if (!autoSelectNewEntities) return
+
 		const current = selectionPlugin.current
 		const newEntities = current.filter((entity) => !previousEntities.includes(entity))
 		previousEntities = [...current]
