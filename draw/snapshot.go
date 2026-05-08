@@ -34,6 +34,22 @@ func (snapshot *Snapshot) UUID() []byte {
 	return snapshot.uuid
 }
 
+// SetUUID overrides the snapshot's auto-generated UUID.
+func (snapshot *Snapshot) SetUUID(id uuid.UUID) {
+	snapshot.uuid = id[:]
+}
+
+func (snapshot *Snapshot) deriveEntityUUID(key string) []byte {
+	var ns uuid.UUID
+	copy(ns[:], snapshot.uuid)
+	derived := uuid.NewSHA1(ns, []byte(key))
+	return derived[:]
+}
+
+func entityKey(name, parent string) string {
+	return name + ":" + parent
+}
+
 // Transforms returns the transforms (physical entities in the frame system) the
 // snapshot has accumulated. The returned slice is the snapshot's own backing
 // storage; callers should not mutate it.
@@ -192,6 +208,9 @@ func (snapshot *Snapshot) DrawFrameSystemGeometries(
 	colors map[string]Color,
 ) error {
 	drawnFrameSystem := NewDrawnFrameSystem(frameSystem, inputs, WithFrameSystemColors(colors))
+	var ns uuid.UUID
+	copy(ns[:], snapshot.uuid)
+	drawnFrameSystem.ID = ns.String()
 	transforms, err := drawnFrameSystem.ToTransforms()
 	if err != nil {
 		return err
@@ -204,7 +223,9 @@ func (snapshot *Snapshot) DrawFrameSystemGeometries(
 // DrawFrame appends a single transform to the snapshot for a named frame attached
 // to parent at pose, optionally carrying an attached geometry. metadata, if
 // non-nil, is converted via MetadataOptionsFromProto and applied to the
-// transform. The transform is given a fresh random UUID.
+// transform. The transform's UUID is derived from the snapshot's UUID and
+// the entity's name/parent so that re-emitting the same scene reconciles
+// per-entity in the visualizer.
 func (snapshot *Snapshot) DrawFrame(
 	name string,
 	parent string,
@@ -212,8 +233,8 @@ func (snapshot *Snapshot) DrawFrame(
 	geometry spatialmath.Geometry,
 	metadata *drawv1.Metadata,
 ) {
-	id := uuid.New()
-	config := NewDrawConfig(name, WithUUID(id[:]), WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(name, parent))
+	config := NewDrawConfig(name, WithUUID(id), WithParent(parent), WithPose(pose))
 	transform := NewTransform(config, geometry, MetadataOptionsFromProto(metadata)...)
 	snapshot.transforms = append(snapshot.transforms, transform)
 }
@@ -233,7 +254,8 @@ func (snapshot *Snapshot) DrawGeometry(
 		return err
 	}
 
-	transforms, err := drawing.Draw(geometry.Label(), WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(geometry.Label(), parent))
+	transforms, err := drawing.Draw(geometry.Label(), WithUUID(id), WithParent(parent), WithPose(pose))
 	if err != nil {
 		return err
 	}
@@ -258,7 +280,8 @@ func (snapshot *Snapshot) DrawArrows(
 		return err
 	}
 
-	drawing := arrows.Draw(name, WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(name, parent))
+	drawing := arrows.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
 	snapshot.drawings = append(snapshot.drawings, drawing)
 	return nil
 }
@@ -279,7 +302,8 @@ func (snapshot *Snapshot) DrawLine(
 		return err
 	}
 
-	drawing := line.Draw(name, WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(name, parent))
+	drawing := line.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
 	snapshot.drawings = append(snapshot.drawings, drawing)
 	return nil
 }
@@ -299,7 +323,8 @@ func (snapshot *Snapshot) DrawModel(
 		return err
 	}
 
-	drawing := model.Draw(name, WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(name, parent))
+	drawing := model.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
 	snapshot.drawings = append(snapshot.drawings, drawing)
 	return nil
 }
@@ -320,7 +345,8 @@ func (snapshot *Snapshot) DrawPoints(
 		return err
 	}
 
-	drawing := points.Draw(name, WithParent(parent), WithPose(pose))
+	id := snapshot.deriveEntityUUID(entityKey(name, parent))
+	drawing := points.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
 	snapshot.drawings = append(snapshot.drawings, drawing)
 	return nil
 }

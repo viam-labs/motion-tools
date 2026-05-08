@@ -38,7 +38,7 @@
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
-	import { relations, traits, useTrait, useWorld } from '$lib/ecs'
+	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
@@ -79,7 +79,7 @@
 	const worldOrientation = $state({ x: 0, y: 0, z: 1, th: 0 })
 	const linkedEntities = useLinkedEntities()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const localPose = useTrait(() => entity, traits.EditedPose)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
@@ -220,7 +220,7 @@
 		if (event.detail.origin !== 'internal' || !entity) return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		traits.setParentTrait(entity, value)
+		hierarchy.setParent(entity, value)
 		detailConfigUpdater.setFrameParent(entity, value)
 	}
 
@@ -477,13 +477,24 @@
 			<div>
 				<strong class="font-semibold">parent frame</strong>
 				{#if showEditFrameOptions}
-					<div aria-label="mutable parent frame">
-						<List
-							options={configFrames.getParentFrameOptions(name.current ?? '') ?? []}
-							value={parent.current ?? 'world'}
-							on:change={handleParentChange}
-						/>
-					</div>
+					<!--
+						Remount on entity change. svelte-tweakpane-ui's List runs
+						`listBlade.value = value` on the still-mounted blade before its
+						`options` prop has propagated, so the new entity's parent name
+						(absent from the previous entity's option set) hits Tweakpane's
+						ListConstraint, snaps to the first option, and fires a change
+						event that handleParentChange interprets as a user pick — silently
+						reparenting the clicked frame.
+					-->
+					{#key entity}
+						<div aria-label="mutable parent frame">
+							<List
+								options={configFrames.getParentFrameOptions(name.current ?? '') ?? []}
+								value={parent.current ?? 'world'}
+								on:change={handleParentChange}
+							/>
+						</div>
+					{/key}
 				{:else}
 					<div class="mt-0.5 flex gap-3">
 						{@render ImmutableField({

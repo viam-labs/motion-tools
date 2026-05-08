@@ -7,7 +7,7 @@
 	import { OrthographicCamera, Points, PointsMaterial } from 'three'
 
 	import { asColor, isSingleColor } from '$lib/buffer'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { poseToObject3d } from '$lib/transform'
 
@@ -24,7 +24,7 @@
 	const { camera } = useThrelte()
 	const settings = useSettings()
 
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const pose = useTrait(() => entity, traits.Pose)
 	const geometry = useTrait(() => entity, traits.BufferGeometry)
 	const entityColor = useTrait(() => entity, traits.Color)

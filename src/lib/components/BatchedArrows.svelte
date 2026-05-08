@@ -5,7 +5,7 @@
 	import { Portal } from '@threlte/extras'
 	import { Color, Vector3 } from 'three'
 
-	import { traits, useWorld } from '$lib/ecs'
+	import { hierarchy, traits, useWorld } from '$lib/ecs'
 	import { BatchedArrow } from '$lib/three/BatchedArrow'
 
 	const arrowBatchMap = $state<Record<string, BatchedArrow>>({
@@ -20,7 +20,7 @@
 	const color = new Color()
 
 	const onAdd = (entity: Entity) => {
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 
 		arrowBatchMap[parent] ??= new BatchedArrow()
 		const batched = arrowBatchMap[parent]
@@ -40,7 +40,7 @@
 	const onPoseChange = (entity: Entity) => {
 		if (!entity.has(traits.Arrow)) return
 
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const batch = arrowBatchMap[parent]
 		const instanceID = entity.get(traits.Instance)?.instanceID
 		const pose = entity.get(traits.Pose)
@@ -57,7 +57,7 @@
 	const onColorChange = (entity: Entity) => {
 		if (!entity.has(traits.Arrow)) return
 
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const batch = arrowBatchMap[parent]
 		const instanceID = entity.get(traits.Instance)?.instanceID
 		const colorRGB = entity.get(traits.Color)

@@ -2,6 +2,7 @@ test-results
 node_modules
 
 static/Big_Buck_Bunny_4K.webm
+static/test-fixtures
 
 # Temp files (disk-backed chunk storage)
 .tmp

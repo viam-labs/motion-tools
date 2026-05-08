@@ -3,7 +3,7 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePose } from '$lib/hooks/usePose.svelte'
 	import { composeRenderedPose } from '$lib/transform'
@@ -16,7 +16,7 @@
 
 	const partConfig = usePartConfig()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
+	const parent = useParentName(() => entity)
 	const editedPose = useTrait(() => entity, traits.EditedPose)
 	const entityPose = useTrait(() => entity, traits.Pose)
 

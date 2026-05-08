@@ -4,7 +4,7 @@ import type { Vector3Like } from 'three'
 
 import type { Frame } from '$lib/frame'
 
-import { traits } from '$lib/ecs'
+import { hierarchy, traits } from '$lib/ecs'
 
 type UpdateFrameCallback = {
 	(componentName: string, referenceFrame: string, pose: Pose, geometry?: Frame['geometry']): void
@@ -36,7 +36,7 @@ export class FrameConfigUpdater {
 		entity.set(traits.EditedPose, change)
 
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const updatedPose = entity.get(traits.EditedPose)
 
 		if (name && updatedPose) {
@@ -68,7 +68,7 @@ export class FrameConfigUpdater {
 		entity.set(traits.EditedPose, change)
 
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const updatedPose = entity.get(traits.EditedPose)
 
 		if (name && updatedPose) {
@@ -78,7 +78,7 @@ export class FrameConfigUpdater {
 
 	public updateGeometry = (entity: Entity, geometry: Partial<Frame['geometry']>) => {
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const pose = entity.get(traits.EditedPose)
 
 		if (geometry?.type === 'box') {
@@ -148,7 +148,7 @@ export class FrameConfigUpdater {
 
 	public setGeometryType = (entity: Entity, type: 'none' | 'box' | 'sphere' | 'capsule') => {
 		const name = entity.get(traits.Name)
-		const parent = entity.get(traits.Parent) ?? 'world'
+		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const pose = entity.get(traits.EditedPose)
 
 		if (!name || !pose) return

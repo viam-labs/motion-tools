@@ -3,7 +3,7 @@ import type { Entity } from 'koota'
 
 import type { Frame } from '$lib/frame'
 
-import { traits } from '$lib/ecs'
+import { hierarchy, traits } from '$lib/ecs'
 import { isFinitePose } from '$lib/transform'
 
 export type UpdateFrameFn = (
@@ -105,7 +105,7 @@ export class FrameEditSession {
 
 			this.snapshots.set(entity, {
 				name,
-				parent: entity.get(traits.Parent) ?? 'world',
+				parent: hierarchy.getParentName(entity) ?? 'world',
 				editedPose: { ...editedPose },
 				geometry: captureGeometry(entity),
 			})
@@ -129,7 +129,12 @@ export class FrameEditSession {
 
 		const next: Pose = { ...current, ...pose }
 		entity.set(traits.EditedPose, next)
-		this.updateFrame(snap.name, entity.get(traits.Parent) ?? 'world', next, liveGeometry(entity))
+		this.updateFrame(
+			snap.name,
+			hierarchy.getParentName(entity) ?? 'world',
+			next,
+			liveGeometry(entity)
+		)
 	}
 
 	stageGeometry = (entity: Entity, geometry: Frame['geometry']): void => {
@@ -149,7 +154,7 @@ export class FrameEditSession {
 
 		const editedPose = entity.get(traits.EditedPose)
 		if (editedPose) {
-			this.updateFrame(snap.name, entity.get(traits.Parent) ?? 'world', editedPose, geometry)
+			this.updateFrame(snap.name, hierarchy.getParentName(entity) ?? 'world', editedPose, geometry)
 		}
 	}
 
@@ -157,7 +162,7 @@ export class FrameEditSession {
 		const snap = this.snapshots.get(entity)
 		if (!snap || this.#closed) return
 
-		traits.setParentTrait(entity, parent === 'world' ? undefined : parent)
+		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
 
 		const editedPose = entity.get(traits.EditedPose)
 		if (editedPose) {
@@ -200,7 +205,7 @@ export class FrameEditSession {
 		for (const [entity, snap] of this.snapshots) {
 			if (entity.isAlive()) {
 				entity.set(traits.EditedPose, snap.editedPose)
-				traits.setParentTrait(entity, snap.parent === 'world' ? undefined : snap.parent)
+				hierarchy.setParent(entity, snap.parent === 'world' ? undefined : snap.parent)
 				restoreGeometryTrait(entity, snap.geometry)
 			}
 			this.updateFrame(
