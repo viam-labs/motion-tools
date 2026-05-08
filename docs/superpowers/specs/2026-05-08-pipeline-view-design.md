@@ -146,6 +146,17 @@ interface PipelineContext {
 
 Internally, `graph` is `$derived` from `usePartConfig` + per-stage `getProperties` queries + overrides. `active` is `$state` (a `SvelteSet<string>`). `preview2D` is `$derived` from `active`: the most-recently-toggled active stage whose outputs include any of `image | detections | classifications` (and whose outputs do **not** include `pointcloud | objects`, OR whose `pointcloud`/`objects` is hidden via override). `status` aggregates per-stage TanStack queries.
 
+**`preview2D` worked examples** (also serve as test fixtures):
+
+| Stage outputs (effective, post-override) | Active set (chronological) | `preview2D()` |
+|---|---|---|
+| `[pointcloud]` | `{ pcd-stage }` | `undefined` (3D-only; no preview pane) |
+| `[image]` | `{ image-stage }` | `image-stage` |
+| `[pointcloud, image]` | `{ stage }` | `undefined` (has a 3D output; renders in scene only — does **not** open preview) |
+| `[pointcloud, image]` with `pointcloud` overridden off | `{ stage }` | `stage` (now effectively 2D-only) |
+| `[detections]` then `[pointcloud]` shift-toggled | `{ det-stage, pcd-stage }` (det first) | `det-stage` (most-recent 2D-only candidate) |
+| `[detections]` then another `[image]` | `{ det-stage, image-stage }` | `image-stage` (most-recently toggled wins) |
+
 **`PipelineGraph.svelte`** — A `FloatingPanel`-shaped left-pane component (matches the existing tree's docking style). Layout computed via simple Sugiyama-style top-down DAG layout (small N — under 30 stages typically — so a hand-rolled layout is fine; no new dep). Renders:
 
 - One `<StageNode>` per stage with: icon (camera | vision | unknown), label (override or resource name), status dot (color-coded), tint chip (filled when active), eye toggle (independent show/hide for graph-only filtering).
@@ -155,11 +166,11 @@ Internally, `graph` is `$derived` from `usePartConfig` + per-stage `getPropertie
 Click semantics:
 - Plain click on a node → `solo(id)`.
 - Shift-click → `toggle(id)`.
-- Click on background → `clear()`.
+- Click on the graph panel's empty area (not on a node, not on the SVG edge layer) → `clear()`. The Threlte canvas is not a clear target — orbiting/clicking the scene leaves the active set untouched.
 
 **`StagePreview2D.svelte`** — Mounts iff `preview2D() !== undefined`. Reads the stage's outputs and renders accordingly:
 
-- For `image` stages: `getImages()` on `RefreshRates.pointclouds` cadence (a small misnomer, but reuses the existing rate; introducing `RefreshRates.images` is a follow-up). Returns `NamedImage[]`; rendered as labeled tiles in a vertical stack. If the camera's `mimeTypes` indicate a streamable format and the user has a stream-capable connection, fall back to the existing `StreamClient` approach (extracted from `Camera.svelte` into a shared utility).
+- For `image` stages: `getImages()` on `RefreshRates.pointclouds` cadence (a small misnomer, but reuses the existing rate; introducing `RefreshRates.images` is a follow-up). Returns `NamedImage[]`; rendered as labeled tiles in a vertical stack. If the camera's `mimeTypes` indicate a streamable format and the user has a stream-capable connection, fall back to the existing `StreamClient` approach (extracted from `Camera.svelte` into a shared utility). **UX caveat:** because images and pointclouds share a refresh rate in v1, users with a slow `pointclouds` setting (e.g. 5s) will see equally slow image updates; users with a fast setting (e.g. 100ms) will spend bandwidth they may not want on `getImages` polls. Calling this out so it isn't a planning surprise — the stream fallback mitigates the bandwidth side when available.
 - For `detections` stages: call `getDetectionsFromCamera(cameraName)` against the upstream camera (resolved from the DAG: the most-recently-active upstream camera in the active set; if none active, the configured `camera_name`). Render bounding boxes overlaid on that camera's current image (also via `getImages` for that camera).
 - For `classifications` stages: `getClassificationsFromCamera(cameraName)`; render a ranked label list above the source image.
 - For `objects`: not 2D — never the preview-2D candidate; rendered as 3D in the scene like today.
@@ -208,6 +219,8 @@ Two reactive effects in `+page.svelte`:
 
 1. **Visibility effect.** Watches `active()` and the world's entities. For each entity with a `Name` trait that matches a stage id: if the stage is in `active`, ensure the entity has no `Invisible` trait; otherwise add `Invisible`. Entities whose `Name` is not a stage id (e.g. arms, geometries) are left alone — the pipeline view doesn't hide non-pipeline entities by default. (Alternative considered: hide everything not in `active`. Rejected: drops the framed components that contextualize the pointclouds. The user can use the existing tree in the main app for that view.)
 2. **Tint effect.** Watches `active()` + the "use native colors" setting. For each active entity, when native-colors is OFF: ensure a `PipelineTint(tint(id))` trait is present and the geometry's `color` attribute (if any) is removed; the existing `Color` trait reading then drives material color. When the entity becomes inactive or the toggle flips ON: remove the trait and let the original color render again. (The `color` attribute removal is one-way in Three.js — once deleted, we'd need to re-parse to restore. Plan: store the original color attribute on the entity in a `OriginalColors` trait at first apply, restore on tint removal. The existing PCD worker output already gives us the bytes to re-create the attribute without a re-fetch.)
+
+   **Scope of the tint effect.** Applies only to entities that carry the `Points` trait (pointcloud + segmenter object clouds). Mesh/geometry entities (frames, arms, custom geometries) are not pipeline stages and are not tinted. This keeps the `Color`/`Colors`/`OriginalColors` interplay confined to the one consumer that actually needs it (the `Points` renderer); the existing `Color`-trait usage on meshes is unchanged.
 
 ### Data flow
 
@@ -312,6 +325,7 @@ interface PipelineGraph {
   - Attribute-key variations (`src`, `source`, `camera`, `cameras`, `source_cameras`, `service`, `detector`, `vision`)
   - Self-reference filtered
   - Reference to non-existent resource → warning, no edge
+  - **Noise rejection:** an attributes Struct contains a string field whose value coincidentally matches a resource name but is not a dependency (e.g. a `description` or `label` field) — verifies a single edge is recorded if the value appears, and serves as a documented limitation; the override panel's "delete edge" handles real-world false positives
 - `override.ts`:
   - Override wins over derived
   - Stale override (referenced stage gone) emits a warning, doesn't crash
