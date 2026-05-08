@@ -220,7 +220,6 @@
 		if (event.detail.origin !== 'internal' || !entity) return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		console.log('change', entity, value)
 		hierarchy.setParent(entity, value)
 		detailConfigUpdater.setFrameParent(entity, value)
 	}
