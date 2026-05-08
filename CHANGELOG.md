@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.25.6
+
+### Patch Changes
+
+- dc5c94f: Fix: clicking on frames in the Treeview causes reparenting due to Tweakpane behavior
+
 ## 1.25.5
 
 ### Patch Changes
