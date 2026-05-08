@@ -220,6 +220,7 @@
 		if (event.detail.origin !== 'internal' || !entity) return
 		const value = event.detail.value as string
 		if (value === parent.current) return
+		console.log('change', entity, value)
 		hierarchy.setParent(entity, value)
 		detailConfigUpdater.setFrameParent(entity, value)
 	}
@@ -477,13 +478,24 @@
 			<div>
 				<strong class="font-semibold">parent frame</strong>
 				{#if showEditFrameOptions}
-					<div aria-label="mutable parent frame">
-						<List
-							options={configFrames.getParentFrameOptions(name.current ?? '') ?? []}
-							value={parent.current ?? 'world'}
-							on:change={handleParentChange}
-						/>
-					</div>
+					<!--
+						Remount on entity change. svelte-tweakpane-ui's List runs
+						`listBlade.value = value` on the still-mounted blade before its
+						`options` prop has propagated, so the new entity's parent name
+						(absent from the previous entity's option set) hits Tweakpane's
+						ListConstraint, snaps to the first option, and fires a change
+						event that handleParentChange interprets as a user pick — silently
+						reparenting the clicked frame.
+					-->
+					{#key entity}
+						<div aria-label="mutable parent frame">
+							<List
+								options={configFrames.getParentFrameOptions(name.current ?? '') ?? []}
+								value={parent.current ?? 'world'}
+								on:change={handleParentChange}
+							/>
+						</div>
+					{/key}
 				{:else}
 					<div class="mt-0.5 flex gap-3">
 						{@render ImmutableField({
