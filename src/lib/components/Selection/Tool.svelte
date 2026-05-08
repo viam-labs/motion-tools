@@ -19,11 +19,6 @@
 	interface Props {
 		/** Whether to auto-enable lasso mode when the component mounts */
 		enabled?: boolean
-		/**
-		 * When true, each new entity added to the selection set is set as the
-		 * `selectedEntity`, which causes the Details panel to focus it. Off by
-		 * default so consumers can opt in to this opinionated behavior.
-		 */
 		autoSelectNewEntities?: boolean
 		children?: Snippet
 	}
