@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.25.4
+
+### Patch Changes
+
+- f8533f4: hotfix: check positions on line dot cleanup
+
 ## 1.25.3
 
 ### Patch Changes
