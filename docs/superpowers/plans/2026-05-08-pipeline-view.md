@@ -35,13 +35,15 @@
 - `src/lib/pipeline/__tests__/PipelineGraph.spec.ts`
 - `src/routes/pipeline/+page.svelte` — composition only; mounts providers, canvas, graph panel, effects.
 - `src/routes/pipeline/+page.ts` — extracts `partID` from URL params.
-- `e2e/pipeline.spec.ts` — Playwright smoke test.
+- `e2e/pipeline.test.ts` — Playwright smoke test (matches local `*.test.ts` convention).
 
 **Modified**
 
-- `src/lib/ecs/traits.ts` — add `PipelineSource(stageId: string)`, `PipelineTint({r,g,b})`, `OriginalColors(Uint8Array)`.
-- `src/lib/hooks/usePointclouds.svelte.ts` — accept optional `filter`, stamp `PipelineSource` on spawn.
-- `src/lib/hooks/usePointcloudObjects.svelte.ts` — same shape.
+- `src/lib/ecs/traits.ts` — add `PipelineSource(stageId: string)`, `PipelineTint({r,g,b})`.
+- `src/lib/hooks/usePointclouds.svelte.ts` — accept optional `filter`, stamp `PipelineSource` on spawn, export `applyFilter`.
+- `src/lib/hooks/usePointcloudObjects.svelte.ts` — same shape (re-uses `applyFilter`).
+- `src/lib/hooks/usePartConfig.svelte.ts` — widen `PartConfig` to expose `attributes` on components and a typed `services[]`.
+- `src/lib/components/SceneProviders.svelte` — accept optional `pointcloudsFilter` / `pointcloudObjectsFilter` props, threaded into the existing `providePointclouds` / `providePointcloudObjects` calls.
 - `src/lib/components/Entities/Points.svelte` — read `PipelineTint` and prefer it over geometry's `color` attribute when present.
 - `.gitignore` — add `.superpowers/`.
 
@@ -834,13 +836,115 @@ git commit -m "feat(pipeline): PipelineGraph panel rendering nodes"
 
 ---
 
+### Task 6.5: Widen `PartConfig` + thread filter props through `SceneProviders`
+
+Two prerequisite shared-code edits the route depends on. Bundled here so the route in Task 7 mounts cleanly. **No tests** in this task — it's wiring; behavior is validated by Task 9 / Task 12 / Task 18 against real config.
+
+**Files:**
+- Modify: `src/lib/hooks/usePartConfig.svelte.ts`
+- Modify: `src/lib/components/SceneProviders.svelte`
+
+- [ ] **Step 1: Widen `PartConfig`.** In `src/lib/hooks/usePartConfig.svelte.ts`, replace the `PartConfig` interface with:
+
+```ts
+export interface PartConfigComponent {
+	name: string
+	api?: string
+	model?: string
+	attributes?: Record<string, unknown>
+	frame?: Frame
+}
+
+export interface PartConfigService {
+	name: string
+	api?: string
+	model?: string
+	attributes?: Record<string, unknown>
+}
+
+export interface PartConfig {
+	components: PartConfigComponent[]
+	services?: PartConfigService[]
+	fragment_mods?: {
+		fragment_id: string
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mods: any[]
+	}[]
+}
+```
+
+`Struct.toJson()` already returns these fields when the underlying config has them; we're just exposing them in the typed surface.
+
+Also export `usePartConfig` as a named export if it isn't already (the existing file may only export `providePartConfig`):
+
+```ts
+export const usePartConfig = (): PartConfigContext => {
+	const ctx = getContext<PartConfigContext | undefined>(key)
+	if (!ctx) throw new Error('usePartConfig called outside providePartConfig')
+	return ctx
+}
+```
+
+(Check first: if `usePartConfig` already exists, leave it alone.)
+
+- [ ] **Step 2:** `pnpm check`. Expected: PASS — no consumers should regress because the new fields are optional.
+
+- [ ] **Step 3: Thread filter props through `SceneProviders`.** In `src/lib/components/SceneProviders.svelte`:
+
+```svelte
+<script lang="ts">
+	import type { Snippet } from 'svelte'
+
+	// existing imports …
+
+	interface Props {
+		cameraPose?: CameraPose
+		pointcloudsFilter?: () => ReadonlySet<string> | undefined
+		pointcloudObjectsFilter?: () => ReadonlySet<string> | undefined
+		children: Snippet<[{ focus: boolean }]>
+	}
+
+	let {
+		cameraPose,
+		pointcloudsFilter,
+		pointcloudObjectsFilter,
+		children,
+	}: Props = $props()
+
+	// existing provides …
+
+	providePointclouds(() => partID.current, { filter: pointcloudsFilter })
+	providePointcloudObjects(() => partID.current, { filter: pointcloudObjectsFilter })
+
+	// rest unchanged
+</script>
+```
+
+(The `{ filter }` option arrives in Tasks 9 + 10. Check this task in **after** those tasks — see "Task ordering" below.)
+
+> **Task ordering note.** Tasks 9 and 10 add the `filter` option to the hook signatures. This task (6.5) is logically a *prerequisite* for Task 7's route shell, but its `SceneProviders` edit *uses* the option. Implement the prerequisite split this way: do Step 1 (widen `PartConfig`) now, then jump to Tasks 9 + 10 to add the `filter` plumbing, then return to do Step 3 (thread filter props through `SceneProviders`), then proceed to Task 7. The phase-2 ordering in the plan reflects narrative order; this is the build order.
+
+- [ ] **Step 4:** `pnpm check`. Expected: PASS.
+
+- [ ] **Step 5:** Commit (split into two commits — one per file — for clean review):
+
+```bash
+git add src/lib/hooks/usePartConfig.svelte.ts
+git commit -m "feat(hooks): widen PartConfig with attributes + services"
+
+git add src/lib/components/SceneProviders.svelte
+git commit -m "feat(scene): thread pointcloud filter props through SceneProviders"
+```
+
+---
+
 ### Task 7: `/pipeline` route shell
 
 **Files:**
 - Create: `src/routes/pipeline/+page.ts`
 - Create: `src/routes/pipeline/+page.svelte`
 
-The page composes providers, the canvas, the graph panel, and the existing `Settings`/`RefreshRate` overlays. Property fetching is wired via `useResourceNames` + `createResourceQuery` (mirroring `usePointclouds`). No scene filter yet — that's Task 11.
+The page reuses `<SceneProviders>` for the full provider tree (frames, geometries, draw API, hierarchy, **and** the pointcloud hooks with our filter), and mounts `Settings` / `RefreshRate` inside the Canvas snippet via the existing `domPortal` pattern (matching `App.svelte`). Property fetching for graph derivation is wired via `useResourceNames` + `createResourceQuery` (mirroring `usePointclouds`). No scene filter behavior yet — that lands in Task 12.
 
 - [ ] **Step 1:** Add `+page.ts`.
 
@@ -876,11 +980,10 @@ export const load: PageLoad = ({ url }) => {
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import { provideWorld } from '$lib/ecs'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { providePartConfig, usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
-	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
-	import { providePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
+	import { domPortal } from '$lib/portal'
 	import { buildGraph, type PropertiesMap, type StageProperties } from '$lib/pipeline/derive'
 	import PipelineGraph from '$lib/pipeline/PipelineGraph.svelte'
 	import { providePipeline } from '$lib/pipeline/usePipeline.svelte'
@@ -893,6 +996,7 @@ export const load: PageLoad = ({ url }) => {
 	provideEnvironment()
 	createPartIDContext(() => partID)
 	providePartConfig(() => partID, () => undefined)
+	const partCfg = usePartConfig()
 
 	const cameras = useResourceNames(() => partID, 'camera')
 	const visionServices = useResourceNames(() => partID, 'vision')
@@ -946,55 +1050,53 @@ export const load: PageLoad = ({ url }) => {
 		return map
 	})
 
-	const partConfig = $derived(/* placeholder until derive uses it; pulled via usePartConfig */ {
-		components: cameras.current.map((c) => ({
-			name: c.name,
-			api: 'rdk:component:camera',
-			model: '',
-			attributes: {},
-		})),
-		services: visionServices.current.map((s) => ({
-			name: s.name,
-			api: 'rdk:service:vision',
-			model: '',
-			attributes: {},
-		})),
+	const partConfig = $derived({
+		components: partCfg.current.components ?? [],
+		services: partCfg.current.services ?? [],
 	})
 
 	const graph = $derived(buildGraph(partConfig, properties))
 
 	const pipelineCtx = providePipeline({ graph: () => graph })
 
-	const filter = () => new Set(graph.stages.map((s) => s.id))
+	const stageIdFilter = () => new Set(graph.stages.map((s) => s.id))
 
-	providePointclouds(() => partID, { filter })
-	providePointcloudObjects(() => partID, { filter })
+	let root = $state.raw<HTMLElement>()
 </script>
 
-<div class="grid h-screen grid-cols-[18rem_1fr] bg-slate-950">
+<div
+	class="relative grid h-screen grid-cols-[18rem_1fr] bg-slate-950"
+	bind:this={root}
+>
 	<PipelineGraph />
 
 	<div class="relative">
 		<Canvas renderMode="on-demand">
-			<SceneProviders>
+			<SceneProviders
+				pointcloudsFilter={stageIdFilter}
+				pointcloudObjectsFilter={stageIdFilter}
+			>
 				{#snippet children({ focus: _focus })}
 					<Scene />
+
+					<!-- DOM-portalled out so the markup lands at <root>, but mounted
+					     inside the Threlte context tree so useThrelte() resolves. -->
+					<div {@attach domPortal(root)}>
+						<div class="absolute right-2 top-2 flex flex-col gap-2">
+							<RefreshRate />
+						</div>
+						<Settings />
+					</div>
 				{/snippet}
 			</SceneProviders>
 		</Canvas>
-
-		<div class="absolute right-2 top-2 flex flex-col gap-2">
-			<RefreshRate />
-		</div>
-
-		<Settings />
 	</div>
 </div>
 ```
 
-- [ ] **Step 3:** `pnpm check`. Expected: PASS. (TypeScript may grumble about `providePointclouds` `options` param until Task 9; if blocking, temporarily remove the `options` arg here and restore in Task 9.)
+- [ ] **Step 3:** `pnpm check`. Expected: PASS. (TypeScript will grumble about the `pointcloudsFilter` / `pointcloudObjectsFilter` props on `SceneProviders` until Task 6.5 Step 3 is done — see the **Task ordering note** in Task 6.5. If you implemented in plan order, jump back and finish Task 6.5 Step 3 now.)
 
-- [ ] **Step 4:** `pnpm dev` and visit `http://localhost:5173/pipeline?partID=<test-partid>`. Expected: empty graph (no derive-edges yet, no scene filter), Threlte canvas renders, Settings + RefreshRate overlays present. Confirm in a browser.
+- [ ] **Step 4:** `pnpm dev` and visit `http://localhost:5173/pipeline?partID=<test-partid>`. Expected: graph populated with derived stages (no edges yet), Threlte canvas renders, Settings + RefreshRate overlays present. Confirm in a browser. Until Task 12 lands, the scene shows every pipeline stage's points; clicking a node has no scene effect yet (only graph state changes).
 
 - [ ] **Step 5:** Commit.
 
@@ -1023,10 +1125,9 @@ export const PipelineSource = trait(() => '')
 
 /** Per-stage tint applied in pipeline view; rendered in place of geometry color. */
 export const PipelineTint = trait({ r: 0, g: 0, b: 0 })
-
-/** Snapshot of a geometry's original `color` attribute bytes, used to restore tint→native. */
-export const OriginalColors = trait(() => new Uint8Array() as Uint8Array)
 ```
+
+(`OriginalColors` from spec §5 is not added — Task 13 takes a renderer-side override path that doesn't need it. If a future renderer adopts `PipelineTint` and *does* need to mutate geometry, add the trait then.)
 
 - [ ] **Step 2:** `pnpm check`. Expected: PASS.
 
@@ -1380,6 +1481,9 @@ Also ensure `vertexColors` is disabled when `pipelineTint` is set: in the `$effe
 		const useNative = pipelineCtx.useNativeColors()
 		const active = pipelineCtx.active()
 		for (const entity of list) {
+			// Spec §5 limits tint scope to Points-bearing entities. Other entity
+			// kinds (geometry boxes, frames) keep their native color.
+			if (!entity.has(traits.Points)) continue
 			const source = entity.get(traits.PipelineSource) ?? ''
 			const isActive = active.has(source) && !useNative
 			if (isActive) {
@@ -1547,7 +1651,7 @@ describe('buildGraph: edges via attribute-value matching', () => {
 
 - [ ] **Step 2:** Run the new tests. Expected: FAIL.
 
-- [ ] **Step 3: Add walker to `derive.ts`.** Inside `buildGraph`, after the stage loop:
+- [ ] **Step 3: Add walker to `derive.ts`.** Inside `buildGraph`, after the stage loop. The walker assumes `attributes` is the plain JSON shape produced by `Struct.toJson()` (objects, arrays, strings, numbers, booleans, null) — no `Map` / `Set` / class instances. Source: `usePartConfig.svelte.ts` does `config.current.toJson()` before exposing `current`, so the route's `partConfig.components[].attributes` is already in this shape.
 
 ```ts
 	const stageIds = new Set(stages.map((s) => s.id))
@@ -1940,56 +2044,39 @@ git commit -m "feat(pipeline): SVG edge layer with topo-level layout"
 
 ## Wrap-up
 
-### Task 18: Wire real `usePartConfig` into the route
+### Task 18: End-to-end smoke against a live machine
 
-The route currently fakes a `partConfig` shape with empty attributes (Task 7 placeholder). Now that the derive code consumes attributes, swap the placeholder for the real reactive config exposed by `usePartConfig`.
+By this point, Task 7 already consumes the real `partConfig`, Task 14 wires the attribute walker, and Task 17 renders edges. This task is a manual verification gate, not new code.
 
-**Files:**
-- Modify: `src/routes/pipeline/+page.svelte`
-
-- [ ] **Step 1:** Replace the `partConfig` placeholder. The `providePartConfig` call returns nothing usable directly; consume via `usePartConfig`:
-
-```ts
-	import { providePartConfig, usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-
-	providePartConfig(() => partID, () => undefined)
-	const partCfg = usePartConfig()
-
-	const partConfig = $derived({
-		components: partCfg.current.components ?? [],
-		services: (partCfg.current as any).services ?? [],
-	})
-```
-
-(If `usePartConfig` is not exported, add the export in `src/lib/hooks/usePartConfig.svelte.ts` — this is a one-line `export` addition. Keep that change in this same task.)
-
-- [ ] **Step 2:** Smoke test against a live machine: `pnpm dev`, visit `/pipeline?partID=<id>`. Confirm the graph reflects the actual config (cameras, vision services, transform edges).
-
-- [ ] **Step 3:** Commit.
-
-```bash
-git add src/routes/pipeline/+page.svelte src/lib/hooks/usePartConfig.svelte.ts
-git commit -m "feat(pipeline): consume real machine config for graph derivation"
-```
+- [ ] **Step 1:** `pnpm dev`. Open `http://localhost:5173/pipeline?partID=<id>` against a fixture machine that has at least one transform-camera and one vision service.
+- [ ] **Step 2:** Confirm:
+	- Graph nodes match the machine's cameras + vision services (no arms, motors, sensors).
+	- Edges from upstream cameras to transform cameras are drawn.
+	- Edges from cameras to vision services are drawn (when configured via `camera_name`-shaped attributes).
+	- Click a stage → only that stage's points render in scene with its tint color.
+	- Shift-click a second stage → both render with distinct tints.
+	- Toggle "Native colors" → original RGB returns.
+	- Edit machine config (in another tab) to add a stage; the graph updates without reload.
+- [ ] **Step 3:** No commit; this is a manual check. If anything fails, stop and triage; do not advance.
 
 ---
 
 ### Task 19: Playwright smoke test
 
 **Files:**
-- Create: `e2e/pipeline.spec.ts`
+- Create: `e2e/pipeline.test.ts`
 
-- [ ] **Step 1:** Inspect `e2e/` for an existing fixture or test config (`ls e2e/`, `cat playwright.config.ts`). Pattern-match an existing test for the right `goto` URL form, mock setup, and partID handling.
+- [ ] **Step 1:** Inspect `e2e/` for an existing test (e.g. `cat e2e/arm.test.ts`) and `cat playwright.config.ts`. Pattern-match the `goto` URL form, fixture setup, and partID handling.
 
 - [ ] **Step 2: Add the smoke test.**
 
 ```ts
-// e2e/pipeline.spec.ts
+// e2e/pipeline.test.ts
 import { expect, test } from '@playwright/test'
 
 test.describe('/pipeline', () => {
 	test('renders the pipeline panel and at least one stage node', async ({ page }) => {
-		// Adjust partID + any auth bootstrap to match other e2e tests
+		// Adjust partID + any auth bootstrap to match e2e/arm.test.ts
 		await page.goto('/pipeline?partID=test')
 		await expect(page.getByRole('complementary')).toBeVisible()
 		await expect(page.getByRole('button', { name: /Pipeline|stage|camera/i }).first()).toBeVisible({
@@ -2006,7 +2093,7 @@ test.describe('/pipeline', () => {
 - [ ] **Step 4:** Commit.
 
 ```bash
-git add e2e/pipeline.spec.ts
+git add e2e/pipeline.test.ts
 git commit -m "test(pipeline): playwright smoke for /pipeline route"
 ```
 
