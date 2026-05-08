@@ -245,25 +245,31 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 	}
 
 	if (geometry.geometryType.case === 'box') {
+		const next = createBox(geometry.geometryType.value)
 		if (entity.has(Box)) {
-			entity.set(Box, createBox(geometry.geometryType.value))
+			const cur = entity.get(Box)!
+			if (cur.x !== next.x || cur.y !== next.y || cur.z !== next.z) entity.set(Box, next)
 		} else {
 			entity.remove(Capsule, Sphere, BufferGeometry)
-			entity.add(Box(createBox(geometry.geometryType.value)))
+			entity.add(Box(next))
 		}
 	} else if (geometry.geometryType.case === 'capsule') {
+		const next = createCapsule(geometry.geometryType.value)
 		if (entity.has(Capsule)) {
-			entity.set(Capsule, createCapsule(geometry.geometryType.value))
+			const cur = entity.get(Capsule)!
+			if (cur.r !== next.r || cur.l !== next.l) entity.set(Capsule, next)
 		} else {
 			entity.remove(Box, Sphere, BufferGeometry)
-			entity.add(Capsule(createCapsule(geometry.geometryType.value)))
+			entity.add(Capsule(next))
 		}
 	} else if (geometry.geometryType.case === 'sphere') {
+		const next = createSphere(geometry.geometryType.value)
 		if (entity.has(Sphere)) {
-			entity.set(Sphere, createSphere(geometry.geometryType.value))
+			const cur = entity.get(Sphere)!
+			if (cur.r !== next.r) entity.set(Sphere, next)
 		} else {
 			entity.remove(Box, Capsule, BufferGeometry)
-			entity.add(Sphere(createSphere(geometry.geometryType.value)))
+			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
 		if (entity.has(BufferGeometry)) {
