@@ -19,6 +19,7 @@
 	interface Props {
 		/** Whether to auto-enable lasso mode when the component mounts */
 		enabled?: boolean
+		// TODO: remove once a Selected trait exists
 		autoSelectNewEntities?: boolean
 		children?: Snippet
 	}
