@@ -11,7 +11,7 @@ import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
-import { createPose, poseToMatrixInto } from '$lib/transform'
+import { createPose, isPoseEqual, poseToMatrixInto } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -221,10 +221,13 @@ export const provideFrames = (partID: () => string) => {
 					hierarchy.setParent(existing, parent)
 
 					if (color) {
-						existing.set(traits.Color, color)
+						const cur = existing.get(traits.Color)
+						if (!cur || cur.r !== color.r || cur.g !== color.g || cur.b !== color.b) {
+							existing.set(traits.Color, color)
+						}
 					}
 
-					if (center) {
+					if (center && !isPoseEqual(existing.get(traits.Center), center)) {
 						existing.set(traits.Center, center)
 					}
 

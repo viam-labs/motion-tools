@@ -13,6 +13,20 @@ const translation = new Vector3()
 const scale = new Vector3()
 const matA = new Matrix4()
 
+export const isPoseEqual = (a: Pose | undefined, b: Pose | undefined): boolean => {
+	if (a === b) return true
+	if (!a || !b) return false
+	return (
+		a.x === b.x &&
+		a.y === b.y &&
+		a.z === b.z &&
+		a.oX === b.oX &&
+		a.oY === b.oY &&
+		a.oZ === b.oZ &&
+		a.theta === b.theta
+	)
+}
+
 export const createPose = (pose?: Partial<Pose>): Pose => {
 	// We should only default to the 0,0,1,0 orientation vector if the entire vector component is missing
 	const oZ =
