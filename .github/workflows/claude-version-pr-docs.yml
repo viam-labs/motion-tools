@@ -128,10 +128,12 @@ jobs:
                  current file contents, MDX-valid (frontmatter intact, JSX balanced),
                  and self-contained for the use case (no "see also" links to nonexistent
                  docs, no introducing concepts the user does not need for that flow).
-              3. Footer: "Tag `@claude` with feedback, or `@claude apply` to commit these changes."
-
             If every entry is (D), post a short one-line comment instead of a table —
             no need for a giant empty verdict.
+
+            Do NOT include the literal string "@claude" anywhere in your comment —
+            it would self-trigger the PR assistant workflow. Reviewers already know
+            how to invoke it; no footer is needed.
 
             # Hard rules
             - No edits, no commits, no file writes.
