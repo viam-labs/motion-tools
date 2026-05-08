@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.25.5
+
+### Patch Changes
+
+- 142223f: Reduce logs memory and CPU consumption
+
 ## 1.25.4
 
 ### Patch Changes
