@@ -983,6 +983,8 @@ export const load: PageLoad = ({ url }) => {
 	import { providePartConfig, usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
+	import { usePointclouds } from '$lib/hooks/usePointclouds.svelte'
+	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
 	import { domPortal } from '$lib/portal'
 	import { buildGraph, type PropertiesMap, type StageProperties } from '$lib/pipeline/derive'
 	import PipelineGraph from '$lib/pipeline/PipelineGraph.svelte'
@@ -1081,9 +1083,20 @@ export const load: PageLoad = ({ url }) => {
 
 					<!-- DOM-portalled out so the markup lands at <root>, but mounted
 					     inside the Threlte context tree so useThrelte() resolves. -->
+					{@const pointclouds = usePointclouds()}
+					{@const pointcloudObjects = usePointcloudObjects()}
 					<div {@attach domPortal(root)}>
-						<div class="absolute right-2 top-2 flex flex-col gap-2">
-							<RefreshRate />
+						<div class="absolute right-2 top-2 flex flex-col gap-2 rounded border border-slate-700 bg-slate-900 p-2">
+							<RefreshRate
+								id="pointclouds"
+								label="Pointclouds"
+								onManualRefetch={() => pointclouds.refetch()}
+							/>
+							<RefreshRate
+								id="vision"
+								label="Vision"
+								onManualRefetch={() => pointcloudObjects.refetch()}
+							/>
 						</div>
 						<Settings />
 					</div>
@@ -1096,7 +1109,9 @@ export const load: PageLoad = ({ url }) => {
 
 - [ ] **Step 3:** `pnpm check`. Expected: PASS. (TypeScript will grumble about the `pointcloudsFilter` / `pointcloudObjectsFilter` props on `SceneProviders` until Task 6.5 Step 3 is done — see the **Task ordering note** in Task 6.5. If you implemented in plan order, jump back and finish Task 6.5 Step 3 now.)
 
-- [ ] **Step 4:** `pnpm dev` and visit `http://localhost:5173/pipeline?partID=<test-partid>`. Expected: graph populated with derived stages (no edges yet), Threlte canvas renders, Settings + RefreshRate overlays present. Confirm in a browser. Until Task 12 lands, the scene shows every pipeline stage's points; clicking a node has no scene effect yet (only graph state changes).
+- [ ] **Step 4:** `pnpm dev` and visit `http://localhost:5173/pipeline?partID=<test-partid>`. Expected: graph populated with derived stages (no edges yet), Threlte canvas renders, RefreshRate controls visible top-right. Until Task 12 lands, the scene shows every pipeline stage's points; clicking a node has no scene effect yet (only graph state changes).
+
+> **Settings UX caveat.** `Settings.svelte` opens its `FloatingPanel` via a gear button portalled into `<PortalTarget id="dashboard" />`, which lives in the (deliberately omitted) `<Dashboard>` overlay. That means the gear button doesn't render on this route. The Settings panel itself functions correctly once opened — but you may need to add a Pipeline-route-specific opener (e.g. a small button in the `PipelineGraph` header) in a follow-up if Settings access becomes important. Not a v1 blocker.
 
 - [ ] **Step 5:** Commit.
 
