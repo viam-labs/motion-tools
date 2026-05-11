@@ -58,7 +58,10 @@ const recomputeWorldMatrix = (
 	const cached = cache.get(entity)
 	if (cached) return cached
 
-	const out = new Matrix4()
+	// Reuse the entity's existing `WorldMatrix` storage when present so a
+	// flush doesn't allocate a throwaway matrix per entity. First-time
+	// entities get a fresh `Matrix4` that's added as the trait below.
+	const out = entity.get(WorldMatrix) ?? new Matrix4()
 	const hasLocal = toLocalRenderedMatrix(entity, out)
 	if (!hasLocal) out.identity()
 
@@ -98,12 +101,10 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 		if (!entity.isAlive()) continue
 		const worldMat = recomputeWorldMatrix(world, entity, cache)
 		if (!worldMat) continue
-		const stored = entity.get(WorldMatrix)
-		if (stored) {
-			stored.copy(worldMat)
+		if (entity.has(WorldMatrix)) {
 			entity.changed(WorldMatrix)
 		} else {
-			entity.add(WorldMatrix(worldMat.clone()))
+			entity.add(WorldMatrix(worldMat))
 		}
 	}
 }
@@ -132,6 +133,8 @@ export const installWorldMatrixListeners = (world: World): (() => void) => {
 
 	for (const entity of world.query(Matrix)) enqueue(entity)
 	for (const entity of world.query(EditedMatrix)) enqueue(entity)
+	for (const entity of world.query(LiveMatrix)) enqueue(entity)
+	for (const entity of world.query(Scale)) enqueue(entity)
 
 	const unsubs = [
 		world.onAdd(Matrix, enqueue),

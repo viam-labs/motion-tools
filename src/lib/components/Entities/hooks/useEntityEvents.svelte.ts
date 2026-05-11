@@ -45,9 +45,16 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (hoverInfo) {
 				buildHoverMatrix(hoverInfo, tempHoverMatrix)
+				const worldMatrix = currentEntity.get(traits.WorldMatrix)
+				const composed = new Matrix4()
+				if (worldMatrix) {
+					composed.copy(worldMatrix).multiply(tempHoverMatrix)
+				} else {
+					composed.copy(tempHoverMatrix)
+				}
 				currentEntity.add(
 					traits.InstancedMatrix({
-						matrix: new Matrix4().copy(tempHoverMatrix),
+						matrix: composed,
 						index: hoverInfo.index,
 					})
 				)
