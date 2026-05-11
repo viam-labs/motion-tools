@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.26.1
+
+### Patch Changes
+
+- 424b6f5: Clamp `renderer.devicePixelRatio` between 1 and 2
+
 ## 1.26.0
 
 ### Minor Changes
