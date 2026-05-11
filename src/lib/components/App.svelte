@@ -119,7 +119,10 @@
 	class="relative h-full w-full overflow-hidden dark:bg-white"
 	bind:this={root}
 >
-	<Canvas renderMode="on-demand">
+	<Canvas
+		renderMode="on-demand"
+		dpr={[1, 2]}
+	>
 		<SceneProviders {cameraPose}>
 			{#snippet children({ focus })}
 				<Scene>
