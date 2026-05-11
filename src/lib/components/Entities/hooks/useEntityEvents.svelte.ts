@@ -12,10 +12,7 @@ const tempHoverMatrix = new Matrix4()
 const hoverQuat = new Quaternion()
 const hoverOv = new OrientationVector()
 
-/**
- * Build the hover point's local transform matrix
- */
-const buildHoverMatrix = (info: HoverInfo, out: Matrix4) => {
+const infoToLocalMatrix = (info: HoverInfo, out: Matrix4) => {
 	hoverOv.set(info.oX, info.oY, info.oZ, MathUtils.degToRad(info.theta))
 	hoverOv.toQuaternion(hoverQuat)
 	out.makeRotationFromQuaternion(hoverQuat)
@@ -41,7 +38,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		if (currentEntity && !currentEntity.has(traits.Hovered)) {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (hoverInfo) {
-				buildHoverMatrix(hoverInfo, tempHoverMatrix)
+				infoToLocalMatrix(hoverInfo, tempHoverMatrix)
 				const worldMatrix = currentEntity.get(traits.WorldMatrix)
 				const composed = new Matrix4()
 				if (worldMatrix) {
@@ -71,7 +68,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			const hoverInfo = updateHoverInfo(currentEntity, event)
 			if (!hoverInfo) return
 
-			buildHoverMatrix(hoverInfo, tempHoverMatrix)
+			infoToLocalMatrix(hoverInfo, tempHoverMatrix)
 
 			const instanced = currentEntity.get(traits.InstancedMatrix)
 			if (!instanced) return
