@@ -80,6 +80,15 @@ Renders a Viam Frame object
 		} else {
 			return
 		}
+
+		/**
+		 * Keep position/quaternion/scale in sync with matrix so TransformControls
+		 * (which reads/writes those fields) sees the entity's actual transform on
+		 * drag start. Without this, the gizmo applies its drag delta against an
+		 * identity baseline and the frame snaps to identity on first onChange.
+		 */
+		group.matrix.decompose(group.position, group.quaternion, group.scale)
+
 		group.updateMatrixWorld()
 		invalidate()
 	})
