@@ -129,13 +129,7 @@ export const isFinitePose = (pose: Pose): boolean =>
 	Number.isFinite(pose.theta)
 
 /**
- * Build a TRS `Matrix4` from a `Pose`, writing into `matrix`. Pool-friendly.
- *
- * `Pose` translation is in millimetres (Viam wire convention); `Matrix4` is
- * rendered directly into Three.js objects whose units are metres. We divide
- * by 1000 at the boundary so the matrix layer is metres throughout and
- * `group.matrix.copy(entity.get(Matrix))` lands the entity at the correct
- * world-space position.
+ * Build a TRS `Matrix4` (m) from a `Pose` (mm), writing into `matrix`.
  */
 export const poseToMatrix = (pose: Pose, matrix: Matrix4): Matrix4 => {
 	ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
@@ -146,9 +140,7 @@ export const poseToMatrix = (pose: Pose, matrix: Matrix4): Matrix4 => {
 }
 
 /**
- * Decompose a `Matrix4` (metres) into a `Pose` (millimetres), writing into
- * `pose`. Pool-friendly. Mirrors the `× 1000` half of the boundary
- * convention enforced by `poseToMatrix`.
+ * Decompose a `Matrix4` (m) into a `Pose` (mm), writing into `pose`.
  */
 export const matrixToPose = (matrix: Matrix4, pose: Pose): Pose => {
 	matrix.decompose(translation, quaternion, scale)
@@ -181,7 +173,7 @@ export const composeLocalMatrix = (
 }
 
 /**
- * Pool-friendly inverse of `composeLocalMatrix` for the gizmo path:
+ * Inverse of `composeLocalMatrix` for the transform controls path:
  * writes `baseline × live⁻¹ × target` into `out`. Solves for the
  * `EditedMatrix` that, blended through `composeLocalMatrix`, renders
  * to `target`.
