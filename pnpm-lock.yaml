@@ -119,8 +119,8 @@ importers:
         specifier: 3.4.1
         version: 3.4.1(@dimforge/rapier3d-compat@0.18.2)(svelte@5.55.0)(three@0.183.2)
       '@threlte/xr':
-        specifier: 1.5.2
-        version: 1.5.2(svelte@5.55.0)(three@0.183.2)
+        specifier: 1.6.0
+        version: 1.6.0(svelte@5.55.0)(three@0.183.2)
       '@types/bun':
         specifier: 1.2.21
         version: 1.2.21(@types/react@19.2.2)
@@ -1752,8 +1752,8 @@ packages:
       svelte: '>=5'
       three: '>=0.152'
 
-  '@threlte/xr@1.5.2':
-    resolution: {integrity: sha512-DF3P/fYbdGzpFDM9AFqWWsAlRhHP0/KhZRorkDOMQZocMeWsYFc/bbKKZRqQu2PcITr5P4QhK9XWJ99xAnlC7A==}
+  '@threlte/xr@1.6.0':
+    resolution: {integrity: sha512-X1PFTu5xmN3yV+jWyMpx4pWRT+qDBIN6FnfO+0r5TjY8s1RpiNzAP3rJcZ6HdX5sAJ+R4q+vnZkjJaZOqdQhOg==}
     peerDependencies:
       svelte: '>=5'
       three: '>=0.160'
@@ -5811,7 +5811,7 @@ snapshots:
       svelte: 5.55.0
       three: 0.183.2
 
-  '@threlte/xr@1.5.2(svelte@5.55.0)(three@0.183.2)':
+  '@threlte/xr@1.6.0(svelte@5.55.0)(three@0.183.2)':
     dependencies:
       svelte: 5.55.0
       three: 0.183.2

@@ -62,7 +62,7 @@
 		"@threlte/core": "8.5.14",
 		"@threlte/extras": "9.17.0",
 		"@threlte/rapier": "3.4.1",
-		"@threlte/xr": "1.5.2",
+		"@threlte/xr": "1.6.0",
 		"@types/bun": "1.2.21",
 		"@types/earcut": "^3.0.0",
 		"@types/lodash-es": "4.17.12",
