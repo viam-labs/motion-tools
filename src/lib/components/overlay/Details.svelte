@@ -73,21 +73,17 @@
 	const environment = useEnvironment()
 	const focusedEntity = useFocusedEntity()
 	const focusedObject3d = useFocusedObject3d()
+	const linkedEntities = useLinkedEntities()
+
 	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
 	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
-	const linkedEntities = useLinkedEntities()
+
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
+	const matrix = useTrait(() => entity, traits.Matrix)
 	const editedMatrix = useTrait(() => entity, traits.EditedMatrix)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
-	const localPose = $derived.by((): Pose | undefined => {
-		if (!editedMatrix.current) return undefined
-		return matrixToPose(editedMatrix.current, createPose())
-	})
-	const worldPose = $derived.by((): Pose | undefined => {
-		if (!worldMatrix.current) return undefined
-		return matrixToPose(worldMatrix.current, createPose())
-	})
+	const center = useTrait(() => entity, traits.Center)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -95,14 +91,27 @@
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
 	const opacity = useTrait(() => entity, traits.Opacity)
-
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
-	const isFrameNode = $derived(!!framesAPI.current)
+	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 
+	const localPose = $derived.by<Pose | undefined>(() => {
+		const source = editedMatrix.current ?? matrix.current
+		if (source) return matrixToPose(source, createPose())
+		if (center.current) return createPose(center.current)
+		return undefined
+	})
+	const worldPose = $derived.by<Pose | undefined>(() => {
+		if (!worldMatrix.current) return
+
+		return matrixToPose(worldMatrix.current, createPose())
+	})
+
+	const isFrameNode = $derived(!!framesAPI.current)
+	const isGeometry = $derived(!!geometriesAPI.current)
 	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions)
 	const showRelationshipOptions = $derived(points.current || arrows.current)
-
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
+	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
 
 	let geometryType = $derived.by<'box' | 'sphere' | 'capsule' | 'none'>(() => {
 		if (box.current) return 'box'
@@ -315,7 +324,7 @@
 		>
 			<div class="flex w-[90%] items-center gap-1">
 				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
-				<span class="text-subtle-2">{resourceName?.subtype}</span>
+				<span class="text-subtle-2">{displayType}</span>
 			</div>
 
 			{#if object3d}

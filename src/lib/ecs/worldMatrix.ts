@@ -155,6 +155,3 @@ export const installWorldMatrixListeners = (world: World): (() => void) => {
 		for (const unsub of unsubs) unsub()
 	}
 }
-
-/** Synchronously flush any pending work. Exposed for tests. */
-export const flushWorldMatrix = (world: World, dirty: Set<Entity>): void => flushDirty(world, dirty)
