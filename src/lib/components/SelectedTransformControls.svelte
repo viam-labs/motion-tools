@@ -218,8 +218,6 @@
 			return
 		}
 
-		// refPose is in mm; convert to a metres-space Matrix4 to compose with
-		// network/live matrices (also in metres).
 		poseToMatrix(refPose, tempRefMatrix)
 
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
