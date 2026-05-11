@@ -164,11 +164,12 @@ export const matrixToPose = (matrix: Matrix4, pose: Pose): Pose => {
 }
 
 /**
- * Compose of the rendered local transform: writes
+ * Compose the entity's local-to-parent transform: writes
  * `live × baseline⁻¹ × edited` into `out`. Mirrors the formula
- * `Frame.svelte` uses to blend live kinematics with user-staged edits.
+ * `Frame.svelte` uses to blend live kinematics with user-staged edits;
+ * `worldMatrix.ts` premultiplies the result by the parent's `WorldMatrix`.
  */
-export const composeRenderedMatrix = (
+export const composeLocalMatrix = (
 	live: Matrix4,
 	baseline: Matrix4,
 	edited: Matrix4,
@@ -180,9 +181,9 @@ export const composeRenderedMatrix = (
 }
 
 /**
- * Pool-friendly inverse of `composeRenderedMatrix` for the gizmo path:
+ * Pool-friendly inverse of `composeLocalMatrix` for the gizmo path:
  * writes `baseline × live⁻¹ × target` into `out`. Solves for the
- * `EditedMatrix` that, blended through `composeRenderedMatrix`, renders
+ * `EditedMatrix` that, blended through `composeLocalMatrix`, renders
  * to `target`.
  */
 export const solveEditedMatrix = (
@@ -194,13 +195,4 @@ export const solveEditedMatrix = (
 	matA.copy(live).invert()
 	out.copy(baseline).multiply(matA).multiply(target)
 	return out
-}
-
-/** Whether every element of a `Matrix4` is finite (no NaN, no ±∞). */
-export const isFiniteMatrix = (matrix: Matrix4): boolean => {
-	const e = matrix.elements
-	for (let i = 0; i < 16; i++) {
-		if (!Number.isFinite(e[i])) return false
-	}
-	return true
 }

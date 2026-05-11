@@ -24,7 +24,7 @@
 
 	// Mirror the robot's live kinematics-resolved pose into LiveMatrix so
 	// Frame.svelte can compose the rendered transform via
-	// `composeRenderedMatrix(live, baseline, edited)`. Mutate the stored
+	// `composeLocalMatrix(live, baseline, edited)`. Mutate the stored
 	// `Matrix4` in place when present and notify via `entity.changed` —
 	// allocate only on first add.
 	$effect.pre(() => {

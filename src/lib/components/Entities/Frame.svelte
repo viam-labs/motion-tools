@@ -21,7 +21,7 @@ Renders a Viam Frame object
 	import { colors, resourceColors } from '$lib/color'
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { composeRenderedMatrix } from '$lib/transform'
+	import { composeLocalMatrix } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 	import Mesh from './Mesh.svelte'
@@ -72,7 +72,7 @@ Renders a Viam Frame object
 
 	$effect.pre(() => {
 		if (liveMatrix.current && matrix.current && editedMatrix.current) {
-			composeRenderedMatrix(liveMatrix.current, matrix.current, editedMatrix.current, group.matrix)
+			composeLocalMatrix(liveMatrix.current, matrix.current, editedMatrix.current, group.matrix)
 		} else if (editedMatrix.current) {
 			group.matrix.copy(editedMatrix.current)
 		} else if (matrix.current) {

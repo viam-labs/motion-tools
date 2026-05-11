@@ -1,7 +1,7 @@
 import { type Entity, type World } from 'koota'
 import { Matrix4, Vector3 } from 'three'
 
-import { composeRenderedMatrix } from '$lib/transform'
+import { composeLocalMatrix } from '$lib/transform'
 
 import { ChildOf } from './relations'
 import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
@@ -9,8 +9,8 @@ import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
 const scaleVec3 = new Vector3()
 
 /**
- * Compute the local rendered transform of an entity into `out`. Mirrors the
- * blend used by `Frame.svelte` so `WorldMatrix` agrees with the rendered
+ * Compute the entity's local-to-parent transform into `out`. Mirrors the
+ * blend used by `Frame.svelte` so `WorldMatrix` agrees with the displayed
  * scenegraph.
  *
  * - All three matrix traits present: `live × baseline⁻¹ × edited`.
@@ -19,13 +19,13 @@ const scaleVec3 = new Vector3()
  * Returns `true` after writing to `out`; returns `false` and leaves `out`
  * untouched when the entity has no matrix-shaped trait.
  */
-const toLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
+const toLocalMatrix = (entity: Entity, out: Matrix4): boolean => {
 	const matrix = entity.get(Matrix)
 	const editedMatrix = entity.get(EditedMatrix)
 	const liveMatrix = entity.get(LiveMatrix)
 
 	if (liveMatrix && matrix && editedMatrix) {
-		composeRenderedMatrix(liveMatrix, matrix, editedMatrix, out)
+		composeLocalMatrix(liveMatrix, matrix, editedMatrix, out)
 		return true
 	}
 
@@ -62,7 +62,7 @@ const recomputeWorldMatrix = (
 	// flush doesn't allocate a throwaway matrix per entity. First-time
 	// entities get a fresh `Matrix4` that's added as the trait below.
 	const out = entity.get(WorldMatrix) ?? new Matrix4()
-	const hasLocal = toLocalRenderedMatrix(entity, out)
+	const hasLocal = toLocalMatrix(entity, out)
 	if (!hasLocal) out.identity()
 
 	const scale = entity.get(Scale)
