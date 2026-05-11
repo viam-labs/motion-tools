@@ -29,7 +29,7 @@
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selectedEntity.current)
 	const transformable = useTrait(() => entity, traits.Transformable)
-	const networkMatrix = useTrait(() => entity, traits.Matrix)
+	const configMatrix = useTrait(() => entity, traits.Matrix)
 	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
@@ -44,10 +44,12 @@
 	// the geometry inside it.
 	const ref = $derived(selectedObject3d.current?.parent ?? selectedObject3d.current)
 
-	const activeMode = $derived.by(() => {
-		if (mode === 'none' || !transformable.current) return undefined
+	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
+		if (mode === 'none' || !transformable.current) return
+
 		// Scale only does anything for primitive geometries the gizmo can size.
-		if (mode === 'scale' && !hasScalableGeometry) return undefined
+		if (mode === 'scale' && !hasScalableGeometry) return
+
 		return mode
 	})
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
@@ -98,7 +100,9 @@
 		if (entity?.has(traits.FramesAPI)) {
 			session = sessions.begin([entity])
 		}
+
 		captureScaleStart()
+
 		environment.current.viewerMode = 'edit'
 		transformControls.setActive(true)
 	}
@@ -172,17 +176,19 @@
 		transformControls.setActive(false)
 	}
 
-	// Frame.svelte renders frame entities through the live blend
-	//   render = M(live) × M(network)⁻¹ × M(edited)
-	// so for the user's drag to render where they pulled the gizmo to,
-	// EditedMatrix must satisfy
-	//   M(edited) = M(network) × M(live)⁻¹ × M(ref)
-	// where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
-	// When live ≈ network (no kinematic offset), this collapses to
-	// M(edited) = M(ref) — the same as the naive writeback. When they diverge
-	// (e.g. an arm whose joints have moved away from its config pose), this
-	// composition is what keeps the rendering anchored to the user's pointer
-	// instead of shearing through the live × baseline⁻¹ offset.
+	/**
+	 * Frame.svelte renders frame entities by blending M(live) × M(config)⁻¹ × M(edited)
+	 * so for the user's drag to render where they pulled the gizmo to,
+	 * EditedMatrix must satisfy M(edited) = M(config) × M(live)⁻¹ × M(ref)
+	 * where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
+	 *
+	 * When live ≈ config (no kinematic offset), this collapses to
+	 * M(edited) = M(ref) — the same as the naive writeback. When they diverge
+	 * (e.g. an arm whose joints have moved away from its config pose), this
+	 * composition is what keeps the rendering anchored to the user's pointer
+	 * instead of shearing through the live × baseline⁻¹ offset.
+	 */
+
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
@@ -190,9 +196,9 @@
 		quaternionToPose(ref.quaternion, refPose)
 
 		const live = liveMatrix.current
-		const network = networkMatrix.current
+		const config = configMatrix.current
 
-		if (!live || !network) {
+		if (!live || !config) {
 			// No live matrix available — Frame.svelte's blend short-circuits to
 			// editedMatrix, so naive writeback is correct.
 			if (activeMode === 'translate') {
@@ -216,7 +222,7 @@
 		// network/live matrices (also in metres).
 		poseToMatrix(refPose, tempRefMatrix)
 
-		solveEditedMatrix(network, live, tempRefMatrix, tempEditedMatrix)
+		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
 		matrixToPose(tempEditedMatrix, tempPose)
 		session?.stagePose(entity, { ...tempPose })
 	}
