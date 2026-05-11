@@ -23,9 +23,10 @@
 	const tempScale = new Vector3()
 	const tempOv = new OrientationVector()
 
-	// Decompose the matrix in metres directly into the arrow's direction
-	// (OV components from the rotation) and origin (translation). No mm/m
-	// boundary conversion — the matrix layer is metres throughout.
+	/**
+	 * Decompose the matrix directly into the arrow's direction
+	 * (OV components from the rotation) and origin (translation)
+	 */
 	const decompose = (entity: Entity): boolean => {
 		const matrix = entity.get(traits.Matrix)
 		if (!matrix) return false

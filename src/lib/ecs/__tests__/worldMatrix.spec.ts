@@ -4,10 +4,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { relations, traits } from '$lib/ecs'
 import { installWorldMatrixListeners } from '$lib/ecs/worldMatrix'
-import { createPose, poseToMatrixInto } from '$lib/transform'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 const matrixOf = (pose: Parameters<typeof createPose>[0]) =>
-	poseToMatrixInto(createPose(pose), new Matrix4())
+	poseToMatrix(createPose(pose), new Matrix4())
 
 describe('worldMatrix system', () => {
 	let world: World
@@ -90,7 +90,7 @@ describe('worldMatrix system', () => {
 
 		// Mutate parent.Matrix in place + entity.changed — same idiom call sites use.
 		const parentMatrix = parent.get(traits.Matrix)!
-		poseToMatrixInto(createPose({ x: 200 }), parentMatrix)
+		poseToMatrix(createPose({ x: 200 }), parentMatrix)
 		parent.changed(traits.Matrix)
 		await tick()
 
@@ -121,11 +121,11 @@ describe('worldMatrix system', () => {
 		const entity = world.spawn(traits.Matrix(matrixOf({ x: 0 })))
 		const matrix = entity.get(traits.Matrix)!
 
-		poseToMatrixInto(createPose({ x: 1 }), matrix)
+		poseToMatrix(createPose({ x: 1 }), matrix)
 		entity.changed(traits.Matrix)
-		poseToMatrixInto(createPose({ x: 2 }), matrix)
+		poseToMatrix(createPose({ x: 2 }), matrix)
 		entity.changed(traits.Matrix)
-		poseToMatrixInto(createPose({ x: 3 }), matrix)
+		poseToMatrix(createPose({ x: 3 }), matrix)
 		entity.changed(traits.Matrix)
 		await tick()
 

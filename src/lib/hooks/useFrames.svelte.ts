@@ -11,7 +11,7 @@ import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
-import { createPose, isPoseEqual, poseToMatrixInto } from '$lib/transform'
+import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -236,13 +236,13 @@ export const provideFrames = (partID: () => string) => {
 					if (!isEditMode && !partConfig.hasPendingSave) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
-							poseToMatrixInto(pose, baseline)
+							poseToMatrix(pose, baseline)
 							existing.changed(traits.Matrix)
 						}
 					}
 
 					if (!existing.has(traits.LiveMatrix)) {
-						existing.add(traits.LiveMatrix(poseToMatrixInto(pose, new Matrix4())))
+						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
 					// Skip the EditedMatrix overwrite while in edit mode. The merged
@@ -254,7 +254,7 @@ export const provideFrames = (partID: () => string) => {
 					if (!isEditMode) {
 						const edited = existing.get(traits.EditedMatrix)
 						if (edited) {
-							poseToMatrixInto(pose, edited)
+							poseToMatrix(pose, edited)
 							existing.changed(traits.EditedMatrix)
 						}
 					}
@@ -264,9 +264,9 @@ export const provideFrames = (partID: () => string) => {
 
 				const entityTraits: ConfigurableTrait[] = [
 					traits.Name(name),
-					traits.Matrix(poseToMatrixInto(pose, new Matrix4())),
-					traits.EditedMatrix(poseToMatrixInto(pose, new Matrix4())),
-					traits.LiveMatrix(poseToMatrixInto(pose, new Matrix4())),
+					traits.Matrix(poseToMatrix(pose, new Matrix4())),
+					traits.EditedMatrix(poseToMatrix(pose, new Matrix4())),
+					traits.LiveMatrix(poseToMatrix(pose, new Matrix4())),
 					traits.FramesAPI,
 					traits.Transformable,
 					traits.ShowAxesHelper,

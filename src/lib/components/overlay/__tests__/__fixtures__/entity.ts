@@ -3,12 +3,12 @@ import type { Entity, World } from 'koota'
 import { Matrix4 } from 'three'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPose, poseToMatrixInto } from '$lib/transform'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 // OV must be a unit vector — (0.6, 0.8, 0) magnitude 1 — so the matrix
 // round-trip in Details.svelte returns the same components.
 const buildMatrix = () =>
-	poseToMatrixInto(
+	poseToMatrix(
 		createPose({
 			x: 10,
 			y: 20,

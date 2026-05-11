@@ -6,7 +6,7 @@
 
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { usePose } from '$lib/hooks/usePose.svelte'
-	import { poseToMatrixInto } from '$lib/transform'
+	import { poseToMatrix } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
@@ -32,10 +32,10 @@
 
 		const live = entity.get(traits.LiveMatrix)
 		if (live) {
-			poseToMatrixInto(pose.current, live)
+			poseToMatrix(pose.current, live)
 			entity.changed(traits.LiveMatrix)
 		} else {
-			entity.add(traits.LiveMatrix(poseToMatrixInto(pose.current, new Matrix4())))
+			entity.add(traits.LiveMatrix(poseToMatrix(pose.current, new Matrix4())))
 		}
 	})
 </script>

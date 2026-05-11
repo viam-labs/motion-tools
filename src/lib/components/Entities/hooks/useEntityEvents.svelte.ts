@@ -16,7 +16,7 @@ const hoverOv = new OrientationVector()
  * Build the hover point's local transform matrix in metres. `HoverInfo`
  * already carries position in metres (point/arrow positions inside a
  * BufferGeometry are in metres) so no mm→m boundary conversion is needed
- * here — unlike `poseToMatrixInto`, which is for `Pose` ingestion (mm).
+ * here — unlike `poseToMatrix`, which is for `Pose` ingestion (mm).
  */
 const buildHoverMatrix = (info: HoverInfo, out: Matrix4) => {
 	hoverOv.set(info.oX, info.oY, info.oZ, MathUtils.degToRad(info.theta))

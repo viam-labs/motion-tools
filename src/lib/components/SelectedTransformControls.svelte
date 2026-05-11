@@ -11,11 +11,11 @@
 	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
-		composeEditedMatrixForRenderedMatrix,
 		createPose,
-		matrixToPoseInto,
-		poseToMatrixInto,
+		matrixToPose,
+		poseToMatrix,
 		quaternionToPose,
+		solveEditedMatrix,
 		vector3ToPose,
 	} from '$lib/transform'
 
@@ -116,14 +116,14 @@
 			} else {
 				const matrix = entity.get(traits.Matrix)
 				if (matrix) {
-					matrixToPoseInto(matrix, tempPose)
+					matrixToPose(matrix, tempPose)
 					if (activeMode === 'translate') {
 						vector3ToPose(ref.getWorldPosition(vector3), tempPose)
 					} else {
 						quaternionToPose(ref.getWorldQuaternion(quaternion), tempPose)
 						ref.quaternion.copy(quaternion)
 					}
-					poseToMatrixInto(tempPose, matrix)
+					poseToMatrix(tempPose, matrix)
 					entity.changed(traits.Matrix)
 				}
 			}
@@ -214,10 +214,10 @@
 
 		// refPose is in mm; convert to a metres-space Matrix4 to compose with
 		// network/live matrices (also in metres).
-		poseToMatrixInto(refPose, tempRefMatrix)
+		poseToMatrix(refPose, tempRefMatrix)
 
-		composeEditedMatrixForRenderedMatrix(network, live, tempRefMatrix, tempEditedMatrix)
-		matrixToPoseInto(tempEditedMatrix, tempPose)
+		solveEditedMatrix(network, live, tempRefMatrix, tempEditedMatrix)
+		matrixToPose(tempEditedMatrix, tempPose)
 		session?.stagePose(entity, { ...tempPose })
 	}
 </script>

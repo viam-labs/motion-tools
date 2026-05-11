@@ -6,7 +6,7 @@ import { composeRenderedMatrix } from '$lib/transform'
 import { ChildOf } from './relations'
 import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
 
-const scaleVec = new Vector3()
+const scaleVec3 = new Vector3()
 
 /**
  * Compute the local rendered transform of an entity into `out`. Mirrors the
@@ -19,7 +19,7 @@ const scaleVec = new Vector3()
  * Returns `true` after writing to `out`; returns `false` and leaves `out`
  * untouched when the entity has no matrix-shaped trait.
  */
-const writeLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
+const toLocalRenderedMatrix = (entity: Entity, out: Matrix4): boolean => {
 	const matrix = entity.get(Matrix)
 	const editedMatrix = entity.get(EditedMatrix)
 	const liveMatrix = entity.get(LiveMatrix)
@@ -59,12 +59,12 @@ const recomputeWorldMatrix = (
 	if (cached) return cached
 
 	const out = new Matrix4()
-	const hasLocal = writeLocalRenderedMatrix(entity, out)
+	const hasLocal = toLocalRenderedMatrix(entity, out)
 	if (!hasLocal) out.identity()
 
 	const scale = entity.get(Scale)
 	if (scale) {
-		out.scale(scaleVec.set(scale.x, scale.y, scale.z))
+		out.scale(scaleVec3.copy(scale))
 	}
 
 	const parent = entity.targetFor(ChildOf)

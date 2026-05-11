@@ -119,51 +119,6 @@ export const poseToDirection = (pose: Pose): Vector3 => {
 	return new Vector3(ov.x, ov.y, ov.z)
 }
 
-export const poseToMatrix = (pose: Pose) => {
-	ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
-	ov.toQuaternion(quaternion)
-
-	const matrix = new Matrix4()
-	matrix.makeRotationFromQuaternion(quaternion)
-	matrix.setPosition(pose.x, pose.y, pose.z)
-	return matrix
-}
-
-export const matrixToPose = (matrix: Matrix4) => {
-	const pose = createPose()
-
-	matrix.decompose(translation, quaternion, scale)
-	pose.x = translation.x
-	pose.y = translation.y
-	pose.z = translation.z
-
-	ov.setFromQuaternion(quaternion)
-	pose.oX = ov.x
-	pose.oY = ov.y
-	pose.oZ = ov.z
-	pose.theta = MathUtils.radToDeg(ov.th)
-
-	return pose
-}
-
-export const composeRenderedPose = (livePose: Pose, baselinePose: Pose, editedPose: Pose): Pose =>
-	matrixToPose(
-		poseToMatrix(livePose)
-			.multiply(poseToMatrix(baselinePose).invert())
-			.multiply(poseToMatrix(editedPose))
-	)
-
-export const composeEditedPoseForRenderedPose = (
-	baselinePose: Pose,
-	livePose: Pose,
-	renderedPose: Pose
-): Pose =>
-	matrixToPose(
-		poseToMatrix(baselinePose)
-			.multiply(poseToMatrix(livePose).invert())
-			.multiply(poseToMatrix(renderedPose))
-	)
-
 export const isFinitePose = (pose: Pose): boolean =>
 	Number.isFinite(pose.x) &&
 	Number.isFinite(pose.y) &&
@@ -174,7 +129,7 @@ export const isFinitePose = (pose: Pose): boolean =>
 	Number.isFinite(pose.theta)
 
 /**
- * Build a TRS `Matrix4` from a `Pose`, writing into `out`. Pool-friendly.
+ * Build a TRS `Matrix4` from a `Pose`, writing into `matrix`. Pool-friendly.
  *
  * `Pose` translation is in millimetres (Viam wire convention); `Matrix4` is
  * rendered directly into Three.js objects whose units are metres. We divide
@@ -182,34 +137,34 @@ export const isFinitePose = (pose: Pose): boolean =>
  * `group.matrix.copy(entity.get(Matrix))` lands the entity at the correct
  * world-space position.
  */
-export const poseToMatrixInto = (pose: Pose, out: Matrix4): Matrix4 => {
+export const poseToMatrix = (pose: Pose, matrix: Matrix4): Matrix4 => {
 	ov.set(pose.oX, pose.oY, pose.oZ, MathUtils.degToRad(pose.theta))
 	ov.toQuaternion(quaternion)
-	out.makeRotationFromQuaternion(quaternion)
-	out.setPosition(pose.x * 0.001, pose.y * 0.001, pose.z * 0.001)
-	return out
+	matrix.makeRotationFromQuaternion(quaternion)
+	matrix.setPosition(pose.x * 0.001, pose.y * 0.001, pose.z * 0.001)
+	return matrix
 }
 
 /**
  * Decompose a `Matrix4` (metres) into a `Pose` (millimetres), writing into
- * `out`. Pool-friendly. Mirrors the `× 1000` half of the boundary
- * convention enforced by `poseToMatrixInto`.
+ * `pose`. Pool-friendly. Mirrors the `× 1000` half of the boundary
+ * convention enforced by `poseToMatrix`.
  */
-export const matrixToPoseInto = (matrix: Matrix4, out: Pose): Pose => {
+export const matrixToPose = (matrix: Matrix4, pose: Pose): Pose => {
 	matrix.decompose(translation, quaternion, scale)
-	out.x = translation.x * 1000
-	out.y = translation.y * 1000
-	out.z = translation.z * 1000
+	pose.x = translation.x * 1000
+	pose.y = translation.y * 1000
+	pose.z = translation.z * 1000
 	ov.setFromQuaternion(quaternion)
-	out.oX = ov.x
-	out.oY = ov.y
-	out.oZ = ov.z
-	out.theta = MathUtils.radToDeg(ov.th)
-	return out
+	pose.oX = ov.x
+	pose.oY = ov.y
+	pose.oZ = ov.z
+	pose.theta = MathUtils.radToDeg(ov.th)
+	return pose
 }
 
 /**
- * Pool-friendly compose of the rendered local transform: writes
+ * Compose of the rendered local transform: writes
  * `live × baseline⁻¹ × edited` into `out`. Mirrors the formula
  * `Frame.svelte` uses to blend live kinematics with user-staged edits.
  */
@@ -230,7 +185,7 @@ export const composeRenderedMatrix = (
  * `EditedMatrix` that, blended through `composeRenderedMatrix`, renders
  * to `target`.
  */
-export const composeEditedMatrixForRenderedMatrix = (
+export const solveEditedMatrix = (
 	baseline: Matrix4,
 	live: Matrix4,
 	target: Matrix4,

@@ -4,7 +4,7 @@ import type { Entity } from 'koota'
 import type { Frame } from '$lib/frame'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPose, isFinitePose, matrixToPoseInto, poseToMatrixInto } from '$lib/transform'
+import { createPose, isFinitePose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 const tempPose = createPose()
 
@@ -105,7 +105,7 @@ export class FrameEditSession {
 			const editedMatrix = entity.get(traits.EditedMatrix)
 			if (!name || !editedMatrix) continue
 
-			matrixToPoseInto(editedMatrix, tempPose)
+			matrixToPose(editedMatrix, tempPose)
 			this.snapshots.set(entity, {
 				name,
 				parent: hierarchy.getParentName(entity) ?? 'world',
@@ -130,9 +130,9 @@ export class FrameEditSession {
 		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
 
-		matrixToPoseInto(current, tempPose)
+		matrixToPose(current, tempPose)
 		const next: Pose = { ...tempPose, ...pose }
-		poseToMatrixInto(next, current)
+		poseToMatrix(next, current)
 		entity.changed(traits.EditedMatrix)
 		this.updateFrame(
 			snap.name,
@@ -159,7 +159,7 @@ export class FrameEditSession {
 
 		const editedMatrix = entity.get(traits.EditedMatrix)
 		if (editedMatrix) {
-			matrixToPoseInto(editedMatrix, tempPose)
+			matrixToPose(editedMatrix, tempPose)
 			this.updateFrame(
 				snap.name,
 				hierarchy.getParentName(entity) ?? 'world',
@@ -177,7 +177,7 @@ export class FrameEditSession {
 
 		const editedMatrix = entity.get(traits.EditedMatrix)
 		if (editedMatrix) {
-			matrixToPoseInto(editedMatrix, tempPose)
+			matrixToPose(editedMatrix, tempPose)
 			this.updateFrame(snap.name, parent, { ...tempPose }, liveGeometry(entity))
 		}
 	}
@@ -198,7 +198,7 @@ export class FrameEditSession {
 		for (const [entity] of this.snapshots) {
 			const matrix = entity.get(traits.EditedMatrix)
 			if (matrix) {
-				matrixToPoseInto(matrix, tempPose)
+				matrixToPose(matrix, tempPose)
 				if (!isFinitePose(tempPose)) {
 					this.abort()
 					return false
@@ -221,7 +221,7 @@ export class FrameEditSession {
 			if (entity.isAlive()) {
 				const matrix = entity.get(traits.EditedMatrix)
 				if (matrix) {
-					poseToMatrixInto(snap.editedPose, matrix)
+					poseToMatrix(snap.editedPose, matrix)
 					entity.changed(traits.EditedMatrix)
 				}
 				hierarchy.setParent(entity, snap.parent === 'world' ? undefined : snap.parent)
