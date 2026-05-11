@@ -1,5 +1,27 @@
 # motion-tools
 
+## 1.26.0
+
+### Minor Changes
+
+- cd5388e: Add an `autoSelectNewEntities` prop to `SelectionTool`. When enabled, each new entity added to the selection set (via lasso or ellipse) is set as the active `selectedEntity`, causing the Details panel to focus the latest selection. Defaults to `false` so existing consumers see no behavior change.
+
+### Patch Changes
+
+- 32a4ce4: Bump `@threlte/extras` to fix ghosting issue
+
+## 1.25.6
+
+### Patch Changes
+
+- dc5c94f: Fix: clicking on frames in the Treeview causes reparenting due to Tweakpane behavior
+
+## 1.25.5
+
+### Patch Changes
+
+- 142223f: Reduce logs memory and CPU consumption
+
 ## 1.25.4
 
 ### Patch Changes

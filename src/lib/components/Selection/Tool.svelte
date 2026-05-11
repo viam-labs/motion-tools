@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { useThrelte } from '@threlte/core'
@@ -6,6 +7,7 @@
 	import { ElementRect } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Popover from '../overlay/Popover.svelte'
@@ -17,18 +19,21 @@
 	interface Props {
 		/** Whether to auto-enable lasso mode when the component mounts */
 		enabled?: boolean
+		// TODO: remove once a Selected trait exists
+		autoSelectNewEntities?: boolean
 		children?: Snippet
 	}
 
 	type SelectionType = 'lasso' | 'ellipse'
 
-	let { enabled = false, children }: Props = $props()
+	let { enabled = false, autoSelectNewEntities = false, children }: Props = $props()
 
 	const { dom } = useThrelte()
 	const settings = useSettings()
 	const isSelectionMode = $derived(settings.current.interactionMode === 'select')
 
-	provideSelectionPlugin()
+	const selectionPlugin = provideSelectionPlugin()
+	const selectedEntity = useSelectedEntity()
 	let selectionType = $state<SelectionType>('lasso')
 
 	$effect(() => {
@@ -41,6 +46,19 @@
 		if (enabled) {
 			settings.current.interactionMode = 'select'
 		}
+	})
+
+	let previousEntities: Entity[] = []
+	$effect(() => {
+		if (!autoSelectNewEntities) return
+
+		const current = selectionPlugin.current
+		const newEntities = current.filter((entity) => !previousEntities.includes(entity))
+		previousEntities = [...current]
+
+		const newest = newEntities.at(-1)
+		if (newest === undefined) return
+		selectedEntity.set(newest)
 	})
 
 	const rect = new ElementRect(() => dom)

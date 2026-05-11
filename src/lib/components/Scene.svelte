@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	import { T } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { Environment, Grid, interactivity, PerfMonitor, PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { ShaderMaterial, Vector3 } from 'three'
@@ -29,9 +29,13 @@
 
 	let { children }: Props = $props()
 
+	const threlte = useThrelte()
 	const settings = useSettings()
 	const focusedObject3d = useFocusedObject3d()
 	const origin = useOrigin()
+
+	// @ts-expect-error This is for debugging
+	globalThis.__threlte__ = threlte
 
 	const { raycaster, enabled } = interactivity({
 		filter: (intersections) => {
