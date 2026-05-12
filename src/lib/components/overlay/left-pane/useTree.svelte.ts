@@ -1,4 +1,4 @@
-import { type Entity, type World } from 'koota'
+import { type Entity, Not, type World } from 'koota'
 import { createSubscriber } from 'svelte/reactivity'
 
 import { relations, traits, useWorld } from '$lib/ecs'
@@ -24,9 +24,8 @@ const buildTree = (world: World): TreeNode[] => {
 	}
 
 	const rootEntities: Entity[] = []
-	for (const entity of world.query(traits.Name)) {
+	for (const entity of world.query(traits.Name, Not(traits.Orphan))) {
 		if (entity.targetFor(relations.ChildOf)) continue
-		if (entity.has(traits.Orphan)) continue
 		rootEntities.push(entity)
 	}
 	rootEntities.sort(compareByName)

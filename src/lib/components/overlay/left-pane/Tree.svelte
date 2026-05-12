@@ -1,15 +1,17 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
+
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 	import * as tree from '@zag-js/tree-view'
-	import type { Entity } from 'koota'
 	import { VirtualList } from 'svelte-virtuallists'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	import { relations, traits } from '$lib/ecs'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
-	import TreeNode from './TreeNode.svelte'
 	import type { TreeNode as TreeNodeType } from './useTree.svelte'
+
+	import TreeNode from './TreeNode.svelte'
 
 	const selected = useSelectedEntity()
 
