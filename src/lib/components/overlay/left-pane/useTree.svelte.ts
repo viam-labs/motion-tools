@@ -5,28 +5,19 @@ import { relations, traits, useWorld } from '$lib/ecs'
 
 export interface TreeNode {
 	entity: Entity
-	parent?: TreeNode
 	children?: TreeNode[]
-}
-
-interface TreeState {
-	rootNodes: TreeNode[]
-	nodeMap: Map<Entity, TreeNode>
 }
 
 const compareByName = (a: Entity, b: Entity): number =>
 	(a.get(traits.Name) ?? '').localeCompare(b.get(traits.Name) ?? '')
 
-const buildTree = (world: World): TreeState => {
-	const nodeMap = new Map<Entity, TreeNode>()
-
-	const walk = (entity: Entity, parent?: TreeNode): TreeNode => {
-		const node: TreeNode = { entity, parent }
-		nodeMap.set(entity, node)
+const buildTree = (world: World): TreeNode[] => {
+	const walk = (entity: Entity): TreeNode => {
+		const node: TreeNode = { entity }
 
 		const children = world.query(relations.ChildOf(entity)).toSorted(compareByName)
 		if (children.length > 0) {
-			node.children = children.map((child) => walk(child, node))
+			node.children = children.map((child) => walk(child))
 		}
 
 		return node
@@ -40,9 +31,7 @@ const buildTree = (world: World): TreeState => {
 	}
 	rootEntities.sort(compareByName)
 
-	const rootNodes = rootEntities.map((entity) => walk(entity))
-
-	return { rootNodes, nodeMap }
+	return rootEntities.map((entity) => walk(entity))
 }
 
 /**
@@ -51,10 +40,10 @@ const buildTree = (world: World): TreeState => {
  * `Orphan` edge. Orphans are hidden from the tree — they reappear once
  * `provideHierarchy` resolves them to a real `ChildOf` parent.
  */
-export const useTree = (): { readonly current: TreeState } => {
+export const useTree = (): { readonly current: TreeNode[] } => {
 	const world = useWorld()
 
-	let cached: TreeState | undefined
+	let cached: TreeNode[] | undefined
 	let dirty = true
 
 	const subscribe = createSubscriber((update) => {

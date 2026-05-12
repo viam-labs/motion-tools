@@ -20,7 +20,7 @@
 
 	const rootNode = $derived<TreeNode>({
 		entity: worldEntity,
-		children: tree.current.rootNodes,
+		children: tree.current,
 	})
 </script>
 
@@ -34,7 +34,6 @@
 >
 	<Tree
 		{rootNode}
-		nodeMap={tree.current.nodeMap}
 		onSelectionChange={(event) => {
 			const value = event.selectedValue[0]
 
