@@ -307,9 +307,44 @@ interface AppEmbeddedPartConfigProps {
 }
 
 const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConfig => {
+	let hasPendingSave = $state(false)
+	let prevIsDirty = false
+	let cleanSnapshot: string | undefined
+
+	const snapshot = (current: Struct | undefined): string | undefined => {
+		const json = current?.toJson?.()
+		return json === undefined ? undefined : JSON.stringify(json)
+	}
+
+	/**
+	 * The host app owns saving, and we aren't notified directly. Set hasPendingSave
+	 * to watch isDirty: true -> false transitions, representing a save.
+	 *
+	 * `useFrames` clears the flag on the next `revision` change
+	 * once the server reports the new framesystem.
+	 */
+	$effect.pre(() => {
+		const dirty = props.isDirty
+		const current = props.current
+
+		if (prevIsDirty && !dirty) {
+			const next = snapshot(current)
+			if (next !== undefined && cleanSnapshot !== undefined && next !== cleanSnapshot) {
+				hasPendingSave = true
+			}
+			cleanSnapshot = next
+		} else if (!prevIsDirty && !dirty) {
+			cleanSnapshot = snapshot(current)
+		}
+
+		prevIsDirty = dirty
+	})
+
 	return {
 		hasEditPermissions: true,
-		hasPendingSave: false,
+		get hasPendingSave() {
+			return hasPendingSave
+		},
 		get isDirty() {
 			return props.isDirty
 		},
@@ -327,8 +362,12 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 			return props.setLocalPartConfig(struct)
 		},
 
-		clearPendingSave() {},
-		setPendingSave() {},
+		clearPendingSave() {
+			hasPendingSave = false
+		},
+		setPendingSave() {
+			hasPendingSave = true
+		},
 	}
 }
 
