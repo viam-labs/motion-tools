@@ -6,9 +6,8 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import type { TreeNode } from './buildTree'
-
 	import Self from './TreeNode.svelte'
+	import type { TreeNode } from './useTree.svelte'
 
 	interface Props {
 		node: TreeNode
