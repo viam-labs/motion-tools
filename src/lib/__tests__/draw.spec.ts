@@ -55,7 +55,11 @@ describe('drawTransform', () => {
 
 		expect(entity.get(traits.Name)).toBe('box-frame')
 		expect(hierarchy.getParentName(entity)).toBe('arm')
-		expect(entity.get(traits.Pose)).toStrictEqual(createPose({ x: 100, y: 200, z: 300 }))
+		// Pose translation is in mm; matrix translation is in m (× 0.001).
+		const matrix = entity.get(traits.Matrix)
+		expect(matrix?.elements[12]).toBeCloseTo(0.1)
+		expect(matrix?.elements[13]).toBeCloseTo(0.2)
+		expect(matrix?.elements[14]).toBeCloseTo(0.3)
 		expect(entity.get(traits.Box)).toStrictEqual({ x: 10, y: 20, z: 30 })
 		expect(entity.has(traits.ReferenceFrame)).toBe(false)
 		expect(entity.has(traits.ShowAxesHelper)).toBe(false)

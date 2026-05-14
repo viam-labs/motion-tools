@@ -12,7 +12,7 @@ import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
-import { createPose } from '$lib/transform'
+import { createPose, isPoseEqual } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useLogs } from './useLogs.svelte'
@@ -158,7 +158,9 @@ export const provideGeometries = (partID: () => string) => {
 
 						if (existing) {
 							hierarchy.setParent(existing, name)
-							existing.set(traits.Center, center)
+							if (!isPoseEqual(existing.get(traits.Center), center)) {
+								existing.set(traits.Center, center)
+							}
 							updateGeometryTrait(existing, geometry)
 							continue
 						}

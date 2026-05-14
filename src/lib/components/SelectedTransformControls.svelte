@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TransformControls } from '@threlte/extras'
-	import { Quaternion, Vector3 } from 'three'
+	import { Matrix4, Quaternion, Vector3 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
@@ -11,9 +11,11 @@
 	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
-		composeEditedPoseForRenderedPose,
 		createPose,
+		matrixToPose,
+		poseToMatrix,
 		quaternionToPose,
+		solveEditedMatrix,
 		vector3ToPose,
 	} from '$lib/transform'
 
@@ -27,8 +29,8 @@
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selectedEntity.current)
 	const transformable = useTrait(() => entity, traits.Transformable)
-	const networkPose = useTrait(() => entity, traits.Pose)
-	const livePose = useTrait(() => entity, traits.LivePose)
+	const configMatrix = useTrait(() => entity, traits.Matrix)
+	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -42,10 +44,12 @@
 	// the geometry inside it.
 	const ref = $derived(selectedObject3d.current?.parent ?? selectedObject3d.current)
 
-	const activeMode = $derived.by(() => {
-		if (mode === 'none' || !transformable.current) return undefined
+	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
+		if (mode === 'none' || !transformable.current) return
+
 		// Scale only does anything for primitive geometries the gizmo can size.
-		if (mode === 'scale' && !hasScalableGeometry) return undefined
+		if (mode === 'scale' && !hasScalableGeometry) return
+
 		return mode
 	})
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
@@ -54,6 +58,9 @@
 	const quaternion = new Quaternion()
 	const vector3 = new Vector3()
 	const refPose = createPose()
+	const tempRefMatrix = new Matrix4()
+	const tempEditedMatrix = new Matrix4()
+	const tempPose = createPose()
 
 	let session: FrameEditSession | undefined
 	let scaleStart:
@@ -93,7 +100,9 @@
 		if (entity?.has(traits.FramesAPI)) {
 			session = sessions.begin([entity])
 		}
+
 		captureScaleStart()
+
 		environment.current.viewerMode = 'edit'
 		transformControls.setActive(true)
 	}
@@ -109,15 +118,17 @@
 			if (isFrameEntity) {
 				stageFrameTransform()
 			} else {
-				const pose = entity.get(traits.Pose)
-				if (pose) {
+				const matrix = entity.get(traits.Matrix)
+				if (matrix) {
+					matrixToPose(matrix, tempPose)
 					if (activeMode === 'translate') {
-						vector3ToPose(ref.getWorldPosition(vector3), pose)
+						vector3ToPose(ref.getWorldPosition(vector3), tempPose)
 					} else {
-						quaternionToPose(ref.getWorldQuaternion(quaternion), pose)
+						quaternionToPose(ref.getWorldQuaternion(quaternion), tempPose)
 						ref.quaternion.copy(quaternion)
 					}
-					entity.set(traits.Pose, pose)
+					poseToMatrix(tempPose, matrix)
+					entity.changed(traits.Matrix)
 				}
 			}
 		} else {
@@ -165,29 +176,31 @@
 		transformControls.setActive(false)
 	}
 
-	// Pose.svelte renders frame entities through the live blend
-	//   render = M(live) × M(network)⁻¹ × M(edited)
-	// so for the user's drag to render where they pulled the gizmo to, EditedPose
-	// must satisfy
-	//   M(edited) = M(network) × M(live)⁻¹ × M(ref)
-	// where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
-	// When live ≈ network (no kinematic offset), this collapses to M(edited) =
-	// M(ref) — the same as the naive writeback. When they diverge (e.g. an arm
-	// whose joints have moved away from its config pose), this composition is
-	// what keeps the rendering anchored to the user's pointer instead of
-	// shearing through the live × baseline⁻¹ offset.
+	/**
+	 * Frame.svelte renders frame entities by blending M(live) × M(config)⁻¹ × M(edited)
+	 * so for the user's drag to render where they pulled the gizmo to,
+	 * EditedMatrix must satisfy M(edited) = M(config) × M(live)⁻¹ × M(ref)
+	 * where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
+	 *
+	 * When live ≈ config (no kinematic offset), this collapses to
+	 * M(edited) = M(ref) — the same as the naive writeback. When they diverge
+	 * (e.g. an arm whose joints have moved away from its config pose), this
+	 * composition is what keeps the rendering anchored to the user's pointer
+	 * instead of shearing through the live × baseline⁻¹ offset.
+	 */
+
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
 		vector3ToPose(ref.position, refPose)
 		quaternionToPose(ref.quaternion, refPose)
 
-		const live = livePose.current
-		const network = networkPose.current
+		const live = liveMatrix.current
+		const config = configMatrix.current
 
-		if (!live || !network) {
-			// No live pose available — Pose.svelte's blend short-circuits to
-			// editedPose, so naive writeback is correct.
+		if (!live || !config) {
+			// No live matrix available — Frame.svelte's blend short-circuits to
+			// editedMatrix, so naive writeback is correct.
 			if (activeMode === 'translate') {
 				session?.stagePose(entity, {
 					x: refPose.x,
@@ -205,7 +218,11 @@
 			return
 		}
 
-		session?.stagePose(entity, composeEditedPoseForRenderedPose(network, live, refPose))
+		poseToMatrix(refPose, tempRefMatrix)
+
+		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
+		matrixToPose(tempEditedMatrix, tempPose)
+		session?.stagePose(entity, { ...tempPose })
 	}
 </script>
 
