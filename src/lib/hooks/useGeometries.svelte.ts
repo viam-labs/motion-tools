@@ -67,9 +67,9 @@ export const provideGeometries = (partID: () => string) => {
 		gantries.current.map((gantry) => createResourceClient(GantryClient, partID, () => gantry.name))
 	)
 	const genericClients = $derived(
-		generics.current.map((generic) =>
-			createResourceClient(GenericComponentClient, partID, () => generic.name)
-		)
+		generics.current
+			.filter((generic) => generic.type === 'component')
+			.map((generic) => createResourceClient(GenericComponentClient, partID, () => generic.name))
 	)
 
 	const interval = $derived(refreshRates[RefreshRates.poses])
