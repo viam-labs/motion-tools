@@ -110,15 +110,15 @@ describe('Details component', () => {
 
 		const localOrientationXSpan = screen.getByLabelText('immutable local orientation x coordinate')
 		const localOrientationXText = localOrientationXSpan.nextSibling as HTMLElement
-		expect(localOrientationXText.textContent?.trim()).toBe((0.1).toFixed(2))
+		expect(localOrientationXText.textContent?.trim()).toBe((0.6).toFixed(2))
 
 		const localOrientationYSpan = screen.getByLabelText('immutable local orientation y coordinate')
 		const localOrientationYText = localOrientationYSpan.nextSibling as HTMLElement
-		expect(localOrientationYText.textContent?.trim()).toBe((0.2).toFixed(2))
+		expect(localOrientationYText.textContent?.trim()).toBe((0.8).toFixed(2))
 
 		const localOrientationZSpan = screen.getByLabelText('immutable local orientation z coordinate')
 		const localOrientationZText = localOrientationZSpan.nextSibling as HTMLElement
-		expect(localOrientationZText.textContent?.trim()).toBe((0.3).toFixed(2))
+		expect(localOrientationZText.textContent?.trim()).toBe((0).toFixed(2))
 
 		const localOrientationThSpan = screen.getByLabelText(
 			'immutable local orientation theta degrees'

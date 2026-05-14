@@ -1,7 +1,7 @@
 import { useThrelte } from '@threlte/core'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext } from 'svelte'
-import { Color, Vector3, Vector4 } from 'three'
+import { Color, Matrix4, Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { UuidTool } from 'uuid-tool'
@@ -14,7 +14,7 @@ import { asRGB, STRIDE } from '$lib/buffer'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePlyInput } from '$lib/ply'
-import { createPose, createPoseFromFrame } from '$lib/transform'
+import { createPose, createPoseFromFrame, poseToMatrix } from '$lib/transform'
 
 import { useCameraControls } from './useControls.svelte'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
@@ -164,7 +164,11 @@ export const provideDrawAPI = () => {
 			const existing = entities.get(name)
 
 			if (existing) {
-				existing.set(traits.Pose, pose)
+				const matrix = existing.get(traits.Matrix)
+				if (matrix) {
+					poseToMatrix(pose, matrix)
+					existing.changed(traits.Matrix)
+				}
 				hierarchy.setParent(existing, parent)
 				continue
 			}
@@ -189,7 +193,7 @@ export const provideDrawAPI = () => {
 
 			entityTraits.push(
 				traits.Name(name),
-				traits.Pose(pose),
+				traits.Matrix(poseToMatrix(pose, new Matrix4())),
 				traits.DrawAPI,
 				traits.ReferenceFrame,
 				traits.Removable,
@@ -209,7 +213,11 @@ export const provideDrawAPI = () => {
 		const existing = entities.get(name)
 
 		if (existing) {
-			existing.set(traits.Pose, pose)
+			const matrix = existing.get(traits.Matrix)
+			if (matrix) {
+				poseToMatrix(pose, matrix)
+				existing.changed(traits.Matrix)
+			}
 			return
 		}
 
@@ -231,7 +239,7 @@ export const provideDrawAPI = () => {
 		const entityTraits: ConfigurableTrait[] = [
 			traits.Name(data.label ?? ++geometryIndex),
 			...hierarchy.parentTraits(parent),
-			traits.Pose(pose),
+			traits.Matrix(poseToMatrix(pose, new Matrix4())),
 			traits.Color(colorUtil.set(color)),
 			geometryTrait(),
 			traits.DrawAPI,

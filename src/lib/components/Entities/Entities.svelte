@@ -64,14 +64,9 @@
 
 {#each machineFramesEntities.current as entity (entity)}
 	<Pose {entity}>
-		{#snippet children({ pose })}
-			<Frame
-				{pose}
-				{entity}
-			>
-				<Label text={entity.get(traits.Name)} />
-			</Frame>
-		{/snippet}
+		<Frame {entity}>
+			<Label text={entity.get(traits.Name)} />
+		</Frame>
 	</Pose>
 {/each}
 

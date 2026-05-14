@@ -129,6 +129,7 @@ export default defineConfig(
 			'unicorn/prevent-abbreviations': 'off',
 			'unicorn/require-module-specifiers': 'off',
 			'unicorn/prefer-global-this': 'off',
+			'unicorn/no-nested-ternary': 'off',
 
 			// TODO
 			// 'unicorn/filename-case': [

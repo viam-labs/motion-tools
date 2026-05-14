@@ -3,10 +3,11 @@
 
 	import { T } from '@threlte/core'
 	import { Portal } from '@threlte/extras'
-	import { Color, Vector3 } from 'three'
+	import { Color, Quaternion, Vector3 } from 'three'
 
 	import { hierarchy, traits, useWorld } from '$lib/ecs'
 	import { BatchedArrow } from '$lib/three/BatchedArrow'
+	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	const arrowBatchMap = $state<Record<string, BatchedArrow>>({
 		world: new BatchedArrow(),
@@ -18,6 +19,22 @@
 	const direction = new Vector3()
 	const origin = new Vector3()
 	const color = new Color()
+	const tempQuat = new Quaternion()
+	const tempScale = new Vector3()
+	const tempOv = new OrientationVector()
+
+	/**
+	 * Decompose the matrix directly into the arrow's direction
+	 * (OV components from the rotation) and origin (translation)
+	 */
+	const decompose = (entity: Entity): boolean => {
+		const matrix = entity.get(traits.Matrix)
+		if (!matrix) return false
+		matrix.decompose(origin, tempQuat, tempScale)
+		tempOv.setFromQuaternion(tempQuat)
+		direction.set(tempOv.x, tempOv.y, tempOv.z)
+		return true
+	}
 
 	const onAdd = (entity: Entity) => {
 		const parent = hierarchy.getParentName(entity) ?? 'world'
@@ -25,32 +42,31 @@
 		arrowBatchMap[parent] ??= new BatchedArrow()
 		const batched = arrowBatchMap[parent]
 
-		const pose = entity.get(traits.Pose)
 		const colorRGB = entity.get(traits.Color)
 
+		if (!decompose(entity)) {
+			direction.set(0, 0, 0)
+			origin.set(0, 0, 0)
+		}
+
 		const instanceID = batched.addArrow(
-			direction.set(pose?.oX ?? 0, pose?.oY ?? 0, pose?.oZ ?? 0),
-			origin.set(pose?.x ?? 0, pose?.y ?? 0, pose?.z ?? 0).multiplyScalar(0.001),
+			direction,
+			origin,
 			colorRGB ? color.set(colorRGB.r, colorRGB.g, colorRGB.b) : color.set('yellow')
 		)
 
 		entity.add(traits.Instance({ instanceID, meshID: batched.mesh.id }))
 	}
 
-	const onPoseChange = (entity: Entity) => {
+	const onMatrixChange = (entity: Entity) => {
 		if (!entity.has(traits.Arrow)) return
 
 		const parent = hierarchy.getParentName(entity) ?? 'world'
 		const batch = arrowBatchMap[parent]
 		const instanceID = entity.get(traits.Instance)?.instanceID
-		const pose = entity.get(traits.Pose)
 
-		if (instanceID && instanceID !== -1 && pose) {
-			batch?.updateArrow(
-				instanceID,
-				direction.set(pose.oX, pose.oY, pose.oZ),
-				origin.set(pose.x, pose.y, pose.z).multiplyScalar(0.001)
-			)
+		if (instanceID && instanceID !== -1 && decompose(entity)) {
+			batch?.updateArrow(instanceID, direction, origin)
 		}
 	}
 
@@ -81,13 +97,13 @@
 	$effect(() => {
 		const unsubAdd = world.onAdd(traits.Arrow, onAdd)
 		const unsubRemove = world.onRemove(traits.Instance, onInstanceRemove)
-		const unsubPoseChange = world.onChange(traits.Pose, onPoseChange)
+		const unsubMatrixChange = world.onChange(traits.Matrix, onMatrixChange)
 		const unsubColorChange = world.onChange(traits.Color, onColorChange)
 
 		return () => {
 			unsubAdd()
 			unsubRemove()
-			unsubPoseChange()
+			unsubMatrixChange()
 			unsubColorChange()
 		}
 	})

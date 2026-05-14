@@ -1,13 +1,15 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
+
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 	import * as tree from '@zag-js/tree-view'
 	import { VirtualList } from 'svelte-virtuallists'
 	import { SvelteSet } from 'svelte/reactivity'
 
-	import { traits } from '$lib/ecs'
+	import { relations, traits } from '$lib/ecs'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
-	import type { TreeNode as TreeNodeType } from './buildTree'
+	import type { TreeNode as TreeNodeType } from './useTree.svelte'
 
 	import TreeNode from './TreeNode.svelte'
 
@@ -15,12 +17,11 @@
 
 	interface Props {
 		rootNode: TreeNodeType
-		nodeMap: Record<string, TreeNodeType | undefined>
 		dragElement?: HTMLElement
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { rootNode, nodeMap, onSelectionChange, dragElement = $bindable() }: Props = $props()
+	let { rootNode, onSelectionChange, dragElement = $bindable() }: Props = $props()
 
 	const collection = $derived(
 		tree.collection<TreeNodeType>({
@@ -34,11 +35,10 @@
 	const expandedValues = new SvelteSet<string>()
 
 	$effect(() => {
-		let name = selected.current?.get(traits.Name)
-		let node = nodeMap[name ?? '']
-		while (node) {
-			expandedValues.add(`${node.entity}`)
-			node = node.parent
+		let entity: Entity | undefined = selected.current
+		while (entity) {
+			expandedValues.add(`${entity}`)
+			entity = entity.targetFor(relations.ChildOf)
 		}
 	})
 

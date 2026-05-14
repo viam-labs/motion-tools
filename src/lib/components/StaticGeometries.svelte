@@ -29,7 +29,7 @@
 	keys.onKeys('=', () => {
 		const entity = world.spawn(
 			traits.Name(`custom geometry ${++index}`),
-			traits.Pose,
+			traits.Matrix,
 			traits.Box({ x: 100, y: 100, z: 100 }),
 			traits.Removable,
 			traits.Transformable
