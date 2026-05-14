@@ -68,12 +68,12 @@ export const provide3DModels = (partID: () => string) => {
 						}
 					})
 				}
-				current = next
 			} catch (error) {
 				// some arms may not implement this api yet
 				console.warn(`${client.current.name} returned an error: ${error} when getting 3D models`)
 			}
 		}
+		current = next
 	}
 
 	$effect(() => {
