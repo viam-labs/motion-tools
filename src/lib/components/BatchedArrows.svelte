@@ -81,12 +81,14 @@
 	$effect(() => {
 		const unsubAdd = world.onAdd(traits.Arrow, onAdd)
 		const unsubRemove = world.onRemove(traits.Instance, onInstanceRemove)
+		const unsubMatrixAdd = world.onAdd(traits.WorldMatrix, onWorldMatrixChange)
 		const unsubMatrixChange = world.onChange(traits.WorldMatrix, onWorldMatrixChange)
 		const unsubColorChange = world.onChange(traits.Color, onColorChange)
 
 		return () => {
 			unsubAdd()
 			unsubRemove()
+			unsubMatrixAdd()
 			unsubMatrixChange()
 			unsubColorChange()
 		}

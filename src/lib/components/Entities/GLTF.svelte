@@ -35,7 +35,6 @@
 
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const gltfTrait = useTrait(() => entity, traits.GLTF)
-	const scale = useTrait(() => entity, traits.Scale)
 	const invisible = useTrait(() => entity, traits.Invisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const events = useEntityEvents(() => entity)
@@ -94,7 +93,6 @@
 	{#if $gltf}
 		<T
 			is={$gltf.scene as Object3D}
-			scale={[scale.current?.x ?? 1, scale.current?.y ?? 1, scale.current?.z ?? 1]}
 			name={entity}
 			visible={invisible.current !== true}
 			{...events}
