@@ -138,11 +138,14 @@
 				captureScaleStart()
 			}
 
+			// Clamp at 0 — the gizmo can produce negative scale factors when
+			// dragged past the origin, which would yield negative dimensions
+			// and a degenerate OBB.
 			if (scaleStart?.type === 'box') {
 				const next = {
-					x: scaleStart.x * ref.scale.x,
-					y: scaleStart.y * ref.scale.y,
-					z: scaleStart.z * ref.scale.z,
+					x: Math.max(0, scaleStart.x * ref.scale.x),
+					y: Math.max(0, scaleStart.y * ref.scale.y),
+					z: Math.max(0, scaleStart.z * ref.scale.z),
 				}
 				if (isFrameEntity) {
 					session?.stageGeometry(entity, { type: 'box', ...next })
@@ -150,14 +153,17 @@
 					entity.set(traits.Box, next)
 				}
 			} else if (scaleStart?.type === 'sphere') {
-				const next = { r: scaleStart.r * ref.scale.x }
+				const next = { r: Math.max(0, scaleStart.r * ref.scale.x) }
 				if (isFrameEntity) {
 					session?.stageGeometry(entity, { type: 'sphere', ...next })
 				} else {
 					entity.set(traits.Sphere, next)
 				}
 			} else if (scaleStart?.type === 'capsule') {
-				const next = { r: scaleStart.r * ref.scale.x, l: scaleStart.l * ref.scale.y }
+				const next = {
+					r: Math.max(0, scaleStart.r * ref.scale.x),
+					l: Math.max(0, scaleStart.l * ref.scale.y),
+				}
 				if (isFrameEntity) {
 					session?.stageGeometry(entity, { type: 'capsule', ...next })
 				} else {
