@@ -8,9 +8,9 @@ Renders a Viam Geometry object
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
+	import { Group } from 'three'
 
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { traits, useTrait } from '$lib/ecs'
 	import { use3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { poseToObject3d } from '$lib/transform'
@@ -31,7 +31,7 @@ Renders a Viam Geometry object
 	const models = use3DModels()
 
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useParentName(() => entity)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const invisible = useTrait(() => entity, traits.Invisible)
 
@@ -52,6 +52,16 @@ Renders a Viam Geometry object
 		return models.current[componentName]?.[id]?.clone() ?? undefined
 	})
 
+	const group = new Group()
+	group.matrixAutoUpdate = false
+
+	$effect.pre(() => {
+		if (!worldMatrix.current) return
+		group.matrix.copy(worldMatrix.current)
+		group.updateMatrixWorld()
+		invalidate()
+	})
+
 	$effect.pre(() => {
 		if (model && center.current) {
 			poseToObject3d(center.current, model)
@@ -62,24 +72,25 @@ Renders a Viam Geometry object
 	const events = useEntityEvents(() => entity)
 </script>
 
-<Portal id={parent.current}>
-	<T.Group visible={invisible.current !== true}>
-		{#if model}
-			<T
-				is={model}
-				name={entity}
-				{...events}
-			/>
-		{/if}
+<T
+	is={group}
+	visible={invisible.current !== true}
+>
+	{#if model}
+		<T
+			is={model}
+			name={entity}
+			{...events}
+		/>
+	{/if}
 
-		{#if settings.current.renderArmModels.includes('colliders') || !model}
-			<Mesh
-				{entity}
-				center={center.current}
-				{...events}
-			>
-				{@render children?.()}
-			</Mesh>
-		{/if}
-	</T.Group>
-</Portal>
+	{#if settings.current.renderArmModels.includes('colliders') || !model}
+		<Mesh
+			{entity}
+			center={center.current}
+			{...events}
+		>
+			{@render children?.()}
+		</Mesh>
+	{/if}
+</T>
