@@ -585,6 +585,7 @@
 												y: box.current.y,
 												z: box.current.z,
 											}}
+											min={0}
 											on:change={handleBoxChange}
 										/>
 									</div>
@@ -596,6 +597,7 @@
 										<Slider
 											label="r"
 											value={sphere.current.r}
+											min={0}
 											on:change={handleSphereRChange}
 										/>
 									</div>
@@ -607,11 +609,13 @@
 										<Slider
 											label="r"
 											value={capsule.current.r}
+											min={0}
 											on:change={handleCapsuleRChange}
 										/>
 										<Slider
 											label="l"
 											value={capsule.current.l}
+											min={0}
 											on:change={handleCapsuleLChange}
 										/>
 									</div>
