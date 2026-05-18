@@ -1,5 +1,62 @@
 # motion-tools
 
+## 1.26.2
+
+### Patch Changes
+
+- 8f23f42: Fix: add fragment-defined component names to the parent options in the details panel
+- 3f97069: Clamp geometry dimensions to 0 when editing
+- cc409c0: fix: set 3d models current in outer loop
+- 7e983d0: Use local and world Matrix traits as object transform source-of-truth
+- dd4fd29: Update Treeview to use entity relations
+- 8f23f42: Fix: Hold the staged frame pose in embedded mode while the framesystem reconfigures
+
+## 1.26.1
+
+### Patch Changes
+
+- 424b6f5: Clamp `renderer.devicePixelRatio` between 1 and 2
+
+## 1.26.0
+
+### Minor Changes
+
+- cd5388e: Add an `autoSelectNewEntities` prop to `SelectionTool`. When enabled, each new entity added to the selection set (via lasso or ellipse) is set as the active `selectedEntity`, causing the Details panel to focus the latest selection. Defaults to `false` so existing consumers see no behavior change.
+
+### Patch Changes
+
+- 32a4ce4: Bump `@threlte/extras` to fix ghosting issue
+
+## 1.25.6
+
+### Patch Changes
+
+- dc5c94f: Fix: clicking on frames in the Treeview causes reparenting due to Tweakpane behavior
+
+## 1.25.5
+
+### Patch Changes
+
+- 142223f: Reduce logs memory and CPU consumption
+
+## 1.25.4
+
+### Patch Changes
+
+- f8533f4: hotfix: check positions on line dot cleanup
+
+## 1.25.3
+
+### Patch Changes
+
+- 8a420db: hotfix: Bail out line dot effect when positions is undefined
+
+## 1.25.2
+
+### Patch Changes
+
+- 1e0d80c: Update snapshots with the same UUID, rerender snapshots with different UUIDs, add `SetUUID` to `Snapshot`
+
 ## 1.25.1
 
 ### Patch Changes

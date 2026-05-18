@@ -89,11 +89,19 @@
 			</div>
 		</div>
 
+		<!--
+			Skip rendering the body subtree while collapsed. zag-js controls
+			visibility via attributes (the panel chrome stays mounted), but the
+			children don't need to react to upstream state when the user can't see them.
+			Children mount fresh on open.
+		-->
 		<div
 			{...api.getBodyProps()}
 			class="relative h-[calc(100%-33px)]"
 		>
-			{@render children()}
+			{#if isOpen}
+				{@render children()}
+			{/if}
 		</div>
 
 		{#if resizable}

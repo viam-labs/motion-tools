@@ -81,10 +81,40 @@ export const injectMachineConfig = async (page: Page, config: E2ETestConfig) => 
 					}
 				}
 
-				localStorage.setItem('active-connection-config', '0')
+				// Leave the active config unset (-1). The fixture activates the
+				// injected entry by host after reload, because the merged-list index
+				// depends on how many env configs the running dev server is serving —
+				// which the test can't know reliably (e.g. when `.env.local` defines
+				// VITE_CONFIGS and reuseExistingServer reuses that dev server).
+				localStorage.setItem('active-connection-config', '-1')
 			}),
 		config
 	)
+}
+
+export const activateConnectionConfigByHost = async (page: Page, host: string) => {
+	const configButton = page.getByRole('button', { name: 'Machine connection configs' })
+	await configButton.click()
+
+	await expect(async () => {
+		const rows = page.locator('form').filter({
+			has: page.locator('input[placeholder="Host"]'),
+		})
+		const count = await rows.count()
+		for (let index = 0; index < count; index += 1) {
+			const row = rows.nth(index)
+			if ((await row.locator('input[placeholder="Host"]').inputValue()) === host) {
+				const switchButton = row.getByRole('switch')
+				if ((await switchButton.getAttribute('aria-checked')) !== 'true') {
+					await switchButton.click()
+				}
+				return
+			}
+		}
+		throw new Error(`Connection config row for host "${host}" not found`)
+	}).toPass({ timeout: 10_000 })
+
+	await configButton.click()
 }
 
 export const connectViamClient = async (): Promise<ViamClient> => {
@@ -160,6 +190,7 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 		await page.goto('/')
 		await injectMachineConfig(page, config)
 		await page.reload()
+		await activateConnectionConfigByHost(page, config.host)
 
 		const machineConfigButton = page.getByRole('button', { name: 'Machine connection configs' })
 

@@ -88,6 +88,20 @@ export const provideConfigFrames = () => {
 
 	const getParentFrameOptions = (componentName: string) => {
 		const validFrames = new Set(frameValues.map((frame) => frame.referenceFrame))
+
+		/**
+		 * Fragment components without a mod don't appear in frameValues (we only
+		 * track frames with explicit $set mods), but the fragment itself supplies
+		 * their frame so they render in the scene and are valid parents. Exclude
+		 * any whose frame the user has $unset.
+		 */
+		const unsetFragmentNames = new Set(fragmentUnsetFrameNames)
+		for (const name of Object.keys(partConfig.componentNameToFragmentId)) {
+			if (!unsetFragmentNames.has(name)) {
+				validFrames.add(name)
+			}
+		}
+
 		validFrames.add('world')
 
 		const frameNameQueue = [componentName]

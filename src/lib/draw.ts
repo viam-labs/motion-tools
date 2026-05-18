@@ -1,7 +1,7 @@
 import type { TransformWithUUID } from '@viamrobotics/sdk'
 import type { ConfigurableTrait, Entity, Trait, World } from 'koota'
 
-import { Vector3, Vector4 } from 'three'
+import { Matrix4, Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { UuidTool } from 'uuid-tool'
 
@@ -27,7 +27,7 @@ import {
 import { hierarchy, relations, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
-import { createPose } from '$lib/transform'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 import { ColorFormat } from './buf/draw/v1/metadata_pb'
 import { isPointCloud } from './geometry'
@@ -83,7 +83,7 @@ export const drawTransform = (
 ) => {
 	const entityTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Pose(createPose(poseInObserverFrame?.pose)),
+		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 	]
 
@@ -151,7 +151,7 @@ export const drawDrawing = (
 
 	const entity = world.spawn(
 		traits.Name(referenceFrame),
-		traits.Pose(createPose(poseInObserverFrame?.pose)),
+		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 		...uuidTraits
@@ -171,7 +171,13 @@ export const updateTransform = (
 	{ poseInObserverFrame, physicalObject, metadata }: Transform,
 	{ removable = true }: DrawOptions = {}
 ) => {
-	entity.set(traits.Pose, createPose(poseInObserverFrame?.pose))
+	const matrix = entity.get(traits.Matrix)
+	if (matrix) {
+		poseToMatrix(createPose(poseInObserverFrame?.pose), matrix)
+		entity.changed(traits.Matrix)
+	} else {
+		entity.add(traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())))
+	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
@@ -232,7 +238,13 @@ export const updateDrawing = (
 
 	if (!world.has(entity)) return { entity, relationships: metadata?.relationships }
 
-	entity.set(traits.Pose, createPose(poseInObserverFrame?.pose))
+	const matrix = entity.get(traits.Matrix)
+	if (matrix) {
+		poseToMatrix(createPose(poseInObserverFrame?.pose), matrix)
+		entity.changed(traits.Matrix)
+	} else {
+		entity.add(traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())))
+	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
 
@@ -391,7 +403,7 @@ const drawModel = (
 
 	const baseTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Pose(createPose(poseInObserverFrame?.pose)),
+		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 	]
