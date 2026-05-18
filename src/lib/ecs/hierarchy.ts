@@ -24,14 +24,24 @@ export const parentTraits = (name: string | undefined): ConfigurableTrait[] => {
  * Set or clear an entity's parent. Strips any existing `ChildOf` or `Orphan`,
  * then writes `Orphan(name)` (the resolver converts it to `ChildOf` on the
  * next reactive flush). Pass `undefined` or `'world'` to detach to root.
+ *
+ * Short-circuits when the effective parent name (via resolved `ChildOf` or
+ * pending `Orphan`) already matches `name`. Network-backed reconcilers call
+ * this every refetch tick on stable entities; the demote-then-re-resolve
+ * dance otherwise flips `useParentName` to `undefined` and back, remounting
+ * every `<Portal id={parent.current}>` subtree per tick.
  */
 export const setParent = (entity: Entity, name: string | undefined): void => {
+	const desired = !name || name === 'world' ? undefined : name
 	const target = entity.targetFor(ChildOf)
+	const current = (target?.isAlive() ? target.get(Name) : undefined) ?? entity.get(Orphan)
+	if (current === desired) return
+
 	if (target) entity.remove(ChildOf(target))
 	entity.remove(Orphan)
 
-	if (!name || name === 'world') return
-	entity.add(Orphan(name))
+	if (desired === undefined) return
+	entity.add(Orphan(desired))
 }
 
 /** The parent entity, or `undefined` at the world root or while orphaned. */

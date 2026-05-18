@@ -2,7 +2,7 @@ import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js
 
 import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
-import { BufferGeometry as ThreeBufferGeometry } from 'three'
+import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
@@ -22,31 +22,54 @@ export const UUID = trait(() => '')
  */
 export const Orphan = trait(() => '')
 
-export const Pose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
-export const EditedPose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
-export const LivePose = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
+/**
+ * Static positional offset (e.g. center of a geometry). Stored as a Pose
+ * for the rare cases that need OV+theta semantics (currently unused).
+ * Never composed through the parent chain — the `WorldMatrix` system
+ * doesn't read it.
+ */
 export const Center = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 
-export const InstancedPose = trait({
-	x: 0,
-	y: 0,
-	z: 0,
-	oX: 0,
-	oY: 0,
-	oZ: 1,
-	theta: 0,
-	index: -1,
-})
+/**
+ * Local-to-parent transform. Stored AoS — one `Matrix4` instance per entity —
+ * not as 16 SoA fields. Every consumer reads all 16 elements of one entity at
+ * a time (`Object3D.matrix.copy`, batched-mesh per-instance writes, the
+ * world-matrix walk). SoA would allocate a fresh 16-field object on every
+ * `entity.get(Matrix)`; AoS returns the `Matrix4` reference, zero allocation
+ * per read, and plugs straight into Three.js. The trade-off — losing
+ * column-iteration locality — is fine because no system iterates a single
+ * matrix element across entities.
+ *
+ * Update pattern: read the `Matrix4` and mutate in place, then call
+ * `entity.changed(Matrix)` so `onChange` listeners (the `WorldMatrix` system,
+ * etc.) fire. Allocate a fresh `Matrix4` only on add.
+ */
+export const Matrix = trait(() => new Matrix4())
 
-export const WorldPose = trait({
-	x: 0,
-	y: 0,
-	z: 0,
-	oX: 0,
-	oY: 0,
-	oZ: 1,
-	theta: 0,
-})
+/** User-staged local transform during a `FrameEditSession`. */
+export const EditedMatrix = trait(() => new Matrix4())
+
+/**
+ * Live local transform from the robot's kinematics. Composed with `Matrix`
+ * (network baseline) and `EditedMatrix` to produce the rendered transform.
+ */
+export const LiveMatrix = trait(() => new Matrix4())
+
+/**
+ * Cumulative world-space transform — `parent.WorldMatrix × local rendered`.
+ * Maintained by `provideWorldMatrix`. Read by hover label placement,
+ * batched-mesh population, and any other consumer that needs world-space.
+ */
+export const WorldMatrix = trait(() => new Matrix4())
+
+/**
+ * World-space transform of a hovered instance inside a points/arrows batch,
+ * paired with the instance index in the parent batched mesh.
+ */
+export const InstancedMatrix = trait(() => ({
+	matrix: new Matrix4(),
+	index: -1,
+}))
 
 export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
@@ -128,8 +151,6 @@ export const GLTF = trait(() => ({
 	source: { url: '' } as { url: string } | { gltf: ThreeGltf } | { glb: Uint8Array },
 	animationName: '',
 }))
-
-export const Scale = trait({ x: 1, y: 1, z: 1 })
 
 export const FramesAPI = trait(() => true)
 export const GeometriesAPI = trait(() => true)
@@ -222,25 +243,31 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 	}
 
 	if (geometry.geometryType.case === 'box') {
+		const next = createBox(geometry.geometryType.value)
 		if (entity.has(Box)) {
-			entity.set(Box, createBox(geometry.geometryType.value))
+			const cur = entity.get(Box)!
+			if (cur.x !== next.x || cur.y !== next.y || cur.z !== next.z) entity.set(Box, next)
 		} else {
 			entity.remove(Capsule, Sphere, BufferGeometry)
-			entity.add(Box(createBox(geometry.geometryType.value)))
+			entity.add(Box(next))
 		}
 	} else if (geometry.geometryType.case === 'capsule') {
+		const next = createCapsule(geometry.geometryType.value)
 		if (entity.has(Capsule)) {
-			entity.set(Capsule, createCapsule(geometry.geometryType.value))
+			const cur = entity.get(Capsule)!
+			if (cur.r !== next.r || cur.l !== next.l) entity.set(Capsule, next)
 		} else {
 			entity.remove(Box, Sphere, BufferGeometry)
-			entity.add(Capsule(createCapsule(geometry.geometryType.value)))
+			entity.add(Capsule(next))
 		}
 	} else if (geometry.geometryType.case === 'sphere') {
+		const next = createSphere(geometry.geometryType.value)
 		if (entity.has(Sphere)) {
-			entity.set(Sphere, createSphere(geometry.geometryType.value))
+			const cur = entity.get(Sphere)!
+			if (cur.r !== next.r) entity.set(Sphere, next)
 		} else {
 			entity.remove(Box, Capsule, BufferGeometry)
-			entity.add(Sphere(createSphere(geometry.geometryType.value)))
+			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
 		if (entity.has(BufferGeometry)) {

@@ -6,7 +6,7 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import type { TreeNode } from './buildTree'
+	import type { TreeNode } from './useTree.svelte'
 
 	import Self from './TreeNode.svelte'
 
