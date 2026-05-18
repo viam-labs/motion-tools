@@ -138,7 +138,7 @@
 	bind:isOpen
 	defaultSize={{ width: 320, height: 240 }}
 	resizable
-	transparentBody
+	bodyClass="bg-transparent"
 	onPositionChange={() => invalidate()}
 	onSizeChange={() => invalidate()}
 >
