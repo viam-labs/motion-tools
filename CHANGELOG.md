@@ -1,5 +1,16 @@
 # motion-tools
 
+## 1.27.0
+
+### Minor Changes
+
+- 2fe4e97: Use MatrixWorld trait to transform all entities
+
+### Patch Changes
+
+- d7b764b: Fetch geometries from generic components
+- 2fe4e97: Run BVH generation on demand
+
 ## 1.26.2
 
 ### Patch Changes

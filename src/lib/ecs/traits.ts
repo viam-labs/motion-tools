@@ -152,8 +152,6 @@ export const GLTF = trait(() => ({
 	animationName: '',
 }))
 
-export const Scale = trait({ x: 1, y: 1, z: 1 })
-
 export const FramesAPI = trait(() => true)
 export const GeometriesAPI = trait(() => true)
 export const DrawAPI = trait(() => true)
