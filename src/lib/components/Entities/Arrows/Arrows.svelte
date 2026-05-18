@@ -1,14 +1,13 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
-	import { T } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
+	import { T, useThrelte } from '@threlte/core'
 
 	import type { InstancedArrows } from '$lib/three/InstancedArrows/InstancedArrows'
 
 	import AxesHelper from '$lib/components/AxesHelper.svelte'
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { traits, useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { meshBoundsRaycast, raycast } from '$lib/three/InstancedArrows/raycast'
 
@@ -19,7 +18,8 @@
 
 	let { entity, arrows }: Props = $props()
 
-	const parent = useParentName(() => entity)
+	const { invalidate } = useThrelte()
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const invisible = useTrait(() => entity, traits.Invisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 
@@ -35,32 +35,38 @@
 		}
 		return meshBoundsRaycast
 	})
+
+	$effect.pre(() => {
+		arrows.matrixAutoUpdate = false
+		if (!worldMatrix.current) return
+		arrows.matrix.copy(worldMatrix.current)
+		arrows.updateMatrixWorld()
+		invalidate()
+	})
 </script>
 
-<Portal id={parent.current}>
+<T
+	is={arrows}
+	name={entity}
+	{...events}
+	raycast={raycastFunction}
+	visible={invisible.current !== true}
+>
 	<T
-		is={arrows}
-		name={entity}
-		{...events}
-		raycast={raycastFunction}
-		visible={invisible.current !== true}
-	>
-		<T
-			is={arrows.headMesh}
-			bvh={{ enabled: false }}
-			raycast={() => null}
+		is={arrows.headMesh}
+		bvh={{ enabled: false }}
+		raycast={() => null}
+	/>
+	<T
+		is={arrows.shaftMesh}
+		bvh={{ enabled: false }}
+		raycast={() => null}
+	/>
+	{#if showAxesHelper.current}
+		<AxesHelper
+			name={entity}
+			width={3}
+			length={0.1}
 		/>
-		<T
-			is={arrows.shaftMesh}
-			bvh={{ enabled: false }}
-			raycast={() => null}
-		/>
-		{#if showAxesHelper.current}
-			<AxesHelper
-				name={entity}
-				width={3}
-				length={0.1}
-			/>
-		{/if}
-	</T>
-</Portal>
+	{/if}
+</T>

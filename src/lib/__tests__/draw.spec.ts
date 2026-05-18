@@ -347,7 +347,10 @@ describe('drawDrawing', () => {
 		expect(hierarchy.getParentName(assetEntity)).toBe('robot-model')
 		expect(assetEntity.targetFor(relations.ChildOf)).toBe(rootEntity)
 		expect(assetEntity.has(traits.SnapshotAPI)).toBe(true)
-		expect(assetEntity.get(traits.Scale)).toStrictEqual({ x: 2, y: 2, z: 2 })
+		const assetMatrix = assetEntity.get(traits.Matrix)
+		expect(assetMatrix?.elements[0]).toBeCloseTo(2)
+		expect(assetMatrix?.elements[5]).toBeCloseTo(2)
+		expect(assetMatrix?.elements[10]).toBeCloseTo(2)
 		expect(assetEntity.get(traits.GLTF)).toStrictEqual({
 			source: { url: 'https://example.com/model.gltf' },
 			animationName: '',
