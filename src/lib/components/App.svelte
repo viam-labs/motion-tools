@@ -35,6 +35,7 @@
 	import Logs from './overlay/Logs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
+	import FramePov from './overlay/widgets/FramePov.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
@@ -88,6 +89,7 @@
 	const settings = provideSettings()
 	const environment = provideEnvironment()
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
+	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
 	$effect(() => {
@@ -156,6 +158,10 @@
 					{#if !focus && !$isPresenting}
 						{#each currentRobotCameraWidgets as cameraName (cameraName)}
 							<Camera name={cameraName} />
+						{/each}
+
+						{#each currentFramePovWidgets as povFrameName (povFrameName)}
+							<FramePov frameName={povFrameName} />
 						{/each}
 					{/if}
 
