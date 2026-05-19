@@ -121,6 +121,7 @@
 		"@ag-grid-community/core": ">=32.3.0",
 		"@ag-grid-community/styles": ">=32.3.0",
 		"@dimforge/rapier3d-compat": ">=0.17",
+		"@tanstack/svelte-query-devtools": ">=6",
 		"@threlte/core": ">=8",
 		"@threlte/extras": ">=9",
 		"@threlte/rapier": ">=3",
@@ -143,6 +144,11 @@
 		"svelte": ">=5",
 		"svelte-tweakpane-ui": ">=1.5",
 		"svelte-virtuallists": ">=1"
+	},
+	"peerDependenciesMeta": {
+		"@tanstack/svelte-query-devtools": {
+			"optional": true
+		}
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

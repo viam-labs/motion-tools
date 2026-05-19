@@ -121,6 +121,8 @@
 {#if settings.current.enableQueryDevtools}
 	{#await import('@tanstack/svelte-query-devtools') then { SvelteQueryDevtools }}
 		<SvelteQueryDevtools initialIsOpen />
+	{:catch}
+		<!-- @tanstack/svelte-query-devtools is not installed; install it to use enableQueryDevtools -->
 	{/await}
 {/if}
 
