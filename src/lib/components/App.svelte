@@ -3,7 +3,6 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
@@ -120,7 +119,9 @@
 </script>
 
 {#if settings.current.enableQueryDevtools}
-	<SvelteQueryDevtools initialIsOpen />
+	{#await import('@tanstack/svelte-query-devtools') then { SvelteQueryDevtools }}
+		<SvelteQueryDevtools initialIsOpen />
+	{/await}
 {/if}
 
 <div
