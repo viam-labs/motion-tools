@@ -271,7 +271,9 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
 		if (entity.has(BufferGeometry)) {
+			const old = entity.get(BufferGeometry)
 			entity.set(BufferGeometry, parsePlyInput(geometry.geometryType.value.mesh))
+			old?.dispose()
 		} else {
 			entity.remove(Box, Sphere, Capsule)
 			entity.add(BufferGeometry(parsePlyInput(geometry.geometryType.value.mesh)))

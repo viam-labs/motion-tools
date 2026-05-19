@@ -56,9 +56,12 @@ const expandBoxByTransformedBox = (box: Box3, childBox: Box3, matrix: Matrix4) =
 
 export class OBBHelper extends LineSegments2 {
 	constructor(color = 0x000000, linewidth = 2) {
-		const edges = new EdgesGeometry(new BoxGeometry())
+		const boxGeometry = new BoxGeometry()
+		const edges = new EdgesGeometry(boxGeometry)
 		const geometry = new LineSegmentsGeometry()
 		geometry.setPositions(edges.getAttribute('position').array as Float32Array)
+		edges.dispose()
+		boxGeometry.dispose()
 
 		const material = new LineMaterial({
 			color,

@@ -25,6 +25,8 @@ export const createArrowGeometry = (): BufferGeometry => {
 	headGeo.translate(0, tailLength + headLength * 0.5, 0)
 
 	const merged = mergeGeometries([tailGeometry, headGeo], true)
+	tailGeometry.dispose()
+	headGeo.dispose()
 	merged.computeVertexNormals()
 	merged.computeBoundingBox()
 	merged.computeBoundingSphere()

@@ -8,6 +8,7 @@
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
+	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { CameraPose } from '$lib/hooks/useControls.svelte'
 
@@ -90,10 +91,6 @@
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
-	$effect(() => {
-		environment.current.inputBindingsEnabled = inputBindingsEnabled
-	})
-
 	createPartIDContext(() => partID)
 	provideDrawConnectionConfig(() => drawConnectionConfig)
 	provideWeblabs()
@@ -106,8 +103,17 @@
 		() => localConfigProps
 	)
 
-	$effect.pre(() => {
+	$effect(() => {
+		environment.current.inputBindingsEnabled = inputBindingsEnabled
 		environment.current.isStandalone = !localConfigProps
+	})
+
+	$effect(() => {
+		ThemeUtils.setGlobalDefaultTheme({
+			...ThemeUtils.presets.light,
+			baseBackgroundColor: '#fbfbfc',
+			baseShadowColor: 'transparent',
+		})
 	})
 </script>
 
