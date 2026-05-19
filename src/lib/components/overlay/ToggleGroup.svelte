@@ -50,7 +50,7 @@
 					'bg-green-700 text-white': api.value.includes(value),
 				},
 			]}
-			aria-label={option.label}
+			aria-label={Icon ? option.label : undefined}
 			{...api.getItemProps({ value })}
 		>
 			{#if Icon}
