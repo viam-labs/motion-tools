@@ -1,6 +1,7 @@
 import { getContext, setContext } from 'svelte'
 
-import { useFrames } from './useFrames.svelte'
+import { useFrames } from '$lib/hooks/useFrames.svelte'
+
 import { usePartConfig } from './usePartConfig.svelte'
 
 interface FramelessComponents {

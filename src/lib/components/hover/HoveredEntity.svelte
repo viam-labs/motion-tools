@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { MathUtils, Quaternion, Vector3 } from 'three'
 
-	import type { HoverInfo } from '$lib/HoverUpdater.svelte'
+	import type { HoverInfo } from '$lib/HoverUpdater'
 
 	import { traits, useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'

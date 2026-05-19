@@ -5,7 +5,7 @@ import { MathUtils, Matrix4, Quaternion, Vector2 } from 'three'
 
 import { traits, useTrait } from '$lib/ecs'
 import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
-import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
+import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater'
 import { OrientationVector } from '$lib/three/OrientationVector'
 
 const tempHoverMatrix = new Matrix4()

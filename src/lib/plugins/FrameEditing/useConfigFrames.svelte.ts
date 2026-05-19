@@ -2,9 +2,8 @@ import { Transform } from '@viamrobotics/sdk'
 import { getContext, setContext } from 'svelte'
 
 import { createTransformFromFrame, type Frame } from '$lib/frame'
-
-import { useEnvironment } from './useEnvironment.svelte'
-import { usePartConfig } from './usePartConfig.svelte'
+import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 const key = Symbol('config-frames-context')
 

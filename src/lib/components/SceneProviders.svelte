@@ -5,7 +5,6 @@
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
-	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import {
 		type CameraPose,
 		provideCameraControls,
@@ -13,8 +12,6 @@
 	} from '$lib/hooks/useControls.svelte'
 	import { provideDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
 	import { provideDrawService } from '$lib/hooks/useDrawService.svelte'
-	import { provideFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
-	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { provideLinkedEntities } from '$lib/hooks/useLinked.svelte'
@@ -26,6 +23,9 @@
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
+	import { provideConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+	import { provideFrameEditSession } from '$lib/plugins/FrameEditing/useFrameEditSession.svelte'
+	import { provideFramelessComponents } from '$lib/plugins/FrameEditing/useFramelessComponents.svelte'
 
 	import { provideOrigin } from './xr/useOrigin.svelte'
 

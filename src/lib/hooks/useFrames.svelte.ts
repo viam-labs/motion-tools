@@ -13,11 +13,11 @@ import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
-import { useConfigFrames } from './useConfigFrames.svelte'
+import { useConfigFrames } from '../plugins/FrameEditing/useConfigFrames.svelte'
+import { useFrameEditSession } from '../plugins/FrameEditing/useFrameEditSession.svelte'
+import { usePartConfig } from '../plugins/FrameEditing/usePartConfig.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
-import { useFrameEditSession } from './useFrameEditSession.svelte'
 import { useLogs } from './useLogs.svelte'
-import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {

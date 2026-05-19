@@ -10,11 +10,11 @@
 	import Entities from '$lib/components/Entities/Entities.svelte'
 	import Focus from '$lib/components/Focus.svelte'
 	import Selected from '$lib/components/Selected.svelte'
-	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { bvh } from '$lib/plugins/bvh.svelte'
+	import SelectedTransformControls from '$lib/plugins/FrameEditing/SelectedTransformControls.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'

@@ -2,12 +2,9 @@
 	import { TransformControls } from '@threlte/extras'
 	import { Matrix4, Quaternion, Vector3 } from 'three'
 
-	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
-
 	import { traits, useTrait } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
@@ -18,6 +15,10 @@
 		solveEditedMatrix,
 		vector3ToPose,
 	} from '$lib/transform'
+
+	import type { FrameEditSession } from './FrameEditSession'
+
+	import { useFrameEditSession } from './useFrameEditSession.svelte'
 
 	const settings = useSettings()
 	const environment = useEnvironment()

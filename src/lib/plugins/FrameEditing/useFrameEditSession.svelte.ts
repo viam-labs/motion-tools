@@ -2,8 +2,7 @@ import type { Entity } from 'koota'
 
 import { getContext, setContext } from 'svelte'
 
-import { FrameEditSession } from '$lib/editing/FrameEditSession'
-
+import { FrameEditSession } from './FrameEditSession'
 import { usePartConfig } from './usePartConfig.svelte'
 
 const key = Symbol('frame-edit-session-context')

@@ -7,7 +7,7 @@
 	import { SubEntityLinkType } from '$lib/ecs/relations'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useFocusedEntity } from '$lib/hooks/useSelection.svelte'
-	import { getLinkedHoverInfo, type HoverInfo } from '$lib/HoverUpdater.svelte'
+	import { getLinkedHoverInfo, type HoverInfo } from '$lib/HoverUpdater'
 
 	import HoveredEntityTooltip from './HoveredEntityTooltip.svelte'
 

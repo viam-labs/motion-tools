@@ -38,13 +38,10 @@
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
-	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useDrawService } from '$lib/hooks/useDrawService.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import {
@@ -54,6 +51,9 @@
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { FrameConfigUpdater } from '$lib/plugins/FrameEditing/FrameConfigUpdater.svelte'
+	import { useConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
