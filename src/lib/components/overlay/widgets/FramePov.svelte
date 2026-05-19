@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { useTask, useThrelte } from '@threlte/core'
 	import { Slider, type SliderChangeEvent } from 'svelte-tweakpane-ui'
-	import {
-		Matrix4,
-		OrthographicCamera,
-		PerspectiveCamera,
-		WebGLRenderer,
-	} from 'three'
+	import { Matrix4, OrthographicCamera, PerspectiveCamera, WebGLRenderer } from 'three'
 
 	import { traits, useQuery } from '$lib/ecs'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -124,8 +119,7 @@
 			const height = canvasEl.clientHeight
 			if (width <= 0 || height <= 0) return
 
-			const povCamera =
-				cameraMode === 'perspective' ? perspectiveCamera : orthographicCamera
+			const povCamera = cameraMode === 'perspective' ? perspectiveCamera : orthographicCamera
 
 			// Compose origin × worldMatrix × VIAM_TO_THREE_CAMERA. The frame
 			// entities' WorldMatrix lives in ECS world space; the rendered scene
