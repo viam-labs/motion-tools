@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
+	import type { ClassValue } from 'svelte/elements'
 
 	import { useThrelte } from '@threlte/core'
 	import { Icon } from '@viamrobotics/prime-core'
@@ -14,6 +15,9 @@
 		resizable?: boolean
 		persistRect?: boolean
 		isOpen?: boolean
+		bodyClass?: ClassValue
+		onPositionChange?: (details: floatingPanel.PositionChangeDetails) => void
+		onSizeChange?: (details: floatingPanel.SizeChangeDetails) => void
 		children: Snippet
 	}
 
@@ -25,6 +29,7 @@
 		resizable = false,
 		persistRect = true,
 		isOpen = $bindable(false),
+		bodyClass = 'bg-white',
 		children,
 		...props
 	}: Props = $props()
@@ -56,7 +61,7 @@
 >
 	<div
 		{...api.getContentProps()}
-		class="border-medium border-1 bg-white dark:text-black"
+		class="border-medium border-1 dark:text-black"
 	>
 		<div
 			{...api.getDragTriggerProps()}
@@ -64,7 +69,7 @@
 		>
 			<div
 				{...api.getHeaderProps()}
-				class="border-medium flex items-center justify-between border-b p-2"
+				class="border-medium flex items-center justify-between border-b bg-white p-2"
 			>
 				<h3
 					{...api.getTitleProps()}
@@ -97,7 +102,7 @@
 		-->
 		<div
 			{...api.getBodyProps()}
-			class="relative h-[calc(100%-33px)]"
+			class={['relative h-[calc(100%-33px)]', bodyClass]}
 		>
 			{#if isOpen}
 				{@render children()}

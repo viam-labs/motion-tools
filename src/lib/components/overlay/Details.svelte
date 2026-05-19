@@ -45,6 +45,7 @@
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import {
 		useFocusedEntity,
@@ -52,6 +53,7 @@
 		useSelectedEntity,
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
@@ -67,6 +69,8 @@
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
+	const partID = usePartID()
+	const settings = useSettings()
 	const selectedEntity = useSelectedEntity()
 	const selectedObject3d = useSelectedObject3d()
 	const environment = useEnvironment()
@@ -350,6 +354,32 @@
 						<Icon name="image-filter-center-focus" />
 					</button>
 					<p slot="description">Zoom to object</p>
+				</Tooltip>
+			{/if}
+
+			{#if name.current}
+				<Tooltip
+					let:tooltipID
+					location="bottom"
+				>
+					<button
+						class="text-subtle-2"
+						aria-describedby={tooltipID}
+						aria-label="Open view from this frame"
+						onclick={() => {
+							const frameName = name.current
+							if (!frameName) return
+							const list = settings.current.openFramePovWidgets[partID.current] ?? []
+							if (list.includes(frameName)) return
+							settings.current.openFramePovWidgets = {
+								...settings.current.openFramePovWidgets,
+								[partID.current]: [...list, frameName],
+							}
+						}}
+					>
+						<Icon name="camera-outline" />
+					</button>
+					<p slot="description">View from this frame</p>
 				</Tooltip>
 			{/if}
 
