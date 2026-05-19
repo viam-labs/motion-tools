@@ -212,6 +212,26 @@ func main() {
 
 See the [`draw` API reference](../../api/draw/) for the full set of `Snapshot.Draw*` methods.
 
+## Enabling query devtools
+
+The visualizer includes optional support for [TanStack Query Devtools](https://tanstack.com/query/latest/docs/framework/svelte/devtools) — a panel that lets you inspect active queries, cache state, and refetch intervals at runtime.
+
+The devtools package is an **optional peer dependency** and is not installed automatically. To opt in, install it in your project:
+
+```bash
+pnpm add @tanstack/svelte-query-devtools
+```
+
+Once installed, a **Query devtools** toggle appears in the **Stats** tab of the visualizer's Settings panel. Flip it on to open the devtools overlay. The toggle is hidden automatically when the package is not detected — consumers who don't install it see no difference.
+
+<Aside
+	type="caution"
+	title="Development only"
+>
+	`@tanstack/svelte-query-devtools` is intended for development. Avoid shipping it in production
+	bundles or enabling it in production environments.
+</Aside>
+
 ## Using only the standalone components
 
 A few components are exported via the `/lib` subpath and work without a `<Visualizer />` parent — useful if you just need a piece of the visualizer (e.g. an axes helper) inside your own Threlte canvas:

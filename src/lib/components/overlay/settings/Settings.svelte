@@ -57,6 +57,16 @@
 	const activeTab = new PersistedState('settings-active-tab', 'Connection')
 
 	const colorHex = $derived(`#${new Color(settings.current.pointColor).getHexString()}`)
+
+	let devtoolsAvailable = $state(false)
+
+	import('@tanstack/svelte-query-devtools')
+		.then(() => {
+			devtoolsAvailable = true
+		})
+		.catch(() => {
+			// Package not installed; hide the query devtools toggle
+		})
 </script>
 
 <Portal id="dashboard">
@@ -278,9 +288,11 @@
 
 {#snippet Stats()}
 	<div class="flex w-full flex-col gap-2.5 text-xs">
-		<label class="flex items-center justify-between gap-2">
-			Query devtools <Switch bind:on={settings.current.enableQueryDevtools} />
-		</label>
+		{#if devtoolsAvailable}
+			<label class="flex items-center justify-between gap-2">
+				Query devtools <Switch bind:on={settings.current.enableQueryDevtools} />
+			</label>
+		{/if}
 
 		<label class="flex items-center justify-between gap-2">
 			Render stats <Switch bind:on={settings.current.renderStats} />
