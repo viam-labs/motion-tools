@@ -1,5 +1,27 @@
 # motion-tools
 
+## 1.27.0
+
+### Minor Changes
+
+- 2fe4e97: Use MatrixWorld trait to transform all entities
+
+### Patch Changes
+
+- d7b764b: Fetch geometries from generic components
+- 2fe4e97: Run BVH generation on demand
+
+## 1.26.2
+
+### Patch Changes
+
+- 8f23f42: Fix: add fragment-defined component names to the parent options in the details panel
+- 3f97069: Clamp geometry dimensions to 0 when editing
+- cc409c0: fix: set 3d models current in outer loop
+- 7e983d0: Use local and world Matrix traits as object transform source-of-truth
+- dd4fd29: Update Treeview to use entity relations
+- 8f23f42: Fix: Hold the staged frame pose in embedded mode while the framesystem reconfigures
+
 ## 1.26.1
 
 ### Patch Changes
