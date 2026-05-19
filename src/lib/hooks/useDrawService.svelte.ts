@@ -27,7 +27,7 @@ import {
 	updateTransform,
 	uuidStringToBytes,
 } from '$lib/draw'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 
 import { useCameraControls } from './useControls.svelte'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
@@ -96,7 +96,7 @@ export function provideDrawService() {
 	const destroyDrawing = (uuidStr: string) => {
 		const entity = drawingEntities.get(uuidStr)
 		if (!entity) return
-		if (world.has(entity)) entity.destroy()
+		hierarchy.destroyEntityTree(world, entity)
 		drawingEntities.delete(uuidStr)
 	}
 
@@ -426,12 +426,12 @@ export function provideDrawService() {
 			activeClient = undefined
 
 			for (const entity of transformEntities.values()) {
-				if (world.has(entity)) entity.destroy()
+				hierarchy.destroyEntityTree(world, entity)
 			}
 			transformEntities.clear()
 
 			for (const entity of drawingEntities.values()) {
-				if (world.has(entity)) entity.destroy()
+				hierarchy.destroyEntityTree(world, entity)
 			}
 			drawingEntities.clear()
 			relationships.clear()

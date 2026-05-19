@@ -51,7 +51,13 @@
 		enabled.set(settings.current.interactionMode === 'navigate')
 	})
 
-	bvh(raycaster, () => ({ helper: false }))
+	const bvhEnabled = $derived(
+		settings.current.renderSubEntityHoverDetail ||
+			settings.current.interactionMode === 'measure' ||
+			settings.current.interactionMode === 'select'
+	)
+
+	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
 
 	const focusedObject = $derived(focusedObject3d.current)
 
