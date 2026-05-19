@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.27.1
+
+### Patch Changes
+
+- a522e15: Fix parenting on `GetGeometries` entities
+
 ## 1.27.0
 
 ### Minor Changes
