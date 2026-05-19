@@ -8,12 +8,19 @@
 	interface Props {
 		trigger: Snippet<[HTMLButtonAttributes]>
 		children: Snippet
+		open?: boolean
 	}
 
-	let { children, trigger }: Props = $props()
+	let { children, trigger, open = $bindable(false) }: Props = $props()
 
 	const id = $props.id()
-	const service = useMachine(popover.machine, { id })
+	const service = useMachine(popover.machine, () => ({
+		id,
+		open,
+		onOpenChange(details: { open: boolean }) {
+			open = details.open
+		},
+	}))
 	const api = $derived(popover.connect(service, normalizeProps))
 </script>
 

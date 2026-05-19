@@ -2,7 +2,7 @@
 	module
 	lang="ts"
 >
-	import { BoxGeometry, EdgesGeometry, SphereGeometry } from 'three'
+	import { BoxGeometry, EdgesGeometry, PlaneGeometry, SphereGeometry } from 'three'
 
 	/**
 	 * Shared unit geometries — every mesh references these and sets
@@ -10,8 +10,10 @@
 	 */
 	const unitBox = new BoxGeometry(1, 1, 1)
 	const unitSphere = new SphereGeometry(1, 16, 12)
+	const unitPlane = new PlaneGeometry(1, 1)
 	const unitBoxEdges = new EdgesGeometry(unitBox, 0)
 	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
+	const unitPlaneEdges = new EdgesGeometry(unitPlane, 0)
 </script>
 
 <script lang="ts">
@@ -49,6 +51,7 @@
 	const box = useTrait(() => entity, traits.Box)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const sphere = useTrait(() => entity, traits.Sphere)
+	const plane = useTrait(() => entity, traits.Plane)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const materialProps = useTrait(() => entity, traits.Material)
@@ -70,7 +73,7 @@
 		return colors.default
 	})
 
-	const currentOpacity = $derived(opacity.current ?? 0.7)
+	const currentOpacity = $derived(opacity.current ?? 1)
 
 	const isCapsule = $derived(capsule.current !== undefined)
 
@@ -103,6 +106,9 @@
 			mesh.scale.set(x * 0.001, y * 0.001, z * 0.001)
 		} else if (sphere.current) {
 			mesh.scale.setScalar((sphere.current.r ?? 0) * 0.001)
+		} else if (plane.current) {
+			const { x, y } = plane.current
+			mesh.scale.set(x * 0.001, y * 0.001, 1)
 		} else {
 			mesh.scale.set(1, 1, 1)
 		}
@@ -137,9 +143,13 @@
 		renderOrder={renderOrder.current}
 		{...rest}
 	>
-		{#if box.current || sphere.current}
-			{@const meshGeometry = box.current ? unitBox : unitSphere}
-			{@const edgesGeometry = box.current ? unitBoxEdges : unitSphereEdges}
+		{#if box.current || sphere.current || plane.current}
+			{@const meshGeometry = box.current ? unitBox : sphere.current ? unitSphere : unitPlane}
+			{@const edgesGeometry = box.current
+				? unitBoxEdges
+				: sphere.current
+					? unitSphereEdges
+					: unitPlaneEdges}
 			<!--
 				Switch via a derived `is` on the same <T> so `useAttach`'s effect
 				cleanup runs before the new attach. Splitting these across two
@@ -183,7 +193,7 @@
 
 		<T.MeshToonMaterial
 			{color}
-			side={bufferGeometry.current ? DoubleSide : FrontSide}
+			side={bufferGeometry.current || plane.current ? DoubleSide : FrontSide}
 			depthTest={materialProps.current?.depthTest ?? true}
 			oncreate={(m) => {
 				material = m

@@ -32,7 +32,14 @@
 	const worldStateEntities = useQuery(
 		traits.WorldStateStoreAPI,
 		Not(traits.Points, traits.LinePositions, traits.GLTF),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(
+			traits.Box,
+			traits.Capsule,
+			traits.Sphere,
+			traits.Plane,
+			traits.BufferGeometry,
+			traits.ReferenceFrame
+		)
 	)
 
 	/**
@@ -42,7 +49,14 @@
 	const drawServiceEntities = useQuery(
 		traits.DrawServiceAPI,
 		Not(traits.Points, traits.LinePositions, traits.GLTF),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(
+			traits.Box,
+			traits.Capsule,
+			traits.Sphere,
+			traits.Plane,
+			traits.BufferGeometry,
+			traits.ReferenceFrame
+		)
 	)
 
 	/**
@@ -54,7 +68,14 @@
 		Not(traits.WorldStateStoreAPI),
 		Not(traits.DrawServiceAPI),
 		Not(traits.Points),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(
+			traits.Box,
+			traits.Capsule,
+			traits.Sphere,
+			traits.Plane,
+			traits.BufferGeometry,
+			traits.ReferenceFrame
+		)
 	)
 
 	const points = useQuery(traits.Points)

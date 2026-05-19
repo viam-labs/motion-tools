@@ -145,6 +145,11 @@ export const Capsule = trait({ l: 200, r: 50 })
  */
 export const Sphere = trait({ r: 200 })
 
+/**
+ * A plane (XY in local space, normal +Z), dimensions in mm.
+ */
+export const Plane = trait({ x: 500, y: 500 })
+
 export const BufferGeometry = trait(() => new ThreeBufferGeometry())
 
 export const GLTF = trait(() => ({

@@ -8,6 +8,13 @@
 			selected?: boolean
 			label: string
 			value?: string
+			/**
+			 * When provided, the option renders as an icon (with `label` as
+			 * aria-label) instead of text. Accepts both Svelte 4 and Svelte 5
+			 * component types (e.g. lucide-svelte's Svelte 4 class components).
+			 */
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			icon?: any
 		}[]
 		onSelect: (details: string[]) => void
 	}
@@ -34,6 +41,7 @@
 >
 	{#each options as option (option.label)}
 		{@const value = option.value ?? option.label}
+		{@const Icon = option.icon}
 
 		<button
 			class={[
@@ -42,9 +50,14 @@
 					'bg-green-700 text-white': api.value.includes(value),
 				},
 			]}
+			aria-label={option.label}
 			{...api.getItemProps({ value })}
 		>
-			{value}
+			{#if Icon}
+				<Icon size={16} />
+			{:else}
+				{value}
+			{/if}
 		</button>
 	{/each}
 </div>

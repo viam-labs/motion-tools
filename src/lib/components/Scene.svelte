@@ -11,7 +11,6 @@
 	import Focus from '$lib/components/Focus.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
-	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { bvh } from '$lib/plugins/bvh.svelte'
@@ -86,7 +85,6 @@
 			</Camera>
 		{/if}
 
-		<StaticGeometries />
 		<Selected />
 		<SelectedTransformControls />
 

@@ -32,6 +32,7 @@
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
+	import AddShape from './overlay/AddShape.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import Logs from './overlay/Logs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
@@ -176,6 +177,7 @@
 					<Settings />
 					<Logs />
 					<AddFrames />
+					<AddShape />
 				</div>
 			{/snippet}
 		</SceneProviders>

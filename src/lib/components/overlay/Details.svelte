@@ -21,6 +21,11 @@
 	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
+		Checkbox,
+		type CheckboxChangeEvent,
+		type ColorChangeEvent,
+		Color as ColorPicker,
+		type ColorValueRgbObject,
 		List,
 		type ListChangeEvent,
 		Point,
@@ -90,10 +95,13 @@
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const plane = useTrait(() => entity, traits.Plane)
 	const removable = useTrait(() => entity, traits.Removable)
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
 	const opacity = useTrait(() => entity, traits.Opacity)
+	const colorTrait = useTrait(() => entity, traits.Color)
+	const invisible = useTrait(() => entity, traits.Invisible)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 
@@ -111,19 +119,34 @@
 
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
-	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions)
+	const isLocalEditable = $derived(!!removable.current)
+	const showEditFrameOptions = $derived(
+		(isFrameNode && partConfig.hasEditPermissions) || isLocalEditable
+	)
 	const showRelationshipOptions = $derived(points.current || arrows.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
 
-	let geometryType = $derived.by<'box' | 'sphere' | 'capsule' | 'none'>(() => {
+	let geometryType = $derived.by<'box' | 'sphere' | 'capsule' | 'plane' | 'none'>(() => {
 		if (box.current) return 'box'
 		if (sphere.current) return 'sphere'
 		if (capsule.current) return 'capsule'
+		if (plane.current) return 'plane'
 		return 'none'
 	})
 
-	const geometryTypes = ['none', 'box', 'sphere', 'capsule'] as const
+	// Plane isn't a partConfig geometry type, so it's only offered for local entities.
+	const geometryTypes = $derived(
+		(isLocalEditable && !isFrameNode
+			? (['none', 'box', 'sphere', 'capsule', 'plane'] as const)
+			: (['none', 'box', 'sphere', 'capsule'] as const)) as readonly (
+			| 'none'
+			| 'box'
+			| 'sphere'
+			| 'capsule'
+			| 'plane'
+		)[]
+	)
 	// Writable derived: re-derives from the trait, but TabGroup's bind:selectedIndex
 	// can write a transient override that lasts until the trait re-derives.
 	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
@@ -131,7 +154,8 @@
 	$effect(() => {
 		// setGeometryType guards against no-ops, so this is safe to fire on every
 		// tab-index change (whether user-initiated or trait-derived).
-		setGeometryType(geometryTypes[geometryTabIndex])
+		const next = geometryTypes[geometryTabIndex]
+		if (next) setGeometryType(next)
 	})
 
 	let copied = $state(false)
@@ -213,6 +237,45 @@
 		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
+	const handlePlaneChange = (event: PointChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !entity || !plane.current) return
+		const next = event.detail.value as PointValue3dObject
+		const change: { x?: number; y?: number } = {}
+		if (next.x !== plane.current.x) change.x = next.x
+		if (next.y !== plane.current.y) change.y = next.y
+		if (change.x === undefined && change.y === undefined) return
+		entity.set(traits.Plane, change)
+		invalidate()
+	}
+
+	const colorValue = $derived<ColorValueRgbObject>({
+		r: colorTrait.current?.r ?? 0.5,
+		g: colorTrait.current?.g ?? 0.5,
+		b: colorTrait.current?.b ?? 0.5,
+	})
+
+	const handleColorChange = (event: ColorChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !entity) return
+		const next = event.detail.value as ColorValueRgbObject
+		if (entity.has(traits.Color)) {
+			entity.set(traits.Color, { r: next.r, g: next.g, b: next.b })
+		} else {
+			entity.add(traits.Color({ r: next.r, g: next.g, b: next.b }))
+		}
+		invalidate()
+	}
+
+	const handleVisibilityChange = (event: CheckboxChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !entity) return
+		const visible = event.detail.value
+		if (visible) {
+			if (entity.has(traits.Invisible)) entity.remove(traits.Invisible)
+		} else {
+			if (!entity.has(traits.Invisible)) entity.add(traits.Invisible)
+		}
+		invalidate()
+	}
+
 	const opacityValue = $derived(opacity.current ?? 1)
 
 	const handleOpacityChange = (event: SliderChangeEvent) => {
@@ -238,7 +301,7 @@
 		detailConfigUpdater.setFrameParent(entity, value)
 	}
 
-	const setGeometryType = (type: 'none' | 'box' | 'sphere' | 'capsule') => {
+	const setGeometryType = (type: 'none' | 'box' | 'sphere' | 'capsule' | 'plane') => {
 		if (type === geometryType) {
 			return
 		}
@@ -644,6 +707,23 @@
 									</div>
 								{/if}
 							</TabPage>
+							{#if isLocalEditable && !isFrameNode}
+								<TabPage title="Plane">
+									{#if plane.current}
+										<div aria-label="mutable plane dimensions">
+											<Point
+												value={{
+													x: plane.current.x,
+													y: plane.current.y,
+													z: 0,
+												}}
+												min={0}
+												on:change={handlePlaneChange}
+											/>
+										</div>
+									{/if}
+								</TabPage>
+							{/if}
 						</TabGroup>
 					</div>
 				</div>
@@ -697,7 +777,45 @@
 						})}
 					</div>
 				</div>
+			{:else if plane.current}
+				<div>
+					<strong class="font-semibold">dimensions</strong>
+					<span class="text-subtle-2">(plane) (mm)</span>
+					<div class="mt-0.5 flex items-center gap-2">
+						{@render ImmutableField({
+							label: 'x',
+							ariaLabel: 'plane dimensions x value',
+							value: plane.current.x,
+						})}
+						{@render ImmutableField({
+							label: 'y',
+							ariaLabel: 'plane dimensions y value',
+							value: plane.current.y,
+						})}
+					</div>
+				</div>
 			{/if}
+
+			{#if colorTrait.current}
+				<div>
+					<strong class="font-semibold">color</strong>
+					<div aria-label="mutable color">
+						<ColorPicker
+							value={colorValue}
+							type="float"
+							on:change={handleColorChange}
+						/>
+					</div>
+				</div>
+			{/if}
+
+			<div aria-label="mutable visibility">
+				<Checkbox
+					label="visible"
+					value={invisible.current !== true}
+					on:change={handleVisibilityChange}
+				/>
+			</div>
 
 			<div>
 				<strong class="font-semibold">opacity</strong>

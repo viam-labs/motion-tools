@@ -156,4 +156,10 @@
 			entity?.add(traits.Invisible)
 		}
 	})
+
+	keys.onKeys('-', () => {
+		if (entity?.has(traits.Removable)) {
+			entity.destroy()
+		}
+	})
 </script>
