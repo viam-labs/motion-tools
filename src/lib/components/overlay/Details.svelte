@@ -48,13 +48,13 @@
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
 		useFocusedEntity,
 		useFocusedObject3d,
 		useSelectedEntity,
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
