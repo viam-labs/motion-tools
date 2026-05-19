@@ -2,7 +2,6 @@
 	module
 	lang="ts"
 >
-	import { ThemeUtils } from 'svelte-tweakpane-ui'
 	import { BufferAttribute, Euler, MathUtils, Quaternion } from 'three'
 
 	import { OrientationVector } from '$lib/three/OrientationVector'
@@ -280,12 +279,6 @@
 			2
 		)
 	}
-
-	ThemeUtils.setGlobalDefaultTheme({
-		...ThemeUtils.presets.light,
-		baseBackgroundColor: '#fbfbfc',
-		baseShadowColor: 'transparent',
-	})
 </script>
 
 {#snippet ImmutableField({
