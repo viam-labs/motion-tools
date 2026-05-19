@@ -3,11 +3,10 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useTask, useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
 	import { OrthographicCamera, Points, PointsMaterial } from 'three'
 
 	import { asColor, isSingleColor } from '$lib/buffer'
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { traits, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import AxesHelper from '../AxesHelper.svelte'
@@ -23,8 +22,7 @@
 	const { camera } = useThrelte()
 	const settings = useSettings()
 
-	const parent = useParentName(() => entity)
-	const matrix = useTrait(() => entity, traits.Matrix)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const geometry = useTrait(() => entity, traits.BufferGeometry)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
@@ -98,8 +96,8 @@
 	})
 
 	$effect.pre(() => {
-		if (matrix.current) {
-			points.matrix.copy(matrix.current)
+		if (worldMatrix.current) {
+			points.matrix.copy(worldMatrix.current)
 			points.updateMatrixWorld()
 		}
 	})
@@ -126,25 +124,23 @@
 </script>
 
 {#if geometry.current}
-	<Portal id={parent.current}>
-		<T
-			is={points}
-			name={entity}
-			bvh={{ maxDepth: 40, maxLeafSize: 20 }}
-			visible={invisible.current !== true}
-			renderOrder={renderOrder.current}
-			{...events}
-		>
-			<T is={geometry.current} />
-			<T is={material} />
-			{#if showAxesHelper.current}
-				<AxesHelper
-					name={entity}
-					width={3}
-					length={0.1}
-				/>
-			{/if}
-			{@render children?.()}
-		</T>
-	</Portal>
+	<T
+		is={points}
+		name={entity}
+		bvh={{ maxDepth: 40, maxLeafSize: 20 }}
+		visible={invisible.current !== true}
+		renderOrder={renderOrder.current}
+		{...events}
+	>
+		<T is={geometry.current} />
+		<T is={material} />
+		{#if showAxesHelper.current}
+			<AxesHelper
+				name={entity}
+				width={3}
+				length={0.1}
+			/>
+		{/if}
+		{@render children?.()}
+	</T>
 {/if}

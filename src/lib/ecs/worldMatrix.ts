@@ -1,12 +1,10 @@
 import { type Entity, type World } from 'koota'
-import { Matrix4, Vector3 } from 'three'
+import { Matrix4 } from 'three'
 
 import { composeLocalMatrix } from '$lib/transform'
 
 import { ChildOf } from './relations'
-import { EditedMatrix, LiveMatrix, Matrix, Scale, WorldMatrix } from './traits'
-
-const scaleVec3 = new Vector3()
+import { EditedMatrix, LiveMatrix, Matrix, WorldMatrix } from './traits'
 
 /**
  * Compute the entity's local-to-parent transform into `out`. Mirrors the
@@ -65,11 +63,6 @@ const recomputeWorldMatrix = (
 	const hasLocal = toLocalMatrix(entity, out)
 	if (!hasLocal) out.identity()
 
-	const scale = entity.get(Scale)
-	if (scale) {
-		out.scale(scaleVec3.copy(scale))
-	}
-
 	const parent = entity.targetFor(ChildOf)
 	if (parent && parent.isAlive()) {
 		const parentWorld = recomputeWorldMatrix(world, parent, cache)
@@ -111,8 +104,8 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 
 /**
  * Wire up listeners that maintain `WorldMatrix` reactively. Subscribes to
- * add/change/remove on `Matrix`, `EditedMatrix`, `LiveMatrix`, `Scale`, and
- * `ChildOf`; enqueues affected entities and flushes on the next microtask.
+ * add/change/remove on `Matrix`, `EditedMatrix`, `LiveMatrix`, and `ChildOf`;
+ * enqueues affected entities and flushes on the next microtask.
  *
  * Returns an unsubscribe function. Plain function (not a rune hook) so tests
  * can drive the lifecycle without mounting Svelte.
@@ -134,7 +127,6 @@ export const installWorldMatrixListeners = (world: World): (() => void) => {
 	for (const entity of world.query(Matrix)) enqueue(entity)
 	for (const entity of world.query(EditedMatrix)) enqueue(entity)
 	for (const entity of world.query(LiveMatrix)) enqueue(entity)
-	for (const entity of world.query(Scale)) enqueue(entity)
 
 	const unsubs = [
 		world.onAdd(Matrix, enqueue),
@@ -146,9 +138,6 @@ export const installWorldMatrixListeners = (world: World): (() => void) => {
 		world.onAdd(LiveMatrix, enqueue),
 		world.onChange(LiveMatrix, enqueue),
 		world.onRemove(LiveMatrix, enqueue),
-		world.onAdd(Scale, enqueue),
-		world.onChange(Scale, enqueue),
-		world.onRemove(Scale, enqueue),
 		world.onAdd(ChildOf, enqueue),
 		world.onChange(ChildOf, enqueue),
 		world.onRemove(ChildOf, enqueue),

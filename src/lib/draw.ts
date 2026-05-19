@@ -424,7 +424,11 @@ const drawModel = (
 			api,
 		]
 
-		if (scale) subEntityTraits.push(traits.Scale(scale))
+		if (scale) {
+			subEntityTraits.push(
+				traits.Matrix(new Matrix4().makeScale(scale.x ?? 1, scale.y ?? 1, scale.z ?? 1))
+			)
+		}
 		if (metadata?.invisible) subEntityTraits.push(traits.Invisible)
 		if (metadata?.showAxesHelper) subEntityTraits.push(traits.ShowAxesHelper)
 
