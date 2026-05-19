@@ -3,11 +3,11 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { meshBounds, Portal, PortalTarget } from '@threlte/extras'
+	import { meshBounds } from '@threlte/extras'
 	import { Line2, LineMaterial } from 'three/examples/jsm/Addons.js'
 
 	import { isVertexColors, STRIDE } from '$lib/buffer'
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { traits, useTrait } from '$lib/ecs'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -23,8 +23,7 @@
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useParentName(() => entity)
-	const matrix = useTrait(() => entity, traits.Matrix)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const color = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
 	const dotColors = useTrait(() => entity, traits.DotColors)
@@ -65,47 +64,45 @@
 	mesh.matrixAutoUpdate = false
 
 	$effect.pre(() => {
-		if (matrix.current) {
-			mesh.matrix.copy(matrix.current)
+		if (worldMatrix.current) {
+			mesh.matrix.copy(worldMatrix.current)
 			mesh.updateMatrixWorld()
 			invalidate()
 		}
 	})
 </script>
 
-<Portal id={parent.current}>
+<T
+	is={mesh}
+	name={entity}
+	userData.name={name}
+	raycast={meshBounds}
+	renderOrder={renderOrder.current}
+	visible={invisible.current !== true}
+	{...events}
+>
+	<LineGeometry
+		positions={linePositions.current}
+		colors={lineColors}
+	/>
 	<T
-		is={mesh}
-		name={entity}
-		userData.name={name}
-		raycast={meshBounds}
-		renderOrder={renderOrder.current}
-		visible={invisible.current !== true}
-		{...events}
-	>
-		<LineGeometry
-			positions={linePositions.current}
-			colors={lineColors}
+		is={LineMaterial}
+		color={hasVertexColors ? [1, 1, 1] : lineColor}
+		vertexColors={hasVertexColors}
+		transparent={currentOpacity < 1}
+		depthWrite={currentOpacity === 1}
+		opacity={currentOpacity}
+		worldUnits={!screenSpace.current}
+		linewidth={(lineWidth.current ?? 5) * (screenSpace.current ? 1 : 0.001)}
+		depthTest={materialProps.current?.depthTest ?? true}
+	/>
+	{#if showAxesHelper.current}
+		<AxesHelper
+			name={entity}
+			width={3}
+			length={0.1}
 		/>
-		<T
-			is={LineMaterial}
-			color={hasVertexColors ? [1, 1, 1] : lineColor}
-			vertexColors={hasVertexColors}
-			transparent={currentOpacity < 1}
-			depthWrite={currentOpacity === 1}
-			opacity={currentOpacity}
-			worldUnits={!screenSpace.current}
-			linewidth={(lineWidth.current ?? 5) * (screenSpace.current ? 1 : 0.001)}
-			depthTest={materialProps.current?.depthTest ?? true}
-		/>
-		{#if showAxesHelper.current}
-			<AxesHelper
-				name={entity}
-				width={3}
-				length={0.1}
-			/>
-		{/if}
-	</T>
+	{/if}
 
 	{#if linePositions.current && dotSize.current}
 		<LineDots
@@ -116,9 +113,5 @@
 		/>
 	{/if}
 
-	{#if name.current}
-		<PortalTarget id={name.current} />
-	{/if}
-
 	{@render children?.()}
-</Portal>
+</T>

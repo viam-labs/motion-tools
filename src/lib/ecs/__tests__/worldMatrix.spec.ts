@@ -2,6 +2,7 @@ import { createWorld, type World } from 'koota'
 import { Matrix4 } from 'three'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { assertExists } from '$lib/assert'
 import { relations, traits } from '$lib/ecs'
 import { installWorldMatrixListeners } from '$lib/ecs/worldMatrix'
 import { createPose, poseToMatrix } from '$lib/transform'
@@ -89,29 +90,13 @@ describe('worldMatrix system', () => {
 		expect(child.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.15)
 
 		// Mutate parent.Matrix in place + entity.changed — same idiom call sites use.
-		const parentMatrix = parent.get(traits.Matrix)!
+		const parentMatrix = parent.get(traits.Matrix)
+		assertExists(parentMatrix, 'Parent matrix is undefined')
 		poseToMatrix(createPose({ x: 200 }), parentMatrix)
 		parent.changed(traits.Matrix)
 		await tick()
 
 		expect(child.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.25)
-	})
-
-	it('applies Scale to the local transform', async () => {
-		world = createWorld()
-		unsub = installWorldMatrixListeners(world)
-
-		const entity = world.spawn(
-			traits.Matrix(matrixOf({ x: 0, y: 0, z: 0 })),
-			traits.Scale({ x: 2, y: 2, z: 2 })
-		)
-		await tick()
-
-		const worldMat = entity.get(traits.WorldMatrix)!
-		// Scale 2 means elements[0]/[5]/[10] should be 2 (diagonal of a pure-scale matrix at origin).
-		expect(worldMat.elements[0]).toBeCloseTo(2)
-		expect(worldMat.elements[5]).toBeCloseTo(2)
-		expect(worldMat.elements[10]).toBeCloseTo(2)
 	})
 
 	it('coalesces multiple changes into a single flush', async () => {

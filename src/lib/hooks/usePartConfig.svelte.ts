@@ -62,7 +62,7 @@ export const providePartConfig = (
 	const config = $derived(props ? useEmbeddedPartConfig(props) : useStandalonePartConfig(partID))
 
 	const getCurrent = () => {
-		return (config.current.toJson?.() ?? { components: [] }) as unknown as PartConfig
+		return (config.current?.toJson?.() ?? { components: [] }) as unknown as PartConfig
 	}
 
 	const current = $derived(getCurrent())
@@ -435,10 +435,12 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		const id = partID()
 		if (lastPartID !== undefined && lastPartID !== id) {
 			// Part changed: drop any in-memory edits/pending-save state from the
-			// previous part. `current` is left for the existing sync below to
-			// repopulate once the new part's networkPartConfig arrives.
+			// previous part, and clear `current` so consumers don't keep
+			// rendering the old config's frames while the new part loads
+			// (offline parts may never load, leaving the old frames forever).
 			isDirty = false
 			hasPendingSave = false
+			current = undefined
 		}
 		lastPartID = id
 
