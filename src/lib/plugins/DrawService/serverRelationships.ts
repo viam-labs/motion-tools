@@ -1,20 +1,22 @@
-import type { Entity } from 'koota'
+import { type Entity, trait } from 'koota'
 
 import type { Relationship } from '$lib/metadata'
 
 import { uuidBytesToString } from '$lib/draw'
-import { relations, traits, useQuery, useWorld } from '$lib/ecs'
+import { relations, traits, useWorld } from '$lib/ecs'
 
-interface CachedLink {
+interface Link {
+	targetUuid: string
 	type: string
 	indexMapping: string
 }
 
-interface PendingLink {
-	entity: Entity
-	type: string
-	indexMapping: string
-}
+/**
+ * Forward-references waiting on their target entity to arrive. Lives on the
+ * source entity so it dies with it — no plugin-side bookkeeping to leak when
+ * a source is destroyed before its targets show up.
+ */
+const PendingLinks = trait(() => [] as Link[])
 
 /**
  * Diffs incoming server relationships against the last-known set per entity,
@@ -24,44 +26,62 @@ interface PendingLink {
  */
 export const createServerRelationships = () => {
 	const world = useWorld()
-	const uuidQuery = useQuery(traits.UUID)
 
-	const cache = new Map<string, Map<string, CachedLink>>()
-	const pending = new Map<string, PendingLink[]>()
+	const cache = new Map<string, Map<string, Link>>()
 
 	const lookupByUuid = (uuid: string) =>
-		uuidQuery.current.find((entity) => entity.get(traits.UUID) === uuid)
+		world.query(traits.UUID).find((entity) => entity.get(traits.UUID) === uuid)
+
+	const enqueue = (sourceEntity: Entity, entry: Link) => {
+		const existing = sourceEntity.get(PendingLinks) ?? []
+		sourceEntity.set(PendingLinks, [...existing, entry])
+	}
 
 	const unsubAdd = world.onAdd(traits.UUID, (target) => {
+		if (!target.isAlive()) return
+
 		const targetUuid = target.get(traits.UUID)
 		if (!targetUuid) return
 
-		const queued = pending.get(targetUuid)
-		if (!queued) return
-		pending.delete(targetUuid)
+		for (const source of world.query(PendingLinks)) {
+			if (!source.isAlive()) continue
 
-		if (!target.isAlive()) return
+			const queue = source.get(PendingLinks) ?? []
+			const remaining: Link[] = []
+			let drained = false
 
-		for (const { entity, type, indexMapping } of queued) {
-			if (!entity.isAlive()) continue
-			entity.add(relations.SubEntityLink(target, { type, indexMapping }))
+			for (const entry of queue) {
+				if (entry.targetUuid === targetUuid) {
+					source.add(
+						relations.SubEntityLink(target, { type: entry.type, indexMapping: entry.indexMapping })
+					)
+					drained = true
+				} else {
+					remaining.push(entry)
+				}
+			}
+
+			if (!drained) continue
+			if (remaining.length === 0) source.remove(PendingLinks)
+			else source.set(PendingLinks, remaining)
 		}
 	})
 
 	return {
 		apply(sourceEntity: Entity, sourceUuid: string, relationships: Relationship[] | undefined) {
-			const desired = new Map<string, CachedLink>()
+			const desired = new Map<string, Link>()
 
 			for (const relationship of relationships ?? []) {
 				const targetUuid = uuidBytesToString(relationship.targetUuid)
 				if (!targetUuid) continue
 				desired.set(targetUuid, {
+					targetUuid,
 					type: relationship.type,
 					indexMapping: relationship.indexMapping ?? 'index',
 				})
 			}
 
-			const previous = cache.get(sourceUuid) ?? new Map<string, CachedLink>()
+			const previous = cache.get(sourceUuid) ?? new Map<string, Link>()
 
 			for (const targetUuid of previous.keys()) {
 				if (desired.has(targetUuid)) continue
@@ -79,13 +99,12 @@ export const createServerRelationships = () => {
 
 				const target = lookupByUuid(targetUuid)
 				if (!target) {
-					const next = pending.get(targetUuid) ?? []
-					next.push({ entity: sourceEntity, ...link })
-					pending.set(targetUuid, next)
-
+					enqueue(sourceEntity, link)
 					continue
 				}
-				sourceEntity.add(relations.SubEntityLink(target, { ...link }))
+				sourceEntity.add(
+					relations.SubEntityLink(target, { type: link.type, indexMapping: link.indexMapping })
+				)
 			}
 
 			if (desired.size === 0) {
@@ -102,7 +121,6 @@ export const createServerRelationships = () => {
 		dispose() {
 			unsubAdd()
 			cache.clear()
-			pending.clear()
 		},
 	}
 }
