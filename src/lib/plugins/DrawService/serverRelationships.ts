@@ -32,27 +32,19 @@ export const createServerRelationships = () => {
 	const lookupByUuid = (uuid: string) =>
 		uuidQuery.current.find((entity) => entity.get(traits.UUID) === uuid)
 
-	$effect(() => {
-		const unsubAdd = world.onAdd(traits.UUID, (target) => {
-			const targetUuid = target.get(traits.UUID)
-			if (!targetUuid) return
+	const unsubAdd = world.onAdd(traits.UUID, (target) => {
+		const targetUuid = target.get(traits.UUID)
+		if (!targetUuid) return
 
-			const queued = pending.get(targetUuid)
-			if (!queued) return
-			pending.delete(targetUuid)
+		const queued = pending.get(targetUuid)
+		if (!queued) return
+		pending.delete(targetUuid)
 
-			if (!target.isAlive()) return
+		if (!target.isAlive()) return
 
-			for (const { entity, type, indexMapping } of queued) {
-				if (!entity.isAlive()) continue
-				entity.add(relations.SubEntityLink(target, { type, indexMapping }))
-			}
-		})
-
-		return () => {
-			unsubAdd()
-			cache.clear()
-			pending.clear()
+		for (const { entity, type, indexMapping } of queued) {
+			if (!entity.isAlive()) continue
+			entity.add(relations.SubEntityLink(target, { type, indexMapping }))
 		}
 	})
 
@@ -105,6 +97,12 @@ export const createServerRelationships = () => {
 
 		forget(sourceUuid: string) {
 			cache.delete(sourceUuid)
+		},
+
+		dispose() {
+			unsubAdd()
+			cache.clear()
+			pending.clear()
 		},
 	}
 }

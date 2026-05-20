@@ -21,8 +21,8 @@ import {
 	updateTransform,
 } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
-import { useCameraControls } from '../../hooks/useControls.svelte'
 import { createServerRelationships } from './serverRelationships'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 
@@ -386,6 +386,7 @@ export function provideDrawService() {
 				hierarchy.destroyEntityTree(world, entity)
 			}
 			drawingEntities.clear()
+			serverRelationships.dispose()
 		}
 	})
 
