@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { PCD, SelectionTool } from '$lib'
+	import { PCD } from '$lib'
+	import { SelectionTool } from '$lib/plugins'
 	import { createRandomPcdBinary } from '$lib/test/createRandomPcdBinary'
 
 	import SelectionOverlay from '../lib/components/selectDemoPage/SelectionOverlay.svelte'

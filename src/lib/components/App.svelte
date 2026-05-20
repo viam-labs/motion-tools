@@ -18,10 +18,6 @@
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld } from '$lib/ecs'
-	import {
-		type DrawConnectionConfig,
-		provideDrawConnectionConfig,
-	} from '$lib/hooks/useDrawConnectionConfig.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
@@ -51,7 +47,6 @@
 		partID?: string
 		inputBindingsEnabled?: boolean
 		localConfigProps?: LocalConfigProps
-		drawConnectionConfig?: DrawConnectionConfig
 
 		/**
 		 * Snippet for THREE objects
@@ -79,7 +74,6 @@
 		inputBindingsEnabled = true,
 		localConfigProps,
 		cameraPose,
-		drawConnectionConfig,
 		children: appChildren,
 		dashboard,
 		details,
@@ -94,7 +88,7 @@
 	const { isPresenting } = useXR()
 
 	createPartIDContext(() => partID)
-	provideDrawConnectionConfig(() => drawConnectionConfig)
+
 	provideWeblabs()
 	provideToast()
 
