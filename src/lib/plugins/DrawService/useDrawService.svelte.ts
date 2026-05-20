@@ -23,8 +23,8 @@ import {
 import { hierarchy, traits, useQuery, useWorld } from '$lib/ecs'
 
 import { useCameraControls } from '../../hooks/useControls.svelte'
-import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 import { createServerRelationships } from './serverRelationships'
+import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 
 const DRAW_SERVICE_KEY = Symbol('draw-service-context')
 const FLOAT32_SIZE = 4
