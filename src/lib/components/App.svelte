@@ -8,6 +8,7 @@
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
+	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { CameraPose } from '$lib/hooks/useControls.svelte'
@@ -111,11 +112,7 @@
 	})
 
 	$effect(() => {
-		ThemeUtils.setGlobalDefaultTheme({
-			...ThemeUtils.presets.light,
-			baseBackgroundColor: '#fbfbfc',
-			baseShadowColor: 'transparent',
-		})
+		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
 </script>
 
