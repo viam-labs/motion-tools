@@ -1,5 +1,5 @@
 ---
-"@viamrobotics/motion-tools": patch
+"@viamrobotics/motion-tools": minor
 ---
 
 Move Draw Service to `/plugins`
