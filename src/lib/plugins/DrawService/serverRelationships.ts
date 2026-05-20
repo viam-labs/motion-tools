@@ -17,10 +17,10 @@ interface PendingLink {
 }
 
 /**
- * Tracks the relationship set the draw service has authored on each source
- * entity, so that incoming stream events only mutate `SubEntityLink`s the
- * server itself owns. Client-added links (e.g. interactive HoverLinks from
- * the Details overlay) are invisible to this diff and never touched.
+ * Diffs incoming server relationships against the last-known set per entity,
+ * so only links the draw service itself authored are added or removed.
+ * Client-added links (e.g. interactive HoverLinks from the Details overlay)
+ * are left alone.
  */
 export const createServerRelationships = () => {
 	const world = useWorld()
