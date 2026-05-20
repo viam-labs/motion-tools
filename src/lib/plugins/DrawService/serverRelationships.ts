@@ -3,7 +3,7 @@ import type { Entity } from 'koota'
 import type { Relationship } from '$lib/metadata'
 
 import { uuidBytesToString } from '$lib/draw'
-import { relations, traits, useQuery } from '$lib/ecs'
+import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
 interface CachedLink {
 	type: string
@@ -23,6 +23,7 @@ interface PendingLink {
  * the Details overlay) are invisible to this diff and never touched.
  */
 export const createServerRelationships = () => {
+	const world = useWorld()
 	const uuidQuery = useQuery(traits.UUID)
 
 	const cache = new Map<string, Map<string, CachedLink>>()
@@ -31,11 +32,29 @@ export const createServerRelationships = () => {
 	const lookupByUuid = (uuid: string) =>
 		uuidQuery.current.find((entity) => entity.get(traits.UUID) === uuid)
 
-	const addPending = (targetUuid: string, link: PendingLink) => {
-		const next = pending.get(targetUuid) ?? []
-		next.push(link)
-		pending.set(targetUuid, next)
-	}
+	$effect(() => {
+		const unsubAdd = world.onAdd(traits.UUID, (target) => {
+			const targetUuid = target.get(traits.UUID)
+			if (!targetUuid) return
+
+			const queued = pending.get(targetUuid)
+			if (!queued) return
+			pending.delete(targetUuid)
+
+			if (!target.isAlive()) return
+
+			for (const { entity, type, indexMapping } of queued) {
+				if (!entity.isAlive()) continue
+				entity.add(relations.SubEntityLink(target, { type, indexMapping }))
+			}
+		})
+
+		return () => {
+			unsubAdd()
+			cache.clear()
+			pending.clear()
+		}
+	})
 
 	return {
 		apply(sourceEntity: Entity, sourceUuid: string, relationships: Relationship[] | undefined) {
@@ -68,7 +87,10 @@ export const createServerRelationships = () => {
 
 				const target = lookupByUuid(targetUuid)
 				if (!target) {
-					addPending(targetUuid, { entity: sourceEntity, ...link })
+					const next = pending.get(targetUuid) ?? []
+					next.push({ entity: sourceEntity, ...link })
+					pending.set(targetUuid, next)
+
 					continue
 				}
 				sourceEntity.add(relations.SubEntityLink(target, { ...link }))
@@ -81,32 +103,8 @@ export const createServerRelationships = () => {
 			}
 		},
 
-		flush(targetUuid: string) {
-			const queued = pending.get(targetUuid)
-			if (!queued) return
-			pending.delete(targetUuid)
-
-			const target = lookupByUuid(targetUuid)
-			if (!target?.isAlive()) {
-				return
-			}
-
-			for (const { entity, type, indexMapping } of queued) {
-				if (!entity.isAlive()) {
-					continue
-				}
-
-				entity.add(relations.SubEntityLink(target, { type, indexMapping }))
-			}
-		},
-
 		forget(sourceUuid: string) {
 			cache.delete(sourceUuid)
-		},
-
-		clear() {
-			cache.clear()
-			pending.clear()
 		},
 	}
 }

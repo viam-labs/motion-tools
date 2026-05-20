@@ -108,7 +108,6 @@ export function provideDrawService() {
 				const spawned = drawTransform(world, transform, traits.DrawServiceAPI)
 				serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 				transformEntities.set(uuid, spawned.entity)
-				serverRelationships.flush(uuid)
 			}
 		} else if (changeType === EntityChangeType.REMOVED) {
 			serverRelationships.forget(uuid)
@@ -122,7 +121,6 @@ export function provideDrawService() {
 				const spawned = drawTransform(world, transform, traits.DrawServiceAPI)
 				serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 				transformEntities.set(uuid, spawned.entity)
-				serverRelationships.flush(uuid)
 			}
 		}
 	}
@@ -209,7 +207,6 @@ export function provideDrawService() {
 				const spawned = drawDrawing(world, drawing, traits.DrawServiceAPI)
 				serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 				drawingEntities.set(uuid, spawned.entity)
-				serverRelationships.flush(uuid)
 
 				if (isChunkedDrawing(drawing) && activeClient && activeSignal) {
 					const chunk = getChunkInfo(drawing)
@@ -244,7 +241,6 @@ export function provideDrawService() {
 				const spawned = drawDrawing(world, drawing, traits.DrawServiceAPI)
 				serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 				drawingEntities.set(uuid, spawned.entity)
-				serverRelationships.flush(uuid)
 			}
 		}
 	}
@@ -390,7 +386,6 @@ export function provideDrawService() {
 				hierarchy.destroyEntityTree(world, entity)
 			}
 			drawingEntities.clear()
-			serverRelationships.clear()
 		}
 	})
 
