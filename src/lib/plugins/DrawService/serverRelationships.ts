@@ -1,9 +1,9 @@
-import { type Entity, type World } from 'koota'
+import type { Entity } from 'koota'
 
 import type { Relationship } from '$lib/metadata'
 
 import { uuidBytesToString } from '$lib/draw'
-import { relations } from '$lib/ecs'
+import { relations, traits, useQuery } from '$lib/ecs'
 
 interface CachedLink {
 	type: string
@@ -16,26 +16,20 @@ interface PendingLink {
 	indexMapping: string
 }
 
-const normalize = (rel: Relationship): CachedLink => ({
-	type: rel.type,
-	indexMapping: rel.indexMapping ?? 'index',
-})
-
-const linkEqual = (a: CachedLink, b: CachedLink) =>
-	a.type === b.type && a.indexMapping === b.indexMapping
-
 /**
  * Tracks the relationship set the draw service has authored on each source
  * entity, so that incoming stream events only mutate `SubEntityLink`s the
  * server itself owns. Client-added links (e.g. interactive HoverLinks from
  * the Details overlay) are invisible to this diff and never touched.
  */
-export const createServerRelationships = (
-	_world: World,
-	lookupByUuid: (uuid: string) => Entity | undefined
-) => {
+export const createServerRelationships = () => {
+	const uuidQuery = useQuery(traits.UUID)
+
 	const cache = new Map<string, Map<string, CachedLink>>()
 	const pending = new Map<string, PendingLink[]>()
+
+	const lookupByUuid = (uuid: string) =>
+		uuidQuery.current.find((entity) => entity.get(traits.UUID) === uuid)
 
 	const addPending = (targetUuid: string, link: PendingLink) => {
 		const next = pending.get(targetUuid) ?? []
@@ -44,12 +38,16 @@ export const createServerRelationships = (
 	}
 
 	return {
-		apply(sourceEntity: Entity, sourceUuid: string, incoming: Relationship[] | undefined) {
+		apply(sourceEntity: Entity, sourceUuid: string, relationships: Relationship[] | undefined) {
 			const desired = new Map<string, CachedLink>()
-			for (const rel of incoming ?? []) {
-				const targetUuid = uuidBytesToString(rel.targetUuid)
+
+			for (const relationship of relationships ?? []) {
+				const targetUuid = uuidBytesToString(relationship.targetUuid)
 				if (!targetUuid) continue
-				desired.set(targetUuid, normalize(rel))
+				desired.set(targetUuid, {
+					type: relationship.type,
+					indexMapping: relationship.indexMapping ?? 'index',
+				})
 			}
 
 			const previous = cache.get(sourceUuid) ?? new Map<string, CachedLink>()
@@ -64,18 +62,23 @@ export const createServerRelationships = (
 
 			for (const [targetUuid, link] of desired) {
 				const before = previous.get(targetUuid)
-				if (before && linkEqual(before, link)) continue
+				if (before?.type === link.type && before?.indexMapping === link.indexMapping) {
+					continue
+				}
 
 				const target = lookupByUuid(targetUuid)
 				if (!target) {
 					addPending(targetUuid, { entity: sourceEntity, ...link })
 					continue
 				}
-				sourceEntity.add(relations.SubEntityLink(target, link))
+				sourceEntity.add(relations.SubEntityLink(target, { ...link }))
 			}
 
-			if (desired.size === 0) cache.delete(sourceUuid)
-			else cache.set(sourceUuid, desired)
+			if (desired.size === 0) {
+				cache.delete(sourceUuid)
+			} else {
+				cache.set(sourceUuid, desired)
+			}
 		},
 
 		flush(targetUuid: string) {
@@ -84,10 +87,15 @@ export const createServerRelationships = (
 			pending.delete(targetUuid)
 
 			const target = lookupByUuid(targetUuid)
-			if (!target?.isAlive()) return
+			if (!target?.isAlive()) {
+				return
+			}
 
 			for (const { entity, type, indexMapping } of queued) {
-				if (!entity.isAlive()) continue
+				if (!entity.isAlive()) {
+					continue
+				}
+
 				entity.add(relations.SubEntityLink(target, { type, indexMapping }))
 			}
 		},

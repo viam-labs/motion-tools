@@ -20,7 +20,7 @@ import {
 	updateModel,
 	updateTransform,
 } from '$lib/draw'
-import { hierarchy, traits, useQuery, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 
 import { useCameraControls } from '../../hooks/useControls.svelte'
 import { createServerRelationships } from './serverRelationships'
@@ -53,10 +53,7 @@ export function provideDrawService() {
 	const world = useWorld()
 	const cameraControls = useCameraControls()
 	const drawConnectionConfig = useDrawConnectionConfig()
-	const uuidQuery = useQuery(traits.UUID)
-	const serverRelationships = createServerRelationships(world, (uuid) =>
-		uuidQuery.current.find((entity) => entity.get(traits.UUID) === uuid)
-	)
+	const serverRelationships = createServerRelationships()
 
 	let connectionStatus = $state<ConnectionStatusType>(ConnectionStatus.DISCONNECTED)
 
