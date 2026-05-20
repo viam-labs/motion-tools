@@ -118,13 +118,13 @@
 	})
 </script>
 
-{#if settings.current.enableQueryDevtools}
-	{#await import('@tanstack/svelte-query-devtools') then { SvelteQueryDevtools }}
+{#await import('@tanstack/svelte-query-devtools') then { SvelteQueryDevtools }}
+	{#if settings.current.enableQueryDevtools}
 		<SvelteQueryDevtools initialIsOpen />
-	{:catch}
-		<!-- @tanstack/svelte-query-devtools is not installed; install it to use enableQueryDevtools -->
-	{/await}
-{/if}
+	{/if}
+{:catch}
+	<!-- @tanstack/svelte-query-devtools is not installed; enableQueryDevtools will have no effect -->
+{/await}
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"
