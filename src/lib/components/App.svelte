@@ -116,15 +116,20 @@
 			baseShadowColor: 'transparent',
 		})
 	})
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let QueryDevtools = $state<any>(null)
+
+	import('@tanstack/svelte-query-devtools')
+		.then((mod) => {
+			QueryDevtools = mod.SvelteQueryDevtools
+		})
+		.catch(() => {})
 </script>
 
-{#await import('@tanstack/svelte-query-devtools') then { SvelteQueryDevtools }}
-	{#if settings.current.enableQueryDevtools}
-		<SvelteQueryDevtools initialIsOpen />
-	{/if}
-{:catch}
-	<!-- @tanstack/svelte-query-devtools is not installed; enableQueryDevtools will have no effect -->
-{/await}
+{#if settings.current.enableQueryDevtools && QueryDevtools}
+	<QueryDevtools initialIsOpen />
+{/if}
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"
