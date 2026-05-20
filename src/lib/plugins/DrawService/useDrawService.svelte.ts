@@ -386,9 +386,11 @@ export function provideDrawService() {
 				hierarchy.destroyEntityTree(world, entity)
 			}
 			drawingEntities.clear()
-			serverRelationships.dispose()
+			serverRelationships.reset()
 		}
 	})
+
+	$effect(() => () => serverRelationships.dispose())
 
 	setContext<Context>(DRAW_SERVICE_KEY, {
 		get connectionStatus() {

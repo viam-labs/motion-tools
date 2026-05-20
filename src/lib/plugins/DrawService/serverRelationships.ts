@@ -118,6 +118,10 @@ export const createServerRelationships = () => {
 			cache.delete(sourceUuid)
 		},
 
+		reset() {
+			cache.clear()
+		},
+
 		dispose() {
 			unsubAdd()
 			cache.clear()
