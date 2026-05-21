@@ -9,9 +9,11 @@
 	import { useWorld } from '$lib/ecs/useWorld'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useDrawConnectionConfig } from '$lib/hooks/useDrawConnectionConfig.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { spawnSnapshotEntities } from '$lib/snapshot'
 
+	import CloudPlanPicker from './CloudPlanPicker.svelte'
 	import type { FileDropperSuccess } from './file-dropper'
 	import { createPlanRequestDropper } from './plan-request-dropper'
 	import { useFileDrop } from './useFileDrop.svelte'
@@ -23,6 +25,7 @@
 	const cameraControls = useCameraControls()
 	const relationships = useRelationships()
 	const drawConnectionConfig = useDrawConnectionConfig()
+	const partID = usePartID()
 	const drawServerURL = $derived(
 		drawConnectionConfig.current?.backendIP
 			? `http://${drawConnectionConfig.current.backendIP}:3030`
@@ -63,71 +66,73 @@
 	}
 
 	const fileDrop = useFileDrop(
-		(result: FileDropperSuccess) => {
-			if (result.type !== 'plan-request') {
-				totalPlanSteps = 0
-				currentPlanStep = -1
-			}
-
-			switch (result.type) {
-				case 'snapshot': {
-					const spawned = spawnSnapshotEntities(world, result.snapshot)
-					for (const entity of spawned) {
-						relationships.apply(entity.entity, entity.relationships)
-						const uuid = entity.entity.get(traits.UUID)
-						if (uuid) relationships.flush(uuid)
-					}
-
-					const { sceneCamera } = result.snapshot.sceneMetadata ?? {}
-
-					if (sceneCamera) {
-						const { x = 0, y = 0, z = 0 } = sceneCamera.position ?? {}
-						const { x: lx = 0, y: ly = 0, z: lz = 0 } = sceneCamera.lookAt ?? {}
-
-						cameraControls.setPose({
-							position: [x * 0.001, y * 0.001, z * 0.001],
-							lookAt: [lx * 0.001, ly * 0.001, lz * 0.001],
-						})
-					}
-
-					break
-				}
-				case 'pcd': {
-					const geometry = createBufferGeometry(result.pcd.positions, {
-						colors: result.pcd.colors,
-						colorFormat: ColorFormat.RGB,
-					})
-
-					world.spawn(
-						traits.Name(result.name),
-						traits.BufferGeometry(geometry),
-						traits.Points,
-						traits.DroppedFile,
-						traits.Removable
-					)
-					break
-				}
-				case 'ply': {
-					world.spawn(
-						traits.Name(result.name),
-						traits.BufferGeometry(result.ply),
-						traits.DroppedFile,
-						traits.Removable
-					)
-					break
-				}
-				case 'plan-request': {
-					totalPlanSteps = result.totalSteps
-					currentPlanStep = result.currentStep
-					break
-				}
-			}
-
-			toast({ message: `${result.name} loaded.`, variant: ToastVariant.Success })
-		},
+		(result: FileDropperSuccess) => handleResult(result),
 		(message) => toast({ message, variant: ToastVariant.Danger }),
 		planRequestDropper
 	)
+
+	function handleResult(result: FileDropperSuccess) {
+		if (result.type !== 'plan-request') {
+			totalPlanSteps = 0
+			currentPlanStep = -1
+		}
+
+		switch (result.type) {
+			case 'snapshot': {
+				const spawned = spawnSnapshotEntities(world, result.snapshot)
+				for (const entity of spawned) {
+					relationships.apply(entity.entity, entity.relationships)
+					const uuid = entity.entity.get(traits.UUID)
+					if (uuid) relationships.flush(uuid)
+				}
+
+				const { sceneCamera } = result.snapshot.sceneMetadata ?? {}
+
+				if (sceneCamera) {
+					const { x = 0, y = 0, z = 0 } = sceneCamera.position ?? {}
+					const { x: lx = 0, y: ly = 0, z: lz = 0 } = sceneCamera.lookAt ?? {}
+
+					cameraControls.setPose({
+						position: [x * 0.001, y * 0.001, z * 0.001],
+						lookAt: [lx * 0.001, ly * 0.001, lz * 0.001],
+					})
+				}
+
+				break
+			}
+			case 'pcd': {
+				const geometry = createBufferGeometry(result.pcd.positions, {
+					colors: result.pcd.colors,
+					colorFormat: ColorFormat.RGB,
+				})
+
+				world.spawn(
+					traits.Name(result.name),
+					traits.BufferGeometry(geometry),
+					traits.Points,
+					traits.DroppedFile,
+					traits.Removable
+				)
+				break
+			}
+			case 'ply': {
+				world.spawn(
+					traits.Name(result.name),
+					traits.BufferGeometry(result.ply),
+					traits.DroppedFile,
+					traits.Removable
+				)
+				break
+			}
+			case 'plan-request': {
+				totalPlanSteps = result.totalSteps
+				currentPlanStep = result.currentStep
+				break
+			}
+		}
+
+		toast({ message: `${result.name} loaded.`, variant: ToastVariant.Success })
+	}
 </script>
 
 <svelte:window
@@ -167,5 +172,16 @@
 		>
 			Next
 		</button>
+	</div>
+{/if}
+
+{#if partID.current}
+	<div class="pointer-events-none fixed right-4 top-16 z-[10000]">
+		<CloudPlanPicker
+			partId={partID.current}
+			{planRequestDropper}
+			onResult={handleResult}
+			onError={(message) => toast({ message, variant: ToastVariant.Danger })}
+		/>
 	</div>
 {/if}
