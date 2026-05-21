@@ -27,6 +27,8 @@ export interface PlanRequestFileDropSuccess extends FileDropSuccess {
 	type: 'plan-request'
 	componentNames: string[]
 	goalCount: number
+	totalSteps: number
+	currentStep: number
 }
 
 export class FileDropperError extends Error {

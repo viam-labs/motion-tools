@@ -7,7 +7,7 @@ describe('createPlanRequestDropper', () => {
 		vi.restoreAllMocks()
 	})
 
-	it('accepts concatenated request+response JSON by extracting the request object', async () => {
+	it('accepts concatenated request+response JSON and forwards full payload', async () => {
 		const fetchMock = vi.fn(async () => {
 			return {
 				ok: true,
@@ -50,7 +50,7 @@ describe('createPlanRequestDropper', () => {
 		const init = fetchMock.mock.calls[0]?.[1] as RequestInit
 		expect(typeof init.body).toBe('string')
 		expect((init.body as string).includes('"frame_system"')).toBe(true)
-		expect((init.body as string).includes('"trajectory"')).toBe(false)
+		expect((init.body as string).includes('"trajectory"')).toBe(true)
 	})
 
 	it('rejects non-plan json payloads', async () => {
