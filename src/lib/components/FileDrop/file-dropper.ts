@@ -23,6 +23,12 @@ export interface PlyFileDropSuccess extends FileDropSuccess {
 	ply: BufferGeometry
 }
 
+export interface PlanRequestFileDropSuccess extends FileDropSuccess {
+	type: 'plan-request'
+	componentNames: string[]
+	goalCount: number
+}
+
 export class FileDropperError extends Error {
 	constructor(message: string, options?: ErrorOptions) {
 		super(message, options)
@@ -34,6 +40,7 @@ export type FileDropperSuccess =
 	| SnapshotFileDropSuccess
 	| PointcloudFileDropSuccess
 	| PlyFileDropSuccess
+	| PlanRequestFileDropSuccess
 
 export interface FileDropperFailure {
 	success: false
