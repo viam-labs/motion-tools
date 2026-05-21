@@ -4,7 +4,7 @@ import { Matrix4 } from 'three'
 import { composeLocalMatrix } from '$lib/transform'
 
 import { ChildOf } from './relations'
-import { EditedMatrix, LiveMatrix, Matrix, WorldMatrix } from './traits'
+import { EditedMatrix, LiveMatrix, Matrix, Name, WorldMatrix } from './traits'
 
 /**
  * Compute the entity's local-to-parent transform into `out`. Mirrors the
