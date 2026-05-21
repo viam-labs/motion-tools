@@ -5,6 +5,8 @@ import { FileDropperError } from './file-dropper'
 interface planRequestResponse {
 	component_names: string[]
 	goal_count: number
+	total_steps: number
+	current_step: number
 }
 
 const skipWhitespace = (text: string, start: number): number => {
@@ -107,7 +109,7 @@ export const createPlanRequestDropper = (drawServerUrl: string): FileDropper => 
 			resp = await fetch(`${drawServerUrl}/plan-request`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: extracted.body,
+				body: content,
 			})
 		} catch {
 			return {
@@ -131,6 +133,8 @@ export const createPlanRequestDropper = (drawServerUrl: string): FileDropper => 
 			type: 'plan-request',
 			componentNames: result.component_names ?? [],
 			goalCount: result.goal_count ?? 0,
+			totalSteps: result.total_steps ?? 0,
+			currentStep: result.current_step ?? -1,
 		}
 	}
 }

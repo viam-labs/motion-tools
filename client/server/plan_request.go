@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
-	"errors"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 
 	"connectrpc.com/connect"
 	"github.com/golang/geo/r3"
@@ -30,6 +31,10 @@ type planRequestBody struct {
 	StartState  *planStateBody             `json:"start_state"`
 	WorldState  *referenceframe.WorldState `json:"world_state"`
 	Goals       []planGoalBody             `json:"goals"`
+}
+
+type planResultBody struct {
+	Trajectory []referenceframe.FrameSystemInputs `json:"trajectory"`
 }
 
 // knownFrameTypes lists the frame_type values that referenceframe.FrameSystem
@@ -129,6 +134,33 @@ type planPoseBody struct {
 type planRequestResponse struct {
 	ComponentNames []string `json:"component_names"`
 	GoalCount      int      `json:"goal_count"`
+	TotalSteps     int      `json:"total_steps"`
+	CurrentStep    int      `json:"current_step"`
+}
+
+type planStepRequest struct {
+	Direction string `json:"direction"`
+	Step      *int   `json:"step"`
+}
+
+type planStepResponse struct {
+	CurrentStep int `json:"current_step"`
+	TotalSteps  int `json:"total_steps"`
+}
+
+type planPlaybackState struct {
+	FrameSystem    *referenceframe.FrameSystem
+	WorldState     *referenceframe.WorldState
+	Goals          []planGoalBody
+	StartInputs    referenceframe.FrameSystemInputs
+	ResolvedSteps  []referenceframe.FrameSystemInputs
+	Trajectory     []referenceframe.FrameSystemInputs
+	CurrentStepIdx int
+}
+
+var planPlayback struct {
+	mu    sync.RWMutex
+	state *planPlaybackState
 }
 
 // handlePlanRequest handles POST /plan-request. It parses the request body as a
@@ -142,14 +174,14 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		}
 
 		// Decode JSON in stream mode so uploads that contain concatenated JSON
-		// objects (request + response in one file) still work. We pick the first
-		// object that contains frame_system.
+		// objects (request + response in one file) still work.
 		decoder := json.NewDecoder(io.LimitReader(r.Body, 32<<20))
 		var req planRequestBody
-		found := false
-		for i := 0; i < 4; i++ {
-			var candidate planRequestBody
-			err := decoder.Decode(&candidate)
+		var result planResultBody
+		foundReq := false
+		for i := 0; i < 8; i++ {
+			var raw json.RawMessage
+			err := decoder.Decode(&raw)
 			if errors.Is(err, io.EOF) {
 				break
 			}
@@ -157,13 +189,22 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 				http.Error(w, fmt.Sprintf("invalid plan request JSON: %v", err), http.StatusUnprocessableEntity)
 				return
 			}
+
+			var candidate planRequestBody
+			_ = json.Unmarshal(raw, &candidate)
 			if len(candidate.FrameSystem) > 0 && string(candidate.FrameSystem) != "null" {
 				req = candidate
-				found = true
-				break
+				foundReq = true
+			}
+
+			if len(result.Trajectory) == 0 {
+				var candidateResult planResultBody
+				if err := json.Unmarshal(raw, &candidateResult); err == nil && len(candidateResult.Trajectory) > 0 {
+					result = candidateResult
+				}
 			}
 		}
-		if !found {
+		if !foundReq {
 			http.Error(w, "plan request missing frame_system", http.StatusUnprocessableEntity)
 			return
 		}
@@ -195,9 +236,21 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		}
 
 		// Build FrameSystemInputs from the start state's joint positions.
-		var inputs referenceframe.FrameSystemInputs
+		var startInputs referenceframe.FrameSystemInputs
 		if req.StartState != nil && req.StartState.Configuration != nil {
-			inputs = req.StartState.Configuration
+			startInputs = req.StartState.Configuration
+		}
+
+		baseInputs := referenceframe.NewZeroInputs(&fs)
+		initialInputs := mergeFrameSystemInputs(baseInputs, startInputs)
+
+		resolvedSteps := resolveTrajectorySteps(initialInputs, result.Trajectory)
+
+		currentStep := -1
+		inputs := initialInputs
+		if len(resolvedSteps) > 0 {
+			currentStep = 0
+			inputs = resolvedSteps[0]
 		}
 
 		// Render the frame system at the start configuration.
@@ -218,14 +271,139 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			renderGoalPoses(ctx, svc, goalPoses)
 		}
 
+		planPlayback.mu.Lock()
+		planPlayback.state = &planPlaybackState{
+			FrameSystem:    &fs,
+			WorldState:     req.WorldState,
+			Goals:          req.Goals,
+			StartInputs:    initialInputs,
+			ResolvedSteps:  resolvedSteps,
+			Trajectory:     result.Trajectory,
+			CurrentStepIdx: currentStep,
+		}
+		planPlayback.mu.Unlock()
+
 		// Return a summary to the frontend.
 		names := fs.FrameNames()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(planRequestResponse{
 			ComponentNames: names,
 			GoalCount:      len(goalPoses),
+			TotalSteps:     len(result.Trajectory),
+			CurrentStep:    currentStep,
 		})
 	}
+}
+
+func handlePlanRequestStep(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		planPlayback.mu.Lock()
+		defer planPlayback.mu.Unlock()
+
+		if planPlayback.state == nil || len(planPlayback.state.ResolvedSteps) == 0 {
+			http.Error(w, "no plan trajectory loaded", http.StatusConflict)
+			return
+		}
+
+		var req planStepRequest
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+			http.Error(w, "invalid step request", http.StatusBadRequest)
+			return
+		}
+
+		nextStep := planPlayback.state.CurrentStepIdx
+		if req.Step != nil {
+			nextStep = *req.Step
+		} else {
+			switch req.Direction {
+			case "next":
+				nextStep++
+			case "prev":
+				nextStep--
+			default:
+				http.Error(w, "direction must be 'next' or 'prev'", http.StatusBadRequest)
+				return
+			}
+		}
+
+		if nextStep < 0 {
+			nextStep = 0
+		}
+		if nextStep >= len(planPlayback.state.ResolvedSteps) {
+			nextStep = len(planPlayback.state.ResolvedSteps) - 1
+		}
+
+		// Re-render via in-place upsert (no RemoveAll). Transform UUIDs are
+		// deterministic SHA-1 over "name:parent", so re-issuing AddEntity for
+		// the same frames updates the existing entities and emits UPDATED
+		// events on the entity stream. This avoids the remove+re-add burst
+		// that previously caused subscribers to drop events and made obstacles
+		// flicker or disappear between steps.
+		if err := renderFrameSystem(
+			r.Context(),
+			svc,
+			planPlayback.state.FrameSystem,
+			planPlayback.state.ResolvedSteps[nextStep],
+		); err != nil {
+			http.Error(w, fmt.Sprintf("failed to render step: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		planPlayback.state.CurrentStepIdx = nextStep
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(planStepResponse{
+			CurrentStep: nextStep,
+			TotalSteps:  len(planPlayback.state.ResolvedSteps),
+		})
+	}
+}
+
+func resolveTrajectorySteps(start referenceframe.FrameSystemInputs, trajectory []referenceframe.FrameSystemInputs) []referenceframe.FrameSystemInputs {
+	if len(trajectory) == 0 {
+		return nil
+	}
+
+	carry := cloneFrameSystemInputs(start)
+	steps := make([]referenceframe.FrameSystemInputs, 0, len(trajectory))
+	for _, step := range trajectory {
+		for component, values := range step {
+			if len(values) > 0 {
+				carry[component] = append([]referenceframe.Input(nil), values...)
+				continue
+			}
+			if _, ok := carry[component]; !ok {
+				carry[component] = []referenceframe.Input{}
+			}
+		}
+		steps = append(steps, cloneFrameSystemInputs(carry))
+	}
+
+	return steps
+}
+
+func cloneFrameSystemInputs(inputs referenceframe.FrameSystemInputs) referenceframe.FrameSystemInputs {
+	if inputs == nil {
+		return referenceframe.FrameSystemInputs{}
+	}
+	cloned := make(referenceframe.FrameSystemInputs, len(inputs))
+	for component, values := range inputs {
+		cloned[component] = append([]referenceframe.Input(nil), values...)
+	}
+	return cloned
+}
+
+func mergeFrameSystemInputs(base, overlay referenceframe.FrameSystemInputs) referenceframe.FrameSystemInputs {
+	merged := cloneFrameSystemInputs(base)
+	for component, values := range overlay {
+		merged[component] = append([]referenceframe.Input(nil), values...)
+	}
+	return merged
 }
 
 func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
