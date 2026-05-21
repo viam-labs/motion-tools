@@ -29,12 +29,13 @@
 	})
 </script>
 
-<Portal id="dashboard">
+<Portal id="controls">
 	<fieldset>
 		<Button
 			active
 			icon="camera-outline"
 			description="Reset camera"
+			tooltipLocation="left"
 			onclick={() => {
 				controls?.reset()
 			}}

@@ -12,6 +12,7 @@
 
 	import type { CameraPose } from '$lib/hooks/useControls.svelte'
 
+	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
@@ -147,6 +148,7 @@
 				<div {@attach domPortal(root)}>
 					<FileDrop />
 					<Dashboard {dashboard} />
+					<Controls />
 					<Details {details} />
 
 					{#if environment.current.isStandalone}
