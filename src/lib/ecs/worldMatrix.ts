@@ -64,7 +64,7 @@ const recomputeWorldMatrix = (
 	if (cached) return cached
 
 	if (inProgress.has(entity)) {
-		console.warn('[worldMatrix] ChildOf cycle detected at entity', entity)
+		console.warn('[worldMatrix] ChildOf cycle detected at entity', entity.get(Name) ?? entity)
 		return undefined
 	}
 	inProgress.add(entity)
