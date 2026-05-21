@@ -2,9 +2,11 @@
 	import { PortalTarget } from '@threlte/extras'
 
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
+	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	const settings = useSettings()
+	const cameraControls = useCameraControls()
 
 	const isOrthographic = $derived(settings.current.cameraMode === 'orthographic')
 </script>
@@ -15,7 +17,17 @@
 	<fieldset class="flex flex-col">
 		<Button
 			active
-			class="rounded-lg"
+			class="rounded-b-none"
+			icon="camera-outline"
+			description="Reset camera"
+			tooltipLocation="left"
+			onclick={() => {
+				cameraControls.setInitialPose()
+			}}
+		/>
+		<Button
+			active
+			class="-my-0.5 rounded-t-none"
 			icon={isOrthographic ? 'grid-orthographic' : 'grid-perspective'}
 			description={isOrthographic ? 'Switch to perspective view' : 'Switch to orthographic view'}
 			hotkey="C"
