@@ -7,7 +7,7 @@ import {
 } from 'koota'
 
 import { ChildOf } from './relations'
-import { Name, Orphan } from './traits'
+import * as traits from './traits'
 
 /**
  * Trait list for `world.spawn(...)`. Always emits `Orphan(name)` for non-root
@@ -17,7 +17,7 @@ import { Name, Orphan } from './traits'
  */
 export const parentTraits = (name: string | undefined): ConfigurableTrait[] => {
 	if (!name || name === 'world') return []
-	return [Orphan(name)]
+	return [traits.Orphan(name)]
 }
 
 /**
@@ -34,14 +34,15 @@ export const parentTraits = (name: string | undefined): ConfigurableTrait[] => {
 export const setParent = (entity: Entity, name: string | undefined): void => {
 	const desired = !name || name === 'world' ? undefined : name
 	const target = entity.targetFor(ChildOf)
-	const current = (target?.isAlive() ? target.get(Name) : undefined) ?? entity.get(Orphan)
+	const current =
+		(target?.isAlive() ? target.get(traits.Name) : undefined) ?? entity.get(traits.Orphan)
 	if (current === desired) return
 
 	if (target) entity.remove(ChildOf(target))
-	entity.remove(Orphan)
+	entity.remove(traits.Orphan)
 
 	if (desired === undefined) return
-	entity.add(Orphan(desired))
+	entity.add(traits.Orphan(desired))
 }
 
 /** The parent entity, or `undefined` at the world root or while orphaned. */
@@ -54,8 +55,10 @@ export const getParentEntity = (entity: Entity): Entity | undefined => entity.ta
  */
 export const getParentName = (entity: Entity): string | undefined => {
 	const parent = entity.targetFor(ChildOf)
-	if (parent && parent.isAlive()) return parent.get(Name)
-	const orphanFor = entity.get(Orphan)
+	if (parent && parent.isAlive()) {
+		return parent.get(traits.Name)
+	}
+	const orphanFor = entity.get(traits.Orphan)
 	return orphanFor || undefined
 }
 
@@ -101,19 +104,25 @@ export const resolveOrphans = (
 ): void => {
 	const index = new Map<string, Entity>()
 	for (const entity of named) {
-		const name = entity.get(Name)
+		const name = entity.get(traits.Name)
 		if (!name) continue
+
 		const existing = index.get(name)
-		if (existing && !existing.has(Orphan)) continue
+		if (existing && !existing.has(traits.Orphan)) {
+			continue
+		}
+
 		index.set(name, entity)
 	}
 
 	for (const orphan of orphans) {
-		const wantedName = orphan.get(Orphan)
+		const wantedName = orphan.get(traits.Orphan)
 		if (!wantedName) continue
+
 		const parent = index.get(wantedName)
 		if (!parent || parent === orphan) continue
-		orphan.remove(Orphan)
+
+		orphan.remove(traits.Orphan)
 		orphan.add(ChildOf(parent))
 	}
 }
