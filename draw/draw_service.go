@@ -36,7 +36,10 @@ type storedEntity struct {
 	drawing   *drawv1.Drawing
 }
 
-const entitySubscriberBufferSize = 64
+// Burst-y uploads (like plan-request frame systems) can emit hundreds of
+// back-to-back entity events. Keep a larger buffer so connected UIs don't miss
+// add/update events and require a manual refresh.
+const entitySubscriberBufferSize = 4096
 
 type chunkedEntity struct {
 	mu               sync.Mutex

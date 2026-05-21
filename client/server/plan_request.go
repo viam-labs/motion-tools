@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -140,16 +141,30 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			return
 		}
 
-		// Cap body at 32 MiB to guard against excessively large uploads.
-		body, err := io.ReadAll(io.LimitReader(r.Body, 32<<20))
-		if err != nil {
-			http.Error(w, "failed to read body", http.StatusBadRequest)
-			return
-		}
-
+		// Decode JSON in stream mode so uploads that contain concatenated JSON
+		// objects (request + response in one file) still work. We pick the first
+		// object that contains frame_system.
+		decoder := json.NewDecoder(io.LimitReader(r.Body, 32<<20))
 		var req planRequestBody
-		if err := json.Unmarshal(body, &req); err != nil {
-			http.Error(w, fmt.Sprintf("invalid plan request JSON: %v", err), http.StatusUnprocessableEntity)
+		found := false
+		for i := 0; i < 4; i++ {
+			var candidate planRequestBody
+			err := decoder.Decode(&candidate)
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				http.Error(w, fmt.Sprintf("invalid plan request JSON: %v", err), http.StatusUnprocessableEntity)
+				return
+			}
+			if len(candidate.FrameSystem) > 0 && string(candidate.FrameSystem) != "null" {
+				req = candidate
+				found = true
+				break
+			}
+		}
+		if !found {
+			http.Error(w, "plan request missing frame_system", http.StatusUnprocessableEntity)
 			return
 		}
 
@@ -214,7 +229,16 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 }
 
 func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
-	drawnFS := draw.NewDrawnFrameSystem(fs, inputs)
+	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
+	frameColors := map[string]draw.Color{}
+	for _, frameName := range fs.FrameNames() {
+		if len(frameName) >= len("obstacle-") && frameName[:len("obstacle-")] == "obstacle-" {
+			// Keep obstacles visually distinct from robot links.
+			frameColors[frameName] = obstacleColor
+		}
+	}
+
+	drawnFS := draw.NewDrawnFrameSystem(fs, inputs, draw.WithFrameSystemColors(frameColors))
 	transforms, err := drawnFS.ToTransforms()
 	if err != nil {
 		return err
@@ -234,7 +258,11 @@ func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler,
 	if err != nil || len(geoms.Geometries()) == 0 {
 		return
 	}
-	colors := draw.ChromaticColorChooser.Get(len(geoms.Geometries()))
+	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
+	colors := make([]draw.Color, len(geoms.Geometries()))
+	for i := range colors {
+		colors[i] = obstacleColor
+	}
 	drawnGeoms, err := draw.NewDrawnGeometriesInFrame(geoms, draw.WithPerGeometriesColors(colors...))
 	if err != nil {
 		return
