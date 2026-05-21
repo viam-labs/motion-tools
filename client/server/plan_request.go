@@ -271,6 +271,18 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			renderGoalPoses(ctx, svc, goalPoses)
 		}
 
+		// Re-render the frame system once more. Transform UUIDs are deterministic
+		// over "name:parent", so this second pass emits UPDATED events for every
+		// transform. UPDATED events re-run the client-side relationship resolver,
+		// which fixes the case where a child transform arrives before its parent
+		// during the initial burst and the parent-child attachment is lost. Without
+		// this, the first frame is invisible until the user steps the plan (which
+		// goes through the same upsert path).
+		if err := renderFrameSystem(ctx, svc, &fs, inputs); err != nil {
+			http.Error(w, fmt.Sprintf("failed to render frame system: %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		planPlayback.mu.Lock()
 		planPlayback.state = &planPlaybackState{
 			FrameSystem:    &fs,
