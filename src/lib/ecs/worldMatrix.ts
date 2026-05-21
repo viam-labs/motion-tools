@@ -44,17 +44,30 @@ const toLocalMatrix = (entity: Entity, out: Matrix4): boolean => {
  * Synchronously compute and write `WorldMatrix` for every entity in `dirty`
  * and every descendant via `ChildOf`. Memoizes per-entity world matrices in
  * `cache` so siblings reuse a parent's result. Caller passes a fresh `cache`
- * map per flush.
+ * map and `inProgress` set per flush.
+ *
+ * `inProgress` is the cycle guard: if the parent walk revisits an entity
+ * whose computation hasn't finished, we treat that branch as if it had no
+ * parent rather than recursing forever. `resolveOrphans` already prevents
+ * the only known way to introduce a `ChildOf` cycle; this is here so a
+ * future bug downgrades to a soft visual glitch instead of a hard crash.
  */
 const recomputeWorldMatrix = (
 	world: World,
 	entity: Entity,
-	cache: Map<Entity, Matrix4>
+	cache: Map<Entity, Matrix4>,
+	inProgress: Set<Entity>
 ): Matrix4 | undefined => {
 	if (!entity.isAlive()) return undefined
 
 	const cached = cache.get(entity)
 	if (cached) return cached
+
+	if (inProgress.has(entity)) {
+		console.warn('[worldMatrix] ChildOf cycle detected at entity', entity)
+		return undefined
+	}
+	inProgress.add(entity)
 
 	// Reuse the entity's existing `WorldMatrix` storage when present so a
 	// flush doesn't allocate a throwaway matrix per entity. First-time
@@ -65,10 +78,11 @@ const recomputeWorldMatrix = (
 
 	const parent = entity.targetFor(ChildOf)
 	if (parent && parent.isAlive()) {
-		const parentWorld = recomputeWorldMatrix(world, parent, cache)
+		const parentWorld = recomputeWorldMatrix(world, parent, cache, inProgress)
 		if (parentWorld) out.premultiply(parentWorld)
 	}
 
+	inProgress.delete(entity)
 	cache.set(entity, out)
 	return out
 }
@@ -77,6 +91,7 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 	if (dirty.size === 0) return
 
 	const cache = new Map<Entity, Matrix4>()
+	const inProgress = new Set<Entity>()
 	const expanded = new Set<Entity>()
 
 	const collect = (entity: Entity) => {
@@ -92,7 +107,7 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 
 	for (const entity of expanded) {
 		if (!entity.isAlive()) continue
-		const worldMat = recomputeWorldMatrix(world, entity, cache)
+		const worldMat = recomputeWorldMatrix(world, entity, cache, inProgress)
 		if (!worldMat) continue
 		if (entity.has(WorldMatrix)) {
 			entity.changed(WorldMatrix)
