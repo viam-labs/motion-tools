@@ -244,16 +244,18 @@
 
 		const currentControls = controls.current
 
-		const { minPolarAngle, maxPolarAngle } = currentControls
+		if ('minPolarAngle' in currentControls) {
+			const { minPolarAngle, maxPolarAngle } = currentControls
 
-		// Locks the camera to top down while this component is mounted
-		currentControls.polarAngle = 0
-		currentControls.minPolarAngle = 0
-		currentControls.maxPolarAngle = 0
+			// Locks the camera to top down while this component is mounted
+			currentControls.polarAngle = 0
+			currentControls.minPolarAngle = 0
+			currentControls.maxPolarAngle = 0
 
-		return () => {
-			currentControls.minPolarAngle = minPolarAngle
-			currentControls.maxPolarAngle = maxPolarAngle
+			return () => {
+				currentControls.minPolarAngle = minPolarAngle
+				currentControls.maxPolarAngle = maxPolarAngle
+			}
 		}
 	})
 
