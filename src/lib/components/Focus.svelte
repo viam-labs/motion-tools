@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { Gizmo, Portal, TrackballControls } from '@threlte/extras'
+	import { Gizmo, TrackballControls } from '@threlte/extras'
 	import { Box3, type Object3D, Vector3 } from 'three'
-	import { TrackballControls as ThreeTrackballControls } from 'three/examples/jsm/controls/TrackballControls.js'
 
-	import Button from '$lib/components/overlay/dashboard/Button.svelte'
+	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Camera from './Camera.svelte'
 
@@ -14,13 +13,13 @@
 
 	let { object3d }: Props = $props()
 
+	const cameraControls = useCameraControls()
+
 	const box = new Box3()
 	const vec = new Vector3()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
-
-	let controls = $state.raw<ThreeTrackballControls>()
 
 	$effect.pre(() => {
 		box.setFromObject(object3d)
@@ -29,24 +28,10 @@
 	})
 </script>
 
-<Portal id="controls">
-	<fieldset>
-		<Button
-			active
-			icon="camera-outline"
-			description="Reset camera"
-			tooltipLocation="left"
-			onclick={() => {
-				controls?.reset()
-			}}
-		/>
-	</fieldset>
-</Portal>
-
 <Camera position={[size[0] + 1, size[0] + 1, size[0] + 1]}>
 	<TrackballControls
-		bind:ref={controls}
 		target={center}
+		oncreate={(ref) => cameraControls.set(ref)}
 	>
 		<Gizmo placement="bottom-right" />
 	</TrackballControls>
