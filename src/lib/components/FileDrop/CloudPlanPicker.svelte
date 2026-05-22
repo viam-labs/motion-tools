@@ -86,12 +86,7 @@
 			}
 			const content = new TextDecoder().decode(bytes)
 			const name = fileNameOf(item)
-			const result = await planRequestDropper({
-				name,
-				content,
-				extension: 'json',
-				prefix: undefined,
-			})
+			const result = await planRequestDropper({ name, content })
 			if (result.success) {
 				onResult(result)
 				open = false

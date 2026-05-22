@@ -1,26 +1,6 @@
-import type { BufferGeometry } from 'three'
-
-import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
-import type { SuccessMessage } from '$lib/loaders/pcd/messages'
-
 interface FileDropSuccess {
 	success: true
 	name: string
-}
-
-export interface SnapshotFileDropSuccess extends FileDropSuccess {
-	type: 'snapshot'
-	snapshot: Snapshot
-}
-
-export interface PointcloudFileDropSuccess extends FileDropSuccess {
-	type: 'pcd'
-	pcd: SuccessMessage
-}
-
-export interface PlyFileDropSuccess extends FileDropSuccess {
-	type: 'ply'
-	ply: BufferGeometry
 }
 
 export interface PlanRequestFileDropSuccess extends FileDropSuccess {
@@ -38,11 +18,7 @@ export class FileDropperError extends Error {
 	}
 }
 
-export type FileDropperSuccess =
-	| SnapshotFileDropSuccess
-	| PointcloudFileDropSuccess
-	| PlyFileDropSuccess
-	| PlanRequestFileDropSuccess
+export type FileDropperSuccess = PlanRequestFileDropSuccess
 
 export interface FileDropperFailure {
 	success: false
@@ -53,9 +29,7 @@ export type FileDropperResult = FileDropperSuccess | FileDropperFailure
 
 export type FileDropperParams = {
 	name: string
-	extension: string
-	prefix: string | undefined
-	content: string | ArrayBuffer | null | undefined
+	content: string
 }
 
 export type FileDropper = (params: FileDropperParams) => Promise<FileDropperResult>

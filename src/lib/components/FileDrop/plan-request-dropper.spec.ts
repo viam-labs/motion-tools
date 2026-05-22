@@ -38,8 +38,6 @@ describe('createPlanRequestDropper', () => {
 		const dropper = createPlanRequestDropper('http://localhost:3030')
 		const result = await dropper({
 			name: 'bad-plan.json',
-			extension: 'json',
-			prefix: undefined,
 			content: `${JSON.stringify(request)}${JSON.stringify(response)}`,
 		})
 
@@ -59,8 +57,6 @@ describe('createPlanRequestDropper', () => {
 		const dropper = createPlanRequestDropper('http://localhost:3030')
 		const result = await dropper({
 			name: 'not-a-plan.json',
-			extension: 'json',
-			prefix: undefined,
 			content: JSON.stringify({ path: [] }),
 		})
 
