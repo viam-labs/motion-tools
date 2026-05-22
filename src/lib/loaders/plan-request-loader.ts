@@ -1,8 +1,35 @@
-import type { FileDropper } from './file-dropper'
+interface PlanRequestLoadSuccess {
+	success: true
+	name: string
+	type: 'plan-request'
+	componentNames: string[]
+	goalCount: number
+	totalSteps: number
+	currentStep: number
+}
 
-import { FileDropperError } from './file-dropper'
+export class PlanRequestLoadError extends Error {
+	constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
+		this.name = 'PlanRequestLoadError'
+	}
+}
 
-interface planRequestResponse {
+interface PlanRequestLoadFailure {
+	success: false
+	error: PlanRequestLoadError
+}
+
+export type PlanRequestLoadResult = PlanRequestLoadSuccess | PlanRequestLoadFailure
+
+export type PlanRequestLoadParams = {
+	name: string
+	content: string
+}
+
+export type PlanRequestLoader = (params: PlanRequestLoadParams) => Promise<PlanRequestLoadResult>
+
+interface PlanRequestResponse {
 	component_names: string[]
 	goal_count: number
 	total_steps: number
@@ -57,11 +84,11 @@ const readJSONObject = (text: string, start: number): { raw: string; end: number
 	return null
 }
 
-const extractPlanRequestJSON = (content: string): { body: string } | { error: string } => {
+const extractPlanRequestJSON = (content: string): { ok: true } | { error: string } => {
 	try {
 		const parsed = JSON.parse(content)
 		if (parsed && typeof parsed === 'object' && 'frame_system' in parsed) {
-			return { body: JSON.stringify(parsed) }
+			return { ok: true }
 		}
 	} catch {
 		// Fall through to multi-object parsing.
@@ -76,7 +103,7 @@ const extractPlanRequestJSON = (content: string): { body: string } | { error: st
 		try {
 			const parsed = JSON.parse(next.raw)
 			if (parsed && typeof parsed === 'object' && 'frame_system' in parsed) {
-				return { body: JSON.stringify(parsed) }
+				return { ok: true }
 			}
 		} catch {
 			return { error: 'is not valid JSON.' }
@@ -88,20 +115,12 @@ const extractPlanRequestJSON = (content: string): { body: string } | { error: st
 	return { error: 'is not a supported file type.' }
 }
 
-/**
- * Creates a FileDropper that POSTs a plan-request JSON file to the draw server.
- * Returns an error result if the JSON does not contain a `frame_system` field
- * (i.e. is not a plan request file).
- */
-export const createPlanRequestDropper = (drawServerUrl: string, prefix = ''): FileDropper => {
+// Creates a loader that POSTs plan-request JSON to the draw server.
+export const createPlanRequestLoader = (drawServerUrl: string, prefix = ''): PlanRequestLoader => {
 	return async ({ name, content }) => {
-		if (typeof content !== 'string') {
-			return { success: false, error: new FileDropperError(`${name} failed to load.`) }
-		}
-
 		const extracted = extractPlanRequestJSON(content)
 		if ('error' in extracted) {
-			return { success: false, error: new FileDropperError(`${name} ${extracted.error}`) }
+			return { success: false, error: new PlanRequestLoadError(`${name} ${extracted.error}`) }
 		}
 
 		const url = prefix
@@ -118,7 +137,7 @@ export const createPlanRequestDropper = (drawServerUrl: string, prefix = ''): Fi
 		} catch {
 			return {
 				success: false,
-				error: new FileDropperError(`${name}: could not reach draw server.`),
+				error: new PlanRequestLoadError(`${name}: could not reach draw server.`),
 			}
 		}
 
@@ -126,11 +145,11 @@ export const createPlanRequestDropper = (drawServerUrl: string, prefix = ''): Fi
 			const text = await resp.text()
 			return {
 				success: false,
-				error: new FileDropperError(`${name}: ${text.trim()}`),
+				error: new PlanRequestLoadError(`${name}: ${text.trim()}`),
 			}
 		}
 
-		const result = (await resp.json()) as planRequestResponse
+		const result = (await resp.json()) as PlanRequestResponse
 		return {
 			success: true,
 			name,
