@@ -93,7 +93,7 @@ const extractPlanRequestJSON = (content: string): { body: string } | { error: st
  * Returns an error result if the JSON does not contain a `frame_system` field
  * (i.e. is not a plan request file).
  */
-export const createPlanRequestDropper = (drawServerUrl: string): FileDropper => {
+export const createPlanRequestDropper = (drawServerUrl: string, prefix = ''): FileDropper => {
 	return async ({ name, content }) => {
 		if (typeof content !== 'string') {
 			return { success: false, error: new FileDropperError(`${name} failed to load.`) }
@@ -104,9 +104,13 @@ export const createPlanRequestDropper = (drawServerUrl: string): FileDropper => 
 			return { success: false, error: new FileDropperError(`${name} ${extracted.error}`) }
 		}
 
+		const url = prefix
+			? `${drawServerUrl}/plan-request?prefix=${encodeURIComponent(prefix)}`
+			: `${drawServerUrl}/plan-request`
+
 		let resp: Response
 		try {
-			resp = await fetch(`${drawServerUrl}/plan-request`, {
+			resp = await fetch(url, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: content,

@@ -12,10 +12,17 @@ const compareByName = (a: Entity, b: Entity): number =>
 	(a.get(traits.Name) ?? '').localeCompare(b.get(traits.Name) ?? '')
 
 const buildTree = (world: World): TreeNode[] => {
+	// Draw-service-sourced entities (debug plans) are hidden from the World
+	// panel — it only lists live machine entities.
+	const isHidden = (entity: Entity) => entity.has(traits.DrawServiceAPI)
+
 	const walk = (entity: Entity): TreeNode => {
 		const node: TreeNode = { entity }
 
-		const children = world.query(relations.ChildOf(entity)).toSorted(compareByName)
+		const children = world
+			.query(relations.ChildOf(entity))
+			.filter((child) => !isHidden(child))
+			.toSorted(compareByName)
 		if (children.length > 0) {
 			node.children = children.map((child) => walk(child))
 		}
@@ -24,7 +31,7 @@ const buildTree = (world: World): TreeNode[] => {
 	}
 
 	const rootEntities: Entity[] = []
-	for (const entity of world.query(traits.Name, Not(traits.Orphan))) {
+	for (const entity of world.query(traits.Name, Not(traits.Orphan), Not(traits.DrawServiceAPI))) {
 		if (entity.targetFor(relations.ChildOf)) continue
 		rootEntities.push(entity)
 	}

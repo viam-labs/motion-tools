@@ -14,6 +14,7 @@ import (
 	"github.com/viam-labs/motion-tools/draw"
 	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
 	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	commonv1 "go.viam.com/api/common/v1"
 	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
 )
@@ -156,11 +157,22 @@ type planPlaybackState struct {
 	ResolvedSteps  []referenceframe.FrameSystemInputs
 	Trajectory     []referenceframe.FrameSystemInputs
 	CurrentStepIdx int
+	// Prefix is prepended to every transform/drawing reference_frame (and
+	// parent reference) before sending to the draw service, so that plans
+	// from different debug configs (and the live machine) don't collide on
+	// the deterministic name+parent UUIDs.
+	Prefix string
 }
 
 var planPlayback struct {
-	mu    sync.RWMutex
-	state *planPlaybackState
+	mu          sync.RWMutex
+	state       *planPlaybackState
+	// entityUUIDs holds the UUIDs of every entity added by the most recent
+	// /plan-request invocation. We remove only these on the next request,
+	// rather than calling RemoveAll, so that entities pushed to the same
+	// draw service by other clients (e.g. a live machine module) survive
+	// across plan loads.
+	entityUUIDs [][]byte
 }
 
 // handlePlanRequest handles POST /plan-request. It parses the request body as a
@@ -228,12 +240,21 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		}
 
 		ctx := r.Context()
+		prefix := r.URL.Query().Get("prefix")
 
-		// Clear the current scene before rendering.
-		if _, err := svc.RemoveAll(ctx, connect.NewRequest(&drawv1.RemoveAllRequest{})); err != nil {
-			http.Error(w, fmt.Sprintf("failed to clear scene: %v", err), http.StatusInternalServerError)
-			return
+		// Clear only the entities added by the previous /plan-request call.
+		// Calling RemoveAll here would also wipe entities pushed to the same
+		// draw service by other producers (e.g. a live machine module), which
+		// would make their resources disappear from the world panel.
+		planPlayback.mu.Lock()
+		prevUUIDs := planPlayback.entityUUIDs
+		planPlayback.entityUUIDs = nil
+		planPlayback.mu.Unlock()
+		for _, uuid := range prevUUIDs {
+			_, _ = svc.RemoveEntity(ctx, connect.NewRequest(&drawv1.RemoveEntityRequest{Uuid: uuid}))
 		}
+
+		addedUUIDs := make([][]byte, 0, len(prevUUIDs))
 
 		// Build FrameSystemInputs from the start state's joint positions.
 		var startInputs referenceframe.FrameSystemInputs
@@ -254,21 +275,23 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		}
 
 		// Render the frame system at the start configuration.
-		if err := renderFrameSystem(ctx, svc, &fs, inputs); err != nil {
+		fsUUIDs, err := renderFrameSystem(ctx, svc, &fs, inputs, prefix)
+		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to render frame system: %v", err), http.StatusInternalServerError)
 			return
 		}
+		addedUUIDs = append(addedUUIDs, fsUUIDs...)
 
 		// Render world-state obstacles (best-effort; errors are silently ignored
 		// so that a missing or empty world state does not fail the whole request).
 		if req.WorldState != nil {
-			renderWorldState(ctx, svc, req.WorldState, &fs, inputs)
+			addedUUIDs = append(addedUUIDs, renderWorldState(ctx, svc, req.WorldState, &fs, inputs, prefix)...)
 		}
 
 		// Collect and render goal poses as arrows.
 		goalPoses := collectGoalPoses(req.Goals)
 		if len(goalPoses) > 0 {
-			renderGoalPoses(ctx, svc, goalPoses)
+			addedUUIDs = append(addedUUIDs, renderGoalPoses(ctx, svc, goalPoses, prefix)...)
 		}
 
 		// Re-render the frame system once more. Transform UUIDs are deterministic
@@ -278,7 +301,7 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		// during the initial burst and the parent-child attachment is lost. Without
 		// this, the first frame is invisible until the user steps the plan (which
 		// goes through the same upsert path).
-		if err := renderFrameSystem(ctx, svc, &fs, inputs); err != nil {
+		if _, err := renderFrameSystem(ctx, svc, &fs, inputs, prefix); err != nil {
 			http.Error(w, fmt.Sprintf("failed to render frame system: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -292,7 +315,9 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			ResolvedSteps:  resolvedSteps,
 			Trajectory:     result.Trajectory,
 			CurrentStepIdx: currentStep,
+			Prefix:         prefix,
 		}
+		planPlayback.entityUUIDs = addedUUIDs
 		planPlayback.mu.Unlock()
 
 		// Return a summary to the frontend.
@@ -356,11 +381,12 @@ func handlePlanRequestStep(svc drawv1connect.DrawServiceHandler) http.HandlerFun
 		// events on the entity stream. This avoids the remove+re-add burst
 		// that previously caused subscribers to drop events and made obstacles
 		// flicker or disappear between steps.
-		if err := renderFrameSystem(
+		if _, err := renderFrameSystem(
 			r.Context(),
 			svc,
 			planPlayback.state.FrameSystem,
 			planPlayback.state.ResolvedSteps[nextStep],
+			planPlayback.state.Prefix,
 		); err != nil {
 			http.Error(w, fmt.Sprintf("failed to render step: %v", err), http.StatusInternalServerError)
 			return
@@ -418,7 +444,42 @@ func mergeFrameSystemInputs(base, overlay referenceframe.FrameSystemInputs) refe
 	return merged
 }
 
-func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
+// applyTransformPrefix prepends prefix to t.ReferenceFrame and to the parent
+// reference frame, leaving the special "world" frame untouched so plans still
+// attach to the shared world root.
+func applyTransformPrefix(t *commonv1.Transform, prefix string) {
+	if prefix == "" || t == nil {
+		return
+	}
+	if t.ReferenceFrame != "" && t.ReferenceFrame != "world" {
+		t.ReferenceFrame = prefix + t.ReferenceFrame
+	}
+	if t.PoseInObserverFrame != nil {
+		parent := t.PoseInObserverFrame.ReferenceFrame
+		if parent != "" && parent != "world" {
+			t.PoseInObserverFrame.ReferenceFrame = prefix + parent
+		}
+	}
+}
+
+// applyDrawingPrefix prepends prefix to d.ReferenceFrame and the drawing's
+// parent reference, leaving "world" untouched.
+func applyDrawingPrefix(d *drawv1.Drawing, prefix string) {
+	if prefix == "" || d == nil {
+		return
+	}
+	if d.ReferenceFrame != "" && d.ReferenceFrame != "world" {
+		d.ReferenceFrame = prefix + d.ReferenceFrame
+	}
+	if d.PoseInObserverFrame != nil {
+		parent := d.PoseInObserverFrame.ReferenceFrame
+		if parent != "" && parent != "world" {
+			d.PoseInObserverFrame.ReferenceFrame = prefix + parent
+		}
+	}
+}
+
+func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) ([][]byte, error) {
 	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
 	frameColors := map[string]draw.Color{}
 	for _, frameName := range fs.FrameNames() {
@@ -431,22 +492,28 @@ func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler
 	drawnFS := draw.NewDrawnFrameSystem(fs, inputs, draw.WithFrameSystemColors(frameColors))
 	transforms, err := drawnFS.ToTransforms()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	uuids := make([][]byte, 0, len(transforms))
 	for _, t := range transforms {
-		if _, err := svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
+		applyTransformPrefix(t, prefix)
+		resp, err := svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
 			Entity: &drawv1.AddEntityRequest_Transform{Transform: t},
-		})); err != nil {
-			return err
+		}))
+		if err != nil {
+			return uuids, err
+		}
+		if resp != nil && resp.Msg != nil && len(resp.Msg.Uuid) > 0 {
+			uuids = append(uuids, resp.Msg.Uuid)
 		}
 	}
-	return nil
+	return uuids, nil
 }
 
-func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler, ws *referenceframe.WorldState, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) {
+func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler, ws *referenceframe.WorldState, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) [][]byte {
 	geoms, err := ws.ObstaclesInWorldFrame(fs, inputs)
 	if err != nil || len(geoms.Geometries()) == 0 {
-		return
+		return nil
 	}
 	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
 	colors := make([]draw.Color, len(geoms.Geometries()))
@@ -455,17 +522,23 @@ func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler,
 	}
 	drawnGeoms, err := draw.NewDrawnGeometriesInFrame(geoms, draw.WithPerGeometriesColors(colors...))
 	if err != nil {
-		return
+		return nil
 	}
 	obstacleTransforms, err := drawnGeoms.ToTransforms()
 	if err != nil {
-		return
+		return nil
 	}
+	uuids := make([][]byte, 0, len(obstacleTransforms))
 	for _, t := range obstacleTransforms {
-		_, _ = svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
+		applyTransformPrefix(t, prefix)
+		resp, err := svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
 			Entity: &drawv1.AddEntityRequest_Transform{Transform: t},
 		}))
+		if err == nil && resp != nil && resp.Msg != nil && len(resp.Msg.Uuid) > 0 {
+			uuids = append(uuids, resp.Msg.Uuid)
+		}
 	}
+	return uuids
 }
 
 func collectGoalPoses(goals []planGoalBody) []spatialmath.Pose {
@@ -485,9 +558,10 @@ func collectGoalPoses(goals []planGoalBody) []spatialmath.Pose {
 	return poses
 }
 
-func renderGoalPoses(ctx context.Context, svc drawv1connect.DrawServiceHandler, poses []spatialmath.Pose) {
+func renderGoalPoses(ctx context.Context, svc drawv1connect.DrawServiceHandler, poses []spatialmath.Pose, prefix string) [][]byte {
 	// Bright magenta for high contrast against the grid and frame system.
 	goalColor := draw.NewColor(draw.WithRGB(255, 0, 200))
+	uuids := make([][]byte, 0, len(poses))
 	// Create one drawing per goal so each drawing's bounding box is tight
 	// around the arrow itself, rather than spanning from world origin to a
 	// distant arrow location.
@@ -504,8 +578,14 @@ func renderGoalPoses(ctx context.Context, svc drawv1connect.DrawServiceHandler, 
 			name = fmt.Sprintf("goal_%d", i)
 		}
 		drawing := arrows.Draw(name, draw.WithPose(pose))
-		_, _ = svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
-			Entity: &drawv1.AddEntityRequest_Drawing{Drawing: drawing.ToProto()},
+		drawingProto := drawing.ToProto()
+		applyDrawingPrefix(drawingProto, prefix)
+		resp, err := svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
+			Entity: &drawv1.AddEntityRequest_Drawing{Drawing: drawingProto},
 		}))
+		if err == nil && resp != nil && resp.Msg != nil && len(resp.Msg.Uuid) > 0 {
+			uuids = append(uuids, resp.Msg.Uuid)
+		}
 	}
+	return uuids
 }

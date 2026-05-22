@@ -105,7 +105,8 @@
 			}
 			const content = new TextDecoder().decode(bytes)
 			const name = fileNameOf(item)
-			const result = await planController.loadPlan(name, content)
+			const prefix = debugConfig.name ? `${debugConfig.name}/` : ''
+			const result = await planController.loadPlan(name, content, prefix)
 			if (!result.success) {
 				errorMessage = result.error.message
 			}

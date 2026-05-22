@@ -143,7 +143,7 @@
 </fieldset>
 
 <FloatingPanel
-	title="Configs"
+	title="Connection configurations"
 	defaultSize={{ width: 480, height: 400 }}
 	bind:isOpen
 >
@@ -151,14 +151,14 @@
 		<div class="border-medium border-b px-2 pt-2">
 			<TabsBar variant="secondary">
 				<Tab
-					title="Connection configs"
+					title="Live"
 					selected={activeTab === 'connection'}
 					selectTab={() => {
 						activeTab = 'connection'
 					}}
 				/>
 				<Tab
-					title="Debug configs"
+					title="Debug"
 					selected={activeTab === 'debug'}
 					selectTab={() => {
 						activeTab = 'debug'
