@@ -1,5 +1,17 @@
 # motion-tools
 
+## 1.29.0
+
+### Minor Changes
+
+- 1042f65: Move Draw Service to `/plugins`
+
+### Patch Changes
+
+- 3be2ce1: Use prime tweakpane theme
+- 0761452: Fix transforming with gizmo
+- 86243ac: Dark mode fix
+
 ## 1.28.1
 
 ### Patch Changes
