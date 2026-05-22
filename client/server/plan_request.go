@@ -480,8 +480,14 @@ func applyDrawingPrefix(d *drawv1.Drawing, prefix string) {
 }
 
 func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) ([][]byte, error) {
+	// Matrix green (#00FF41) at 85% opacity.
+	debugColor := draw.ColorFromRGBA(0, 255, 65, 217)
 	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
-	frameColors := map[string]draw.Color{}
+	// Seed the color map with the debug color on the world frame so every
+	// uncolored robot-link frame inherits it via getFrameColor's parent walk.
+	frameColors := map[string]draw.Color{
+		"world": debugColor,
+	}
 	for _, frameName := range fs.FrameNames() {
 		if len(frameName) >= len("obstacle-") && frameName[:len("obstacle-")] == "obstacle-" {
 			// Keep obstacles visually distinct from robot links.
@@ -559,8 +565,8 @@ func collectGoalPoses(goals []planGoalBody) []spatialmath.Pose {
 }
 
 func renderGoalPoses(ctx context.Context, svc drawv1connect.DrawServiceHandler, poses []spatialmath.Pose, prefix string) [][]byte {
-	// Bright magenta for high contrast against the grid and frame system.
-	goalColor := draw.NewColor(draw.WithRGB(255, 0, 200))
+	// Solid matrix green to match the plan frame system color.
+	goalColor := draw.ColorFromRGB(0, 255, 65)
 	uuids := make([][]byte, 0, len(poses))
 	// Create one drawing per goal so each drawing's bounding box is tight
 	// around the arrow itself, rather than spanning from world origin to a
