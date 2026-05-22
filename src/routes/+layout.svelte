@@ -8,6 +8,7 @@
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
 	import { DrawService } from '$lib/plugins'
+	import { providePlanController } from '$lib/hooks/usePlanController.svelte'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -15,9 +16,14 @@
 		provideConnectionConfigs,
 		useActiveConnectionConfig,
 	} from './lib/hooks/useConnectionConfigs.svelte'
+	import { provideDebugConfigs } from './lib/hooks/useDebugConfigs.svelte'
 	import { getDialConfs } from './lib/robots'
 
 	provideConnectionConfigs()
+	provideDebugConfigs()
+
+	const drawServerURL = `http://${backendIP}:3030`
+	providePlanController(() => drawServerURL)
 
 	const connectionConfig = useActiveConnectionConfig()
 

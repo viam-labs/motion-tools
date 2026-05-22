@@ -25,14 +25,17 @@ interface Context {
 
 export const provideConnectionConfigs = () => {
 	let connectionConfigs: ConnectionConfig[] = $state([])
+	let loaded = $state(false)
 
 	get('connection-configs').then((response) => {
 		if (Array.isArray(response)) {
 			connectionConfigs = response.filter((config) => config !== undefined)
 		}
+		loaded = true
 	})
 
 	$effect(() => {
+		if (!loaded) return
 		set('connection-configs', $state.snapshot(connectionConfigs))
 	})
 
