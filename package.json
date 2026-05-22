@@ -168,6 +168,10 @@
 		"./lib": {
 			"types": "./dist/lib.d.ts",
 			"svelte": "./dist/lib.js"
+		},
+		"./plugins": {
+			"types": "./dist/plugins/index.d.ts",
+			"svelte": "./dist/plugins/index.js"
 		}
 	},
 	"repository": {
