@@ -7,8 +7,6 @@
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
 	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
-	import { provideDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
-	import { provideDrawService } from '$lib/hooks/useDrawService.svelte'
 	import { provideFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
@@ -39,9 +37,8 @@
 	provideHierarchy()
 	provideWorldMatrix()
 	provideOrigin()
-	provideDrawAPI()
+
 	provideRelationships()
-	provideDrawService()
 
 	provideResourceByName(() => partID.current)
 	provideConfigFrames()

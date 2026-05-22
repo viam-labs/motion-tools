@@ -7,11 +7,11 @@
 	import { ElementRect } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import Popover from '$lib/components/overlay/Popover.svelte'
+	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import Popover from '../overlay/Popover.svelte'
-	import ToggleGroup from '../overlay/ToggleGroup.svelte'
 	import Ellipse from './Ellipse.svelte'
 	import Lasso from './Lasso.svelte'
 	import { provideSelectionPlugin } from './useSelectionPlugin.svelte'

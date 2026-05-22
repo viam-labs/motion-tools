@@ -5,8 +5,9 @@
 
 	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
 
-	import { MotionTools } from '$lib'
+	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
+	import { DrawService } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -63,17 +64,18 @@
 			{partID}
 			{dialConfig}
 		>
-			<MotionTools
+			<Visualizer
 				{partID}
 				inputBindingsEnabled={!isMachinesPageOpen}
-				drawConnectionConfig={{ backendIP, websocketPort }}
 			>
 				{@render children()}
 
 				{#snippet dashboard()}
 					<Machines bind:isOpen={isMachinesPageOpen} />
 				{/snippet}
-			</MotionTools>
+
+				<DrawService config={{ backendIP, websocketPort }} />
+			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
 </ViamProvider>

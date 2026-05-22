@@ -13,12 +13,12 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { asRGB, STRIDE } from '$lib/buffer'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
+import { useCameraControls } from '$lib/hooks/useControls.svelte'
+import { useLogs } from '$lib/hooks/useLogs.svelte'
 import { parsePlyInput } from '$lib/ply'
 import { createPose, createPoseFromFrame, poseToMatrix } from '$lib/transform'
 
-import { useCameraControls } from './useControls.svelte'
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
-import { useLogs } from './useLogs.svelte'
 
 const colorUtil = new Color()
 const rgb = { r: 0, g: 0, b: 0 }
