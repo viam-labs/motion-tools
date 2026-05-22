@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.28.1
+
+### Patch Changes
+
+- 97d0242: Use GroundedSkybox for Skybox plugin
+
 ## 1.28.0
 
 ### Minor Changes
