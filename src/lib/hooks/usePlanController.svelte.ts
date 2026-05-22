@@ -1,7 +1,9 @@
 import { getContext, setContext } from 'svelte'
 
-import { type FileDropperResult } from '$lib/components/FileDrop/file-dropper'
-import { createPlanRequestDropper } from '$lib/components/FileDrop/plan-request-dropper'
+import {
+	type PlanRequestLoadResult,
+	createPlanRequestLoader,
+} from '$lib/loaders/plan-request-loader'
 
 type StepResult = { ok: true } | { ok: false; error: string }
 
@@ -10,7 +12,7 @@ interface Context {
 	readonly totalSteps: number
 	readonly steppingPlan: boolean
 	readonly drawServerURL: string
-	loadPlan: (name: string, content: string, prefix?: string) => Promise<FileDropperResult>
+	loadPlan: (name: string, content: string, prefix?: string) => Promise<PlanRequestLoadResult>
 	stepPlan: (direction: 'prev' | 'next') => Promise<StepResult>
 	setStep: (index: number) => Promise<StepResult>
 }
@@ -26,9 +28,9 @@ export const providePlanController = (drawServerURL: () => string) => {
 		name: string,
 		content: string,
 		prefix = ''
-	): Promise<FileDropperResult> => {
-		const dropper = createPlanRequestDropper(drawServerURL(), prefix)
-		const result = await dropper({ name, content })
+	): Promise<PlanRequestLoadResult> => {
+		const loadPlanRequest = createPlanRequestLoader(drawServerURL(), prefix)
+		const result = await loadPlanRequest({ name, content })
 		if (result.success) {
 			totalSteps = result.totalSteps
 			currentStep = result.currentStep

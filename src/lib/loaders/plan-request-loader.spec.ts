@@ -1,17 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createPlanRequestDropper } from './plan-request-dropper'
+import { createPlanRequestLoader } from './plan-request-loader'
 
-describe('createPlanRequestDropper', () => {
+describe('createPlanRequestLoader', () => {
 	afterEach(() => {
 		vi.restoreAllMocks()
 	})
 
-	it('accepts concatenated request+response JSON and forwards full payload', async () => {
+	it('accepts concatenated request+response JSON and forwards the original payload', async () => {
 		const fetchMock = vi.fn(async () => {
 			return {
 				ok: true,
-				json: async () => ({ component_names: ['world'], goal_count: 1 }),
+				json: async () => ({
+					component_names: ['world'],
+					goal_count: 1,
+					total_steps: 2,
+					current_step: 0,
+				}),
 			} as unknown as Response
 		})
 		vi.stubGlobal('fetch', fetchMock)
@@ -35,8 +40,8 @@ describe('createPlanRequestDropper', () => {
 		}
 		const response = { path: [], trajectory: [] }
 
-		const dropper = createPlanRequestDropper('http://localhost:3030')
-		const result = await dropper({
+		const loadPlanRequest = createPlanRequestLoader('http://localhost:3030')
+		const result = await loadPlanRequest({
 			name: 'bad-plan.json',
 			content: `${JSON.stringify(request)}${JSON.stringify(response)}`,
 		})
@@ -55,8 +60,8 @@ describe('createPlanRequestDropper', () => {
 	it('rejects non-plan json payloads', async () => {
 		vi.stubGlobal('fetch', vi.fn())
 
-		const dropper = createPlanRequestDropper('http://localhost:3030')
-		const result = await dropper({
+		const loadPlanRequest = createPlanRequestLoader('http://localhost:3030')
+		const result = await loadPlanRequest({
 			name: 'not-a-plan.json',
 			content: JSON.stringify({ path: [] }),
 		})
