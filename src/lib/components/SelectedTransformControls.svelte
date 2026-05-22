@@ -4,7 +4,7 @@
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { relations, traits, useTrait } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
@@ -60,6 +60,7 @@
 	const refPose = createPose()
 	const tempRefMatrix = new Matrix4()
 	const tempEditedMatrix = new Matrix4()
+	const tempParentInverse = new Matrix4()
 	const tempPose = createPose()
 
 	let session: FrameEditSession | undefined
@@ -183,30 +184,40 @@
 	}
 
 	/**
-	 * Frame.svelte renders frame entities by blending M(live) × M(config)⁻¹ × M(edited)
-	 * so for the user's drag to render where they pulled the gizmo to,
-	 * EditedMatrix must satisfy M(edited) = M(config) × M(live)⁻¹ × M(ref)
-	 * where M(ref) is the gizmo-driven group's parent-relative matrix in mm.
+	 * Frame.svelte renders frame entities by writing the entity's WorldMatrix
+	 * into group.matrix and decomposing it into position/quaternion. The gizmo's
+	 * Three.js parent has identity world, so `ref.position` / `ref.quaternion`
+	 * are world-space values. Matrix and EditedMatrix store local-to-parent
+	 * transforms, so we left-multiply by the parent's inverted WorldMatrix
+	 * before staging — otherwise WorldMatrix recomposition (parent × edited)
+	 * re-applies the parent's rotation/translation and the frame ends up at
+	 * parent × where-the-user-pulled-it.
 	 *
-	 * When live ≈ config (no kinematic offset), this collapses to
-	 * M(edited) = M(ref) — the same as the naive writeback. When they diverge
-	 * (e.g. an arm whose joints have moved away from its config pose), this
-	 * composition is what keeps the rendering anchored to the user's pointer
-	 * instead of shearing through the live × baseline⁻¹ offset.
+	 * With a kinematic offset (LiveMatrix + Matrix both present), the local
+	 * target M(local) feeds solveEditedMatrix to back out the EditedMatrix
+	 * that satisfies live × baseline⁻¹ × edited = local.
 	 */
-
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
-		vector3ToPose(ref.position, refPose)
-		quaternionToPose(ref.quaternion, refPose)
+		tempRefMatrix.makeRotationFromQuaternion(ref.quaternion)
+		tempRefMatrix.setPosition(ref.position)
+
+		const parentEntity = entity.targetFor(relations.ChildOf)
+		const parentWorld = parentEntity?.get(traits.WorldMatrix)
+		if (parentWorld) {
+			tempParentInverse.copy(parentWorld).invert()
+			tempRefMatrix.premultiply(tempParentInverse)
+		}
+
+		matrixToPose(tempRefMatrix, refPose)
 
 		const live = liveMatrix.current
 		const config = configMatrix.current
 
 		if (!live || !config) {
 			// No live matrix available — Frame.svelte's blend short-circuits to
-			// editedMatrix, so naive writeback is correct.
+			// editedMatrix, so the parent-relative target is what we stage.
 			if (activeMode === 'translate') {
 				session?.stagePose(entity, {
 					x: refPose.x,
@@ -223,8 +234,6 @@
 			}
 			return
 		}
-
-		poseToMatrix(refPose, tempRefMatrix)
 
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
 		matrixToPose(tempEditedMatrix, tempPose)
