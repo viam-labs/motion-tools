@@ -8,7 +8,7 @@ interface Context {
 	readonly totalSteps: number
 	readonly steppingPlan: boolean
 	readonly drawServerURL: string
-	loadPlan: (name: string, content: string) => Promise<FileDropperResult>
+	loadPlan: (name: string, content: string, prefix?: string) => Promise<FileDropperResult>
 	stepPlan: (direction: 'prev' | 'next') => Promise<{ ok: true } | { ok: false; error: string }>
 }
 
@@ -19,8 +19,12 @@ export const providePlanController = (drawServerURL: () => string) => {
 	let totalSteps = $state(0)
 	let steppingPlan = $state(false)
 
-	const loadPlan = async (name: string, content: string): Promise<FileDropperResult> => {
-		const dropper = createPlanRequestDropper(drawServerURL())
+	const loadPlan = async (
+		name: string,
+		content: string,
+		prefix = ''
+	): Promise<FileDropperResult> => {
+		const dropper = createPlanRequestDropper(drawServerURL(), prefix)
 		const result = await dropper({ name, content })
 		if (result.success) {
 			totalSteps = result.totalSteps
