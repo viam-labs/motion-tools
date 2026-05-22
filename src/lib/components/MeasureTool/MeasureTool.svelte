@@ -84,6 +84,7 @@
 		<div class="flex">
 			<Button
 				active={enabled}
+				class="rounded-r-none"
 				icon="ruler"
 				description="{enabled ? 'Disable' : 'Enable'} measurement"
 				onclick={() => {
@@ -95,7 +96,7 @@
 					<Button
 						{...triggerProps}
 						active={enabled}
-						class="border-l-0"
+						class="rounded-l-none border-l-0"
 						icon="filter-sliders"
 						description="Measurement settings"
 					/>

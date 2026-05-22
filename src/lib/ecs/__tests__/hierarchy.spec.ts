@@ -144,6 +144,16 @@ describe('hierarchy.resolveOrphans', () => {
 		expect(a.targetFor(relations.ChildOf)).toBe(arm)
 		expect(b.targetFor(relations.ChildOf)).toBe(arm)
 	})
+
+	it('does not parent an entity to itself when Name and Orphan are the same', () => {
+		world = createWorld()
+		const geometry = world.spawn(traits.Name('arm'), traits.Orphan('arm'))
+
+		hierarchy.resolveOrphans(world.query(traits.Name), world.query(traits.Orphan))
+
+		expect(geometry.get(traits.Orphan)).toBe('arm') // still unresolved
+		expect(geometry.targetFor(relations.ChildOf)).toBeUndefined()
+	})
 })
 
 describe('hierarchy.getParentName', () => {

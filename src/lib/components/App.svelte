@@ -11,14 +11,14 @@
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { CameraPose } from '$lib/hooks/useControls.svelte'
-
+	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld } from '$lib/ecs'
+	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import {
 		type DrawConnectionConfig,
 		provideDrawConnectionConfig,
@@ -94,6 +94,7 @@
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
+	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
 	provideDrawConnectionConfig(() => drawConnectionConfig)
 	provideWeblabs()
@@ -128,7 +129,7 @@
 		renderMode="on-demand"
 		dpr={[1, 2]}
 	>
-		<SceneProviders {cameraPose}>
+		<SceneProviders>
 			{#snippet children({ focus })}
 				<Scene>
 					{@render appChildren?.()}
@@ -144,6 +145,7 @@
 				<div {@attach domPortal(root)}>
 					<FileDrop />
 					<Dashboard {dashboard} />
+					<Controls />
 					<Details {details} />
 
 					{#if environment.current.isStandalone}
