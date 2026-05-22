@@ -1,54 +1,73 @@
 <script lang="ts">
-	import { useThrelte } from '@threlte/core'
+	import { T } from '@threlte/core'
 	import { EquirectangularReflectionMapping, type Texture, TextureLoader } from 'three'
+	import { GroundedSkybox } from 'three/examples/jsm/objects/GroundedSkybox.js'
 
 	interface Props {
 		url: string
 		/**
-		 * Euler rotation `[x, y, z]` in radians applied to `scene.backgroundRotation`.
-		 * Default `[Math.PI / 2, 0, 0]` aligns a Y-up equirectangular image to this scene's
-		 * Z-up convention; the Z component then acts as yaw around world +Z.
+		 * World-space position `[x, y, z]`. Defaults to `[0, 0, height]` so the
+		 * dome's ground sits flush with the world XY plane in this Z-up scene.
+		 */
+		position?: [x: number, y: number, z: number]
+		/**
+		 * Euler rotation `[x, y, z]` in radians. Default aligns the
+		 * equirectangular image's vertical axis (+Y) with this scene's vertical
+		 * axis (+Z); the Z component then acts as yaw around world +Z.
 		 */
 		rotation?: [x: number, y: number, z: number]
+		/**
+		 * Camera height above ground when the source photo was taken. Larger
+		 * values magnify the lower portion of the image.
+		 */
+		height?: number
+		/**
+		 * Skybox dome radius. Must exceed the scene camera's reach.
+		 */
+		radius?: number
 	}
 
-	const { url, rotation = [Math.PI / 2, 0, 0] }: Props = $props()
-	const { scene, invalidate } = useThrelte()
+	const {
+		url,
+		position,
+		rotation = [Math.PI / 2, 0, 0],
+		height = 15,
+		radius = 100,
+	}: Props = $props()
+
+	let texture = $state.raw<Texture | undefined>()
 
 	$effect.pre(() => {
-		const previous = scene.background
-		let texture: Texture | undefined
 		let cancelled = false
+		let loaded: Texture | undefined
 
-		new TextureLoader().load(url, (loaded) => {
+		new TextureLoader().load(url, (t) => {
 			if (cancelled) {
-				loaded.dispose()
+				t.dispose()
 				return
 			}
-			loaded.mapping = EquirectangularReflectionMapping
-			texture = loaded
-			scene.background = loaded
-			invalidate()
+			t.mapping = EquirectangularReflectionMapping
+			loaded = t
+			texture = t
 		})
 
 		return () => {
 			cancelled = true
-			if (texture && scene.background === texture) {
-				scene.background = previous
-				invalidate()
-			}
-			texture?.dispose()
+			loaded?.dispose()
+			texture = undefined
 		}
 	})
 
-	$effect.pre(() => {
-		const previous = scene.backgroundRotation.clone()
-		scene.backgroundRotation.set(...rotation)
-		invalidate()
-
-		return () => {
-			scene.backgroundRotation.copy(previous)
-			invalidate()
-		}
-	})
+	const resolvedPosition = $derived(position ?? ([0, 0, height] as [number, number, number]))
 </script>
+
+{#if texture}
+	<T
+		is={GroundedSkybox}
+		args={[texture, height, radius]}
+		position={resolvedPosition}
+		{rotation}
+		raycast={() => null}
+		bvh={{ enabled: false }}
+	/>
+{/if}
