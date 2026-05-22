@@ -1,5 +1,17 @@
 # motion-tools
 
+## 1.28.0
+
+### Minor Changes
+
+- a95a836: Add SkyBox plugin
+- 6c64bde: Add frame POV panel
+
+### Patch Changes
+
+- bf80dcb: Dashboard cleanup
+- 4d6af12: Fix circular relationships when frames and geometries have the same name
+
 ## 1.27.1
 
 ### Patch Changes
