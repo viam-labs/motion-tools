@@ -3,14 +3,16 @@ import { getContext, setContext } from 'svelte'
 import { type FileDropperResult } from '$lib/components/FileDrop/file-dropper'
 import { createPlanRequestDropper } from '$lib/components/FileDrop/plan-request-dropper'
 
+type StepResult = { ok: true } | { ok: false; error: string }
+
 interface Context {
 	readonly currentStep: number
 	readonly totalSteps: number
 	readonly steppingPlan: boolean
 	readonly drawServerURL: string
 	loadPlan: (name: string, content: string, prefix?: string) => Promise<FileDropperResult>
-	stepPlan: (direction: 'prev' | 'next') => Promise<{ ok: true } | { ok: false; error: string }>
-	setStep: (index: number) => Promise<{ ok: true } | { ok: false; error: string }>
+	stepPlan: (direction: 'prev' | 'next') => Promise<StepResult>
+	setStep: (index: number) => Promise<StepResult>
 }
 
 const key = Symbol('plan-controller-context')
@@ -34,21 +36,14 @@ export const providePlanController = (drawServerURL: () => string) => {
 		return result
 	}
 
-	const stepPlan = async (
-		direction: 'prev' | 'next'
-	): Promise<{ ok: true } | { ok: false; error: string }> => {
-		return sendStep({ direction })
-	}
+	const stepPlan = (direction: 'prev' | 'next'): Promise<StepResult> =>
+		sendStep({ direction })
 
-	const setStep = async (
-		index: number
-	): Promise<{ ok: true } | { ok: false; error: string }> => {
-		return sendStep({ step: index })
-	}
+	const setStep = (index: number): Promise<StepResult> => sendStep({ step: index })
 
 	const sendStep = async (
 		body: { direction: 'prev' | 'next' } | { step: number }
-	): Promise<{ ok: true } | { ok: false; error: string }> => {
+	): Promise<StepResult> => {
 		if (steppingPlan || totalSteps <= 0) return { ok: true }
 		steppingPlan = true
 		try {
