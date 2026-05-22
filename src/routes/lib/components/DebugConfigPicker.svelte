@@ -84,7 +84,7 @@
 				'',
 				false
 			)
-			items = resp.data
+			items = resp.data.toReversed()
 			loaded = true
 			if (items.length > 0 && !persistedSelection.current) {
 				persistedSelection.current = idOf(items[0]!)

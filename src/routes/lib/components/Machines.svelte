@@ -92,6 +92,17 @@
 
 <svelte:window {onpaste} />
 
+<!--
+	Always-mounted headless pickers: keep auto-refresh + auto-load running even
+	when the FloatingPanel (which unmounts children on close) is closed.
+	The visible pickers inside the panel handle interactive selection.
+-->
+<div class="hidden">
+	{#each debugConfigs.current as config}
+		<DebugConfigPicker debugConfig={config} />
+	{/each}
+</div>
+
 <fieldset>
 	<div class="text-default relative">
 		<div class="flex items-center">
