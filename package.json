@@ -1,6 +1,6 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.27.1",
+	"version": "1.28.1",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -170,8 +170,8 @@
 			"svelte": "./dist/lib.js"
 		},
 		"./plugins": {
-			"types": "./dist/plugins.d.ts",
-			"svelte": "./dist/plugins.js"
+			"types": "./dist/plugins/index.d.ts",
+			"svelte": "./dist/plugins/index.js"
 		}
 	},
 	"repository": {

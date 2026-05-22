@@ -6,11 +6,7 @@
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
 	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
-	import {
-		type CameraPose,
-		provideCameraControls,
-		provideTransformControls,
-	} from '$lib/hooks/useControls.svelte'
+	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import { provideFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
@@ -28,15 +24,13 @@
 	import { provideOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
-		cameraPose?: CameraPose
 		children: Snippet<[{ focus: boolean }]>
 	}
 
-	let { cameraPose, children }: Props = $props()
+	let { children }: Props = $props()
 
 	const partID = usePartID()
 
-	provideCameraControls(() => cameraPose)
 	provideTransformControls()
 	provideLogs()
 

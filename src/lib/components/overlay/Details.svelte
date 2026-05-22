@@ -333,11 +333,13 @@
 						onclick={() => {
 							const padding = 0.4
 
-							if (!controls.current) return
+							const currentControls = controls.current
 
-							const { azimuthAngle, polarAngle } = controls.current
+							if (!currentControls || !('fitToBox' in currentControls)) return
 
-							controls.current.fitToBox(object3d, true, {
+							const { azimuthAngle, polarAngle } = currentControls
+
+							currentControls.fitToBox(object3d, true, {
 								paddingTop: padding,
 								paddingBottom: padding,
 								paddingLeft: padding,
@@ -345,8 +347,8 @@
 							})
 
 							// Preserve previous rotation
-							controls.current?.rotateAzimuthTo(azimuthAngle, true)
-							controls.current?.rotatePolarTo(polarAngle, true)
+							currentControls.rotateAzimuthTo(azimuthAngle, true)
+							currentControls.rotatePolarTo(polarAngle, true)
 						}}
 					>
 						<Icon name="image-filter-center-focus" />
