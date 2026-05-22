@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect"
@@ -52,8 +53,14 @@ var knownFrameTypes = map[string]bool{
 	"tail_geometry_static": true,
 }
 
-// rawFrameSystem mirrors the on-wire JSON of a referenceframe.FrameSystem so
-// we can manipulate individual frame entries before full deserialisation.
+// Colors used only by the /plan-request debug renderer (not the live machine
+// visualization): matrix green (#00FF41) at 85% opacity for non-obstacle
+// frames, teal for obstacles.
+var (
+	debugColor    = draw.ColorFromRGBA(0, 255, 65, 217)
+	obstacleColor = draw.ColorFromHex("#2EC4B6").SetAlpha(84)
+)
+
 type rawFrameSystem struct {
 	Name    string                     `json:"name"`
 	World   json.RawMessage            `json:"world"`
@@ -103,24 +110,18 @@ func filterFrameSystemJSON(raw json.RawMessage) (json.RawMessage, error) {
 	return json.Marshal(rfs)
 }
 
-// planStateBody mirrors the JSON shape of armplanning.PlanState.
-// FrameSystemInputs is map[string][]float64 (Input = float64), so plain float
-// arrays in JSON decode directly.
 type planStateBody struct {
 	Configuration referenceframe.FrameSystemInputs `json:"configuration"`
 }
 
-// planGoalBody mirrors the JSON shape of armplanning.PlanState when used as a goal.
 type planGoalBody struct {
 	Poses map[string]planPoseInFrameBody `json:"poses"`
 }
 
-// planPoseInFrameBody holds the referenceFrame + pose for a single goal entry.
 type planPoseInFrameBody struct {
 	Pose planPoseBody `json:"pose"`
 }
 
-// planPoseBody holds the Viam pose fields (mm + orientation-vector-degrees).
 type planPoseBody struct {
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
@@ -131,7 +132,6 @@ type planPoseBody struct {
 	Theta float64 `json:"theta"`
 }
 
-// planRequestResponse is returned to the HTTP caller with a summary.
 type planRequestResponse struct {
 	ComponentNames []string `json:"component_names"`
 	GoalCount      int      `json:"goal_count"`
@@ -256,15 +256,12 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 
 		addedUUIDs := make([][]byte, 0, len(prevUUIDs))
 
-		// Build FrameSystemInputs from the start state's joint positions.
 		var startInputs referenceframe.FrameSystemInputs
 		if req.StartState != nil && req.StartState.Configuration != nil {
 			startInputs = req.StartState.Configuration
 		}
 
-		baseInputs := referenceframe.NewZeroInputs(&fs)
-		initialInputs := mergeFrameSystemInputs(baseInputs, startInputs)
-
+		initialInputs := mergeFrameSystemInputs(referenceframe.NewZeroInputs(&fs), startInputs)
 		resolvedSteps := resolveTrajectorySteps(initialInputs, result.Trajectory)
 
 		currentStep := -1
@@ -274,7 +271,6 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			inputs = resolvedSteps[0]
 		}
 
-		// Render the frame system at the start configuration.
 		fsUUIDs, err := renderFrameSystem(ctx, svc, &fs, inputs, prefix)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to render frame system: %v", err), http.StatusInternalServerError)
@@ -282,13 +278,11 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		}
 		addedUUIDs = append(addedUUIDs, fsUUIDs...)
 
-		// Render world-state obstacles (best-effort; errors are silently ignored
-		// so that a missing or empty world state does not fail the whole request).
+		// Best-effort: an empty/missing world state must not fail the whole request.
 		if req.WorldState != nil {
 			addedUUIDs = append(addedUUIDs, renderWorldState(ctx, svc, req.WorldState, &fs, inputs, prefix)...)
 		}
 
-		// Collect and render goal poses as arrows.
 		goalPoses := collectGoalPoses(req.Goals)
 		if len(goalPoses) > 0 {
 			addedUUIDs = append(addedUUIDs, renderGoalPoses(ctx, svc, goalPoses, prefix)...)
@@ -320,11 +314,9 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		planPlayback.entityUUIDs = addedUUIDs
 		planPlayback.mu.Unlock()
 
-		// Return a summary to the frontend.
-		names := fs.FrameNames()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(planRequestResponse{
-			ComponentNames: names,
+			ComponentNames: fs.FrameNames(),
 			GoalCount:      len(goalPoses),
 			TotalSteps:     len(result.Trajectory),
 			CurrentStep:    currentStep,
@@ -444,62 +436,40 @@ func mergeFrameSystemInputs(base, overlay referenceframe.FrameSystemInputs) refe
 	return merged
 }
 
-// applyTransformPrefix prepends prefix to t.ReferenceFrame and to the parent
-// reference frame, leaving the special "world" frame untouched so plans still
-// attach to the shared world root.
+// prefixedRef returns prefix+ref, leaving empty strings and "world" untouched
+// so plans still attach to the shared world root.
+func prefixedRef(prefix, ref string) string {
+	if prefix == "" || ref == "" || ref == "world" {
+		return ref
+	}
+	return prefix + ref
+}
+
 func applyTransformPrefix(t *commonv1.Transform, prefix string) {
 	if prefix == "" || t == nil {
 		return
 	}
-	if t.ReferenceFrame != "" && t.ReferenceFrame != "world" {
-		t.ReferenceFrame = prefix + t.ReferenceFrame
-	}
+	t.ReferenceFrame = prefixedRef(prefix, t.ReferenceFrame)
 	if t.PoseInObserverFrame != nil {
-		parent := t.PoseInObserverFrame.ReferenceFrame
-		if parent != "" && parent != "world" {
-			t.PoseInObserverFrame.ReferenceFrame = prefix + parent
-		}
+		t.PoseInObserverFrame.ReferenceFrame = prefixedRef(prefix, t.PoseInObserverFrame.ReferenceFrame)
 	}
 }
 
-// applyDrawingPrefix prepends prefix to d.ReferenceFrame and the drawing's
-// parent reference, leaving "world" untouched.
 func applyDrawingPrefix(d *drawv1.Drawing, prefix string) {
 	if prefix == "" || d == nil {
 		return
 	}
-	if d.ReferenceFrame != "" && d.ReferenceFrame != "world" {
-		d.ReferenceFrame = prefix + d.ReferenceFrame
-	}
+	d.ReferenceFrame = prefixedRef(prefix, d.ReferenceFrame)
 	if d.PoseInObserverFrame != nil {
-		parent := d.PoseInObserverFrame.ReferenceFrame
-		if parent != "" && parent != "world" {
-			d.PoseInObserverFrame.ReferenceFrame = prefix + parent
-		}
+		d.PoseInObserverFrame.ReferenceFrame = prefixedRef(prefix, d.PoseInObserverFrame.ReferenceFrame)
 	}
 }
 
-func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) ([][]byte, error) {
-	// Matrix green (#00FF41) at 85% opacity.
-	debugColor := draw.ColorFromRGBA(0, 255, 65, 217)
-	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
-	// Seed the color map with the debug color on the world frame so every
-	// uncolored robot-link frame inherits it via getFrameColor's parent walk.
-	frameColors := map[string]draw.Color{
-		"world": debugColor,
-	}
-	for _, frameName := range fs.FrameNames() {
-		if len(frameName) >= len("obstacle-") && frameName[:len("obstacle-")] == "obstacle-" {
-			// Keep obstacles visually distinct from robot links.
-			frameColors[frameName] = obstacleColor
-		}
-	}
-
-	drawnFS := draw.NewDrawnFrameSystem(fs, inputs, draw.WithFrameSystemColors(frameColors))
-	transforms, err := drawnFS.ToTransforms()
-	if err != nil {
-		return nil, err
-	}
+// addTransforms applies prefix to each transform and pushes it to the draw
+// service, collecting the resulting UUIDs. If stopOnError is true the first
+// AddEntity error aborts the loop and is returned; otherwise errors are
+// silently skipped (best-effort).
+func addTransforms(ctx context.Context, svc drawv1connect.DrawServiceHandler, transforms []*commonv1.Transform, prefix string, stopOnError bool) ([][]byte, error) {
 	uuids := make([][]byte, 0, len(transforms))
 	for _, t := range transforms {
 		applyTransformPrefix(t, prefix)
@@ -507,7 +477,10 @@ func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler
 			Entity: &drawv1.AddEntityRequest_Transform{Transform: t},
 		}))
 		if err != nil {
-			return uuids, err
+			if stopOnError {
+				return uuids, err
+			}
+			continue
 		}
 		if resp != nil && resp.Msg != nil && len(resp.Msg.Uuid) > 0 {
 			uuids = append(uuids, resp.Msg.Uuid)
@@ -516,12 +489,28 @@ func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler
 	return uuids, nil
 }
 
+func renderFrameSystem(ctx context.Context, svc drawv1connect.DrawServiceHandler, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) ([][]byte, error) {
+	// Seed the world frame so every uncolored robot-link frame inherits the
+	// debug color via getFrameColor's parent walk.
+	frameColors := map[string]draw.Color{"world": debugColor}
+	for _, frameName := range fs.FrameNames() {
+		if strings.HasPrefix(frameName, "obstacle-") {
+			frameColors[frameName] = obstacleColor
+		}
+	}
+
+	transforms, err := draw.NewDrawnFrameSystem(fs, inputs, draw.WithFrameSystemColors(frameColors)).ToTransforms()
+	if err != nil {
+		return nil, err
+	}
+	return addTransforms(ctx, svc, transforms, prefix, true)
+}
+
 func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler, ws *referenceframe.WorldState, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs, prefix string) [][]byte {
 	geoms, err := ws.ObstaclesInWorldFrame(fs, inputs)
 	if err != nil || len(geoms.Geometries()) == 0 {
 		return nil
 	}
-	obstacleColor := draw.ColorFromHex("#2EC4B6").SetAlpha(84)
 	colors := make([]draw.Color, len(geoms.Geometries()))
 	for i := range colors {
 		colors[i] = obstacleColor
@@ -530,20 +519,11 @@ func renderWorldState(ctx context.Context, svc drawv1connect.DrawServiceHandler,
 	if err != nil {
 		return nil
 	}
-	obstacleTransforms, err := drawnGeoms.ToTransforms()
+	transforms, err := drawnGeoms.ToTransforms()
 	if err != nil {
 		return nil
 	}
-	uuids := make([][]byte, 0, len(obstacleTransforms))
-	for _, t := range obstacleTransforms {
-		applyTransformPrefix(t, prefix)
-		resp, err := svc.AddEntity(ctx, connect.NewRequest(&drawv1.AddEntityRequest{
-			Entity: &drawv1.AddEntityRequest_Transform{Transform: t},
-		}))
-		if err == nil && resp != nil && resp.Msg != nil && len(resp.Msg.Uuid) > 0 {
-			uuids = append(uuids, resp.Msg.Uuid)
-		}
-	}
+	uuids, _ := addTransforms(ctx, svc, transforms, prefix, false)
 	return uuids
 }
 
@@ -565,12 +545,10 @@ func collectGoalPoses(goals []planGoalBody) []spatialmath.Pose {
 }
 
 func renderGoalPoses(ctx context.Context, svc drawv1connect.DrawServiceHandler, poses []spatialmath.Pose, prefix string) [][]byte {
-	// Solid matrix green to match the plan frame system color.
 	goalColor := draw.ColorFromRGB(0, 255, 65)
 	uuids := make([][]byte, 0, len(poses))
-	// Create one drawing per goal so each drawing's bounding box is tight
-	// around the arrow itself, rather than spanning from world origin to a
-	// distant arrow location.
+	// One drawing per goal keeps each drawing's bounding box tight around its
+	// arrow rather than spanning from world origin to a distant arrow location.
 	for i, pose := range poses {
 		arrows, err := draw.NewArrows(
 			[]spatialmath.Pose{spatialmath.NewZeroPose()},
