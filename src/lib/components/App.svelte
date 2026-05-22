@@ -26,7 +26,6 @@
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
 	import { domPortal } from '$lib/portal'
 
-	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
@@ -34,6 +33,7 @@
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
+	import PlanScrubber from './PlanScrubber.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
@@ -137,7 +137,7 @@
 
 				<!-- Overlays that need Threlte context -->
 				<div {@attach domPortal(root)}>
-					<FileDrop />
+					<PlanScrubber />
 					<Dashboard {dashboard} />
 					<Controls />
 					<Details {details} />
