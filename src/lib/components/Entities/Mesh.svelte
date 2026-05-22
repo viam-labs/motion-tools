@@ -159,7 +159,7 @@
 					is={edgesGeometry}
 					dispose={false}
 				/>
-				<T.LineBasicMaterial color={darkenColor(color, 10)} />
+				<T.LineBasicMaterial color={darkenColor(color, 60)} />
 			</T.LineSegments>
 		{:else if bufferGeometry.current}
 			<T is={bufferGeometry.current}>
@@ -174,7 +174,7 @@
 							bvh={{ enabled: false }}
 						>
 							<T.EdgesGeometry args={[geo, 0]} />
-							<T.LineBasicMaterial color={darkenColor(color, 10)} />
+								<T.LineBasicMaterial color={darkenColor(color, 60)} />
 						</T.LineSegments>
 					{/if}
 				{/snippet}

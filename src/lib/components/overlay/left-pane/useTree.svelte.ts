@@ -12,22 +12,10 @@ const compareByName = (a: Entity, b: Entity): number =>
 	(a.get(traits.Name) ?? '').localeCompare(b.get(traits.Name) ?? '')
 
 const buildTree = (world: World): TreeNode[] => {
-	// Prefer showing live machine entities. Only fall back to debug-plan
-	// entities (DrawServiceAPI) when no live entities exist at all, so the
-	// panel stays useful when working with a debug plan alone.
-	let hasLive = false
-	for (const _ of world.query(traits.Name, Not(traits.DrawServiceAPI))) {
-		hasLive = true
-		break
-	}
-
 	const walk = (entity: Entity): TreeNode => {
 		const node: TreeNode = { entity }
 
-		const children = world
-			.query(relations.ChildOf(entity))
-			.filter((child) => !hasLive || !child.has(traits.DrawServiceAPI))
-			.toSorted(compareByName)
+		const children = world.query(relations.ChildOf(entity)).toSorted(compareByName)
 		if (children.length > 0) {
 			node.children = children.map((child) => walk(child))
 		}
@@ -37,7 +25,6 @@ const buildTree = (world: World): TreeNode[] => {
 
 	const rootEntities: Entity[] = []
 	for (const entity of world.query(traits.Name, Not(traits.Orphan))) {
-		if (hasLive && entity.has(traits.DrawServiceAPI)) continue
 		if (entity.targetFor(relations.ChildOf)) continue
 		rootEntities.push(entity)
 	}

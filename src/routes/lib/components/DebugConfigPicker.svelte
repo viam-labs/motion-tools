@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { PersistedState } from 'runed'
+
 	import { createViamClient, dataApi, type ViamClient } from '@viamrobotics/sdk'
 
 	import { usePlanController } from '$lib/hooks/usePlanController.svelte'
@@ -35,7 +37,9 @@
 	let loading = $state(false)
 	let loaded = $state(false)
 	let items = $state<BinaryData[]>([])
-	let selectedId = $state('')
+	const persistedSelection = $derived(
+		new PersistedState<string>(`debug-plan-selection-${debugConfig.partId}`, '')
+	)
 	let fetching = $state(false)
 	let errorMessage = $state('')
 
@@ -47,8 +51,14 @@
 		debugConfig.apiKeyValue
 		loaded = false
 		items = []
-		selectedId = ''
 		errorMessage = ''
+	})
+
+	// Auto-refresh the plan list whenever credentials are ready.
+	$effect(() => {
+		if (ready && !loaded && !loading) {
+			void refresh()
+		}
 	})
 
 	const fileNameOf = (item: BinaryData): string => {
@@ -76,8 +86,8 @@
 			)
 			items = resp.data
 			loaded = true
-			if (items.length > 0 && !selectedId) {
-				selectedId = idOf(items[0]!)
+			if (items.length > 0 && !persistedSelection.current) {
+				persistedSelection.current = idOf(items[0]!)
 			}
 		} catch (error) {
 			errorMessage = `Could not list cloud data: ${
@@ -89,15 +99,16 @@
 	}
 
 	const load = async () => {
-		if (!clientPromise || !selectedId) return
-		const item = items.find((entry) => idOf(entry) === selectedId)
+		const id = persistedSelection.current
+		if (!clientPromise || !id) return
+		const item = items.find((entry) => idOf(entry) === id)
 		if (!item) return
 
 		fetching = true
 		errorMessage = ''
 		try {
 			const client: ViamClient = await clientPromise
-			const fetched = await client.dataClient.binaryDataByIds([selectedId], true)
+			const fetched = await client.dataClient.binaryDataByIds([id], true)
 			const bytes = fetched[0]?.binary
 			if (!bytes || bytes.length === 0) {
 				errorMessage = 'Selected file is empty.'
@@ -121,8 +132,12 @@
 
 	let lastLoadedId = $state('')
 	$effect(() => {
-		if (selectedId && selectedId !== lastLoadedId && !fetching) {
-			lastLoadedId = selectedId
+		const id = persistedSelection.current
+		// Also track items.length so this re-fires when the list populates after
+		// an auto-refresh, allowing the persisted selection to be loaded.
+		const hasItems = items.length > 0
+		if (hasItems && id && id !== lastLoadedId && !fetching) {
+			lastLoadedId = id
 			void load()
 		}
 	})
@@ -132,7 +147,7 @@
 	<div class="flex items-center gap-2">
 		<select
 			class="min-w-0 grow basis-0 truncate rounded border border-gray-300 bg-white px-1 py-1 text-xs disabled:opacity-40"
-			bind:value={selectedId}
+			bind:value={persistedSelection.current}
 			disabled={!ready || loading || fetching || items.length === 0}
 		>
 			{#if items.length === 0}
