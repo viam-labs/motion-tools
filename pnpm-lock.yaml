@@ -152,8 +152,8 @@ importers:
         specifier: 1.2.2
         version: 1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7)
       '@viamrobotics/tweakpane-config':
-        specifier: 0.1.0
-        version: 0.1.0(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)
+        specifier: 0.1.1
+        version: 0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)
       '@vitest/browser':
         specifier: 3.2.4
         version: 3.2.4(playwright@1.55.1)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.30.1)(tsx@4.20.5)(yaml@2.8.1))(vitest@3.2.4)
@@ -1912,8 +1912,8 @@ packages:
       '@viamrobotics/sdk': '>=0.57'
       svelte: '>=5'
 
-  '@viamrobotics/tweakpane-config@0.1.0':
-    resolution: {integrity: sha512-2cxP2DQZ2oPzrAgpAvPv7d8BJA1OCpdMYC+jmrLoxmyt7L3fu9PuHAU95Z5cWpbsl/ctNqYwfBsimW81+PmSOw==}
+  '@viamrobotics/tweakpane-config@0.1.1':
+    resolution: {integrity: sha512-oIRkTIjE+c5MLlwETi5l0WbpNrZa/qXcntjO2Aa5eBJSUsAIvdPrBR0mj6xJSgY5B0qGKymEmfZuSng1uF0v2A==}
     peerDependencies:
       svelte: ^5.0.0
       svelte-tweakpane-ui: ^1.5.16
@@ -6032,7 +6032,7 @@ snapshots:
       runed: 0.29.2(svelte@5.55.7)
       svelte: 5.55.7
 
-  '@viamrobotics/tweakpane-config@0.1.0(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)':
+  '@viamrobotics/tweakpane-config@0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)':
     dependencies:
       svelte: 5.55.7
       svelte-tweakpane-ui: 1.5.16(svelte@5.55.7)
