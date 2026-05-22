@@ -43,9 +43,10 @@ describe('createPlanRequestDropper', () => {
 
 		expect(result.success).toBe(true)
 		expect(fetchMock).toHaveBeenCalledTimes(1)
-		expect(fetchMock.mock.calls[0]?.[0]).toBe('http://localhost:3030/plan-request')
 
-		const init = fetchMock.mock.calls[0]?.[1] as RequestInit
+		const call = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+		expect(call[0]).toBe('http://localhost:3030/plan-request')
+		const init = call[1]
 		expect(typeof init.body).toBe('string')
 		expect((init.body as string).includes('"frame_system"')).toBe(true)
 		expect((init.body as string).includes('"trajectory"')).toBe(true)

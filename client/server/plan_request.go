@@ -165,8 +165,8 @@ type planPlaybackState struct {
 }
 
 var planPlayback struct {
-	mu          sync.RWMutex
-	state       *planPlaybackState
+	mu    sync.RWMutex
+	state *planPlaybackState
 	// entityUUIDs holds the UUIDs of every entity added by the most recent
 	// /plan-request invocation. We remove only these on the next request,
 	// rather than calling RemoveAll, so that entities pushed to the same
