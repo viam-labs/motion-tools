@@ -15,7 +15,7 @@ static/test-fixtures
 .svelte-kit
 .astro
 build
-src/lib/**/__tests__/__screenshots__
+src/lib/**/__screenshots__
 __snapshots__
 coverage
 dist
