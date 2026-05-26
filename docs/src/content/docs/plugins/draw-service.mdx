@@ -1,6 +1,43 @@
 ---
 title: <DrawService />
-description: Stream draw-server output into an embedded motion-tools visualizer.
+description: Stream a running draw server's output into an embedded motion-tools visualizer.
 ---
 
-Documentation coming soon.
+`<DrawService />` connects an embedded `<Visualizer />` to a running draw server over WebSocket so any `client/api` calls made elsewhere render in this instance live. Skip it if you only render snapshots — snapshots are entirely client-side and don't need the server.
+
+The plugin is **headless**: it provides the connection context and starts the stream; it doesn't render anything itself.
+
+The Connect RPC client is required for the `<DrawService />`.
+
+## Install
+
+```bash
+pnpm add @connectrpc/connect @connectrpc/connect-web
+```
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { DrawService } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<DrawService config={{ backendIP: 'localhost', websocketPort: '3030' }} />
+	</Visualizer>
+</div>
+```
+
+## Props
+
+| Prop     | Type                                           | Description                                                   |
+| -------- | ---------------------------------------------- | ------------------------------------------------------------- |
+| `config` | `{ backendIP: string; websocketPort: string }` | Host and port of the draw server. Default dev port is `3030`. |
+
+The `config` prop is reactive — change it and the plugin reconnects to the new endpoint.
+
+## Connecting from Go
+
+Once `<DrawService />` is mounted, point your Go code at the same backend and any `Draw*` call against a shared snapshot streams to the browser. See the [`client/api`](../../api/client-api/) reference for the producer side.

@@ -1,6 +1,66 @@
 ---
 title: <SelectionTool />
-description: Lasso-pick points and geometries inside a motion-tools visualizer.
+description: Lasso- or ellipse-pick points and geometries inside a motion-tools visualizer.
 ---
 
-Documentation coming soon.
+`<SelectionTool />` adds a selection mode to the visualizer — a dashboard toggle plus an on-canvas lasso or ellipse tool that captures the points and geometries inside the drawn region. Selected entities are exposed via the `useSelectionPlugin` hook so you can react to them from your own UI.
+
+Selection mode automatically switches the camera to orthographic so 2D screen-space picking maps cleanly to the scene.
+
+The polygon-triangulation `earcut` library is required for the `<SelectionTool />`.
+
+## Install
+
+```bash
+pnpm add earcut
+```
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { SelectionTool } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<SelectionTool />
+	</Visualizer>
+</div>
+```
+
+A new toggle appears in the top dashboard; clicking it enters selection mode. The popover next to it switches between **Lasso** and **Ellipse** tools.
+
+## Props
+
+| Prop                    | Type      | Default | Description                                                                                   |
+| ----------------------- | --------- | ------- | --------------------------------------------------------------------------------------------- |
+| `enabled`               | `boolean` | `false` | Enter selection mode automatically on mount.                                                  |
+| `autoSelectNewEntities` | `boolean` | `false` | Auto-select the most recently created selection entity (sets it as the focused entity).       |
+| `children`              | `Snippet` | —       | Rendered only while selection mode is active — useful for overlays scoped to the active tool. |
+
+## Reading the selection
+
+Use `useSelectionPlugin` to read the current set of selected entities from anywhere inside `<Visualizer />`:
+
+```svelte
+<script lang="ts">
+	import { useSelectionPlugin } from '@viamrobotics/motion-tools/plugins'
+
+	const selection = useSelectionPlugin()
+</script>
+
+<p>Selected {selection.current.length} entities</p>
+<button onclick={selection.clearSelections}>Clear</button>
+```
+
+The hook also exposes `clearSelections()` to remove all selection-marker entities from the world.
+
+## Traits
+
+For lower-level access to selection state (e.g. querying which points fall inside a selected region), the plugin exports its Koota traits under the `selectionTraits` namespace:
+
+```ts
+import { selectionTraits } from '@viamrobotics/motion-tools/plugins'
+```

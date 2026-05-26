@@ -3,4 +3,33 @@ title: <Skybox />
 description: Render an equirectangular skybox dome around the motion-tools scene.
 ---
 
-Documentation coming soon.
+`<Skybox />` wraps the scene in a [grounded skybox dome](https://threejs.org/examples/?q=skybox#webgl_materials_envmaps_groundprojected) loaded from an equirectangular image, anchoring the lower hemisphere to the world XY plane so geometry sits convincingly on the ground.
+
+Use it to add real-world context to a snapshot — a warehouse, a lab, or any 360° photo of the environment the robot operates in.
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Skybox } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<Skybox url="/environment.jpg" />
+	</Visualizer>
+</div>
+```
+
+The image should be a 2:1 equirectangular projection (the standard format for 360° photos). Drop it in your app's `public/` directory or point `url` at any reachable HTTP endpoint.
+
+## Props
+
+| Prop       | Type                                | Default               | Description                                                                                                                                      |
+| ---------- | ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `url`      | `string`                            | —                     | URL of the equirectangular image. Required.                                                                                                      |
+| `position` | `[x: number, y: number, z: number]` | `[0, 0, height]`      | World-space center of the dome. Default anchors the ground plane at world Z=0.                                                                   |
+| `rotation` | `[x: number, y: number, z: number]` | `[Math.PI / 2, 0, 0]` | Euler rotation in radians. Default aligns the image's vertical axis (+Y) with this scene's vertical axis (+Z); the Z component then acts as yaw. |
+| `height`   | `number`                            | `15`                  | Camera height above ground when the source photo was taken. Larger values magnify the lower portion of the image.                                |
+| `radius`   | `number`                            | `100`                 | Dome radius. Must exceed the scene camera's reach so the camera stays inside the dome.                                                           |
