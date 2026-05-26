@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.29.1
+
+### Patch Changes
+
+- 66089d4: Fix invisibility cascading downwards in the pose graph
+
 ## 1.29.0
 
 ### Minor Changes
