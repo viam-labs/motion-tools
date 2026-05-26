@@ -38,6 +38,44 @@ pnpm add @connectrpc/connect @connectrpc/connect-web
 
 The `config` prop is reactive — change it and the plugin reconnects to the new endpoint.
 
-## Connecting from Go
+## Running a draw server
 
-Once `<DrawService />` is mounted, point your Go code at the same backend and any `Draw*` call against a shared snapshot streams to the browser. See the [`client/api`](../../api/client-api/) reference for the producer side.
+`<DrawService />` is a client — it needs a draw server to talk to. You have three options:
+
+### Use the motion-tools local app
+
+The fastest path: run motion-tools locally (`make up` or `pnpm dev`). The local app already hosts a draw server on port `3030`, and `client/api` calls to the same host land in it.
+
+### Host the Go `DrawService` yourself
+
+Motion-tools exports a ready-made `DrawService` from `github.com/viam-labs/motion-tools/draw` — the same Connect-RPC handler the local app uses. Wire it up to your own HTTP server:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"connectrpc.com/connect"
+	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+)
+
+func main() {
+	svc := draw.NewDrawService("") // "" = use os.TempDir for chunked buffers
+
+	mux := http.NewServeMux()
+	mux.Handle(drawv1connect.NewDrawServiceHandler(svc))
+
+	log.Fatal(http.ListenAndServe(":3030", mux))
+}
+```
+
+Your `client/api` producer code then points at this server, and `<DrawService config={{ backendIP, websocketPort: '3030' }} />` in the browser subscribes to its stream.
+
+### Implement your own server
+
+If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viam-labs/motion-tools/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs (`AddEntity`, `UpdateEntity`, `RemoveEntity`, `StreamEntityChanges`, …) in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
+
+See the [`client/api`](../../api/client-api/) reference for the producer-side calls regardless of which server you use.
