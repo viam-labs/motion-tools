@@ -1,4 +1,4 @@
-import type { FileDropperSuccess } from './file-dropper'
+import type { FileDropper, FileDropperSuccess } from './file-dropper'
 
 import { Extensions, parseFileName, Prefixes, readFile } from './file-names'
 import { pcdDropper } from './pcd-dropper'
@@ -11,7 +11,7 @@ const hasDraggedFiles = (dataTransfer: DataTransfer | null): boolean => {
 	return dataTransfer?.types?.includes('Files') ?? false
 }
 
-const createFileDropper = (extension: string, prefix: string | undefined) => {
+const createFileDropper = (extension: string, prefix: string | undefined, jsonDropper?: FileDropper) => {
 	switch (prefix) {
 		case Prefixes.Snapshot: {
 			return snapshotDropper
@@ -25,6 +25,9 @@ const createFileDropper = (extension: string, prefix: string | undefined) => {
 		case Extensions.PLY: {
 			return plyDropper
 		}
+		case Extensions.JSON: {
+			return jsonDropper
+		}
 	}
 
 	return undefined
@@ -32,7 +35,8 @@ const createFileDropper = (extension: string, prefix: string | undefined) => {
 
 export const useFileDrop = (
 	onSuccess: (result: FileDropperSuccess) => void,
-	onError: (message: string) => void
+	onError: (message: string) => void,
+	jsonDropper?: FileDropper
 ) => {
 	let dropState = $state<DropStates>('inactive')
 
@@ -104,7 +108,7 @@ export const useFileDrop = (
 
 			reader.addEventListener('load', async (event) => {
 				const content = event.target?.result
-				const dropper = createFileDropper(extension, prefix)
+				const dropper = createFileDropper(extension, prefix, jsonDropper)
 				if (!dropper) {
 					handleError(`${file.name} is not a supported file type.`)
 					return

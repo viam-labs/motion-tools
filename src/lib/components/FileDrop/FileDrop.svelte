@@ -8,11 +8,12 @@
 	import { traits } from '$lib/ecs'
 	import { useWorld } from '$lib/ecs/useWorld'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
+	import { useDrawConnectionConfig } from '$lib/hooks/useDrawConnectionConfig.svelte'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { spawnSnapshotEntities } from '$lib/snapshot'
 
 	import type { FileDropperSuccess } from './file-dropper'
-
+	import { createPlanRequestDropper } from './plan-request-dropper'
 	import { useFileDrop } from './useFileDrop.svelte'
 
 	const props: HTMLAttributes<HTMLDivElement> = $props()
@@ -21,6 +22,13 @@
 	const toast = useToast()
 	const cameraControls = useCameraControls()
 	const relationships = useRelationships()
+	const drawConnectionConfig = useDrawConnectionConfig()
+
+	const planRequestDropper = createPlanRequestDropper(
+		drawConnectionConfig.current?.backendIP
+			? `http://${drawConnectionConfig.current.backendIP}:3030`
+			: 'http://localhost:3030'
+	)
 
 	const fileDrop = useFileDrop(
 		(result: FileDropperSuccess) => {
@@ -71,11 +79,15 @@
 					)
 					break
 				}
+				case 'plan-request': {
+					break
+				}
 			}
 
 			toast({ message: `${result.name} loaded.`, variant: ToastVariant.Success })
 		},
-		(message) => toast({ message, variant: ToastVariant.Danger })
+		(message) => toast({ message, variant: ToastVariant.Danger }),
+		planRequestDropper
 	)
 </script>
 
