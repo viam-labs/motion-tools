@@ -61,12 +61,6 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 	}
 }
 
-/**
- * Mount the inherited-invisibility reactor: keeps `InheritedInvisible`
- * set whenever an entity or any of its `ChildOf` ancestors has
- * `Invisible`. Microtask-deferred so a burst of changes coalesces into
- * one subtree walk.
- */
 export const provideInheritedInvisible = (): void => {
 	const world = useWorld()
 
@@ -78,6 +72,8 @@ export const provideInheritedInvisible = (): void => {
 			dirty.add(entity)
 			if (scheduled) return
 			scheduled = true
+
+			// Microtask-deferred so a burst of changes is grouped into one subtree walk.
 			queueMicrotask(() => {
 				scheduled = false
 				flushDirty(world, dirty)
