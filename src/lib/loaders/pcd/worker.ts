@@ -33,7 +33,7 @@ globalThis.onmessage = async (event) => {
 
 			postMessage(
 				{ positions, colors, id } satisfies Message,
-				colors ? [positions.buffer, colors.buffer] : [positions.buffer]
+				{ transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer] }
 			)
 		} else {
 			postMessage({ id, error: 'Failed to extract geometry' } satisfies Message)
