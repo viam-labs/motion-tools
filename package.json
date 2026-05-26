@@ -56,6 +56,7 @@
 		"@sveltejs/vite-plugin-svelte": "6.1.4",
 		"@tailwindcss/forms": "0.5.10",
 		"@tailwindcss/vite": "4.1.13",
+		"@tanstack/svelte-query-devtools": "6.0.2",
 		"@testing-library/jest-dom": "6.8.0",
 		"@testing-library/svelte": "5.2.8",
 		"@testing-library/user-event": "^14.6.1",
@@ -121,6 +122,7 @@
 		"@ag-grid-community/core": ">=32.3.0",
 		"@ag-grid-community/styles": ">=32.3.0",
 		"@dimforge/rapier3d-compat": ">=0.17",
+		"@tanstack/svelte-query-devtools": ">=6",
 		"@threlte/core": ">=8",
 		"@threlte/extras": ">=9",
 		"@threlte/rapier": ">=3",
@@ -143,6 +145,11 @@
 		"svelte": ">=5",
 		"svelte-tweakpane-ui": ">=1.5",
 		"svelte-virtuallists": ">=1"
+	},
+	"peerDependenciesMeta": {
+		"@tanstack/svelte-query-devtools": {
+			"optional": true
+		}
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
@@ -189,7 +196,6 @@
 		"@connectrpc/connect": "1.7.0",
 		"@connectrpc/connect-web": "1.7.0",
 		"@neodrag/svelte": "^2.3.3",
-		"@tanstack/svelte-query-devtools": "^6.0.2",
 		"earcut": "^3.0.2",
 		"filtrex": "^3.1.0",
 		"koota": "0.6.5",

@@ -83,6 +83,20 @@ That's enough to get an empty scene with the camera, grid, and overlay UI. From 
 </div>
 ```
 
+## Optional: TanStack Query devtools
+
+Motion-tools issues its Viam RPC calls through `@viamrobotics/svelte-sdk`, which is built on TanStack Query. The official [Svelte Query devtools](https://tanstack.com/query/latest/docs/framework/svelte/devtools) panel — inspect the query cache, view in-flight mutations, manually refetch — is supported, but the package is **not** bundled with motion-tools so it doesn't add weight for consumers that don't need it.
+
+To enable it, install the devtools package as a peer dependency:
+
+```bash
+pnpm add -D @tanstack/svelte-query-devtools
+```
+
+No additional wiring is required: motion-tools attaches the devtools to the `QueryClient` your `<ViamAppProvider>` (from `@viamrobotics/svelte-sdk`) already sets up.
+
+Once installed, open Settings (the cog icon) → **Stats** tab → toggle **Query devtools**. The toggle only appears when the package resolves at runtime — if you uninstall the dev dep, the toggle and the floating button disappear with no other changes.
+
 ## Rendering snapshots
 
 A **snapshot** is a serialized scene — every transform, drawing, and camera setting captured into one protobuf payload. Snapshots render purely client-side; no draw server, no live machine, no network calls.
