@@ -2,7 +2,8 @@ import { createWorld, type World } from 'koota'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { relations, traits } from '$lib/ecs'
-import { installInheritedInvisibleListeners } from '$lib/ecs/inheritedInvisible'
+
+import { addInheritedInvisibleListeners } from '../useInheritedInvisible.svelte'
 
 describe('inheritedInvisible system', () => {
 	let world: World
@@ -17,7 +18,7 @@ describe('inheritedInvisible system', () => {
 
 	it('marks an entity with Invisible as InheritedInvisible', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const entity = world.spawn(traits.Invisible)
 		await tick()
@@ -27,7 +28,7 @@ describe('inheritedInvisible system', () => {
 
 	it('propagates Invisible from parent to descendants', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const parent = world.spawn(traits.Invisible)
 		const child = world.spawn(relations.ChildOf(parent))
@@ -40,7 +41,7 @@ describe('inheritedInvisible system', () => {
 
 	it('clears InheritedInvisible from descendants when ancestor unhides', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const parent = world.spawn(traits.Invisible)
 		const child = world.spawn(relations.ChildOf(parent))
@@ -56,7 +57,7 @@ describe('inheritedInvisible system', () => {
 
 	it('keeps a descendant marked when the descendant has its own Invisible', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const parent = world.spawn(traits.Invisible)
 		const child = world.spawn(relations.ChildOf(parent), traits.Invisible)
@@ -71,7 +72,7 @@ describe('inheritedInvisible system', () => {
 
 	it('updates when a child is reparented under an invisible parent', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const hiddenParent = world.spawn(traits.Invisible)
 		const visibleParent = world.spawn()
@@ -87,7 +88,7 @@ describe('inheritedInvisible system', () => {
 
 	it('clears when a child is reparented away from an invisible parent', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const hiddenParent = world.spawn(traits.Invisible)
 		const visibleParent = world.spawn()
@@ -103,7 +104,7 @@ describe('inheritedInvisible system', () => {
 
 	it('coalesces multiple changes into a single flush', async () => {
 		world = createWorld()
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 
 		const parent = world.spawn()
 		const child = world.spawn(relations.ChildOf(parent))
@@ -121,7 +122,7 @@ describe('inheritedInvisible system', () => {
 		const parent = world.spawn(traits.Invisible)
 		const child = world.spawn(relations.ChildOf(parent))
 
-		unsub = installInheritedInvisibleListeners(world)
+		unsub = addInheritedInvisibleListeners(world)
 		await tick()
 
 		expect(parent.has(traits.InheritedInvisible)).toBe(true)

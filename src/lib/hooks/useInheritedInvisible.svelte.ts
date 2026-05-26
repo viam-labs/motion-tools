@@ -61,41 +61,43 @@ const flushDirty = (world: World, dirty: Set<Entity>) => {
 	}
 }
 
+export const addInheritedInvisibleListeners = (world: World) => {
+	const dirty = new Set<Entity>()
+	let scheduled = false
+
+	const enqueue = (entity: Entity) => {
+		dirty.add(entity)
+		if (scheduled) return
+		scheduled = true
+
+		// Microtask-deferred so a burst of changes is grouped into one subtree walk.
+		queueMicrotask(() => {
+			scheduled = false
+			flushDirty(world, dirty)
+		})
+	}
+
+	for (const entity of world.query(Invisible)) {
+		enqueue(entity)
+	}
+
+	const unsubs = [
+		world.onAdd(Invisible, enqueue),
+		world.onRemove(Invisible, enqueue),
+		world.onAdd(ChildOf, enqueue),
+		world.onChange(ChildOf, enqueue),
+		world.onRemove(ChildOf, enqueue),
+	]
+
+	return () => {
+		for (const unsub of unsubs) {
+			unsub()
+		}
+	}
+}
+
 export const provideInheritedInvisible = (): void => {
 	const world = useWorld()
 
-	$effect(() => {
-		const dirty = new Set<Entity>()
-		let scheduled = false
-
-		const enqueue = (entity: Entity) => {
-			dirty.add(entity)
-			if (scheduled) return
-			scheduled = true
-
-			// Microtask-deferred so a burst of changes is grouped into one subtree walk.
-			queueMicrotask(() => {
-				scheduled = false
-				flushDirty(world, dirty)
-			})
-		}
-
-		for (const entity of world.query(Invisible)) {
-			enqueue(entity)
-		}
-
-		const unsubs = [
-			world.onAdd(Invisible, enqueue),
-			world.onRemove(Invisible, enqueue),
-			world.onAdd(ChildOf, enqueue),
-			world.onChange(ChildOf, enqueue),
-			world.onRemove(ChildOf, enqueue),
-		]
-
-		return () => {
-			for (const unsub of unsubs) {
-				unsub()
-			}
-		}
-	})
+	$effect(() => addInheritedInvisibleListeners(world))
 }
