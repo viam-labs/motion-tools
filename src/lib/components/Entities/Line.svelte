@@ -34,7 +34,7 @@
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const screenSpace = useTrait(() => entity, traits.ScreenSpace)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 
 	const events = useEntityEvents(() => entity)
