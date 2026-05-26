@@ -285,6 +285,10 @@
 		<label class="flex items-center justify-between gap-2">
 			Render stats <Switch bind:on={settings.current.renderStats} />
 		</label>
+
+		<label class="flex items-center justify-between gap-2">
+			Terminal mode <Switch bind:on={settings.current.terminalMode} />
+		</label>
 	</div>
 {/snippet}
 

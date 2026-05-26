@@ -2,10 +2,10 @@
 	import type { ClassValue, HTMLButtonAttributes, MouseEventHandler } from 'svelte/elements'
 
 	import { Icon, type IconName, Tooltip } from '@viamrobotics/prime-core'
-	import { MousePointer2, Ruler } from 'lucide-svelte'
+	import { MousePointer2, Ruler, Shapes } from 'lucide-svelte'
 
 	interface Props extends HTMLButtonAttributes {
-		icon: IconName | 'ruler' | 'mouse-pointer'
+		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes'
 		active?: boolean
 		description: string
 		hotkey?: string
@@ -50,6 +50,8 @@
 				<Ruler size="16" />
 			{:else if icon === 'mouse-pointer'}
 				<MousePointer2 size="16" />
+			{:else if icon === 'shapes'}
+				<Shapes size="16" />
 			{:else}
 				<Icon name={icon} />
 			{/if}

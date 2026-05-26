@@ -2,6 +2,9 @@
 	import { Not, Or } from 'koota'
 
 	import { traits, useQuery } from '$lib/ecs'
+	import GizmoArrow from '$lib/plugins/Gizmos/GizmoArrow.svelte'
+	import GizmoPlane from '$lib/plugins/Gizmos/GizmoPlane.svelte'
+	import * as gizmoTraits from '$lib/plugins/Gizmos/traits'
 
 	import Arrows from './Arrows/ArrowGroups.svelte'
 	import Frame from './Frame.svelte'
@@ -60,6 +63,8 @@
 	const points = useQuery(traits.Points)
 	const lines = useQuery(traits.LinePositions)
 	const gltfs = useQuery(traits.GLTF)
+	const planeGizmos = useQuery(gizmoTraits.Plane)
+	const arrowGizmos = useQuery(gizmoTraits.GizmoArrow)
 </script>
 
 {#each machineFramesEntities.current as entity (entity)}
@@ -110,6 +115,18 @@
 	<GLTF {entity}>
 		<Label text={entity.get(traits.Name)} />
 	</GLTF>
+{/each}
+
+{#each planeGizmos.current as entity (entity)}
+	<GizmoPlane {entity}>
+		<Label text={entity.get(traits.Name)} />
+	</GizmoPlane>
+{/each}
+
+{#each arrowGizmos.current as entity (entity)}
+	<GizmoArrow {entity}>
+		<Label text={entity.get(traits.Name)} />
+	</GizmoArrow>
 {/each}
 
 <Arrows />

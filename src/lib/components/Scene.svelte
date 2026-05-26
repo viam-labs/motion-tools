@@ -21,6 +21,7 @@
 	import CameraControls from './CameraControls.svelte'
 	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
+	import TerminalEffect from './TerminalEffect.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
@@ -54,7 +55,8 @@
 	const bvhEnabled = $derived(
 		settings.current.renderSubEntityHoverDetail ||
 			settings.current.interactionMode === 'measure' ||
-			settings.current.interactionMode === 'select'
+			settings.current.interactionMode === 'select' ||
+			settings.current.interactionMode === 'gizmo'
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
@@ -66,6 +68,10 @@
 
 {#if settings.current.renderStats}
 	<PerfMonitor anchorX="right" />
+{/if}
+
+{#if settings.current.terminalMode}
+	<TerminalEffect />
 {/if}
 
 <Environment url={hdrImage} />

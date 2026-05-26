@@ -18,6 +18,7 @@
 
 	import { draggable } from '@neodrag/svelte'
 	import { isInstanceOf, useThrelte } from '@threlte/core'
+	import { PortalTarget } from '@threlte/extras'
 	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
@@ -53,7 +54,7 @@
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { createPose, matrixToPose } from '$lib/transform'
+	import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 	interface Props {
 		details?: Snippet<[{ entity: Entity }]>
@@ -94,6 +95,7 @@
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
+	const transformable = useTrait(() => entity, traits.Transformable)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -110,6 +112,11 @@
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
 	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions)
+	// Any transformable non-frame entity (e.g. gizmos, static custom geometries)
+	// is editable too — those don't round-trip through the robot config, so the
+	// handlers mutate their `Matrix` / parent directly instead of staging. Frame
+	// entities still gate on edit permissions.
+	const isEditable = $derived(showEditFrameOptions || (!isFrameNode && !!transformable.current))
 	const showRelationshipOptions = $derived(points.current || arrows.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
@@ -149,21 +156,44 @@
 
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
+	// Mutate the entity's local Matrix in place: read current pose, overwrite
+	// position or orientation, write back. Used for non-frame entities (gizmos,
+	// custom static geometries) that don't round-trip through the robot config.
+	// Matrix4 instances are shared by `useTrait`, so we must call
+	// `entity.changed(Matrix)` to notify the world-matrix system and any
+	// other listeners.
+	const writeLocalMatrix = (
+		next: Partial<Pick<Pose, 'x' | 'y' | 'z' | 'oX' | 'oY' | 'oZ' | 'theta'>>
+	) => {
+		if (!entity) return
+		const m = entity.get(traits.Matrix)
+		if (!m) return
+		const pose = matrixToPose(m, createPose())
+		Object.assign(pose, next)
+		poseToMatrix(pose, m)
+		entity.changed(traits.Matrix)
+		invalidate()
+	}
+
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
-		detailConfigUpdater.updateLocalPosition(entity, next)
+		if (isFrameNode) {
+			detailConfigUpdater.updateLocalPosition(entity, next)
+		} else {
+			writeLocalMatrix({ x: next.x, y: next.y, z: next.z })
+		}
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue4dObject
-		detailConfigUpdater.updateLocalOrientation(entity, {
-			oX: next.x,
-			oY: next.y,
-			oZ: next.z,
-			theta: next.w,
-		})
+		const ovValue = { oX: next.x, oY: next.y, oZ: next.z, theta: next.w }
+		if (isFrameNode) {
+			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
+		} else {
+			writeLocalMatrix(ovValue)
+		}
 	}
 
 	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
@@ -177,12 +207,17 @@
 		)
 		quaternion.setFromEuler(euler)
 		ov.setFromQuaternion(quaternion)
-		detailConfigUpdater.updateLocalOrientation(entity, {
+		const ovValue = {
 			oX: ov.x,
 			oY: ov.y,
 			oZ: ov.z,
 			theta: MathUtils.radToDeg(ov.th),
-		})
+		}
+		if (isFrameNode) {
+			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
+		} else {
+			writeLocalMatrix(ovValue)
+		}
 	}
 
 	const handleBoxChange = (event: PointChangeEvent) => {
@@ -233,7 +268,11 @@
 		const value = event.detail.value as string
 		if (value === parent.current) return
 		hierarchy.setParent(entity, value)
-		detailConfigUpdater.setFrameParent(entity, value)
+		// Non-frame entities (gizmos, custom geometries) aren't backed by the
+		// robot config, so skip the config sync.
+		if (isFrameNode) {
+			detailConfigUpdater.setFrameParent(entity, value)
+		}
 	}
 
 	const setGeometryType = (type: 'none' | 'box' | 'sphere' | 'capsule') => {
@@ -320,6 +359,7 @@
 			<div class="flex w-[90%] items-center gap-1">
 				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
 				<span class="text-subtle-2">{displayType}</span>
+				<PortalTarget id="details-header-extensions" />
 			</div>
 
 			{#if object3d}
@@ -473,7 +513,7 @@
 
 			<div>
 				<strong class="font-semibold">parent frame</strong>
-				{#if showEditFrameOptions}
+				{#if isEditable}
 					<!--
 						Remount on entity change. svelte-tweakpane-ui's List runs
 						`listBlade.value = value` on the still-mounted blade before its
@@ -507,7 +547,7 @@
 					<strong class="font-semibold">local position</strong>
 					<span class="text-subtle-2">(mm)</span>
 
-					{#if showEditFrameOptions}
+					{#if isEditable}
 						<div aria-label="mutable local position">
 							<Point
 								value={{
@@ -542,7 +582,7 @@
 				<div>
 					<strong class="font-semibold">local orientation</strong>
 
-					{#if showEditFrameOptions}
+					{#if isEditable}
 						<div aria-label="mutable local orientation">
 							<TabGroup>
 								<TabPage title="OV (deg)">
@@ -748,6 +788,15 @@
 				</div>
 			</div>
 		{/if}
+
+		<!--
+			Extension point for plugin-specific Details UI. Plugins use
+			`<Portal id="details-extensions">` to inject panels (e.g. the gizmo
+			plugin contributes a line-vertex editor here when a gizmo is selected).
+			Each plugin is responsible for gating its own content on the selected
+			entity's traits.
+		-->
+		<PortalTarget id="details-extensions" />
 
 		{@render details?.({ entity })}
 
