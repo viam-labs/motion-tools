@@ -11,6 +11,7 @@
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
+	import { provideInheritedInvisible } from '$lib/hooks/useInheritedInvisible.svelte'
 	import { provideLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { provideLogs } from '$lib/hooks/useLogs.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -36,6 +37,7 @@
 
 	provideHierarchy()
 	provideWorldMatrix()
+	provideInheritedInvisible()
 	provideOrigin()
 
 	provideRelationships()

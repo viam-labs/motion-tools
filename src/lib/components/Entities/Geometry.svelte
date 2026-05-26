@@ -33,7 +33,7 @@ Renders a Viam Geometry object
 	const name = useTrait(() => entity, traits.Name)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 
 	const model = $derived.by(() => {
 		if (!settings.current.renderArmModels.includes('model')) {
