@@ -75,6 +75,14 @@ export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
 
 /**
+ * True when the entity itself, or any of its parents up the `ChildOf`
+ * chain, has `Invisible`. Maintained by `provideInheritedInvisible`;
+ * don't add or remove it by hand — toggle `Invisible` and the cascade
+ * follows.
+ */
+export const InheritedInvisible = trait(() => true)
+
+/**
  * Represents that an entity is composed of many instances, so that the treeview and
  * details panel may display all instances
  */

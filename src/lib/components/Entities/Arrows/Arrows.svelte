@@ -20,7 +20,7 @@
 
 	const { invalidate } = useThrelte()
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 
 	const events = useEntityEvents(() => entity)

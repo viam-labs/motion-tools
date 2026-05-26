@@ -28,7 +28,7 @@
 	const colors = useTrait(() => entity, traits.Colors)
 	const entityPointSize = useTrait(() => entity, traits.PointSize)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 	const materialProps = useTrait(() => entity, traits.Material)
