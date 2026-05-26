@@ -18,7 +18,6 @@
 	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
-	import { provideDevtools } from '$lib/hooks/useDevtools.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
@@ -83,7 +82,6 @@
 	provideWorld()
 
 	const settings = provideSettings()
-	const devtools = provideDevtools()
 	const environment = provideEnvironment()
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
@@ -111,14 +109,6 @@
 		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
 </script>
-
-{#if devtools.isAvailable && settings.current.enableQueryDevtools}
-	{@const Devtools = devtools.component}
-	<Devtools
-		initialIsOpen
-		buttonPosition="bottom-left"
-	/>
-{/if}
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"

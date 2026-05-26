@@ -9,7 +9,6 @@
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import XRControllerSettings from '$lib/components/xr/XRControllerSettings.svelte'
-	import { useDevtools } from '$lib/hooks/useDevtools.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
@@ -28,7 +27,6 @@
 	const cameras = useResourceNames(() => partID.current, 'camera')
 	const visionServices = useResourceNames(() => partID.current, 'vision')
 	const settings = useSettings()
-	const devtools = useDevtools()
 	const { disabledCameras, disabledVisionServices } = $derived(settings.current)
 	const geometries = useGeometries()
 	const pointclouds = usePointClouds()
@@ -280,12 +278,6 @@
 
 {#snippet Stats()}
 	<div class="flex w-full flex-col gap-2.5 text-xs">
-		{#if devtools.isAvailable}
-			<label class="flex items-center justify-between gap-2">
-				Query devtools <Switch bind:on={settings.current.enableQueryDevtools} />
-			</label>
-		{/if}
-
 		<label class="flex items-center justify-between gap-2">
 			Render stats <Switch bind:on={settings.current.renderStats} />
 		</label>

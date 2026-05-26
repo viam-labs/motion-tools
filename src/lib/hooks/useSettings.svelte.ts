@@ -41,7 +41,6 @@ export interface Settings {
 	enableMeasureAxisZ: boolean
 
 	enableLabels: boolean
-	enableQueryDevtools: boolean
 
 	// Widgets
 	enableArmPositionsWidget: boolean
@@ -116,7 +115,6 @@ const defaults = (): Settings => ({
 	enableMeasureAxisZ: true,
 
 	enableLabels: false,
-	enableQueryDevtools: false,
 
 	enableArmPositionsWidget: false,
 	openCameraWidgets: {},
