@@ -3,7 +3,6 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
@@ -110,10 +109,6 @@
 		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
 </script>
-
-{#if settings.current.enableQueryDevtools}
-	<SvelteQueryDevtools initialIsOpen />
-{/if}
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"
