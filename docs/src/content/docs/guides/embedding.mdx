@@ -63,7 +63,6 @@ That's enough to get an empty scene with the camera, grid, and overlay UI. From 
 
 - **Pass `partID`** to bind it to a specific Viam machine part.
 - **Pass `cameraPose`** to set an initial camera position and look-at target.
-- **Mount `<DrawService config={{ backendIP, websocketPort }} />` as a child** (imported from `@viamrobotics/motion-tools/plugins`) to make it stream from a running draw server. Only needed if you want `client/api` calls to render in this embedded instance — most apps leave it off.
 - **Provide a `children` snippet** to render your own Threlte primitives or the `<Snapshot />` component inside the scene.
 
 ```svelte

@@ -8,3 +8,6 @@ export { default as DrawService } from './DrawService/DrawService.svelte'
 
 // Skybox
 export { default as Skybox } from './Skybox/Skybox.svelte'
+
+// Debug
+export { default as Debug } from './Debug/Debug.svelte'
