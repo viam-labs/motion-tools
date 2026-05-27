@@ -3,6 +3,8 @@ import { relation, trait } from 'koota'
 export const Lasso = trait(() => true)
 export const Ellipse = trait(() => true)
 export const SelectionEnclosedPoints = trait(() => true)
+export const SelectedFrom = trait(() => '')
+export const SelectionInstance = trait(() => '')
 
 /**
  * Captured points are removable, so we want to also destroy

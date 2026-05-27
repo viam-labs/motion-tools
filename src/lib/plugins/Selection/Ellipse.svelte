@@ -168,7 +168,7 @@
 		max.set(ellipseBox.maxX, ellipseBox.maxY, Number.POSITIVE_INFINITY)
 		box3.set(min, max)
 
-		const enclosedPoints: number[] = []
+		const enclosedPoints: Record<string, number[]> = {}
 
 		for (const pointsEntity of world.query(
 			traits.Points,
@@ -176,8 +176,9 @@
 			Not(selectionTraits.SelectionEnclosedPoints)
 		)) {
 			const geometry = pointsEntity.get(traits.BufferGeometry)
+			const name = pointsEntity.get(traits.Name)
 
-			if (!geometry) return
+			if (!geometry || !name) return
 
 			const points = scene.getObjectByName(pointsEntity as unknown as string)
 
@@ -202,7 +203,8 @@
 							getTriangleFromIndex(i, indices, positions, triangle)
 
 							if (triangle.containsPoint(point)) {
-								enclosedPoints.push(point.x, point.y, point.z)
+								enclosedPoints[name] ??= []
+								enclosedPoints[name].push(point.x, point.y, point.z)
 							}
 						}
 					}
@@ -211,19 +213,24 @@
 			} as ShapecastCallbacks)
 		}
 
-		const ellipseResultGeometry = createBufferGeometry(new Float32Array(enclosedPoints))
+		const selectionInstanceId = crypto.randomUUID()
+		for (const [name, points] of Object.entries(enclosedPoints)) {
+			const ellipseResultGeometry = createBufferGeometry(new Float32Array(points))
 
-		world.spawn(
-			traits.Name('Ellipse result'),
-			traits.BufferGeometry(ellipseResultGeometry),
-			traits.Color({ r: 1, g: 0, b: 0 }),
-			traits.RenderOrder(999),
-			traits.Material({ depthTest: false }),
-			traits.Points,
-			traits.Removable,
-			selectionTraits.SelectionEnclosedPoints,
-			selectionTraits.PointsCapturedBy(ellipse)
-		)
+			world.spawn(
+				traits.Name('Ellipse result'),
+				traits.BufferGeometry(ellipseResultGeometry),
+				traits.Color({ r: 1, g: 0, b: 0 }),
+				traits.RenderOrder(999),
+				traits.Material({ depthTest: false }),
+				traits.Points,
+				traits.Removable,
+				selectionTraits.SelectionEnclosedPoints,
+				selectionTraits.PointsCapturedBy(ellipse),
+				selectionTraits.SelectedFrom(name),
+				selectionTraits.SelectionInstance(selectionInstanceId)
+			)
+		}
 	}
 
 	const onkeydown = (event: KeyboardEvent) => {

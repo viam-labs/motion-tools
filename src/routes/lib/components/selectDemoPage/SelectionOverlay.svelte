@@ -7,16 +7,25 @@
 	import { FloatingPanel } from '$lib'
 	import { traits } from '$lib/ecs'
 	import { useSelectionPlugin } from '$lib/plugins'
+	import { SelectedFrom, SelectionInstance } from '$lib/plugins/Selection/traits'
 
 	const { dom } = useThrelte()
 	const selectionCtx = useSelectionPlugin()
-
 	const rect = new ElementRect(() => dom)
 
 	$effect(() => {
 		const entity = selectionCtx.current.at(-1)
 		if (entity) {
 			entity.set(traits.Color, { r: 0, g: 1, b: 0 })
+			const selectionInstanceId = entity.get(SelectionInstance)
+			const selectionInstanceEntities = selectionCtx.current.filter(
+				(entity) => entity.get(SelectionInstance) === selectionInstanceId
+			)
+			for (const selectionEntity of selectionInstanceEntities) {
+				const name = selectionEntity.get(traits.Name)
+				const selectedFrom = selectionEntity.get(SelectedFrom)
+				selectionEntity.set(traits.Name, `${name} (selected from ${selectedFrom})`)
+			}
 		}
 	})
 </script>
