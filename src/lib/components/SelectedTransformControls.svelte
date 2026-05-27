@@ -40,7 +40,10 @@
 	const hasScalableGeometry = $derived(
 		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
 	)
-	const isFragmentComponentWithVariables = $derived(name.current && Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0)
+	const isFragmentComponentWithVariables = $derived(
+		name.current &&
+			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
+	)
 
 	// Mesh sets name={entity} on its inner mesh, so useSelectedObject3d resolves
 	// to that mesh — not the parent Frame Group we actually want to drive. Walk
