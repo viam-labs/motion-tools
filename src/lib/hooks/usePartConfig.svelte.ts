@@ -410,6 +410,8 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		})
 	)
 
+	$inspect(configJSON?.fragments)
+
 	const fragmentIdToVariables = $derived.by(() => {
 		const results: Record<string, Record<string, string>> = {}
 		for (const fragment of configJSON?.fragments as (string | { id: string, variables: Record<string, string> })[] ?? []) {
