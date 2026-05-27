@@ -19,7 +19,7 @@ export interface PartConfig {
 	}[]
 }
 
-type FragmentInfo = {
+export type FragmentInfo = {
 	id: string
 	variables: Record<string, string>
 }
@@ -306,7 +306,7 @@ export const usePartConfig = (): PartConfigContext => {
 interface AppEmbeddedPartConfigProps {
 	current: Struct
 	isDirty: boolean
-	componentToFragInfo: Record<string, FragmentInfo>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	setLocalPartConfig: (config: Struct) => void
 }
@@ -359,7 +359,7 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 		},
 
 		get componentNameToFragmentInfo() {
-			return props.componentToFragInfo
+			return props.componentNameToFragmentInfo
 		},
 
 		set(config: PartConfig): void {
