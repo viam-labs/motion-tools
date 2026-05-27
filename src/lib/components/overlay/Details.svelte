@@ -412,6 +412,17 @@
 
 		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
 
+		{#if isFragmentComponentWithVariables}
+			<p
+				class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"
+				data-testid="fragment-variables-warning"
+				role="status"
+			>
+				This component is from a fragment with variables, editing frames in 3D scene is
+				disabled
+			</p>
+		{/if}
+
 		<h3
 			class="text-subtle-2 flex justify-between py-2"
 			data-testid="details-header"
