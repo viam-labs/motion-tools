@@ -36,7 +36,8 @@ type storedEntity struct {
 	drawing   *drawv1.Drawing
 }
 
-const entitySubscriberBufferSize = 64
+// Large buffer to avoid dropping events for slow consumers during burst uploads.
+const entitySubscriberBufferSize = 4096
 
 type chunkedEntity struct {
 	mu               sync.Mutex

@@ -348,6 +348,8 @@ func newRPCHandler(svc drawv1connect.DrawServiceHandler) http.Handler {
 		connect.WithCompressMinBytes(1024),
 	)
 	mux.Handle(rpcPath, rpcHandler)
+	mux.HandleFunc("/plan-request", handlePlanRequest(svc))
+	mux.HandleFunc("/plan-request/step", handlePlanRequestStep(svc))
 
 	return cors.New(cors.Options{
 		AllowedOrigins:      []string{"*"},

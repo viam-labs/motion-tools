@@ -20,6 +20,50 @@ make up        # http://localhost:5173
 
 For manual setup, machine configs, multiple instances, and troubleshooting see the [local-usage guide](https://viamrobotics.github.io/visualization/guides/local-usage/).
 
+## Backend plan testing (manual)
+
+When testing plan playback backend changes, you can load and step plans directly through the draw server HTTP endpoints.
+
+1. Start the app and draw server:
+
+```bash
+make up
+```
+
+2. POST a plan request JSON file to render the first step:
+
+```bash
+curl -X POST \
+	http://localhost:3030/plan-request \
+	-H 'Content-Type: application/json' \
+	--data-binary @/absolute/path/to/plan-request.json
+```
+
+3. Step forward/backward:
+
+```bash
+curl -X POST http://localhost:3030/plan-request/step \
+	-H 'Content-Type: application/json' \
+	-d '{"direction":"next"}'
+
+curl -X POST http://localhost:3030/plan-request/step \
+	-H 'Content-Type: application/json' \
+	-d '{"direction":"prev"}'
+```
+
+4. Jump to a specific step index:
+
+```bash
+curl -X POST http://localhost:3030/plan-request/step \
+	-H 'Content-Type: application/json' \
+	-d '{"step":10}'
+```
+
+Notes:
+
+- The loader supports files containing concatenated JSON objects (for example plan request + result in one file).
+- If no trajectory is available yet, stepping returns a conflict response.
+
 ## Contributing
 
 Run the dev server with HMR:
