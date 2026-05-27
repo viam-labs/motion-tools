@@ -86,7 +86,13 @@ func filterFrameSystemJSON(raw json.RawMessage) (json.RawMessage, error) {
 	filteredParents := make(map[string]string, len(filtered))
 	for name := range filtered {
 		parent := rfs.Parents[name]
+		visited := map[string]struct{}{name: {}}
 		for parent != "" && parent != "world" {
+			if _, seen := visited[parent]; seen {
+				parent = "world"
+				break
+			}
+			visited[parent] = struct{}{}
 			if _, ok := filtered[parent]; ok {
 				break
 			}
@@ -176,6 +182,11 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			return
 		}
 
+		// Serialize plan-request loads so scene entity removal, re-render, and
+		// playback state replacement are atomic across concurrent requests.
+		planPlayback.mu.Lock()
+		defer planPlayback.mu.Unlock()
+
 		// Decode in stream mode so a file containing both the request and result
 		// as concatenated JSON objects works. Stop as soon as both are found.
 		decoder := json.NewDecoder(io.LimitReader(r.Body, 32<<20))
@@ -239,16 +250,14 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 		ctx := r.Context()
 		prefix := r.URL.Query().Get("prefix")
 
-		// Clear only the entities added by the previous /plan-request call.
-		// Calling RemoveAll here would also wipe entities pushed to the same
-		// draw service by other producers (e.g. a live machine module), which
-		// would make their resources disappear from the world panel.
-		planPlayback.mu.Lock()
+		// Always clear the current scene before loading a new plan request.
+		// Active live publishers can republish afterward as needed.
 		prevUUIDs := planPlayback.entityUUIDs
 		planPlayback.entityUUIDs = nil
-		planPlayback.mu.Unlock()
-		for _, uuid := range prevUUIDs {
-			_, _ = svc.RemoveEntity(ctx, connect.NewRequest(&drawv1.RemoveEntityRequest{Uuid: uuid}))
+		planPlayback.state = nil
+		if _, err := svc.RemoveAll(ctx, connect.NewRequest(&drawv1.RemoveAllRequest{})); err != nil {
+			http.Error(w, fmt.Sprintf("failed to clear scene: %v", err), http.StatusInternalServerError)
+			return
 		}
 
 		addedUUIDs := make([][]byte, 0, len(prevUUIDs))
@@ -297,7 +306,6 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			return
 		}
 
-		planPlayback.mu.Lock()
 		planPlayback.state = &planPlaybackState{
 			FrameSystem:    &fs,
 			WorldState:     req.WorldState,
@@ -309,7 +317,6 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			Prefix:         prefix,
 		}
 		planPlayback.entityUUIDs = addedUUIDs
-		planPlayback.mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(planRequestResponse{

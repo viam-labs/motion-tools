@@ -63,6 +63,7 @@ Notes:
 
 - The loader supports files containing concatenated JSON objects (for example plan request + result in one file).
 - If no trajectory is available yet, stepping returns a conflict response.
+- By default, `/plan-request` clears all current entities before loading the plan.
 
 ## Contributing
 
