@@ -418,8 +418,7 @@
 				data-testid="fragment-variables-warning"
 				role="status"
 			>
-				This component is from a fragment with variables, editing frames in 3D scene is
-				disabled
+				This component is from a fragment with variables, editing frames in 3D scene is disabled
 			</p>
 		{/if}
 
