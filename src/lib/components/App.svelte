@@ -10,6 +10,8 @@
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
+	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
+
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
@@ -39,7 +41,7 @@
 	interface LocalConfigProps {
 		current: Struct
 		isDirty: boolean
-		componentToFragId: Record<string, string>
+		componentNameToFragmentInfo: Record<string, FragmentInfo>
 		setLocalPartConfig: (config: Struct) => void
 	}
 
