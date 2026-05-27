@@ -19,12 +19,17 @@ export interface PartConfig {
 	}[]
 }
 
+type FragmentInfo = {
+	id: string
+	variables: Record<string, string>
+}
+
 interface LocalPartConfig {
 	isDirty: boolean
 	hasPendingSave: boolean
 	hasEditPermissions: boolean
 	current: Struct
-	componentNameToFragmentId: Record<string, string>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	set: (config: PartConfig) => void
 	save?: () => void
@@ -38,7 +43,7 @@ interface PartConfigContext {
 	isDirty: boolean
 	hasPendingSave: boolean
 	hasEditPermissions: boolean
-	componentNameToFragmentId: Record<string, string>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	updateFrame: (
 		componentName: string,
@@ -244,8 +249,8 @@ export const providePartConfig = (
 		get current() {
 			return current
 		},
-		get componentNameToFragmentId() {
-			return config.componentNameToFragmentId
+		get componentNameToFragmentInfo() {
+			return config.componentNameToFragmentInfo
 		},
 		get isDirty() {
 			return config.isDirty
@@ -263,7 +268,7 @@ export const providePartConfig = (
 			framePosition: Pose,
 			frameGeometry?: Frame['geometry']
 		) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
+			const fragmentId = config.componentNameToFragmentInfo[componentName].id
 			if (fragmentId === undefined) {
 				updatePartFrame(componentName, referenceFrame, framePosition, frameGeometry)
 			} else {
@@ -272,7 +277,7 @@ export const providePartConfig = (
 		},
 
 		deleteFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
+			const fragmentId = config.componentNameToFragmentInfo[componentName].id
 			if (fragmentId === undefined) {
 				deletePartFrame(componentName)
 			} else {
@@ -280,7 +285,7 @@ export const providePartConfig = (
 			}
 		},
 		createFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
+			const fragmentId = config.componentNameToFragmentInfo[componentName].id
 			if (fragmentId === undefined) {
 				createPartFrame(componentName)
 			} else {
@@ -301,7 +306,7 @@ export const usePartConfig = (): PartConfigContext => {
 interface AppEmbeddedPartConfigProps {
 	current: Struct
 	isDirty: boolean
-	componentToFragId: Record<string, string>
+	componentToFragInfo: Record<string, FragmentInfo>
 
 	setLocalPartConfig: (config: Struct) => void
 }
@@ -353,8 +358,8 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 			return props.current ?? new Struct()
 		},
 
-		get componentNameToFragmentId() {
-			return props.componentToFragId
+		get componentNameToFragmentInfo() {
+			return props.componentToFragInfo
 		},
 
 		set(config: PartConfig): void {
@@ -405,8 +410,18 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		})
 	)
 
-	const componentNameToFragmentId = $derived.by(() => {
-		const results: Record<string, string> = {}
+	const fragmentIdToVariables = $derived.by(() => {
+		const results: Record<string, Record<string, string>> = {}
+		for (const fragment of configJSON?.fragments as (string | { id: string, variables: Record<string, string> })[] ?? []) {
+			const id = typeof fragment === 'string' ? fragment : fragment.id
+			const variables = typeof fragment === 'string' ? {} : fragment.variables
+			results[id] = variables
+		}
+		return results
+	})
+
+	const componentNameToFragmentInfo = $derived.by(() => {
+		const results: Record<string, FragmentInfo> = {}
 		for (const query of fragmentQueries) {
 			if (!query.data) {
 				continue
@@ -420,7 +435,7 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 					if (component.kind.case === 'structValue') {
 						const componentName = component.kind.value.fields['name']?.kind
 						if (componentName.case === 'stringValue') {
-							results[componentName.value] = fragmentId
+							results[componentName.value] = {id: fragmentId, variables: fragmentIdToVariables[fragmentId] ?? {}};
 						}
 					}
 				}
@@ -466,8 +481,8 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		get hasEditPermissions() {
 			return hasEditPermissions
 		},
-		get componentNameToFragmentId() {
-			return componentNameToFragmentId
+		get componentNameToFragmentInfo() {
+			return componentNameToFragmentInfo
 		},
 
 		set(config: PartConfig): void {

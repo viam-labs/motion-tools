@@ -109,7 +109,8 @@
 
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
-	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions)
+	const isFragmentComponentWithVariables = $derived(name.current && Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0)
+	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables)
 	const showRelationshipOptions = $derived(points.current || arrows.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
