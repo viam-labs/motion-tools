@@ -31,6 +31,7 @@
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selectedEntity.current)
 	const transformable = useTrait(() => entity, traits.Transformable)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const configMatrix = useTrait(() => entity, traits.Matrix)
 	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const box = useTrait(() => entity, traits.Box)
@@ -248,7 +249,7 @@
 	}
 </script>
 
-{#if ref && entity && activeMode && !isFragmentComponentWithVariables}
+{#if ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current}
 	{#key entity}
 		<TransformControls
 			object={ref}
