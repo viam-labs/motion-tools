@@ -23,15 +23,15 @@ describe('<Button> (dashboard)', () => {
 		expect(screen.getByRole('radio', { name: 'Translate' })).toHaveAttribute('aria-checked', 'true')
 	})
 
-	it('applies sky-blue active styles when active', () => {
+	it('applies blue active styles when active', () => {
 		render(Button, {
 			props: { icon: 'cursor-move', description: 'Translate', active: true },
 		})
 
 		const label = screen.getByRole('radio', { name: 'Translate' }).closest('label')!
-		expect(label.className).toContain('bg-sky-500')
+		expect(label.className).toContain('bg-[#4772b1]')
 		expect(label.className).toContain('text-white')
-		expect(label.className).toContain('border-sky-500')
+		expect(label.className).toContain('border-[#4772b1]')
 	})
 
 	it('applies white inactive styles when not active', () => {
