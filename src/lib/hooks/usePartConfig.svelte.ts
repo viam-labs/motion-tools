@@ -268,7 +268,7 @@ export const providePartConfig = (
 			framePosition: Pose,
 			frameGeometry?: Frame['geometry']
 		) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName].id
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				updatePartFrame(componentName, referenceFrame, framePosition, frameGeometry)
 			} else {
@@ -277,7 +277,7 @@ export const providePartConfig = (
 		},
 
 		deleteFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName].id
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				deletePartFrame(componentName)
 			} else {
@@ -285,7 +285,7 @@ export const providePartConfig = (
 			}
 		},
 		createFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName].id
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				createPartFrame(componentName)
 			} else {
