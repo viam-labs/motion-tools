@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/svelte'
+import userEvent from '@testing-library/user-event'
 import { createWorld, type Entity } from 'koota'
 import '@testing-library/jest-dom/vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -169,5 +170,31 @@ describe('Details component', () => {
 		// 4 OV inputs (x, y, z, theta) plus 3 Euler inputs (x, y, z) — both
 		// TabPages are mounted simultaneously by tweakpane's TabGroup.
 		expect(orientationGroup.querySelectorAll('input')).toHaveLength(7)
+	})
+
+	it('stops keyboard events from propagating out of the panel', async () => {
+		const user = userEvent.setup()
+		const context = createWeblabs()
+
+		const { container } = render(Details, {
+			context: new Map<symbol, unknown>([
+				[WEBLABS_CONTEXT_KEY, context],
+				[WORLD_CONTEXT_KEY, world],
+			]),
+		})
+
+		const panel = container.querySelector('#details-panel')!
+		const parentListener = vi.fn()
+
+		container.addEventListener('keydown', parentListener)
+		container.addEventListener('keyup', parentListener)
+
+		panel.querySelector('button')!.focus()
+		await user.keyboard('abc')
+
+		expect(parentListener).not.toHaveBeenCalled()
+
+		container.removeEventListener('keydown', parentListener)
+		container.removeEventListener('keyup', parentListener)
 	})
 })
