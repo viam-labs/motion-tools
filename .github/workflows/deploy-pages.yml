@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+# Builds the SvelteKit visualizer app from main and deploys it as the live
+# production site at the root of gh-pages. This is the canonical deploy —
+# separate from the per-PR previews under gh-pages:pr-preview/pr-<N>/.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.event.head_commit.message, 'Version Packages') }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.69.0'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install root deps
+        run: pnpm install
+
+      - name: Generate TypeScript protobufs
+        run: make proto-gen-ts
+
+      - name: Build SvelteKit app
+        env:
+          BASE_PATH: /visualization
+        run: pnpm vite build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build
+          publish_branch: gh-pages
+          destination_dir: .
+          keep_files: false
