@@ -34,9 +34,7 @@
 		class={[
 			className,
 			'relative block rounded-md border',
-			active
-				? 'z-4 border-[#4772b1] bg-[#4772b1] text-white'
-				: 'border-gray-5 text-gray-8 bg-white',
+			active ? 'z-4 border-[#666] bg-[#666] text-white' : 'border-gray-5 text-gray-8 bg-white',
 		]}
 		aria-describedby={tooltipID}
 	>
