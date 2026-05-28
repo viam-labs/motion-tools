@@ -39,6 +39,7 @@
 		"docs:preview": "pnpm --dir docs preview"
 	},
 	"devDependencies": {
+		"@bufbuild/buf": "1.63.0",
 		"@ag-grid-community/client-side-row-model": "32.3.9",
 		"@ag-grid-community/core": "32.3.9",
 		"@ag-grid-community/styles": "32.3.9",
@@ -153,6 +154,7 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@bufbuild/buf",
 			"@sentry/cli",
 			"@tailwindcss/oxide",
 			"esbuild"
