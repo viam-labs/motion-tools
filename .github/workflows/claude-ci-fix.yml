@@ -41,7 +41,7 @@ jobs:
         export PATH="$NODE24_BIN:$PATH"
         corepack enable
         pnpm install
-        pnpm exec buf generate --template buf.gen.typescript.yaml
+        BUF_CACHE_DIR=/tmp/buf-cache pnpm exec buf generate --template buf.gen.typescript.yaml
       max_turns: 50
       team_mention: '@viamrobotics/team-viz'
       allowed_tools: 'Edit,Read,Write,Glob,Grep,WebFetch,Bash(pnpm *),Bash(npx *),Bash(node *),Bash(go test *),Bash(go build *),Bash(go vet *),Bash(make *),Bash(ls *),Bash(find *),Bash(git config *),Bash(git add *),Bash(git commit *),Bash(git push *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(git checkout *),Bash(git branch *),Bash(git rev-parse *),Bash(git fetch *),Bash(gh api *)'

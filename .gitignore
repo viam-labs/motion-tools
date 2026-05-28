@@ -6,6 +6,7 @@ static/test-fixtures
 
 # Temp files (disk-backed chunk storage)
 .tmp
+.buf-cache
 
 # Output
 .output
