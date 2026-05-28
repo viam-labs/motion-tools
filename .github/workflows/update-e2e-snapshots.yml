@@ -1,4 +1,7 @@
 name: Update E2E Snapshots
+# Required secrets:
+#   VIAM_KEY_ID    - Viam API key ID used to authenticate the Viam CLI
+#   VIAM_KEY_VALUE - Viam API key value used to authenticate the Viam CLI
 
 on:
   pull_request:
@@ -47,6 +50,12 @@ jobs:
 
       - name: Verify Viam CLI
         run: viam version
+
+      - name: Authenticate Viam CLI
+        run: |
+          viam login api-key \
+            --key-id="${{ secrets.VIAM_KEY_ID }}" \
+            --key="${{ secrets.VIAM_KEY_VALUE }}"
 
       - name: Run E2E tests with snapshot update
         run: pnpm test:e2e -- --update-snapshots
