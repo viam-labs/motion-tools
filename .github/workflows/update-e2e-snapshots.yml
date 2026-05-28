@@ -32,12 +32,6 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.23.11
-          cache: true
-
       - name: Install dependencies
         run: pnpm install
 
@@ -60,6 +54,7 @@ jobs:
       - name: Run E2E tests with snapshot update
         run: pnpm test:e2e -- --update-snapshots
         env:
+          BASE_URL: https://viamrobotics.github.io/visualization/
           VIAM_API_KEY: ${{ secrets.VIAM_API_KEY }}
           VIAM_API_KEY_ID: ${{ secrets.VIAM_API_KEY_ID }}
 
