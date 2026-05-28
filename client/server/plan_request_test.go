@@ -1,77 +1,44 @@
 package server
 
-import (
-	"encoding/json"
-	"testing"
-)
+import "testing"
 
-func TestFilterFrameSystemJSON_DropsUnknownFrameTypesAndRepairsParents(t *testing.T) {
+func TestParseFrameSystem_DirectUnmarshalPath(t *testing.T) {
 	raw := []byte(`{
 		"name": "test",
-		"world": {},
+		"world": {"frame_type": "static", "frame": {"id": "world", "translation": {"X":0,"Y":0,"Z":0}, "orientation": {"type": "quaternion", "value": {"W":1,"X":0,"Y":0,"Z":0}}}},
 		"frames": {
-			"arm": {"frame_type": "static"},
-			"internal": {"frame_type": "named"},
-			"tool": {"frame_type": "model"}
+			"arm": {"frame_type": "static", "frame": {"id": "arm", "translation": {"X":0,"Y":0,"Z":0}, "orientation": {"type": "quaternion", "value": {"W":1,"X":0,"Y":0,"Z":0}}}}
 		},
 		"parents": {
-			"arm": "internal",
-			"internal": "world",
-			"tool": "arm"
+			"arm": "world"
 		}
 	}`)
 
-	filteredRaw, err := filterFrameSystemJSON(raw)
+	fs, err := parseFrameSystem(raw)
 	if err != nil {
-		t.Fatalf("filterFrameSystemJSON returned error: %v", err)
+		t.Fatalf("parseFrameSystem returned error: %v", err)
 	}
-
-	var got rawFrameSystem
-	if err := json.Unmarshal(filteredRaw, &got); err != nil {
-		t.Fatalf("unmarshal filtered frame system: %v", err)
-	}
-
-	if _, ok := got.Frames["internal"]; ok {
-		t.Fatalf("expected unknown frame type to be removed")
-	}
-	if parent := got.Parents["arm"]; parent != "world" {
-		t.Fatalf("expected arm parent to be repaired to world, got %q", parent)
-	}
-	if parent := got.Parents["tool"]; parent != "arm" {
-		t.Fatalf("expected tool parent to remain arm, got %q", parent)
+	if got := fs.Frame("arm"); got == nil {
+		t.Fatalf("expected arm frame to be present")
 	}
 }
 
-func TestFilterFrameSystemJSON_BreaksParentCycles(t *testing.T) {
+func TestParseFrameSystem_UnknownFrameTypeReturnsError(t *testing.T) {
 	raw := []byte(`{
 		"name": "test",
-		"world": {},
+		"world": {"frame_type": "static", "frame": {"id": "world", "translation": {"X":0,"Y":0,"Z":0}, "orientation": {"type": "quaternion", "value": {"W":1,"X":0,"Y":0,"Z":0}}}},
 		"frames": {
-			"arm": {"frame_type": "static"},
-			"tool": {"frame_type": "model"}
+			"arm": {"frame_type": "static", "frame": {"id": "arm", "translation": {"X":0,"Y":0,"Z":0}, "orientation": {"type": "quaternion", "value": {"W":1,"X":0,"Y":0,"Z":0}}}},
+			"new_internal": {"frame_type": "brand_new_future_type"}
 		},
 		"parents": {
-			"arm": "ghost-a",
-			"ghost-a": "ghost-b",
-			"ghost-b": "arm",
-			"tool": "arm"
+			"arm": "new_internal",
+			"new_internal": "world"
 		}
 	}`)
 
-	filteredRaw, err := filterFrameSystemJSON(raw)
-	if err != nil {
-		t.Fatalf("filterFrameSystemJSON returned error: %v", err)
-	}
-
-	var got rawFrameSystem
-	if err := json.Unmarshal(filteredRaw, &got); err != nil {
-		t.Fatalf("unmarshal filtered frame system: %v", err)
-	}
-
-	if parent := got.Parents["arm"]; parent != "world" {
-		t.Fatalf("expected cycle to resolve arm parent to world, got %q", parent)
-	}
-	if parent := got.Parents["tool"]; parent != "arm" {
-		t.Fatalf("expected tool parent to remain arm, got %q", parent)
+	_, err := parseFrameSystem(raw)
+	if err == nil {
+		t.Fatalf("expected parseFrameSystem to fail on unknown frame type")
 	}
 }

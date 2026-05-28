@@ -22,8 +22,7 @@ import (
 
 // planRequestBody is a minimal stand-in for armplanning.PlanRequest. We avoid
 // importing that package because PlanState requires a custom JSON codec.
-// FrameSystem is raw JSON so we can strip unknown frame types before passing to
-// referenceframe.FrameSystem.UnmarshalJSON, which panics on unrecognised types.
+// FrameSystem is kept raw so we can unmarshal using referenceframe directly.
 type planRequestBody struct {
 	FrameSystem json.RawMessage            `json:"frame_system"`
 	StartState  *planStateBody             `json:"start_state"`
@@ -35,76 +34,21 @@ type planResultBody struct {
 	Trajectory []referenceframe.FrameSystemInputs `json:"trajectory"`
 }
 
-// knownFrameTypes are the frame_type values referenceframe.FrameSystem can
-// deserialise. Unknown types (e.g. "named" internal link frames from newer rdk)
-// are stripped before unmarshaling to avoid panics on unregistered types.
-var knownFrameTypes = map[string]bool{
-	"static":               true,
-	"model":                true,
-	"translational":        true,
-	"rotational":           true,
-	"tail_geometry_static": true,
-}
-
 // Colors used only by the /plan-request debug renderer
 var (
 	debugColor    = draw.ColorFromRGBA(0, 255, 65, 217)
 	obstacleColor = draw.ColorFromHex("#2EC4B6").SetAlpha(84)
 )
 
-type rawFrameSystem struct {
-	Name    string                     `json:"name"`
-	World   json.RawMessage            `json:"world"`
-	Frames  map[string]json.RawMessage `json:"frames"`
-	Parents map[string]string          `json:"parents"`
-}
-
-type frameTypeProbe struct {
-	FrameType string `json:"frame_type"`
-}
-
-// filterFrameSystemJSON removes frames whose frame_type is not in
-// knownFrameTypes and drops corresponding parents entries, returning a JSON
-// blob safe to pass to referenceframe.FrameSystem.UnmarshalJSON.
-func filterFrameSystemJSON(raw json.RawMessage) (json.RawMessage, error) {
-	var rfs rawFrameSystem
-	if err := json.Unmarshal(raw, &rfs); err != nil {
-		return nil, err
-	}
-	filtered := make(map[string]json.RawMessage, len(rfs.Frames))
-	for name, frameData := range rfs.Frames {
-		var probe frameTypeProbe
-		if err := json.Unmarshal(frameData, &probe); err == nil && knownFrameTypes[probe.FrameType] {
-			filtered[name] = frameData
+// parseFrameSystem unmarshals a frame system using referenceframe directly.
+func parseFrameSystem(raw json.RawMessage) (fs referenceframe.FrameSystem, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic unmarshalling frame_system: %v", r)
 		}
-	}
-	rfs.Frames = filtered
-
-	// Filter parents map to only reference frames we kept; also reparent any
-	// surviving frame whose direct parent was dropped to the nearest surviving
-	// ancestor (falls back to "world").
-	filteredParents := make(map[string]string, len(filtered))
-	for name := range filtered {
-		parent := rfs.Parents[name]
-		visited := map[string]struct{}{name: {}}
-		for parent != "" && parent != "world" {
-			if _, seen := visited[parent]; seen {
-				parent = "world"
-				break
-			}
-			visited[parent] = struct{}{}
-			if _, ok := filtered[parent]; ok {
-				break
-			}
-			parent = rfs.Parents[parent]
-		}
-		if parent == "" {
-			parent = "world"
-		}
-		filteredParents[name] = parent
-	}
-	rfs.Parents = filteredParents
-	return json.Marshal(rfs)
+	}()
+	err = json.Unmarshal(raw, &fs)
+	return fs, err
 }
 
 type planStateBody struct {
@@ -234,15 +178,8 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 			return
 		}
 
-		// Strip frame types unknown to the referenceframe package (e.g. "named"
-		// internal link frames, "tail_geometry_static") before deserialising.
-		filteredFSJSON, err := filterFrameSystemJSON(req.FrameSystem)
+		fs, err := parseFrameSystem(req.FrameSystem)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("invalid frame_system JSON: %v", err), http.StatusUnprocessableEntity)
-			return
-		}
-		var fs referenceframe.FrameSystem
-		if err := json.Unmarshal(filteredFSJSON, &fs); err != nil {
 			http.Error(w, fmt.Sprintf("invalid frame_system: %v", err), http.StatusUnprocessableEntity)
 			return
 		}
