@@ -39,7 +39,6 @@
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
-	import { useDrawService } from '$lib/hooks/useDrawService.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -64,7 +63,6 @@
 
 	const world = useWorld()
 	const { invalidate } = useThrelte()
-	const drawService = useDrawService()
 	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
@@ -111,7 +109,13 @@
 
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
-	const showEditFrameOptions = $derived(isFrameNode && partConfig.hasEditPermissions)
+	const isFragmentComponentWithVariables = $derived(
+		name.current &&
+			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
+	)
+	const showEditFrameOptions = $derived(
+		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
+	)
 	const showRelationshipOptions = $derived(points.current || arrows.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
@@ -309,7 +313,7 @@
 {#if entity}
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs dark:text-white"
+		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs"
 		use:draggable={{
 			bounds: 'body',
 			handle: dragElement,
@@ -335,11 +339,13 @@
 						onclick={() => {
 							const padding = 0.4
 
-							if (!controls.current) return
+							const currentControls = controls.current
 
-							const { azimuthAngle, polarAngle } = controls.current
+							if (!currentControls || !('fitToBox' in currentControls)) return
 
-							controls.current.fitToBox(object3d, true, {
+							const { azimuthAngle, polarAngle } = currentControls
+
+							currentControls.fitToBox(object3d, true, {
 								paddingTop: padding,
 								paddingBottom: padding,
 								paddingLeft: padding,
@@ -347,8 +353,8 @@
 							})
 
 							// Preserve previous rotation
-							controls.current?.rotateAzimuthTo(azimuthAngle, true)
-							controls.current?.rotatePolarTo(polarAngle, true)
+							currentControls.rotateAzimuthTo(azimuthAngle, true)
+							currentControls.rotatePolarTo(polarAngle, true)
 						}}
 					>
 						<Icon name="image-filter-center-focus" />
@@ -405,6 +411,16 @@
 		</div>
 
 		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
+
+		{#if isFragmentComponentWithVariables}
+			<p
+				class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"
+				data-testid="fragment-variables-warning"
+				role="status"
+			>
+				This component is from a fragment with variables, editing frames in 3D scene is disabled
+			</p>
+		{/if}
 
 		<h3
 			class="text-subtle-2 flex justify-between py-2"
@@ -741,15 +757,7 @@
 							<Icon
 								name="trash-can-outline"
 								class="h-6 cursor-pointer px-2 py-1 text-xs text-red-500"
-								onclick={() => {
-									const sourceUuid = entity.get(traits.UUID)
-									const targetUuid = linkedEntity.get(traits.UUID)
-									if (sourceUuid && targetUuid) {
-										void drawService.deleteRelationship(sourceUuid, targetUuid)
-									} else {
-										entity.remove(relations.SubEntityLink(linkedEntity))
-									}
-								}}
+								onclick={() => entity.remove(relations.SubEntityLink(linkedEntity))}
 							/>
 						</div>
 					{/each}
@@ -782,16 +790,6 @@
 
 		{#if showRelationshipOptions}
 			<AddRelationship {entity} />
-		{/if}
-
-		{#if showEditFrameOptions && environment.current.isStandalone}
-			<Button
-				variant="danger"
-				class="mt-2 w-full"
-				onclick={() => detailConfigUpdater.deleteFrame(entity)}
-			>
-				Delete frame
-			</Button>
 		{/if}
 	</div>
 {/if}

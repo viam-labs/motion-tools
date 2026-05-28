@@ -39,7 +39,7 @@ Renders a Viam Frame object
 	const entityColor = useTrait(() => entity, traits.Color)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 
 	const events = useEntityEvents(() => entity)
 

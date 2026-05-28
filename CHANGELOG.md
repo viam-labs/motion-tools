@@ -1,5 +1,41 @@
 # motion-tools
 
+## 1.29.1
+
+### Patch Changes
+
+- 66089d4: Fix invisibility cascading downwards in the pose graph
+
+## 1.29.0
+
+### Minor Changes
+
+- 1042f65: Move Draw Service to `/plugins`
+
+### Patch Changes
+
+- 3be2ce1: Use prime tweakpane theme
+- 0761452: Fix transforming with gizmo
+- 86243ac: Dark mode fix
+
+## 1.28.1
+
+### Patch Changes
+
+- 97d0242: Use GroundedSkybox for Skybox plugin
+
+## 1.28.0
+
+### Minor Changes
+
+- a95a836: Add SkyBox plugin
+- 6c64bde: Add frame POV panel
+
+### Patch Changes
+
+- bf80dcb: Dashboard cleanup
+- 4d6af12: Fix circular relationships when frames and geometries have the same name
+
 ## 1.27.1
 
 ### Patch Changes

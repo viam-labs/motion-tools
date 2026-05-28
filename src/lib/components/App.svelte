@@ -1,33 +1,27 @@
 <script lang="ts">
-	import type { Struct } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
+	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { CameraPose } from '$lib/hooks/useControls.svelte'
-
+	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld } from '$lib/ecs'
-	import {
-		type DrawConnectionConfig,
-		provideDrawConnectionConfig,
-	} from '$lib/hooks/useDrawConnectionConfig.svelte'
+	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
 	import AddFrames from '$lib/plugins/FrameEditing/AddFrames.svelte'
-	import { providePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 	import { domPortal } from '$lib/portal'
 
 	import LiveUpdatesBanner from '../plugins/FrameEditing/LiveUpdatesBanner.svelte'
@@ -40,18 +34,9 @@
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
-	interface LocalConfigProps {
-		current: Struct
-		isDirty: boolean
-		componentToFragId: Record<string, string>
-		setLocalPartConfig: (config: Struct) => void
-	}
-
 	interface Props {
 		partID?: string
 		inputBindingsEnabled?: boolean
-		localConfigProps?: LocalConfigProps
-		drawConnectionConfig?: DrawConnectionConfig
 
 		/**
 		 * Snippet for THREE objects
@@ -77,9 +62,7 @@
 	let {
 		partID = '',
 		inputBindingsEnabled = true,
-		localConfigProps,
 		cameraPose,
-		drawConnectionConfig,
 		children: appChildren,
 		dashboard,
 		details,
@@ -93,17 +76,13 @@
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
+	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
-	provideDrawConnectionConfig(() => drawConnectionConfig)
+
 	provideWeblabs()
 	provideToast()
 
 	let root = $state.raw<HTMLElement>()
-
-	providePartConfig(
-		() => partID,
-		() => localConfigProps
-	)
 
 	$effect(() => {
 		environment.current.inputBindingsEnabled = inputBindingsEnabled
@@ -111,17 +90,9 @@
 	})
 
 	$effect(() => {
-		ThemeUtils.setGlobalDefaultTheme({
-			...ThemeUtils.presets.light,
-			baseBackgroundColor: '#fbfbfc',
-			baseShadowColor: 'transparent',
-		})
+		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
 </script>
-
-{#if settings.current.enableQueryDevtools}
-	<SvelteQueryDevtools initialIsOpen />
-{/if}
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"
@@ -131,7 +102,7 @@
 		renderMode="on-demand"
 		dpr={[1, 2]}
 	>
-		<SceneProviders {cameraPose}>
+		<SceneProviders>
 			{#snippet children({ focus })}
 				<Scene>
 					{@render appChildren?.()}
@@ -147,6 +118,7 @@
 				<div {@attach domPortal(root)}>
 					<FileDrop />
 					<Dashboard {dashboard} />
+					<Controls />
 					<Details {details} />
 
 					{#if environment.current.isStandalone}

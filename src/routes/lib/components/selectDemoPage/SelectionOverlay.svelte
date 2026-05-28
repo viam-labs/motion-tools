@@ -4,9 +4,9 @@
 	import { Button } from '@viamrobotics/prime-core'
 	import { ElementRect } from 'runed'
 
-	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
-	import { useSelectionPlugin } from '$lib/components/Selection/useSelectionPlugin.svelte'
+	import { FloatingPanel } from '$lib'
 	import { traits } from '$lib/ecs'
+	import { useSelectionPlugin } from '$lib/plugins'
 
 	const { dom } = useThrelte()
 	const selectionCtx = useSelectionPlugin()

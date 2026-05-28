@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { CameraControls, type CameraControlsRef, Gizmo, Portal } from '@threlte/extras'
+	import { CameraControls, type CameraControlsRef, Gizmo } from '@threlte/extras'
 	import { MathUtils } from 'three'
 
-	import Button from '$lib/components/overlay/dashboard/Button.svelte'
 	import { useCameraControls, useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
@@ -14,19 +13,6 @@
 
 	const inputBindingsEnabled = $derived(environment.current.inputBindingsEnabled)
 </script>
-
-<Portal id="dashboard">
-	<fieldset>
-		<Button
-			active
-			icon="camera-outline"
-			description="Reset camera"
-			onclick={() => {
-				cameraControls.setInitialPose()
-			}}
-		/>
-	</fieldset>
-</Portal>
 
 <CameraControls
 	enabled={!transformControls.active}

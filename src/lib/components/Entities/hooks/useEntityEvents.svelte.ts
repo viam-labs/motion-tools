@@ -25,7 +25,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 	const selectedEntity = useSelectedEntity()
 	const focusedEntity = useFocusedEntity()
 	const cursor = useCursor()
-	const invisible = useTrait(entity, traits.Invisible)
+	const invisible = useTrait(entity, traits.InheritedInvisible)
 
 	const onpointerenter = (event: IntersectionEvent<MouseEvent>) => {
 		if (invisible.current) return

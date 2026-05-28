@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': minor
 ---
 
-Add frame POV panel
+Move query dev tools to `<Debug />` plugin

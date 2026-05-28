@@ -47,7 +47,7 @@ describe('Details component', () => {
 		})
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: { components: [] },
-			componentNameToFragmentId: {},
+			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,
@@ -139,7 +139,7 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
-			componentNameToFragmentId: {},
+			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,

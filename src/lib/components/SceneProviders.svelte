@@ -5,15 +5,10 @@
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
-	import {
-		type CameraPose,
-		provideCameraControls,
-		provideTransformControls,
-	} from '$lib/hooks/useControls.svelte'
-	import { provideDrawAPI } from '$lib/hooks/useDrawAPI.svelte'
-	import { provideDrawService } from '$lib/hooks/useDrawService.svelte'
+	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
+	import { provideInheritedInvisible } from '$lib/hooks/useInheritedInvisible.svelte'
 	import { provideLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { provideLogs } from '$lib/hooks/useLogs.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -23,35 +18,29 @@
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
-	import { provideConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
-	import { provideFrameEditSession } from '$lib/plugins/FrameEditing/useFrameEditSession.svelte'
-	import { provideFramelessComponents } from '$lib/plugins/FrameEditing/useFramelessComponents.svelte'
 
 	import { provideOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
-		cameraPose?: CameraPose
 		children: Snippet<[{ focus: boolean }]>
 	}
 
-	let { cameraPose, children }: Props = $props()
+	let { children }: Props = $props()
 
 	const partID = usePartID()
 
-	provideCameraControls(() => cameraPose)
 	provideTransformControls()
 	provideLogs()
 
 	provideHierarchy()
 	provideWorldMatrix()
+	provideInheritedInvisible()
 	provideOrigin()
-	provideDrawAPI()
+
 	provideRelationships()
-	provideDrawService()
 
 	provideResourceByName(() => partID.current)
-	provideConfigFrames()
-	provideFrameEditSession(() => partID.current)
+
 	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)
@@ -60,7 +49,6 @@
 	provideArmClient(() => partID.current)
 	provideArmKinematics(() => partID.current)
 	provideWorldStates()
-	provideFramelessComponents()
 
 	const { focus } = provideSelection()
 	provideLinkedEntities()
