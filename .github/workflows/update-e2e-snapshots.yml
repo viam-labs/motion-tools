@@ -41,6 +41,13 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm playwright install chromium --with-deps
 
+      - name: Install Viam CLI
+        run: |
+          curl --compressed -o /usr/local/bin/viam https://storage.googleapis.com/packages.viam.com/apps/viam-cli/viam-cli-stable-linux-amd64 && chmod a+rx /usr/local/bin/viam
+
+      - name: Verify Viam CLI
+        run: viam version
+
       - name: Run E2E tests with snapshot update
         run: pnpm test:e2e -- --update-snapshots
         env:
