@@ -5,7 +5,8 @@ name: Deploy to GitHub Pages
 # separate from the per-PR previews under gh-pages:pr-preview/pr-<N>/.
 
 on:
-  push:
+  # temp for testing so it actually runs on PRs
+  pull_request:
     branches: [main]
 
 permissions:
@@ -18,7 +19,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ !startsWith(github.event.head_commit.message, 'Version Packages') }}
 
     steps:
       - name: Checkout

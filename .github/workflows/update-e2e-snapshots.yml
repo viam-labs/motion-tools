@@ -4,8 +4,7 @@ name: Update E2E Snapshots
 #   VIAM_KEY_VALUE - Viam API key value used to authenticate the Viam CLI
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
