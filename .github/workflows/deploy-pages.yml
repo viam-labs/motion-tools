@@ -5,8 +5,7 @@ name: Deploy to GitHub Pages
 # separate from the per-PR previews under gh-pages:pr-preview/pr-<N>/.
 
 on:
-  # temp for testing so it actually runs on PRs
-  pull_request:
+  push:
     branches: [main]
 
 permissions:
