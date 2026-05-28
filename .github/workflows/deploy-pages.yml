@@ -65,4 +65,5 @@ jobs:
           publish_dir: build
           publish_branch: gh-pages
           destination_dir: .
-          keep_files: false
+          # Keep PR preview subdirectories (pr-preview/pr-<N>/) intact
+          keep_files: true
