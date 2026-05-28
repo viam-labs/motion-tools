@@ -61,7 +61,7 @@ When you make intentional UI changes that should change screenshots:
 
 1. Run with the update flag:
    ```bash
-   pnpm test:e2e -u
+   pnpm test:e2e:update-snapshots
    ```
 2. Review the updated files in `e2e/**/*-snapshots/`.
 3. Commit the new snapshots alongside your code changes.

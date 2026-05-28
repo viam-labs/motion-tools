@@ -52,7 +52,7 @@ jobs:
             --key="${{ secrets.VIAM_KEY_VALUE }}"
 
       - name: Run E2E tests with snapshot update
-        run: pnpm test:e2e -- --update-snapshots
+        run: pnpm test:e2e:update-snapshots
         env:
           BASE_URL: https://viamrobotics.github.io/visualization/
           VIAM_API_KEY: ${{ secrets.VIAM_API_KEY }}
