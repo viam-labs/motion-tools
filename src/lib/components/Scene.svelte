@@ -89,7 +89,8 @@
 			raycast={() => null}
 			bvh={{ enabled: false }}
 			plane="xy"
-			sectionColor="#333"
+			sectionColor={focusing ? '#bbb' : '#333'}
+			cellColor={focusing ? '#ddd' : undefined}
 			infiniteGrid
 			renderOrder={999}
 			cellSize={settings.current.gridCellSize}

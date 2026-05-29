@@ -86,12 +86,15 @@ export const InheritedInvisible = trait(() => true)
  * Represents that an entity is composed of many instances, so that the treeview and
  * details panel may display all instances
  */
-export const Instanced = trait(() => true)
 export const InstanceId = trait(() => -1)
 
 export const Instance = trait({
 	meshID: -1,
 	instanceID: -1,
+})
+
+export const Instances = trait({
+	count: 0,
 })
 
 export const RenderOrder = trait(() => 0)
@@ -125,10 +128,6 @@ export const Colors = trait(() => new Uint8Array() as Uint8Array)
  * Per-vertex opacity values packed as uint8 (0-255).
  */
 export const Opacities = trait(() => new Uint8Array())
-
-export const Instances = trait({
-	count: 0,
-})
 
 export const Arrows = trait({
 	headAtPose: true,

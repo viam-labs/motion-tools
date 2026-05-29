@@ -1,6 +1,8 @@
 <script>
 	import { PortalTarget } from '@threlte/extras'
 
+	import { traits, useQuery } from '$lib/ecs'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Button from './Button.svelte'
@@ -8,6 +10,19 @@
 	let { dashboard, ...rest } = $props()
 
 	const settings = useSettings()
+	const environment = useEnvironment()
+	const selected = useQuery(traits.Selected)
+
+	const focusing = $derived(environment.current.focusing)
+	const canFocus = $derived(selected.current.length > 0 || focusing)
+
+	const toggleFocus = () => {
+		if (selected.current.length > 0 && !focusing) {
+			environment.current.focusing = true
+		} else if (focusing) {
+			environment.current.focusing = false
+		}
+	}
 </script>
 
 <div
@@ -68,6 +83,18 @@
 			onclick={() => {
 				settings.current.snapping = !settings.current.snapping
 			}}
+		/>
+	</fieldset>
+
+	<!-- focus -->
+	<fieldset class="flex">
+		<Button
+			icon="focus"
+			active={focusing}
+			disabled={!canFocus}
+			description="Focus selection"
+			hotkey="/"
+			onclick={toggleFocus}
 		/>
 	</fieldset>
 
