@@ -1,6 +1,6 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.29.1",
+	"version": "1.30.0",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -51,7 +51,7 @@
 		"@skeletonlabs/skeleton": "3.2.0",
 		"@skeletonlabs/skeleton-svelte": "1.5.1",
 		"@sveltejs/adapter-static": "3.0.9",
-		"@sveltejs/kit": "2.55.0",
+		"@sveltejs/kit": "2.60.1",
 		"@sveltejs/package": "2.5.7",
 		"@sveltejs/vite-plugin-svelte": "6.1.4",
 		"@tailwindcss/forms": "0.5.10",

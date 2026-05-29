@@ -122,10 +122,7 @@
 	class="relative h-full w-full overflow-hidden dark:bg-white"
 	bind:this={root}
 >
-	<Canvas
-		renderMode="on-demand"
-		dpr={[1, 2]}
-	>
+	<Canvas renderMode="on-demand">
 		<SceneProviders>
 			<Scene>
 				{@render appChildren?.()}
