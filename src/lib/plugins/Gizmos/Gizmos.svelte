@@ -23,6 +23,12 @@
 		{ value: 'screen', text: 'Screen' },
 	] satisfies { value: LineSpace; text: string }[]
 
+	const lineMeasureOptions = [
+		{ value: 'none', text: 'Off' },
+		{ value: 'segment', text: 'Per segment' },
+		{ value: 'total', text: 'Total length' },
+	] satisfies { value: LineMeasure; text: string }[]
+
 	const arrowAxisOptions = [
 		{ value: 'surface', text: 'Surface normal' },
 		{ value: 'x', text: 'X' },
@@ -64,6 +70,7 @@
 
 	import GizmoDetails from './GizmoDetails.svelte'
 	import { planeMatrix } from './planeMatrix'
+	import PolylineMeasureRenderer from './PolylineMeasureRenderer.svelte'
 	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
 	import SurfaceNormalsRenderer from './SurfaceNormalsRenderer.svelte'
 	import ArrowTool from './tools/ArrowTool.svelte'
@@ -72,24 +79,27 @@
 	import LineTool from './tools/LineTool.svelte'
 	import PlaneTool from './tools/PlaneTool.svelte'
 	import SurfaceNormalsTool from './tools/SurfaceNormalsTool.svelte'
+	import VertexNormalsTool from './tools/VertexNormalsTool.svelte'
 	import { ReferencePlane } from './traits'
 	import {
 		type ArrowAxis,
 		type GeometryPlacement,
 		type GeometryShape,
 		type GizmoMode,
+		type LineMeasure,
 		type LineSpace,
 		type PlaneAxis,
 		type PlanePlacement,
 		provideGizmosPlugin,
 	} from './useGizmosPlugin.svelte'
+	import VertexNormalsRenderer from './VertexNormalsRenderer.svelte'
 
 	const settings = useSettings()
 	const world = useWorld()
 	const selectedEntity = useSelectedEntity()
 	const plugin = provideGizmosPlugin(() => toggleOff())
 
-	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'surface-normals'
+	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'vertex-normals' | 'surface-normals'
 	let openFolder = $state<FolderName>()
 
 	const isGizmoMode = $derived(settings.current.interactionMode === 'gizmo')
@@ -259,6 +269,14 @@
 									plugin.lineSpace = event.detail.value as LineSpace
 								}}
 							/>
+							<List
+								label="Measure"
+								options={lineMeasureOptions}
+								value={plugin.lineMeasure}
+								on:change={(event: ListChangeEvent) => {
+									plugin.lineMeasure = event.detail.value as LineMeasure
+								}}
+							/>
 							<TPButton
 								title="Place polyline"
 								on:click={() => {
@@ -290,6 +308,31 @@
 						</Folder>
 
 						<Folder
+							title="Vertex normals"
+							bind:expanded={
+								() => openFolder === 'vertex-normals', (v) => setOpenFolder('vertex-normals', v)
+							}
+						>
+							<Slider
+								label="Length (mm)"
+								value={plugin.vertexNormalsLength}
+								min={10}
+								max={500}
+								step={10}
+								on:change={(event: SliderChangeEvent) => {
+									plugin.vertexNormalsLength = event.detail.value
+								}}
+							/>
+							<TPButton
+								title="Place vertex normals"
+								on:click={() => {
+									pick('vertex-normals')
+									close()
+								}}
+							/>
+						</Folder>
+
+						<Folder
 							title="Surface normals"
 							bind:expanded={
 								() => openFolder === 'surface-normals', (v) => setOpenFolder('surface-normals', v)
@@ -297,12 +340,12 @@
 						>
 							<Slider
 								label="Length (mm)"
-								value={plugin.surfaceNormalLength}
+								value={plugin.surfaceNormalsLength}
 								min={10}
 								max={500}
 								step={10}
 								on:change={(event: SliderChangeEvent) => {
-									plugin.surfaceNormalLength = event.detail.value
+									plugin.surfaceNormalsLength = event.detail.value
 								}}
 							/>
 							<TPButton
@@ -342,10 +385,15 @@
 		<LineTool />
 	{:else if plugin.mode === 'arrow'}
 		<ArrowTool />
+	{:else if plugin.mode === 'vertex-normals'}
+		<VertexNormalsTool />
 	{:else if plugin.mode === 'surface-normals'}
 		<SurfaceNormalsTool />
 	{/if}
 {/if}
 
+<PolylineMeasureRenderer />
+<VertexNormalsRenderer />
 <SurfaceNormalsRenderer />
+
 <GizmoDetails />

@@ -13,4 +13,10 @@ export const ReferencePlane = trait({ width: 500, height: 500 })
 export const GizmoArrow = trait(() => true)
 
 /** Renders a VertexNormalsHelper over a parent surface entity. Length is in mm. */
+export const VertexNormals = trait({ length: 100 })
+
+/** Renders one outward-pointing segment per triangle face of a parent surface. Length is in mm. */
 export const SurfaceNormals = trait({ length: 100 })
+
+/** Renders distance labels along a polyline gizmo. */
+export const PolylineMeasure = trait({ mode: 'segment' as 'segment' | 'total' })

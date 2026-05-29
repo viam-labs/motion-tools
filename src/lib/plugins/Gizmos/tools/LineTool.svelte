@@ -23,6 +23,7 @@
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'
 	import { cancelPending, confirmPending, POLYLINE_COLOR, spawnPending } from '../spawn'
+	import { PolylineMeasure } from '../traits'
 	import {
 		useAddNextGesture,
 		useCancelGesture,
@@ -140,6 +141,7 @@
 					traits.Color(asRGB(POLYLINE_COLOR, { r: 0, g: 0, b: 0 })),
 					traits.DotColors(POLYLINE_COLOR),
 					...(plugin.lineSpace === 'screen' ? [traits.ScreenSpace] : []),
+					...(plugin.lineMeasure === 'none' ? [] : [PolylineMeasure({ mode: plugin.lineMeasure })]),
 				],
 			})
 

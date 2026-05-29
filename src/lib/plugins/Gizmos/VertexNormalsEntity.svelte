@@ -2,9 +2,9 @@
 	lang="ts"
 	module
 >
-	import { LineBasicMaterial } from 'three'
+	import { Color } from 'three'
 
-	const sharedMaterial = new LineBasicMaterial({ toneMapped: false })
+	const colorUtil = new Color()
 </script>
 
 <script lang="ts">
@@ -12,13 +12,13 @@
 
 	import { T, useThrelte } from '@threlte/core'
 	import { onDestroy, untrack } from 'svelte'
-	import { Color, LineSegments } from 'three'
+	import { type Mesh } from 'three'
+	import { VertexNormalsHelper } from 'three/examples/jsm/helpers/VertexNormalsHelper.js'
 
 	import { hierarchy, relations, traits, useTarget, useTrait, useWorld } from '$lib/ecs'
 
 	import { buildNormalsMesh } from './buildNormalsMesh'
-	import { faceNormalsGeometry } from './faceNormalsGeometry'
-	import { SurfaceNormals } from './traits'
+	import { VertexNormals } from './traits'
 
 	interface Props {
 		entity: Entity
@@ -37,10 +37,11 @@
 	const sourceSphere = useTrait(() => source, traits.Sphere)
 	const sourceCapsule = useTrait(() => source, traits.Capsule)
 	const sourceBuffer = useTrait(() => source, traits.BufferGeometry)
-	const config = useTrait(() => entity, SurfaceNormals)
+	const config = useTrait(() => entity, VertexNormals)
 	const colorTrait = useTrait(() => entity, traits.Color)
 
-	let lines = $state.raw<LineSegments>()
+	let helper = $state.raw<VertexNormalsHelper>()
+	let mesh: Mesh | undefined
 	let hasHadSource = false
 
 	$effect.pre(() => {
@@ -50,30 +51,36 @@
 		void sourceSphere.current
 		void sourceCapsule.current
 		void sourceBuffer.current
-		const matrix = sourceMatrix.current
-		if (!matrix) return
-
 		const c = colorTrait.current
 		const lengthMm = config.current?.length ?? 100
 
 		untrack(() => {
-			lines?.geometry.dispose()
-			if (lines?.material instanceof LineBasicMaterial) lines.material.dispose()
+			helper?.dispose()
+			mesh?.geometry.dispose()
 		})
 
-		const mesh = buildNormalsMesh(source)
-		if (!mesh) {
-			lines = undefined
+		const next = buildNormalsMesh(source)
+		if (!next) {
+			helper = undefined
+			mesh = undefined
 			return
 		}
 
-		const geometry = faceNormalsGeometry(mesh.geometry, lengthMm * 0.001, matrix)
-		mesh.geometry.dispose()
+		if (c) colorUtil.setRGB(c.r, c.g, c.b)
+		else colorUtil.setRGB(1, 0, 0)
 
-		const material = sharedMaterial.clone()
-		if (c) material.color.copy(new Color().setRGB(c.r, c.g, c.b))
+		mesh = next
+		helper = new VertexNormalsHelper(next, lengthMm * 0.001, colorUtil.getHex())
+		invalidate()
+	})
 
-		lines = new LineSegments(geometry, material)
+	$effect.pre(() => {
+		if (!helper || !mesh) return
+		const matrix = sourceMatrix.current
+		if (!matrix) return
+
+		mesh.matrixWorld.copy(matrix)
+		helper.update()
 		invalidate()
 	})
 
@@ -86,14 +93,14 @@
 	})
 
 	onDestroy(() => {
-		lines?.geometry.dispose()
-		if (lines?.material instanceof LineBasicMaterial) lines.material.dispose()
+		helper?.dispose()
+		mesh?.geometry.dispose()
 	})
 </script>
 
-{#if lines}
+{#if helper}
 	<T
-		is={lines}
+		is={helper}
 		raycast={() => null}
 		bvh={{ enabled: false }}
 	/>

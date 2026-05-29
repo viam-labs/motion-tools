@@ -8,10 +8,10 @@
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
-	import { spawnGizmo, SURFACE_NORMALS_COLOR } from '../spawn'
+	import { spawnGizmo, VERTEX_NORMALS_COLOR } from '../spawn'
 	import { findSurfaceHit } from '../surface'
 	import SurfacePickerCursor from '../SurfacePickerCursor.svelte'
-	import { SurfaceNormals } from '../traits'
+	import { VertexNormals } from '../traits'
 	import { useCancelGesture, useGizmosPlugin } from '../useGizmosPlugin.svelte'
 
 	const world = useWorld()
@@ -41,10 +41,10 @@
 		if (hovered === undefined) return
 
 		const entity = spawnGizmo(world, {
-			kind: 'surface normals',
+			kind: 'vertex normals',
 			traits: [
-				SurfaceNormals({ length: plugin.surfaceNormalsLength }),
-				traits.Color(asRGB(SURFACE_NORMALS_COLOR, { r: 0, g: 0, b: 0 })),
+				VertexNormals({ length: plugin.vertexNormalsLength }),
+				traits.Color(asRGB(VERTEX_NORMALS_COLOR, { r: 0, g: 0, b: 0 })),
 				relations.ChildOf(hovered),
 			],
 		})

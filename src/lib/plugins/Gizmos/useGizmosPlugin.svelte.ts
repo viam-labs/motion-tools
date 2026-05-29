@@ -13,6 +13,7 @@ export type GizmoMode =
 	| 'geometry'
 	| 'line'
 	| 'arrow'
+	| 'vertex-normals'
 	| 'surface-normals'
 
 export type PlaneAxis = 'yz' | 'xz' | 'xy'
@@ -22,7 +23,7 @@ export type GeometryShape = 'box' | 'sphere' | 'capsule'
 export type GeometryPlacement = 'at-origin' | 'free'
 
 export type LineSpace = 'world' | 'screen'
-// TODO: Add line measurement option
+export type LineMeasure = 'none' | 'segment' | 'total'
 
 export type ArrowAxis = 'x' | 'y' | 'z' | 'surface'
 
@@ -50,10 +51,12 @@ export const provideGizmosPlugin = (exit: () => void) => {
 	let isGeometryWireframe = $state(false)
 
 	let lineSpace = $state<LineSpace>('world')
+	let lineMeasure = $state<LineMeasure>('none')
 
 	let arrowAxis = $state<ArrowAxis>('y')
 
-	let surfaceNormalLength = $state(100)
+	let vertexNormalsLength = $state(100)
+	let surfaceNormalsLength = $state(100)
 
 	return setContext(key, {
 		get mode() {
@@ -120,6 +123,13 @@ export const provideGizmosPlugin = (exit: () => void) => {
 			lineSpace = value
 		},
 
+		get lineMeasure() {
+			return lineMeasure
+		},
+		set lineMeasure(value) {
+			lineMeasure = value
+		},
+
 		get arrowAxis() {
 			return arrowAxis
 		},
@@ -127,11 +137,18 @@ export const provideGizmosPlugin = (exit: () => void) => {
 			arrowAxis = value
 		},
 
-		get surfaceNormalLength() {
-			return surfaceNormalLength
+		get vertexNormalsLength() {
+			return vertexNormalsLength
 		},
-		set surfaceNormalLength(value) {
-			surfaceNormalLength = value
+		set vertexNormalsLength(value) {
+			vertexNormalsLength = value
+		},
+
+		get surfaceNormalsLength() {
+			return surfaceNormalsLength
+		},
+		set surfaceNormalsLength(value) {
+			surfaceNormalsLength = value
 		},
 
 		exit,
