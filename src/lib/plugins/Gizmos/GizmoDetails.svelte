@@ -40,22 +40,11 @@
 		return out
 	})
 
-	// `traits.Color` stores normalized RGB (0–1) — feed straight to <Color
-	// type="float">.
-	const colorValue = $derived.by<ColorValueRgbObject | undefined>(() => {
-		const c = color.current
-		if (!c) return undefined
-		return { r: c.r, g: c.g, b: c.b }
-	})
-
-	// `traits.DotColors` is a Uint8Array of 8-bit RGB bytes. A 3-byte array
-	// means "one color for all dots". Normalize to 0–1 floats so the picker
-	// presentation matches the line color picker — converted back to bytes on
-	// write.
 	const dotColorValue = $derived.by<ColorValueRgbObject | undefined>(() => {
-		const dc = dotColors.current
-		if (!dc || dc.length < 3) return undefined
-		return { r: dc[0]! / 255, g: dc[1]! / 255, b: dc[2]! / 255 }
+		const colors = dotColors.current
+		if (!colors || colors.length < 3) return undefined
+
+		return { r: colors[0]! / 255, g: colors[1]! / 255, b: colors[2]! / 255 }
 	})
 
 	const writeLineVertex = (index: number, value: PointValue3dObject) => {
@@ -197,11 +186,11 @@
 				</div>
 			{/if}
 
-			{#if colorValue}
+			{#if color.current}
 				<div>
 					<strong class="font-semibold">{isLine ? 'line color' : 'color'}</strong>
 					<Color
-						value={colorValue}
+						value={color.current}
 						type="float"
 						on:change={handleColorChange}
 					/>

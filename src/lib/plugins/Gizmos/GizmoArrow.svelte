@@ -19,8 +19,6 @@
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
 	import { traits, useTrait } from '$lib/ecs'
 
-	import { HeadAtOrigin } from './traits'
-
 	interface Props {
 		entity: Entity
 		children?: Snippet
@@ -35,7 +33,6 @@
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const invisible = useTrait(() => entity, traits.Invisible)
-	const headAtOrigin = useTrait(() => entity, HeadAtOrigin)
 
 	const events = useEntityEvents(() => entity)
 
@@ -45,30 +42,23 @@
 				.setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
 				.getHexString()}`
 		}
+
 		return colors.default
 	})
 
 	const currentOpacity = $derived(opacity.current ?? 1)
-
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
 	const mesh = new Mesh()
+	mesh.position.y = -ARROW_LENGTH
 
 	$effect.pre(() => {
 		if (!worldMatrix.current) return
+
 		group.matrix.copy(worldMatrix.current)
 		group.matrix.decompose(group.position, group.quaternion, group.scale)
 		group.updateMatrixWorld()
-		invalidate()
-	})
-
-	// When `HeadAtOrigin` is set, shift the geometry backward along its local
-	// +Y so the arrow's tip lands at the entity origin instead of its tail.
-	// Rotation still happens at the entity origin (the picked world point),
-	// so the tip stays anchored as the user rotates.
-	$effect(() => {
-		mesh.position.y = headAtOrigin.current ? -ARROW_LENGTH : 0
 		invalidate()
 	})
 </script>

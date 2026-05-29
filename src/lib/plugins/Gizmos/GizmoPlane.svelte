@@ -1,9 +1,11 @@
 <script module>
-	import { Color, EdgesGeometry, PlaneGeometry } from 'three'
+	import { EdgesGeometry, PlaneGeometry } from 'three'
 
-	const colorUtil = new Color()
 	const unitPlane = new PlaneGeometry(1, 1)
 	const unitPlaneEdges = new EdgesGeometry(unitPlane, 0)
+
+	const SURFACE_COLOR = '#FFA726'
+	const EDGE_COLOR = '#F4A460'
 </script>
 
 <script lang="ts">
@@ -13,7 +15,6 @@
 	import { T, useThrelte } from '@threlte/core'
 	import { DoubleSide, Group, Mesh } from 'three'
 
-	import { colors, darkenColor } from '$lib/color'
 	import AxesHelper from '$lib/components/AxesHelper.svelte'
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
 	import { traits, useTrait } from '$lib/ecs'
@@ -30,22 +31,11 @@
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
-	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const plane = useTrait(() => entity, gizmoTraits.Plane)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
+	const plane = useTrait(() => entity, gizmoTraits.ReferencePlane)
 	const invisible = useTrait(() => entity, traits.Invisible)
 
 	const events = useEntityEvents(() => entity)
-
-	const color = $derived.by(() => {
-		if (entityColor.current) {
-			return `#${colorUtil
-				.setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
-				.getHexString()}`
-		}
-		return colors.default
-	})
 
 	const currentOpacity = $derived(opacity.current ?? 1)
 
@@ -85,7 +75,7 @@
 			dispose={false}
 		/>
 		<T.MeshToonMaterial
-			{color}
+			color={SURFACE_COLOR}
 			side={DoubleSide}
 			transparent={currentOpacity < 1}
 			depthWrite={currentOpacity === 1}
@@ -99,17 +89,17 @@
 				is={unitPlaneEdges}
 				dispose={false}
 			/>
-			<T.LineBasicMaterial color={darkenColor(color, 10)} />
+			<T.LineBasicMaterial color={EDGE_COLOR} />
 		</T.LineSegments>
 	</T>
 
-	{#if showAxesHelper.current}
-		<AxesHelper
-			name={entity}
-			width={3}
-			length={0.1}
-		/>
-	{/if}
+	<!-- `depthTest={false}` so the X/Y axes don't z-fight with the plane. -->
+	<AxesHelper
+		name={entity}
+		width={3}
+		length={0.1}
+		depthTest={false}
+	/>
 
 	{@render children?.()}
 </T>

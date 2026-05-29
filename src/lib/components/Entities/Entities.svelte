@@ -63,7 +63,7 @@
 	const points = useQuery(traits.Points)
 	const lines = useQuery(traits.LinePositions)
 	const gltfs = useQuery(traits.GLTF)
-	const planeGizmos = useQuery(gizmoTraits.Plane)
+	const planeGizmos = useQuery(gizmoTraits.ReferencePlane)
 	const arrowGizmos = useQuery(gizmoTraits.GizmoArrow)
 </script>
 

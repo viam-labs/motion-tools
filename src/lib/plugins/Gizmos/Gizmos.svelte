@@ -1,17 +1,61 @@
+<script
+	lang="ts"
+	module
+>
+	const axisOptions = [
+		{ value: 'yz', text: 'YZ plane' },
+		{ value: 'xz', text: 'XZ plane' },
+		{ value: 'xy', text: 'XY plane' },
+	] satisfies { value: PlaneAxis; text: string }[]
+
+	const planePlacements = [
+		{ value: 'free', text: 'Free (click to place)' },
+		{ value: 'offset', text: 'Offset from coordinate plane' },
+	] satisfies { value: PlanePlacement; text: string }[]
+
+	const wireframeOptions = [
+		{ value: false, text: 'Solid' },
+		{ value: true, text: 'Wireframe' },
+	]
+
+	const lineSpaceOptions = [
+		{ value: 'world', text: 'World' },
+		{ value: 'screen', text: 'Screen' },
+	] satisfies { value: LineSpace; text: string }[]
+
+	const arrowAxisOptions = [
+		{ value: 'surface', text: 'Surface normal' },
+		{ value: 'x', text: 'X' },
+		{ value: 'y', text: 'Y' },
+		{ value: 'z', text: 'Z' },
+	] satisfies { value: ArrowAxis; text: string }[]
+
+	const geometryPlacementOptions = [
+		{ value: 'at-origin', text: 'At origin' },
+		{ value: 'free', text: 'Free (click to place)' },
+	] satisfies { value: GeometryPlacement; text: string }[]
+
+	const geometryShapeOptions = [
+		{ value: 'box', text: 'Box' },
+		{ value: 'sphere', text: 'Sphere' },
+		{ value: 'capsule', text: 'Capsule' },
+	] satisfies { value: GeometryShape; text: string }[]
+</script>
+
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
-	import { type ConfigurableTrait } from 'koota'
-	import { tick } from 'svelte'
 	import {
 		Folder,
 		List,
 		type ListChangeEvent,
 		Pane,
 		Separator,
+		Slider,
+		type SliderChangeEvent,
 		Button as TPButton,
 	} from 'svelte-tweakpane-ui'
-	import { Matrix4, Quaternion, Vector3 } from 'three'
 
+	import { asRGB } from '$lib/buffer'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import { traits, useWorld } from '$lib/ecs'
@@ -19,17 +63,24 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import GizmoDetails from './GizmoDetails.svelte'
-	import { GIZMO_COLOR, spawnGizmo } from './spawn'
+	import { planeMatrix } from './planeMatrix'
+	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
+	import SurfaceNormalsRenderer from './SurfaceNormalsRenderer.svelte'
 	import ArrowTool from './tools/ArrowTool.svelte'
 	import CoordinateSystemTool from './tools/CoordinateSystemTool.svelte'
+	import GeometryTool from './tools/GeometryTool.svelte'
 	import LineTool from './tools/LineTool.svelte'
-	import { Plane } from './traits'
+	import PlaneTool from './tools/PlaneTool.svelte'
+	import SurfaceNormalsTool from './tools/SurfaceNormalsTool.svelte'
+	import { ReferencePlane } from './traits'
 	import {
-		type ArrowOrientation,
+		type ArrowAxis,
+		type GeometryPlacement,
 		type GeometryShape,
 		type GizmoMode,
 		type LineSpace,
 		type PlaneAxis,
+		type PlanePlacement,
 		provideGizmosPlugin,
 	} from './useGizmosPlugin.svelte'
 
@@ -38,14 +89,12 @@
 	const selectedEntity = useSelectedEntity()
 	const plugin = provideGizmosPlugin(() => toggleOff())
 
-	const isGizmoMode = $derived(settings.current.interactionMode === 'gizmo')
+	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'surface-normals'
+	let openFolder = $state<FolderName>()
 
-	// Keep the global interactionMode and our local plugin mode in sync. When
-	// the user switches to another tool (selection/measure), our mode resets.
+	const isGizmoMode = $derived(settings.current.interactionMode === 'gizmo')
 	$effect(() => {
-		if (!isGizmoMode && plugin.mode !== 'idle') {
-			plugin.mode = 'idle'
-		}
+		if (!isGizmoMode && plugin.mode !== 'idle') plugin.mode = 'idle'
 	})
 
 	const pick = (mode: GizmoMode) => {
@@ -58,98 +107,36 @@
 		plugin.mode = 'idle'
 	}
 
-	// Accordion: only one Folder may be expanded at a time. Function bindings
-	// (`bind:expanded={() => …, (v) => …}`) on each Folder both read this state
-	// and route user clicks back into it so opening one collapses the rest.
-	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow'
-	let openFolder = $state<FolderName | null>(null)
 	const setOpenFolder = (name: FolderName, expanded: boolean) => {
-		// When another folder takes ownership of `openFolder`, this folder's
-		// getter starts returning `false` and the tweakpane Folder will echo
-		// that back as setOpenFolder(name, false). Ignore those "I'm being
-		// collapsed because someone else opened" calls — only clear when
-		// collapsing the currently-open folder.
 		if (expanded) openFolder = name
-		else if (openFolder === name) openFolder = null
+		else if (openFolder === name) openFolder = undefined
 	}
 
-	// PlaneGeometry's normal is +Z by default. Bake the axis rotation into the
-	// spawn matrix so the new plane faces the user-selected axis from origin.
-	const tempQuat = new Quaternion()
-	const xAxis = new Vector3(1, 0, 0)
-	const yAxis = new Vector3(0, 1, 0)
-	const matrixForAxis = (axis: PlaneAxis): Matrix4 => {
-		if (axis === 'x') tempQuat.setFromAxisAngle(yAxis, Math.PI / 2)
-		else if (axis === 'y') tempQuat.setFromAxisAngle(xAxis, -Math.PI / 2)
-		else tempQuat.identity()
-		return new Matrix4().makeRotationFromQuaternion(tempQuat)
-	}
-
-	// `useSelectedObject3d` looks up the renderer mesh by entity name via
-	// `scene.getObjectByName(...)` exactly once per selection change. Wait for
-	// Svelte to flush so the entity's renderer has mounted into the scene
-	// before selecting it, otherwise SelectedTransformControls never finds a
-	// `ref` and the transform gizmo silently fails to appear.
-	const placePlane = async () => {
+	const placePlaneAtOffset = async () => {
+		const offsetMeters = plugin.planeOffset * 0.001
+		const position = plugin.planeAxisVector.multiplyScalar(offsetMeters)
 		const entity = spawnGizmo(world, {
-			kind: 'plane',
-			extras: [
-				Plane({ width: 5000, height: 5000 }),
-				traits.Color(GIZMO_COLOR),
-				traits.Opacity(0.7),
-			],
-			matrix: matrixForAxis(plugin.planeAxis),
+			kind: 'reference plane',
+			traits: [ReferencePlane({ width: 500, height: 500 }), traits.Opacity(0.7)],
+			matrix: planeMatrix(plugin.planeAxis, position),
 		})
-		await tick()
+
 		selectedEntity.set(entity)
 	}
 
-	const placeGeometry = async () => {
-		const geometry: ConfigurableTrait =
-			plugin.geometryShape === 'box'
-				? traits.Box({ x: 200, y: 200, z: 200 })
-				: plugin.geometryShape === 'sphere'
-					? traits.Sphere({ r: 100 })
-					: traits.Capsule({ l: 200, r: 50 })
-		const extras: ConfigurableTrait[] = [geometry, traits.Color(GIZMO_COLOR)]
-		// Wireframe is rendered by Mesh.svelte's EdgesGeometry child, which has
-		// no opacity binding — so hiding the solid via Opacity(0) leaves edges
-		// visible. See the "wireframe is opacity=0" branch in the renderer.
-		if (plugin.wireframe) extras.push(traits.Opacity(0))
-		const entity = spawnGizmo(world, { kind: plugin.geometryShape, extras })
-		await tick()
+	const placeGeometryAtOrigin = async () => {
+		const surfaceOpacity = plugin.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY
+
+		const entity = spawnGizmo(world, {
+			kind: `reference ${plugin.geometryShape}`,
+			traits: [
+				plugin.geometryTrait,
+				traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
+				traits.Opacity(surfaceOpacity),
+			],
+		})
 		selectedEntity.set(entity)
 	}
-
-	// List option arrays. svelte-tweakpane-ui re-creates the blade when the
-	// reference identity of `options` changes, so build them once at module
-	// scope instead of inline in markup.
-	const axisOptions = [
-		{ value: 'x', text: 'X' },
-		{ value: 'y', text: 'Y' },
-		{ value: 'z', text: 'Z' },
-	] satisfies { value: PlaneAxis; text: string }[]
-
-	const wireframeOptions = [
-		{ value: false, text: 'Solid' },
-		{ value: true, text: 'Wireframe' },
-	]
-
-	const lineSpaceOptions = [
-		{ value: 'world', text: 'World' },
-		{ value: 'screen', text: 'Screen' },
-	] satisfies { value: LineSpace; text: string }[]
-
-	const arrowOrientationOptions = [
-		{ value: 'from', text: 'From (origin at point)' },
-		{ value: 'to', text: 'To (head at point)' },
-	] satisfies { value: ArrowOrientation; text: string }[]
-
-	const geometryShapeOptions = [
-		{ value: 'box', text: 'Box' },
-		{ value: 'sphere', text: 'Sphere' },
-		{ value: 'capsule', text: 'Capsule' },
-	] satisfies { value: GeometryShape; text: string }[]
 </script>
 
 <Portal id="dashboard">
@@ -161,6 +148,7 @@
 					active={isGizmoMode || isOpen}
 					icon="shapes"
 					description={isGizmoMode ? `Gizmo: ${plugin.mode}` : 'Add gizmo'}
+					disableTooltip={isGizmoMode}
 				/>
 			{/snippet}
 
@@ -180,30 +168,59 @@
 						/>
 
 						<Folder
-							title="Plane"
+							title="Reference plane"
 							bind:expanded={() => openFolder === 'plane', (v) => setOpenFolder('plane', v)}
 						>
 							<List
-								label="Axis"
+								label="Type"
+								options={planePlacements}
+								value={plugin.planeConstruction}
+								on:change={(event: ListChangeEvent) => {
+									plugin.planeConstruction = event.detail.value as PlanePlacement
+								}}
+							/>
+							<List
+								label="Normal"
 								options={axisOptions}
 								value={plugin.planeAxis}
 								on:change={(event: ListChangeEvent) => {
 									plugin.planeAxis = event.detail.value as PlaneAxis
 								}}
 							/>
+							{#if plugin.planeConstruction === 'offset'}
+								<Slider
+									label="Offset (mm)"
+									value={plugin.planeOffset}
+									min={-1000}
+									max={1000}
+									step={10}
+									on:change={(event: SliderChangeEvent) => {
+										plugin.planeOffset = event.detail.value
+									}}
+								/>
+							{/if}
 							<TPButton
-								title="Add plane"
+								title="Place reference plane"
 								on:click={() => {
-									placePlane()
+									if (plugin.planeConstruction === 'free') pick('plane')
+									else placePlaneAtOffset()
 									close()
 								}}
 							/>
 						</Folder>
 
 						<Folder
-							title="Geometry"
+							title="Reference geometry"
 							bind:expanded={() => openFolder === 'geometry', (v) => setOpenFolder('geometry', v)}
 						>
+							<List
+								label="Type"
+								options={geometryPlacementOptions}
+								value={plugin.geometryConstruction}
+								on:change={(event: ListChangeEvent) => {
+									plugin.geometryConstruction = event.detail.value as GeometryPlacement
+								}}
+							/>
 							<List
 								label="Shape"
 								options={geometryShapeOptions}
@@ -213,24 +230,25 @@
 								}}
 							/>
 							<List
-								label="Type"
+								label="Style"
 								options={wireframeOptions}
-								value={plugin.wireframe}
+								value={plugin.isGeometryWireframe}
 								on:change={(event: ListChangeEvent) => {
-									plugin.wireframe = event.detail.value as boolean
+									plugin.isGeometryWireframe = event.detail.value as boolean
 								}}
 							/>
 							<TPButton
-								title="Add geometry"
+								title="Place reference geometry"
 								on:click={() => {
-									placeGeometry()
+									if (plugin.geometryConstruction === 'free') pick('geometry')
+									else placeGeometryAtOrigin()
 									close()
 								}}
 							/>
 						</Folder>
 
 						<Folder
-							title="Line"
+							title="Polyline"
 							bind:expanded={() => openFolder === 'line', (v) => setOpenFolder('line', v)}
 						>
 							<List
@@ -242,7 +260,7 @@
 								}}
 							/>
 							<TPButton
-								title="Place line"
+								title="Place polyline"
 								on:click={() => {
 									pick('line')
 									close()
@@ -255,17 +273,42 @@
 							bind:expanded={() => openFolder === 'arrow', (v) => setOpenFolder('arrow', v)}
 						>
 							<List
-								label="Orientation"
-								options={arrowOrientationOptions}
-								value={plugin.arrowOrientation}
+								label="Initial axis"
+								options={arrowAxisOptions}
+								value={plugin.arrowAxis}
 								on:change={(event: ListChangeEvent) => {
-									plugin.arrowOrientation = event.detail.value as ArrowOrientation
+									plugin.arrowAxis = event.detail.value as ArrowAxis
 								}}
 							/>
 							<TPButton
 								title="Place arrow"
 								on:click={() => {
 									pick('arrow')
+									close()
+								}}
+							/>
+						</Folder>
+
+						<Folder
+							title="Surface normals"
+							bind:expanded={
+								() => openFolder === 'surface-normals', (v) => setOpenFolder('surface-normals', v)
+							}
+						>
+							<Slider
+								label="Length (mm)"
+								value={plugin.surfaceNormalLength}
+								min={10}
+								max={500}
+								step={10}
+								on:change={(event: SliderChangeEvent) => {
+									plugin.surfaceNormalLength = event.detail.value
+								}}
+							/>
+							<TPButton
+								title="Place surface normals"
+								on:click={() => {
+									pick('surface-normals')
 									close()
 								}}
 							/>
@@ -291,16 +334,18 @@
 {#if isGizmoMode}
 	{#if plugin.mode === 'coordinate-system'}
 		<CoordinateSystemTool />
+	{:else if plugin.mode === 'plane'}
+		<PlaneTool />
+	{:else if plugin.mode === 'geometry'}
+		<GeometryTool />
 	{:else if plugin.mode === 'line'}
 		<LineTool />
 	{:else if plugin.mode === 'arrow'}
 		<ArrowTool />
+	{:else if plugin.mode === 'surface-normals'}
+		<SurfaceNormalsTool />
 	{/if}
 {/if}
 
-<!--
-	Always mounted so the gizmo badge / line editor appears in the Details
-	panel whenever a gizmo is selected — independent of whether the user is
-	currently in gizmo placement mode.
--->
+<SurfaceNormalsRenderer />
 <GizmoDetails />

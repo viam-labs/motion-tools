@@ -11,6 +11,12 @@
 		hotkey?: string
 		class?: ClassValue | null | undefined
 		tooltipLocation?: 'bottom' | 'right' | 'left' | 'top'
+		/**
+		 * When `true`, the hover/focus tooltip is force-suppressed. Useful for
+		 * "this tool is currently the active mode" states where the tooltip is
+		 * distracting and the active visual already conveys what the button is.
+		 */
+		disableTooltip?: boolean
 		onclick?: MouseEventHandler<HTMLButtonElement> | null | undefined
 	}
 
@@ -21,6 +27,7 @@
 		hotkey = '',
 		class: className = '',
 		tooltipLocation,
+		disableTooltip = false,
 		onclick,
 		...rest
 	}: Props = $props()
@@ -29,6 +36,7 @@
 <Tooltip
 	let:tooltipID
 	location={tooltipLocation ?? 'bottom'}
+	state={disableTooltip ? 'invisible' : undefined}
 >
 	<label
 		class={[

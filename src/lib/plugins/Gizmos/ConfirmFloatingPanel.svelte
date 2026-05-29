@@ -1,37 +1,34 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
 	import type { Vector3Tuple } from 'three'
 
 	import { HTML } from '@threlte/extras'
+	import { Check, Plus, Undo2, X } from 'lucide-svelte'
 
 	interface Props {
 		position: Vector3Tuple
+
+		/** Commit the pending gizmo and exit gizmo mode with it selected. */
 		onConfirm: () => void
+
+		/** Discard the pending gizmo; if no pending, exit gizmo mode. */
 		onCancel: () => void
-		confirmLabel?: string
-		cancelLabel?: string
-		children?: Snippet
+
+		/**
+		 * Commit the pending gizmo and stay in placement mode so the user can
+		 * drop another of the same kind. Hidden when omitted (e.g. for tools
+		 * that only ever place a single instance).
+		 */
+		onAddNext?: () => void
+
+		/**
+		 * Step-undo the most recent placed gizmo in multi-place flows. Hidden
+		 * when there's nothing to roll back.
+		 */
+		onUndo?: () => void
 	}
 
-	let {
-		position,
-		onConfirm,
-		onCancel,
-		confirmLabel = 'Confirm',
-		cancelLabel = 'Cancel',
-		children,
-	}: Props = $props()
+	let { position, onConfirm, onCancel, onAddNext, onUndo }: Props = $props()
 
-	/**
-	 * Stop pointer events from bubbling to the canvas wrapper. Svelte 5
-	 * delegates inline `onpointerdown` / `onpointerup` handlers at the document
-	 * root, so calling `stopPropagation` inside a delegated handler runs
-	 * *after* the native bubble has already reached `dom` — too late to stop
-	 * three.js `TransformControls` (which calls `setPointerCapture`
-	 * unconditionally on every left-button pointerdown). Attach native, non-
-	 * delegated listeners directly on the element so stopPropagation actually
-	 * intercepts the bubble.
-	 */
 	const stopPointerBubble = (el: HTMLElement) => {
 		const stop = (event: PointerEvent) => event.stopPropagation()
 		el.addEventListener('pointerdown', stop)
@@ -45,6 +42,10 @@
 			},
 		}
 	}
+
+	const buttonClass =
+		'hover:bg-light flex min-w-9 flex-col items-center justify-center gap-0.5 rounded px-1.5 py-1 focus:outline-none focus-visible:ring-2'
+	const hotkeyClass = 'font-mono text-[10px] leading-none opacity-60'
 </script>
 
 <HTML
@@ -52,48 +53,73 @@
 	{position}
 	zIndexRange={[100, 0]}
 >
-	<!--
-		Translate further up in screen space than the TransformControls rotate
-		rings reach, so the panel isn't visually covered or pointer-blocked by
-		the gizmo handles when a pending arrow is in rotate mode.
-
-		Stop pointer events from bubbling to the canvas wrapper:
-		- `useMouseRaycaster` listens for `pointerup` on the wrapper and would
-		  fire its synthetic `click` *before* the button's onclick (pointerup
-		  precedes click in the DOM event sequence), causing the line tool to
-		  drop a phantom vertex at the panel position.
-		- Three.js TransformControls registers a `pointerdown` handler on the
-		  same wrapper and calls `setPointerCapture` unconditionally on left
-		  click, which retargets the subsequent pointerup to the wrapper and
-		  prevents the button from ever receiving its `click` event.
-	-->
 	<div
-		class="border-medium pointer-events-auto -translate-y-[calc(100%+120px)] border bg-white p-2 text-xs shadow-md"
+		class="border-medium pointer-events-auto flex -translate-y-10 gap-0.5 rounded border bg-white p-0.5 shadow-md"
 		use:stopPointerBubble
 	>
-		{#if children}
-			<div class="mb-2 flex flex-col gap-1">
-				{@render children()}
-			</div>
+		{#if onUndo}
+			<button
+				class={[buttonClass, 'text-blue-600 focus-visible:ring-blue-500']}
+				type="button"
+				title="Undo last (⌫)"
+				onclick={onUndo}
+			>
+				<Undo2
+					class="size-4"
+					aria-hidden="true"
+				/>
+				<span
+					class={hotkeyClass}
+					aria-hidden="true">⌫</span
+				>
+			</button>
 		{/if}
-
-		<div class="flex gap-1">
-			<button
-				class="border-medium hover:bg-light flex-1 border px-2 py-1"
-				type="button"
-				onclick={onCancel}
+		<button
+			class={[buttonClass, 'text-red-600 focus-visible:ring-red-500']}
+			type="button"
+			title="Cancel (esc)"
+			onclick={onCancel}
+		>
+			<X
+				class="size-4"
+				aria-hidden="true"
+			/>
+			<span
+				class={hotkeyClass}
+				aria-hidden="true">Esc</span
 			>
-				{cancelLabel}
-				<span class="text-subtle-2 ml-1 text-[10px]">esc</span>
-			</button>
+		</button>
+		{#if onAddNext}
 			<button
-				class="bg-gray-8 hover:bg-gray-9 flex-1 border border-black px-2 py-1 text-white"
+				class={[buttonClass, 'text-blue-600 focus-visible:ring-blue-500']}
 				type="button"
-				onclick={onConfirm}
+				title="Commit and add another (space)"
+				onclick={onAddNext}
 			>
-				{confirmLabel}
-				<span class="ml-1 text-[10px] opacity-70">↵</span>
+				<Plus
+					class="size-4"
+					aria-hidden="true"
+				/>
+				<span
+					class={hotkeyClass}
+					aria-hidden="true">Space</span
+				>
 			</button>
-		</div>
+		{/if}
+		<button
+			class={[buttonClass, 'text-green-600 focus-visible:ring-green-500']}
+			type="button"
+			title="Confirm and exit (↵)"
+			onclick={onConfirm}
+		>
+			<Check
+				class="size-4"
+				aria-hidden="true"
+			/>
+			<span
+				class={hotkeyClass}
+				aria-hidden="true">↵</span
+			>
+		</button>
 	</div>
 </HTML>

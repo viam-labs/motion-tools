@@ -1,28 +1,40 @@
+<script
+	lang="ts"
+	module
+>
+	const SNAP_DISTANCE = 0.05
+	const PLACEMENT_DOT_SIZE = 20
+</script>
+
 <script lang="ts">
 	import type { Entity } from 'koota'
 
-	import { onDestroy, untrack } from 'svelte'
+	import { onDestroy } from 'svelte'
 	import { Vector3 } from 'three'
 
+	import { asRGB } from '$lib/buffer'
+	import { DEFAULT_LINE_WIDTH } from '$lib/draw'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import MeasurePoint from '../../../components/MeasureTool/MeasurePoint.svelte'
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'
+	import { cancelPending, confirmPending, POLYLINE_COLOR, spawnPending } from '../spawn'
 	import {
-		cancelPending,
-		confirmPending,
-		GIZMO_COLOR,
-		GIZMO_COLOR_BYTES,
-		spawnPending,
-	} from '../spawn'
-	import { useCancelGesture, useConfirmGesture, useGizmosPlugin } from '../useGizmosPlugin.svelte'
+		useAddNextGesture,
+		useCancelGesture,
+		useConfirmGesture,
+		useGizmosPlugin,
+		useUndoGesture,
+	} from '../useGizmosPlugin.svelte'
 
 	const world = useWorld()
 	const selectedEntity = useSelectedEntity()
 	const plugin = useGizmosPlugin()
+	const settings = useSettings()
 
 	let cursor = $state.raw<Vector3 | undefined>()
 	let pending = $state.raw<Entity | undefined>()
@@ -30,6 +42,30 @@
 
 	const { onclick, onmove, raycaster } = useMouseRaycaster(() => ({ enabled: true }))
 	raycaster.firstHitOnly = true
+
+	const hasSegment = $derived(points.length >= 2)
+
+	const nearestVertex = (point: Vector3): number | undefined => {
+		let best: number | undefined
+		let bestSquared = SNAP_DISTANCE * SNAP_DISTANCE
+		for (let i = 0; i < points.length; i++) {
+			const squared = points[i].distanceToSquared(point)
+			if (squared < bestSquared) {
+				bestSquared = squared
+				best = i
+			}
+		}
+
+		return best
+	}
+
+	const getCursorPosition = (hit: Vector3) => {
+		const index = pending && settings.current.snapping ? nearestVertex(hit) : undefined
+		return {
+			index,
+			position: index === undefined ? hit : points[index].clone(),
+		}
+	}
 
 	const flatPositions = (pts: Vector3[], preview?: Vector3): Float32Array => {
 		const total = pts.length + (preview ? 1 : 0)
@@ -39,21 +75,21 @@
 			arr[i * 3 + 1] = pts[i].y
 			arr[i * 3 + 2] = pts[i].z
 		}
+
 		if (preview) {
 			const i = pts.length
 			arr[i * 3 + 0] = preview.x
 			arr[i * 3 + 1] = preview.y
 			arr[i * 3 + 2] = preview.z
 		}
+
 		return arr
 	}
 
 	const updatePending = (preview?: Vector3) => {
 		if (!pending) return
+
 		const positions = flatPositions(points, preview)
-		// A Line2 needs at least 2 vertices to render; if we only have the
-		// just-placed first point and no cursor, duplicate it so the entity
-		// is still valid until the next move/click.
 		if (positions.length < 6) {
 			const padded = new Float32Array(6)
 			padded.set(positions)
@@ -67,94 +103,117 @@
 	}
 
 	onmove((event) => {
-		cursor = cursorPoint(raycaster, event.intersections, pending)
-		if (pending && cursor) {
-			updatePending(cursor)
+		const hit = cursorPoint(event.intersections, pending)
+		if (!hit) {
+			cursor = undefined
+			return
 		}
+
+		const { position } = getCursorPosition(hit)
+		cursor = position
+		if (pending && cursor) updatePending(cursor)
 	})
 
 	onclick((event) => {
-		const position = cursorPoint(raycaster, event.intersections, pending)
-		if (!position) return
-		const next = position.clone()
+		const hit = cursorPoint(event.intersections, pending)
+		if (!hit) return
+
+		const { position, index } = getCursorPosition(hit)
 
 		if (pending) {
-			points = [...points, next]
+			if (index === 0 && points.length >= 3) {
+				points = [...points, position]
+				finalizePending()
+				return
+			}
+
+			points = [...points, position]
 			updatePending(position)
 		} else {
-			const screen = plugin.lineSpace === 'screen'
-			// DotColors is a Uint8Array — a single 3-byte RGB applies one color
-			// to every dot. Derive from GIZMO_COLOR (no inline literal) so the
-			// line color and dot color start out matching even if GIZMO_COLOR
-			// is later changed.
-			const extras = [
-				traits.LinePositions(new Float32Array()),
-				traits.LineWidth(5),
-				traits.DotSize(10),
-				traits.Color(GIZMO_COLOR),
-				traits.DotColors(new Uint8Array(GIZMO_COLOR_BYTES)),
-				...(screen ? [traits.ScreenSpace] : []),
-			]
-			// LinePositions are entity-local; if we anchor the entity's matrix
-			// at the first click point, that translation gets applied on top of
-			// every stored vertex and every dot ends up doubled away from where
-			// the user clicked. Anchor at the world origin so the local
-			// coordinates we store *are* the world coordinates the user picked.
-			pending = spawnPending(world, { kind: 'line', position: new Vector3(), extras })
-			points = [next]
+			pending = spawnPending(world, {
+				kind: 'polyline',
+				position: new Vector3(),
+				traits: [
+					traits.LinePositions(new Float32Array()),
+					traits.LineWidth(DEFAULT_LINE_WIDTH),
+					traits.DotSize(PLACEMENT_DOT_SIZE),
+					traits.Color(asRGB(POLYLINE_COLOR, { r: 0, g: 0, b: 0 })),
+					traits.DotColors(POLYLINE_COLOR),
+					...(plugin.lineSpace === 'screen' ? [traits.ScreenSpace] : []),
+				],
+			})
+
+			points = [position]
 			selectedEntity.set(pending)
 			updatePending(position)
 		}
 	})
 
-	const handleConfirm = () => {
-		if (!pending) return
-		// Drop the cursor preview; finalize with the placed points only.
+	const finalizePending = (): Entity | undefined => {
+		if (!pending) return undefined
+
 		pending.set(traits.LinePositions, flatPositions(points))
-		// Restore full opacity once committed.
-		if (pending.has(traits.Opacity)) pending.remove(traits.Opacity)
+		pending.set(traits.DotSize, DEFAULT_LINE_WIDTH)
 		confirmPending(pending)
+		const committed = pending
+		pending = undefined
+		points = []
+		return committed
+	}
+
+	const handleAddNext = () => {
+		if (!pending || !hasSegment) return
+		finalizePending()
+	}
+
+	const handleConfirm = () => {
+		if (!pending || !hasSegment) return
+
+		const committed = finalizePending()
+		if (committed) selectedEntity.set(committed)
+
+		plugin.exit()
+	}
+
+	const handleCancel = () => {
+		if (!pending) {
+			plugin.exit()
+			return
+		}
+
+		cancelPending(pending)
+		selectedEntity.set()
 		pending = undefined
 		points = []
 	}
 
-	const handleCancel = () => {
-		if (pending) {
-			cancelPending(pending)
-			selectedEntity.set()
-			pending = undefined
-			points = []
-		} else {
-			plugin.exit()
-		}
+	const handleUndo = () => {
+		if (!pending || !hasSegment) return
+
+		points = points.slice(0, -1)
+		updatePending(cursor)
 	}
 
-	useCancelGesture(() => handleCancel())
-	useConfirmGesture(() => {
-		if (pending && points.length >= 2) handleConfirm()
-	})
+	useCancelGesture(handleCancel)
+	useConfirmGesture(handleConfirm)
+	useAddNextGesture(handleAddNext)
+	useUndoGesture(handleUndo)
 
-	onDestroy(() => {
-		untrack(() => {
-			if (pending) cancelPending(pending)
-		})
-	})
+	onDestroy(() => cancelPending(pending))
 
 	const panelPosition = $derived<[number, number, number]>(
 		points.at(-1) ? [points.at(-1)!.x, points.at(-1)!.y, points.at(-1)!.z] : [0, 0, 0]
 	)
 </script>
 
-{#if pending && points.length >= 2}
+{#if pending && hasSegment}
 	<ConfirmFloatingPanel
 		position={panelPosition}
 		onConfirm={handleConfirm}
 		onCancel={handleCancel}
-		confirmLabel="Finish line"
-	>
-		<div class="text-subtle-2">{points.length} point{points.length === 1 ? '' : 's'} placed</div>
-		<div class="text-subtle-2">Click to add another</div>
-	</ConfirmFloatingPanel>
+		onAddNext={handleAddNext}
+		onUndo={handleUndo}
+	/>
 {/if}
 
 {#if !pending && cursor}

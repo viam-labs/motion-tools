@@ -1,53 +1,66 @@
 import { useThrelte } from '@threlte/core'
 import { getContext, setContext } from 'svelte'
+import { Vector3 } from 'three'
+
+import { traits } from '$lib/ecs'
 
 const key = Symbol('gizmos-plugin-context')
 
-export type GizmoMode = 'idle' | 'coordinate-system' | 'line' | 'arrow'
+export type GizmoMode =
+	| 'idle'
+	| 'coordinate-system'
+	| 'plane'
+	| 'geometry'
+	| 'line'
+	| 'arrow'
+	| 'surface-normals'
+
+export type PlaneAxis = 'yz' | 'xz' | 'xy'
+export type PlanePlacement = 'free' | 'offset'
+
+export type GeometryShape = 'box' | 'sphere' | 'capsule'
+export type GeometryPlacement = 'at-origin' | 'free'
 
 export type LineSpace = 'world' | 'screen'
-export type PlaneAxis = 'x' | 'y' | 'z'
-export type ArrowOrientation = 'to' | 'from'
-export type GeometryShape = 'box' | 'sphere' | 'capsule'
+// TODO: Add line measurement option
 
-interface GizmosPluginContext {
-	mode: GizmoMode
-	lineSpace: LineSpace
-	wireframe: boolean
-	planeAxis: PlaneAxis
-	arrowOrientation: ArrowOrientation
-	geometryShape: GeometryShape
-	exit: () => void
-}
+export type ArrowAxis = 'x' | 'y' | 'z' | 'surface'
+
+const planeAxisVectors = {
+	yz: new Vector3(1, 0, 0),
+	xz: new Vector3(0, 1, 0),
+	xy: new Vector3(0, 0, 1),
+} as const
+
+const geometryTraits = {
+	box: traits.Box({ x: 200, y: 200, z: 200 }),
+	sphere: traits.Sphere({ r: 100 }),
+	capsule: traits.Capsule({ l: 200, r: 50 }),
+} as const
 
 export const provideGizmosPlugin = (exit: () => void) => {
 	let mode = $state<GizmoMode>('idle')
-	let lineSpace = $state<LineSpace>('world')
-	let wireframe = $state(false)
-	let planeAxis = $state<PlaneAxis>('z')
-	let arrowOrientation = $state<ArrowOrientation>('from')
-	let geometryShape = $state<GeometryShape>('box')
 
-	const ctx: GizmosPluginContext = {
+	let planeAxis = $state<PlaneAxis>('xy')
+	let planeConstruction = $state<PlanePlacement>('offset')
+	let planeOffset = $state(0)
+
+	let geometryShape = $state<GeometryShape>('box')
+	let geometryConstruction = $state<GeometryPlacement>('at-origin')
+	let isGeometryWireframe = $state(false)
+
+	let lineSpace = $state<LineSpace>('world')
+
+	let arrowAxis = $state<ArrowAxis>('y')
+
+	let surfaceNormalLength = $state(100)
+
+	return setContext(key, {
 		get mode() {
 			return mode
 		},
 		set mode(value) {
 			mode = value
-		},
-
-		get lineSpace() {
-			return lineSpace
-		},
-		set lineSpace(value) {
-			lineSpace = value
-		},
-
-		get wireframe() {
-			return wireframe
-		},
-		set wireframe(value) {
-			wireframe = value
 		},
 
 		get planeAxis() {
@@ -57,11 +70,22 @@ export const provideGizmosPlugin = (exit: () => void) => {
 			planeAxis = value
 		},
 
-		get arrowOrientation() {
-			return arrowOrientation
+		get planeConstruction() {
+			return planeConstruction
 		},
-		set arrowOrientation(value) {
-			arrowOrientation = value
+		set planeConstruction(value) {
+			planeConstruction = value
+		},
+
+		get planeOffset() {
+			return planeOffset
+		},
+		set planeOffset(value) {
+			planeOffset = value
+		},
+
+		get planeAxisVector() {
+			return planeAxisVectors[planeAxis]
 		},
 
 		get geometryShape() {
@@ -71,33 +95,66 @@ export const provideGizmosPlugin = (exit: () => void) => {
 			geometryShape = value
 		},
 
-		exit,
-	}
+		get geometryConstruction() {
+			return geometryConstruction
+		},
+		set geometryConstruction(value) {
+			geometryConstruction = value
+		},
 
-	setContext(key, ctx)
-	return ctx
+		get geometryTrait() {
+			return geometryTraits[geometryShape]
+		},
+
+		get isGeometryWireframe() {
+			return isGeometryWireframe
+		},
+		set isGeometryWireframe(value) {
+			isGeometryWireframe = value
+		},
+
+		get lineSpace() {
+			return lineSpace
+		},
+		set lineSpace(value) {
+			lineSpace = value
+		},
+
+		get arrowAxis() {
+			return arrowAxis
+		},
+		set arrowAxis(value) {
+			arrowAxis = value
+		},
+
+		get surfaceNormalLength() {
+			return surfaceNormalLength
+		},
+		set surfaceNormalLength(value) {
+			surfaceNormalLength = value
+		},
+
+		exit,
+	})
 }
 
 export const useGizmosPlugin = () => {
-	return getContext<GizmosPluginContext>(key)
+	return getContext<ReturnType<typeof provideGizmosPlugin>>(key)
 }
 
-/**
- * Install Escape-key and right-click handlers that fire `handler()`. Use in
- * gizmo placement tools so the user can cancel a pending placement (or exit
- * gizmo mode entirely) without reaching for the dashboard.
- */
 export const useCancelGesture = (handler: () => void) => {
 	const { dom } = useThrelte()
 
+	const onKey = (event: KeyboardEvent) => {
+		if (event.key === 'Escape') handler()
+	}
+
+	const onContext = (event: MouseEvent) => {
+		event.preventDefault()
+		handler()
+	}
+
 	$effect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') handler()
-		}
-		const onContext = (event: MouseEvent) => {
-			event.preventDefault()
-			handler()
-		}
 		window.addEventListener('keydown', onKey)
 		dom.addEventListener('contextmenu', onContext)
 		return () => {
@@ -107,32 +164,56 @@ export const useCancelGesture = (handler: () => void) => {
 	})
 }
 
-/**
- * Install an Enter-key handler that fires `handler()` — used by gizmo
- * placement tools so the user can confirm a pending placement from the
- * keyboard when the floating panel button is obscured (e.g. by TransformControls
- * rotate rings on the pending arrow).
- */
 export const useConfirmGesture = (handler: () => void) => {
+	const onKey = (event: KeyboardEvent) => {
+		if (event.key !== 'Enter') return
+
+		const target = event.target as HTMLElement | null
+		if (isInteractive(target)) return
+
+		handler()
+	}
+
 	$effect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (event.key !== 'Enter') return
-			// Don't hijack Enter while the user is typing into a tweakpane input
-			// or any other editable field elsewhere on the page.
-			const target = event.target as HTMLElement | null
-			if (
-				target?.isContentEditable ||
-				target?.tagName === 'INPUT' ||
-				target?.tagName === 'TEXTAREA' ||
-				target?.tagName === 'SELECT'
-			) {
-				return
-			}
-			handler()
-		}
 		window.addEventListener('keydown', onKey)
-		return () => {
-			window.removeEventListener('keydown', onKey)
-		}
+		return () => window.removeEventListener('keydown', onKey)
 	})
 }
+
+export const useUndoGesture = (handler: () => void) => {
+	const onKey = (event: KeyboardEvent) => {
+		if (event.key !== 'Backspace') return
+
+		const target = event.target as HTMLElement | null
+		if (isInteractive(target)) return
+
+		handler()
+	}
+
+	$effect(() => {
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	})
+}
+
+export const useAddNextGesture = (handler: () => void) => {
+	const onKey = (event: KeyboardEvent) => {
+		if (event.key !== ' ') return
+
+		const target = event.target as HTMLElement | null
+		if (isInteractive(target)) return
+
+		event.preventDefault()
+		handler()
+	}
+
+	$effect(() => {
+		window.addEventListener('keydown', onKey)
+		return () => window.removeEventListener('keydown', onKey)
+	})
+}
+
+/** Don't hijack keyboard events for focused elements.  */
+const isInteractive = (target: HTMLElement | null): boolean =>
+	target?.isContentEditable === true ||
+	(target?.matches('input, textarea, select, a, button, summary') ?? false)
