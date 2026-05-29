@@ -8,6 +8,7 @@
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
+	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
@@ -21,6 +22,7 @@
 
 	const settings = useSettings()
 	const environment = useEnvironment()
+	const partConfig = usePartConfig()
 	const transformControls = useTransformControls()
 	const selectedEntity = useSelectedEntity()
 	const selectedObject3d = useSelectedObject3d()
@@ -29,13 +31,19 @@
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selectedEntity.current)
 	const transformable = useTrait(() => entity, traits.Transformable)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const configMatrix = useTrait(() => entity, traits.Matrix)
 	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const name = useTrait(() => entity, traits.Name)
 	const hasScalableGeometry = $derived(
 		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
+	)
+	const isFragmentComponentWithVariables = $derived(
+		name.current &&
+			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
 	)
 
 	// Mesh sets name={entity} on its inner mesh, so useSelectedObject3d resolves
@@ -241,7 +249,7 @@
 	}
 </script>
 
-{#if ref && entity && activeMode}
+{#if ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current}
 	{#key entity}
 		<TransformControls
 			object={ref}

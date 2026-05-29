@@ -22,7 +22,7 @@
 	<Portal id="dashboard">
 		<fieldset>
 			<DashboardButton
-				active
+				active={isOpen}
 				icon="axis-arrow"
 				description="Add frames"
 				onclick={() => {
