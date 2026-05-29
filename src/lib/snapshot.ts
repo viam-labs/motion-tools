@@ -8,6 +8,7 @@ import { traits } from '$lib/ecs'
 
 import type { Relationship } from './metadata'
 
+import { asFloat32Array, inMeters, isVertexColors } from './buffer'
 import { rgbToHex } from './color'
 import {
 	drawDrawing,
@@ -204,4 +205,35 @@ const getRenderArmModels = (
 			return 'model'
 		}
 	}
+}
+
+
+export interface SnapshotPointCloud {
+	name: string
+	positions: Float32Array
+	colors?: Uint8Array
+}
+	
+/**
+ * Decodes every point-cloud drawing in a snapshot into `{ name, positions, colors }`,
+ * keyed and merged by `referenceFrame`. Chunked clouds share a referenceFrame, so their
+ * positions/colors are concatenated back into one cloud. Inverse of `DrawPoints`.
+ *
+ * Colors are gated through `isVertexColors`: only genuine per-vertex color arrays are kept;
+ * single-uniform-color arrays (3 bytes) are discarded as `undefined`.
+ */
+export const decodeDrawnSnapshotPointClouds = (snapshot: Snapshot): SnapshotPointCloud[] => {
+	const snapshotPointClouds: SnapshotPointCloud[] = []
+	for (const drawing of snapshot.drawings) {
+		const name = drawing.referenceFrame
+		const geometryType = drawing.physicalObject?.geometryType
+		if (geometryType?.case === 'points') {
+			const positions = asFloat32Array(geometryType.value.positions, inMeters)
+			const rawColors = drawing.metadata?.colors
+			const colors = isVertexColors(rawColors) ? rawColors : undefined
+			snapshotPointClouds.push({ name, positions, colors })
+		} 
+	}
+
+	return snapshotPointClouds
 }
