@@ -6,14 +6,11 @@
 	import { VirtualList } from 'svelte-virtuallists'
 	import { SvelteSet } from 'svelte/reactivity'
 
-	import { relations, traits } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { relations, traits, useQuery } from '$lib/ecs'
 
 	import type { TreeNode as TreeNodeType } from './useTree.svelte'
 
 	import TreeNode from './TreeNode.svelte'
-
-	const selected = useSelectedEntity()
 
 	interface Props {
 		rootNode: TreeNodeType
@@ -31,14 +28,18 @@
 		})
 	)
 
-	const selectedValue = $derived(selected.current ? [`${selected.current}`] : [])
+	const selected = useQuery(traits.Selected)
+
+	const selectedValue = $derived(selected.current.map((entity) => `${entity}`))
 	const expandedValues = new SvelteSet<string>()
 
 	$effect(() => {
-		let entity: Entity | undefined = selected.current
-		while (entity) {
-			expandedValues.add(`${entity}`)
-			entity = entity.targetFor(relations.ChildOf)
+		for (const entity of selected.current) {
+			let ancestor: Entity | undefined = entity.targetFor(relations.ChildOf)
+			while (ancestor) {
+				expandedValues.add(`${ancestor}`)
+				ancestor = ancestor.targetFor(relations.ChildOf)
+			}
 		}
 	})
 
@@ -46,6 +47,8 @@
 	const service = useMachine(tree.machine, () => ({
 		id,
 		collection,
+		selectionMode: 'multiple' as const,
+		expandOnClick: false,
 		selectedValue,
 		expandedValue: [...expandedValues],
 		onSelectionChange(details) {
@@ -64,7 +67,7 @@
 
 	$effect(() => {
 		const element = document.querySelector(
-			`[data-scope="tree-view"][data-value="${selected.current}"]`
+			`[data-scope="tree-view"][data-value="${selected.current.at(-1)}"]`
 		)
 
 		requestAnimationFrame(() => {

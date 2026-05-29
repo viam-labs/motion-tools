@@ -9,7 +9,7 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { traits } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Ellipse from './Ellipse.svelte'
@@ -33,7 +33,7 @@
 	const isSelectionMode = $derived(settings.current.interactionMode === 'select')
 
 	const selectionPlugin = provideSelectionPlugin()
-	const selectedEntity = useSelectedEntity()
+
 	let selectionType = $state<SelectionType>('lasso')
 
 	$effect(() => {
@@ -58,7 +58,8 @@
 
 		const newest = newEntities.at(-1)
 		if (newest === undefined) return
-		selectedEntity.set(newest)
+
+		newest.add(traits.Selected)
 	})
 
 	const rect = new ElementRect(() => dom)

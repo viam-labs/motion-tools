@@ -1,18 +1,14 @@
 <script lang="ts">
-	import { T } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { Gizmo, TrackballControls } from '@threlte/extras'
-	import { Box3, type Object3D, Vector3 } from 'three'
+	import { Box3, Vector3 } from 'three'
 
+	import { traits, useQuery } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Camera from './Camera.svelte'
 
-	interface Props {
-		object3d: Object3D
-	}
-
-	let { object3d }: Props = $props()
-
+	const { scene } = useThrelte()
 	const cameraControls = useCameraControls()
 
 	const box = new Box3()
@@ -21,8 +17,17 @@
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
 
+	const selected = useQuery(traits.Selected)
+
 	$effect.pre(() => {
-		box.setFromObject(object3d)
+		box.makeEmpty()
+		for (const entity of selected.current) {
+			const object3d = scene.getObjectByName(entity as unknown as string)
+			if (object3d) {
+				box.expandByObject(object3d)
+			}
+		}
+
 		size = box.getSize(vec).toArray()
 		center = box.getCenter(vec).toArray()
 	})
@@ -37,10 +42,8 @@
 	</TrackballControls>
 </Camera>
 
-<T is={object3d} />
-
-<T.BoxHelper
-	args={[object3d, 'red']}
+<T.Box3Helper
+	args={[box, 'red']}
 	bvh={{ enabled: false }}
 	raycast={() => null}
 />

@@ -3,25 +3,13 @@
 
 	import { isInstanceOf, useTask } from '@threlte/core'
 	import { useGamepad, useInputMap, useKeyboard } from '@threlte/extras'
-	import { PressedKeys } from 'runed'
 	import { MathUtils, Vector3 } from 'three'
-
-	import { traits } from '$lib/ecs'
-	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	interface Props {
 		cameraControls: CameraControlsRef
 	}
 
 	let { cameraControls }: Props = $props()
-
-	const focusedEntity = useFocusedEntity()
-	const selectedEntity = useSelectedEntity()
-
-	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
-
-	const settings = useSettings()
 
 	const keyboard = useKeyboard()
 	const gamepad = useGamepad()
@@ -125,35 +113,4 @@
 			autoInvalidate: false,
 		}
 	)
-
-	const keys = new PressedKeys()
-
-	keys.onKeys('escape', () => {
-		focusedEntity.set()
-	})
-
-	keys.onKeys('c', () => {
-		settings.current.cameraMode =
-			settings.current.cameraMode === 'perspective' ? 'orthographic' : 'perspective'
-	})
-
-	keys.onKeys('1', () => {
-		settings.current.transformMode = 'translate'
-	})
-
-	keys.onKeys('2', () => {
-		settings.current.transformMode = 'rotate'
-	})
-
-	keys.onKeys('3', () => {
-		settings.current.transformMode = 'scale'
-	})
-
-	keys.onKeys('h', () => {
-		if (entity?.has(traits.Invisible)) {
-			entity.remove(traits.Invisible)
-		} else {
-			entity?.add(traits.Invisible)
-		}
-	})
 </script>

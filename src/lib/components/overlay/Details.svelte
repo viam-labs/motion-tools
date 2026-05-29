@@ -37,7 +37,15 @@
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
-	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
+	import {
+		hierarchy,
+		relations,
+		traits,
+		useParentName,
+		useQuery,
+		useTrait,
+		useWorld,
+	} from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
@@ -46,38 +54,28 @@
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import {
-		useFocusedEntity,
-		useFocusedObject3d,
-		useSelectedEntity,
-		useSelectedObject3d,
-	} from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
+		entity: Entity
 		details?: Snippet<[{ entity: Entity }]>
 	}
 
-	const { details }: Props = $props()
+	const { entity, details }: Props = $props()
 
 	const world = useWorld()
-	const { invalidate } = useThrelte()
+	const { scene, invalidate } = useThrelte()
 	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
 	const partID = usePartID()
 	const settings = useSettings()
-	const selectedEntity = useSelectedEntity()
-	const selectedObject3d = useSelectedObject3d()
 	const environment = useEnvironment()
-	const focusedEntity = useFocusedEntity()
-	const focusedObject3d = useFocusedObject3d()
 	const linkedEntities = useLinkedEntities()
 
-	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
-	const object3d = $derived(focusedObject3d.current ?? selectedObject3d.current)
+	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
 
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
@@ -767,25 +765,8 @@
 
 		{@render details?.({ entity })}
 
-		<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
-
-		{#if focusedEntity.current}
-			<Button
-				class="w-full"
-				icon="arrow-left"
-				variant="dark"
-				onclick={() => focusedEntity.set()}
-			>
-				Exit object view
-			</Button>
-		{:else}
-			<Button
-				class="w-full"
-				icon="image-filter-center-focus"
-				onclick={() => focusedEntity.set(entity)}
-			>
-				Enter object view
-			</Button>
+		{#if showRelationshipOptions || (showEditFrameOptions && environment.current.isStandalone)}
+			<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
 		{/if}
 
 		{#if showRelationshipOptions}

@@ -87,6 +87,7 @@ export const InheritedInvisible = trait(() => true)
  * details panel may display all instances
  */
 export const Instanced = trait(() => true)
+export const InstanceId = trait(() => -1)
 
 export const Instance = trait({
 	meshID: -1,
@@ -224,6 +225,11 @@ export const ChunkProgress = trait({ loaded: 0, total: 0 })
  */
 export type InteractionLayerValue = 'selectTool'
 export const SelectToolInteractionLayer = trait(() => true)
+
+/**
+ * This entity is selected by the user
+ */
+export const Selected = trait()
 
 /**
  * This entity can be safely removed from the scene by the user

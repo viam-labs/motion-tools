@@ -1,19 +1,22 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
+
 	import { MathUtils, Quaternion, Vector3 } from 'three'
 
 	import type { HoverInfo } from '$lib/HoverUpdater.svelte'
 
 	import { traits, useTrait } from '$lib/ecs'
-	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	import HoveredEntityTooltip from './HoveredEntityTooltip.svelte'
 
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
+	interface Props {
+		entity: Entity
+	}
 
-	const displayEntity = $derived(selectedEntity.current ?? focusedEntity.current)
-	const instancedMatrix = useTrait(() => displayEntity, traits.InstancedMatrix)
+	let { entity }: Props = $props()
+
+	const instancedMatrix = useTrait(() => entity, traits.InstancedMatrix)
 
 	// Pool: InstancedMatrix's `Matrix4` is in metres (matches Three.js).
 	// Decompose for the tooltip's display, which expects metres for position

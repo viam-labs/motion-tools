@@ -1,15 +1,15 @@
 <script lang="ts">
+	import { useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
 	import { Matrix4, Quaternion, Vector3 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
-	import { relations, traits, useTrait } from '$lib/ecs'
+	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import {
 		createPose,
@@ -20,16 +20,17 @@
 		vector3ToPose,
 	} from '$lib/transform'
 
+	const { scene } = useThrelte()
 	const settings = useSettings()
 	const environment = useEnvironment()
 	const partConfig = usePartConfig()
 	const transformControls = useTransformControls()
-	const selectedEntity = useSelectedEntity()
-	const selectedObject3d = useSelectedObject3d()
 	const sessions = useFrameEditSession()
+	const selected = useQuery(traits.Selected)
 
 	const mode = $derived(settings.current.transformMode)
-	const entity = $derived(selectedEntity.current)
+	const entity = $derived(selected.current[0])
+	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
 	const transformable = useTrait(() => entity, traits.Transformable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const configMatrix = useTrait(() => entity, traits.Matrix)
@@ -46,11 +47,11 @@
 			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
 	)
 
-	// Mesh sets name={entity} on its inner mesh, so useSelectedObject3d resolves
+	// Mesh sets name={entity} on its inner mesh, so getObjectByName resolves
 	// to that mesh — not the parent Frame Group we actually want to drive. Walk
 	// up to the Group so translate/rotate/scale apply to the whole frame, not
 	// the geometry inside it.
-	const ref = $derived(selectedObject3d.current?.parent ?? selectedObject3d.current)
+	const ref = $derived(object3d?.parent ?? object3d)
 
 	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
 		if (mode === 'none' || !transformable.current) return

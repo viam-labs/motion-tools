@@ -10,7 +10,6 @@ import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnviro
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
 import * as useResourceByName from '$lib/hooks/useResourceByName.svelte'
-import * as useSelection from '$lib/hooks/useSelection.svelte'
 import { createWeblabs, WEBLABS_CONTEXT_KEY } from '$lib/hooks/useWeblabs.svelte'
 
 import Details from '../Details.svelte'
@@ -28,15 +27,6 @@ describe('Details component', () => {
 
 		entity = createEntityFixture(world)
 
-		vi.mocked(useSelection.useFocusedEntity).mockReturnValue({
-			current: entity,
-			instance: undefined,
-			set: () => {},
-		})
-
-		vi.mocked(useSelection.useFocusedObject3d).mockReturnValue({
-			current: undefined,
-		})
 		vi.mocked(useResourceByName.useResourceByName).mockReturnValue({
 			current: {},
 		})
