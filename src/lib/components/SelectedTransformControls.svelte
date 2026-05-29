@@ -43,7 +43,8 @@
 	)
 	const isFragmentComponentWithVariables = $derived(
 		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
+			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
+				0
 	)
 
 	// Mesh sets name={entity} on its inner mesh, so useSelectedObject3d resolves
