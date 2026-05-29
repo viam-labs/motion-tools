@@ -37,15 +37,7 @@
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
-	import {
-		hierarchy,
-		relations,
-		traits,
-		useParentName,
-		useQuery,
-		useTrait,
-		useWorld,
-	} from '$lib/ecs'
+	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'

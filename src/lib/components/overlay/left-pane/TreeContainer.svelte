@@ -33,7 +33,7 @@
 	<Tree
 		{rootNode}
 		onSelectionChange={(event) => {
-			const next = new Set(event.selectedValue.map((value) => Number(value)))
+			const next = new Set(event.selectedValue.map(Number))
 
 			for (const entity of world.query(traits.Selected)) {
 				if (!next.has(entity as number)) entity.remove(traits.Selected)

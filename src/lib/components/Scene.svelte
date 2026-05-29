@@ -19,10 +19,10 @@
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
+	import KeyboardBindings from './KeyboardBindings.svelte'
 	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
-	import KeyboardBindings from './KeyboardBindings.svelte'
 
 	interface Props {
 		children?: Snippet

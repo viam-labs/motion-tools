@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte'
 
 	import { provideHierarchy, provideWorldMatrix } from '$lib/ecs'
+	import { provideFocus } from '$lib/hooks/provideFocus.svelte'
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
@@ -22,7 +23,6 @@
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
 
 	import { provideOrigin } from './xr/useOrigin.svelte'
-	import { provideFocus } from '$lib/hooks/provideFocus.svelte'
 
 	interface Props {
 		children: Snippet
