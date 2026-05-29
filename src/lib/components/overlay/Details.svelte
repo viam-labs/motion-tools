@@ -123,7 +123,8 @@
 	const isGeometry = $derived(!!geometriesAPI.current)
 	const isFragmentComponentWithVariables = $derived(
 		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
+			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
+				0
 	)
 	const showEditFrameOptions = $derived(
 		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
@@ -184,6 +185,10 @@
 		poseToMatrix(pose, m)
 		entity.changed(traits.Matrix)
 		invalidate()
+	}
+
+	const stopKeyboardPropagation = (event: KeyboardEvent) => {
+		event.stopPropagation()
 	}
 
 	const handlePositionChange = (event: PointChangeEvent) => {
@@ -355,9 +360,14 @@
 {/snippet}
 
 {#if entity}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		id="details-panel"
 		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-80 border p-2 text-xs"
+		role="region"
+		aria-label="Details panel"
+		onkeydown={stopKeyboardPropagation}
+		onkeyup={stopKeyboardPropagation}
 		use:draggable={{
 			bounds: 'body',
 			handle: dragElement,

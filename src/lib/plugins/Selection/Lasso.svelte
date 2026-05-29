@@ -3,7 +3,7 @@
 
 	import { useThrelte } from '@threlte/core'
 	import earcut from 'earcut'
-	import { Not } from 'koota'
+	import { type Entity, Not } from 'koota'
 	import { Box3, Triangle, Vector3 } from 'three'
 
 	import { createBufferGeometry } from '$lib/attribute'
@@ -11,6 +11,7 @@
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Debug from './Debug.svelte'
+	import * as selectionRelations from './relations'
 	import * as selectionTraits from './traits'
 	import { getTriangleBoxesFromIndices, getTriangleFromIndex, raycast } from './utils'
 
@@ -149,7 +150,7 @@
 		max.set(lassoBox.maxX, lassoBox.maxY, Number.POSITIVE_INFINITY)
 		box3.set(min, max)
 
-		const enclosedPoints: number[] = []
+		const enclosedPoints = new Map<Entity, number[]>()
 
 		for (const pointsEntity of world.query(
 			traits.Points,
@@ -183,7 +184,8 @@
 							getTriangleFromIndex(i, indices, positions, triangle)
 
 							if (triangle.containsPoint(point)) {
-								enclosedPoints.push(point.x, point.y, point.z)
+								if (!enclosedPoints.has(pointsEntity)) enclosedPoints.set(pointsEntity, [])
+								enclosedPoints.get(pointsEntity)!.push(point.x, point.y, point.z)
 							}
 						}
 					}
@@ -192,19 +194,22 @@
 			} as ShapecastCallbacks)
 		}
 
-		const lassoResultGeometry = createBufferGeometry(new Float32Array(enclosedPoints))
+		for (const [sourceEntity, points] of enclosedPoints) {
+			const lassoResultGeometry = createBufferGeometry(new Float32Array(points))
 
-		world.spawn(
-			traits.Name('Lasso result'),
-			traits.BufferGeometry(lassoResultGeometry),
-			traits.Color({ r: 1, g: 0, b: 0 }),
-			traits.RenderOrder(999),
-			traits.Material({ depthTest: false }),
-			traits.Points,
-			traits.Removable,
-			selectionTraits.SelectionEnclosedPoints,
-			selectionTraits.PointsCapturedBy(lasso)
-		)
+			world.spawn(
+				traits.Name('Lasso result'),
+				traits.BufferGeometry(lassoResultGeometry),
+				traits.Color({ r: 1, g: 0, b: 0 }),
+				traits.RenderOrder(999),
+				traits.Material({ depthTest: false }),
+				traits.Points,
+				traits.Removable,
+				selectionTraits.SelectionEnclosedPoints,
+				selectionRelations.PointsCapturedBy(lasso),
+				selectionRelations.SelectedFrom(sourceEntity)
+			)
+		}
 	}
 
 	const onkeydown = (event: KeyboardEvent) => {
