@@ -18,8 +18,9 @@ export const buildNormalsMesh = (entity: Entity): Mesh | undefined => {
 
 	const buffer = entity.get(traits.BufferGeometry)
 	if (buffer) {
+		if (buffer.attributes.normal) return makeMesh(buffer)
 		const cloned = buffer.clone()
-		if (!cloned.attributes.normal) cloned.computeVertexNormals()
+		cloned.computeVertexNormals()
 		return makeMesh(cloned)
 	}
 
@@ -29,5 +30,6 @@ export const buildNormalsMesh = (entity: Entity): Mesh | undefined => {
 const makeMesh = (geometry: BufferGeometry): Mesh => {
 	const mesh = new Mesh(geometry, sharedMaterial)
 	mesh.matrixAutoUpdate = false
+	mesh.matrixWorldAutoUpdate = false
 	return mesh
 }

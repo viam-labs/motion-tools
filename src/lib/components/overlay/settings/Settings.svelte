@@ -62,7 +62,7 @@
 <Portal id="dashboard">
 	<fieldset>
 		<DashboardButton
-			active
+			active={isOpen.current}
 			icon="cog"
 			description="Settings"
 			onclick={() => {

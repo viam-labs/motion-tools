@@ -1,13 +1,16 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
+	import { type Vector3 } from 'three'
+
 	import { asRGB } from '$lib/buffer'
 	import { relations, traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 	import { spawnGizmo, SURFACE_NORMALS_COLOR } from '../spawn'
-	import { findSurfaceEntityForObject } from '../surface'
+	import SurfacePickerCursor from '../SurfacePickerCursor.svelte'
+	import { findSurfaceHit } from '../surface'
 	import { SurfaceNormals } from '../traits'
 	import { useCancelGesture, useGizmosPlugin } from '../useGizmosPlugin.svelte'
 
@@ -16,6 +19,7 @@
 	const plugin = useGizmosPlugin()
 
 	let hovered = $state.raw<Entity>()
+	let hoveredPosition = $state.raw<Vector3>()
 
 	const { onclick, onmove, raycaster } = useMouseRaycaster(() => ({ enabled: true }))
 	raycaster.firstHitOnly = true
@@ -23,13 +27,13 @@
 	useCancelGesture(plugin.exit)
 
 	onmove((event) => {
-		hovered = undefined
-		for (const intersection of event.intersections) {
-			const entity = findSurfaceEntityForObject(world, intersection.object)
-			if (entity !== undefined) {
-				hovered = entity
-				break
-			}
+		const hit = findSurfaceHit(world, event.intersections)
+		if (hit) {
+			hovered = hit.entity
+			hoveredPosition = hit.position
+		} else {
+			hovered = undefined
+			hoveredPosition = undefined
 		}
 	})
 
@@ -49,3 +53,10 @@
 		plugin.exit()
 	})
 </script>
+
+{#if hovered !== undefined && hoveredPosition}
+	<SurfacePickerCursor
+		entity={hovered}
+		position={hoveredPosition.toArray()}
+	/>
+{/if}

@@ -27,7 +27,7 @@ const isInEntitySubtree = (object: Object3D, entity: Entity): boolean => {
 	return false
 }
 
-const isUsableHit = (hit: Intersection, ignoreEntity?: Entity): boolean => {
+export const isUsableHit = (hit: Intersection, ignoreEntity?: Entity): boolean => {
 	if (ignoreEntity !== undefined && isInEntitySubtree(hit.object, ignoreEntity)) return false
 	if (!isVisibleInTree(hit.object)) return false
 

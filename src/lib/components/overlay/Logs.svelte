@@ -21,7 +21,7 @@
 <Portal id="dashboard">
 	<fieldset class="relative">
 		<DashboardButton
-			active
+			active={isOpen.current}
 			icon="article"
 			description="Logs"
 			onclick={() => {

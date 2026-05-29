@@ -11,7 +11,7 @@
 	import type { Entity } from 'koota'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { onDestroy } from 'svelte'
+	import { onDestroy, untrack } from 'svelte'
 	import { type Mesh } from 'three'
 	import { VertexNormalsHelper } from 'three/examples/jsm/helpers/VertexNormalsHelper.js'
 
@@ -52,8 +52,10 @@
 		const c = colorTrait.current
 		const lengthMm = config.current?.length ?? 100
 
-		helper?.dispose()
-		mesh?.geometry.dispose()
+		untrack(() => {
+			helper?.dispose()
+			mesh?.geometry.dispose()
+		})
 
 		const next = buildNormalsMesh(source)
 		if (!next) {
