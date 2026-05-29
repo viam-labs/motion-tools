@@ -207,13 +207,12 @@ const getRenderArmModels = (
 	}
 }
 
-
 export interface SnapshotPointCloud {
 	name: string
 	positions: Float32Array
 	colors?: Uint8Array
 }
-	
+
 /**
  * Decodes every point-cloud drawing in a snapshot into `{ name, positions, colors }`,
  * keyed and merged by `referenceFrame`. Chunked clouds share a referenceFrame, so their
@@ -232,7 +231,7 @@ export const decodeDrawnSnapshotPointClouds = (snapshot: Snapshot): SnapshotPoin
 			const rawColors = drawing.metadata?.colors
 			const colors = isVertexColors(rawColors) ? rawColors : undefined
 			snapshotPointClouds.push({ name, positions, colors })
-		} 
+		}
 	}
 
 	return snapshotPointClouds
