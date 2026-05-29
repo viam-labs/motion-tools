@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.31.0
+
+### Minor Changes
+
+- af2df29: create snapshot --> drawn pcd helper
+- 33579d3: feat: have select plugin emit multiple entities per selection (one per source entity)
+
 ## 1.30.0
 
 ### Minor Changes
