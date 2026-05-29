@@ -11,6 +11,7 @@
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Debug from './Debug.svelte'
+	import * as selectionRelations from './relations'
 	import * as selectionTraits from './traits'
 	import { getTriangleBoxesFromIndices, getTriangleFromIndex, raycast } from './utils'
 
@@ -226,7 +227,7 @@
 				traits.Removable,
 				selectionTraits.SelectionEnclosedPoints,
 				selectionTraits.PointsCapturedBy(ellipse),
-				selectionTraits.SelectedFrom(sourceEntity),
+				selectionRelations.SelectedFrom(sourceEntity),
 				selectionTraits.SelectionInstance(selectionInstanceId)
 			)
 		}
