@@ -103,11 +103,15 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 	}
 
 	const onclick = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
+		if (invisible.current) {
+			return
+		}
 
 		event.stopPropagation()
 
-		if (down.distanceToSquared(event.pointer) >= 0.1) return
+		if (down.distanceToSquared(event.pointer) >= 0.1) {
+			return
+		}
 
 		const currentEntity = entity()
 		if (!currentEntity) return
@@ -119,8 +123,10 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 				currentEntity.add(traits.Selected)
 			}
 		} else {
-			for (const e of world.query(traits.Selected)) {
-				if (e !== currentEntity) e.remove(traits.Selected)
+			for (const entity of world.query(traits.Selected)) {
+				if (entity !== currentEntity) {
+					entity.remove(traits.Selected)
+				}
 			}
 			if (!currentEntity.has(traits.Selected)) {
 				currentEntity.add(traits.Selected)
@@ -140,6 +146,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			if (currentEntity?.has(traits.Hovered)) {
 				currentEntity.remove(traits.Hovered)
 			}
+
 			if (currentEntity?.has(traits.InstancedMatrix)) {
 				currentEntity.remove(traits.InstancedMatrix)
 			}

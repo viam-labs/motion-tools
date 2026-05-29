@@ -57,6 +57,7 @@ describe('Details component', () => {
 	it('renders object name', () => {
 		const context = createWeblabs()
 		render(Details, {
+			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
 				[WORLD_CONTEXT_KEY, world],
@@ -76,7 +77,7 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 		expect(screen.getByText('parent frame')).toBeInTheDocument()
 		const parentFrameNameSpan = screen.getByLabelText('immutable parent frame name')
 		const parentFrameNameText = parentFrameNameSpan.nextSibling as HTMLElement
@@ -148,7 +149,7 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 
 		const positionGroup = screen.getByLabelText('mutable local position')
 		expect(positionGroup).toBeInTheDocument()
