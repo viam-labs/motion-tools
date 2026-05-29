@@ -101,7 +101,8 @@
 	const isGeometry = $derived(!!geometriesAPI.current)
 	const isFragmentComponentWithVariables = $derived(
 		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo[name.current]?.variables ?? {}).length > 0
+			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
+				0
 	)
 	const showEditFrameOptions = $derived(
 		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
