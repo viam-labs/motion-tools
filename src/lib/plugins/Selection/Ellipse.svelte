@@ -3,7 +3,7 @@
 
 	import { useThrelte } from '@threlte/core'
 	import earcut from 'earcut'
-	import { Not } from 'koota'
+	import { type Entity, Not } from 'koota'
 	import { Box3, Triangle, Vector3 } from 'three'
 
 	import { createBufferGeometry } from '$lib/attribute'
@@ -168,7 +168,7 @@
 		max.set(ellipseBox.maxX, ellipseBox.maxY, Number.POSITIVE_INFINITY)
 		box3.set(min, max)
 
-		const enclosedPoints: Record<string, number[]> = {}
+		const enclosedPoints = new Map<Entity, number[]>()
 
 		for (const pointsEntity of world.query(
 			traits.Points,
@@ -176,9 +176,8 @@
 			Not(selectionTraits.SelectionEnclosedPoints)
 		)) {
 			const geometry = pointsEntity.get(traits.BufferGeometry)
-			const name = pointsEntity.get(traits.Name)
 
-			if (!geometry || !name) return
+			if (!geometry) return
 
 			const points = scene.getObjectByName(pointsEntity as unknown as string)
 
@@ -203,8 +202,8 @@
 							getTriangleFromIndex(i, indices, positions, triangle)
 
 							if (triangle.containsPoint(point)) {
-								enclosedPoints[name] ??= []
-								enclosedPoints[name].push(point.x, point.y, point.z)
+								if (!enclosedPoints.has(pointsEntity)) enclosedPoints.set(pointsEntity, [])
+								enclosedPoints.get(pointsEntity)!.push(point.x, point.y, point.z)
 							}
 						}
 					}
@@ -214,7 +213,7 @@
 		}
 
 		const selectionInstanceId = crypto.randomUUID()
-		for (const [name, points] of Object.entries(enclosedPoints)) {
+		for (const [sourceEntity, points] of enclosedPoints) {
 			const ellipseResultGeometry = createBufferGeometry(new Float32Array(points))
 
 			world.spawn(
@@ -227,7 +226,7 @@
 				traits.Removable,
 				selectionTraits.SelectionEnclosedPoints,
 				selectionTraits.PointsCapturedBy(ellipse),
-				selectionTraits.SelectedFrom(name),
+				selectionTraits.SelectedFrom(sourceEntity),
 				selectionTraits.SelectionInstance(selectionInstanceId)
 			)
 		}
