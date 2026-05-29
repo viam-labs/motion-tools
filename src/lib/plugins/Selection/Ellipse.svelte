@@ -213,7 +213,6 @@
 			} as ShapecastCallbacks)
 		}
 
-		const selectionInstanceId = crypto.randomUUID()
 		for (const [sourceEntity, points] of enclosedPoints) {
 			const ellipseResultGeometry = createBufferGeometry(new Float32Array(points))
 
@@ -226,9 +225,8 @@
 				traits.Points,
 				traits.Removable,
 				selectionTraits.SelectionEnclosedPoints,
-				selectionTraits.PointsCapturedBy(ellipse),
 				selectionRelations.SelectedFrom(sourceEntity),
-				selectionTraits.SelectionInstance(selectionInstanceId)
+				selectionRelations.PointsCapturedBy(ellipse)
 			)
 		}
 	}

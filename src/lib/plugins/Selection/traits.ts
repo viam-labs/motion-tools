@@ -1,15 +1,8 @@
-import { relation, trait } from 'koota'
+import { trait } from 'koota'
 
 export const Lasso = trait(() => true)
 export const Ellipse = trait(() => true)
 export const SelectionEnclosedPoints = trait(() => true)
-export const SelectionInstance = trait(() => '')
-
-/**
- * Captured points are removable, so we want to also destroy
- * the source selection every time a user deletes one.
- */
-export const PointsCapturedBy = relation({ autoDestroy: 'target' })
 
 export interface AABB {
 	minX: number
