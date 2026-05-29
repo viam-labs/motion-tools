@@ -22,7 +22,7 @@ export const provideFramelessComponents = () => {
 
 		const fragmentComponentsWithNoFrame = new Set(partComponentsWIthNoFrame)
 
-		for (const fragmentComponentName of Object.keys(partConfig.componentNameToFragmentId)) {
+		for (const fragmentComponentName of Object.keys(partConfig.componentNameToFragmentInfo)) {
 			if (frames.current.some((frame) => frame.referenceFrame === fragmentComponentName)) {
 				continue
 			}
