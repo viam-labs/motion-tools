@@ -50,6 +50,10 @@
 		inputBindingsEnabled?: boolean
 		localConfigProps?: LocalConfigProps
 
+		settings?: {
+			enableLabels?: boolean
+		}
+
 		/**
 		 * Snippet for THREE objects
 		 */
@@ -74,6 +78,7 @@
 	let {
 		partID = '',
 		inputBindingsEnabled = true,
+		settings: userSettings,
 		localConfigProps,
 		cameraPose,
 		children: appChildren,
@@ -83,7 +88,7 @@
 
 	provideWorld()
 
-	const settings = provideSettings()
+	const settings = provideSettings(() => userSettings)
 	const environment = provideEnvironment()
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])

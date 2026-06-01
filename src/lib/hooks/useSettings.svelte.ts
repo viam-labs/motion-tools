@@ -138,14 +138,14 @@ const defaults = (): Settings => ({
 	},
 })
 
-export const provideSettings = () => {
+export const provideSettings = (userSettings: () => Partial<Settings> | undefined) => {
 	let isLoaded = $state(false)
-	let settings = $state<Settings>(defaults())
+	let settings = $state<Settings>({ ...defaults(), ...userSettings() })
 
 	get('motion-tools-settings')
 		.then((response: Settings) => {
 			if (response) {
-				settings = { ...settings, ...response }
+				settings = { ...settings, ...response, ...userSettings() }
 			}
 		})
 		.finally(() => {
@@ -160,6 +160,7 @@ export const provideSettings = () => {
 
 	const context: Context = {
 		get current() {
+			console.log(settings)
 			return settings
 		},
 		set current(value: Settings) {
