@@ -156,6 +156,10 @@
 
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
+	const stopKeyboardPropagation = (event: KeyboardEvent) => {
+		event.stopPropagation()
+	}
+
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
@@ -312,9 +316,14 @@
 {/snippet}
 
 {#if entity}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		id="details-panel"
 		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs"
+		role="region"
+		aria-label="Details panel"
+		onkeydown={stopKeyboardPropagation}
+		onkeyup={stopKeyboardPropagation}
 		use:draggable={{
 			bounds: 'body',
 			handle: dragElement,
