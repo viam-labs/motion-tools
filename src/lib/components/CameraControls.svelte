@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { CameraControls, CameraControlsRef, Gizmo } from '@threlte/extras'
+	import { CameraControls, type CameraControlsRef, Gizmo } from '@threlte/extras'
 	import { MathUtils } from 'three'
 
 	import { useCameraControls, useTransformControls } from '$lib/hooks/useControls.svelte'
@@ -16,7 +16,6 @@
 
 <CameraControls
 	enabled={!transformControls.active}
-	touches.two={CameraControlsRef.ACTION.DOLLY}
 	oncreate={(ref) => {
 		cameraControls.set(ref)
 		;(globalThis as unknown as { MathUtils: typeof MathUtils }).MathUtils = MathUtils
