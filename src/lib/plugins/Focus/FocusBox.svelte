@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { T, useThrelte } from '@threlte/core'
 	import { Gizmo, TrackballControls } from '@threlte/extras'
+	import { onDestroy, untrack } from 'svelte'
 	import { Box3, Vector3 } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
@@ -11,15 +12,42 @@
 	const cameraControls = useCameraControls()
 	const selected = useQuery(traits.Selected)
 
+	/**
+	 * Save the main camera controls and their state the instant focus begins —
+	 * this runs before the TrackballControls below swaps the shared context, so
+	 * `current` is still the main controls. On teardown we hand `current` back to
+	 * them (the trackball never restores it) and reset them to the saved view, so
+	 * exiting focus returns the camera to where it was. camera-controls exposes
+	 * saveState()/reset(); TrackballControls does not, which also narrows the type.
+	 */
+	$effect.pre(() => {
+		const previousControls = untrack(() => cameraControls.current)
+		const restorableControls =
+			previousControls && 'saveState' in previousControls ? previousControls : undefined
+		restorableControls?.saveState()
+
+		return () => {
+			if (!restorableControls) return
+			cameraControls.set(restorableControls)
+			restorableControls.reset(false)
+		}
+	})
+
 	const box = new Box3()
 	const vec = new Vector3()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
 
+	/**
+	 * Frame the camera on the selection captured when focus was entered. Reading
+	 * the selection untracked leaves this effect with no reactive dependencies,
+	 * so it runs once on mount and the framing stays put — changing the selection
+	 * while focused must not re-frame or reset the camera.
+	 */
 	$effect(() => {
 		box.makeEmpty()
-		for (const entity of selected.current) {
+		for (const entity of untrack(() => selected.current)) {
 			const object3d = scene.getObjectByName(entity as unknown as string)
 			if (object3d) {
 				box.expandByObject(object3d)

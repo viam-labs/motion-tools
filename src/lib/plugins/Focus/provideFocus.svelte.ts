@@ -1,4 +1,5 @@
 import { type Entity, trait } from 'koota'
+import { untrack } from 'svelte'
 
 import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
@@ -9,9 +10,6 @@ export const provideFocus = (focusing: () => boolean) => {
 	const selected = useQuery(traits.Selected)
 
 	$effect(() => {
-		// Re-run when selection changes mid-focus, not just when focus toggles.
-		const selectedEntities = selected.current
-
 		if (!focusing()) {
 			for (const entity of world.query(HiddenByFocus)) {
 				entity.remove(HiddenByFocus, traits.Invisible)
@@ -19,6 +17,15 @@ export const provideFocus = (focusing: () => boolean) => {
 
 			return
 		}
+
+		/**
+		 * Snapshot the selection at the moment focus is entered. Reading it
+		 * untracked makes `focusing()` this effect's only dependency, so the
+		 * focused view stays frozen: selecting or deselecting entities while
+		 * focused must not change what's hidden. Everything is restored when
+		 * focus exits.
+		 */
+		const selectedEntities = untrack(() => selected.current)
 
 		/**
 		 * Entities only render when their `InheritedInvisible` is unset, and that
@@ -46,16 +53,6 @@ export const provideFocus = (focusing: () => boolean) => {
 				ancestor = ancestor.targetFor(relations.ChildOf)
 			}
 			keepSubtree(entity)
-		}
-
-		/**
-		 * Reveal anything we previously hid that now belongs to a kept subtree
-		 * (e.g. the selection changed while focus was active).
-		 */
-		for (const entity of world.query(HiddenByFocus)) {
-			if (keep.has(entity)) {
-				entity.remove(HiddenByFocus, traits.Invisible)
-			}
 		}
 
 		/**
