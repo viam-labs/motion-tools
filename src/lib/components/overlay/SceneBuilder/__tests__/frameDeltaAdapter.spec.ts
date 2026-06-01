@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyFrameDeltas, type FrameDelta } from '../frameDeltaAdapter'
+import { applyPreparedUpdates, validateProposedFrameDeltas, type FrameDelta, type PreparedUpdate } from '../frameDeltaAdapter'
 
 const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 	parent: 'world',
@@ -25,110 +25,90 @@ const recordingDeps = () => {
 	}
 }
 
-describe('applyFrameDeltas', () => {
-	it('calls updateFrame with merged pose for a valid translation delta', () => {
-		const { updateFrame, calls } = recordingDeps()
+describe('validateProposedFrameDeltas', () => {
+	it('computes a prepared update with merged pose for a valid translation delta', () => {
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
-		const result = applyFrameDeltas([{ componentName: 'arm', translation: { x: 100 } }], config, {
-			updateFrame,
-		})
-
-		expect(calls).toHaveLength(1)
-		expect(calls[0].name).toBe('arm')
-		expect(calls[0].pose.x).toBe(100)
-		expect(calls[0].pose.y).toBe(0)
-		expect(result.errors).toHaveLength(0)
-	})
-
-	it('records a diff entry for each changed translation axis', () => {
-		const { updateFrame } = recordingDeps()
-		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
-
-		const result = applyFrameDeltas(
-			[{ componentName: 'arm', translation: { x: 100, z: 50 } }],
-			config,
-			{ updateFrame }
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { x: 100 } }],
+			config
 		)
 
-		const fields = result.applied.map((c) => c.field)
-		expect(fields).toContain('translation.x')
-		expect(fields).toContain('translation.z')
-		expect(fields).not.toContain('translation.y')
+		expect(prepared).toHaveLength(1)
+		expect(prepared[0].componentName).toBe('arm')
+		expect(prepared[0].pose.x).toBe(100)
+		expect(prepared[0].pose.y).toBe(0)
+		expect(errors).toHaveLength(0)
 	})
 
 	it('preserves unchanged axes when applying a partial translation delta', () => {
-		const { updateFrame, calls } = recordingDeps()
 		const config = makeConfig([
 			{ name: 'arm', frame: makeFrame({ translation: { x: 10, y: 20, z: 30 } }) },
 		])
 
-		applyFrameDeltas([{ componentName: 'arm', translation: { z: 99 } }], config, { updateFrame })
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { z: 99 } }],
+			config
+		)
 
-		expect(calls[0].pose.x).toBe(10)
-		expect(calls[0].pose.y).toBe(20)
-		expect(calls[0].pose.z).toBe(99)
+		expect(prepared[0].pose.x).toBe(10)
+		expect(prepared[0].pose.y).toBe(20)
+		expect(prepared[0].pose.z).toBe(99)
 	})
 
-	it('records old and new values in the diff entry', () => {
-		const { updateFrame } = recordingDeps()
+	it('captures previous pose values alongside new ones', () => {
 		const config = makeConfig([
 			{ name: 'arm', frame: makeFrame({ translation: { x: 10, y: 0, z: 0 } }) },
 		])
 
-		const result = applyFrameDeltas(
+		const { prepared } = validateProposedFrameDeltas(
 			[{ componentName: 'arm', translation: { x: 200 } }],
-			config,
-			{ updateFrame }
+			config
 		)
 
-		const change = result.applied.find((c) => c.field === 'translation.x')
-		expect(change?.oldValue).toBe('10')
-		expect(change?.newValue).toBe('200')
+		expect(prepared[0].previousPose.x).toBe(10)
+		expect(prepared[0].pose.x).toBe(200)
 	})
 
-	it('records a diff entry for a parent change', () => {
-		const { updateFrame } = recordingDeps()
+	it('captures parent change with previous parent', () => {
 		const config = makeConfig([
 			{ name: 'arm', frame: makeFrame() },
 			{ name: 'base', frame: makeFrame() },
 		])
 
-		const result = applyFrameDeltas([{ componentName: 'arm', parent: 'base' }], config, {
-			updateFrame,
-		})
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', parent: 'base' }],
+			config
+		)
 
-		const change = result.applied.find((c) => c.field === 'parent')
-		expect(change?.oldValue).toBe('world')
-		expect(change?.newValue).toBe('base')
+		expect(prepared[0].previousParent).toBe('world')
+		expect(prepared[0].parent).toBe('base')
 	})
 
 	it('accepts world as a valid parent', () => {
-		const { updateFrame, calls } = recordingDeps()
 		const config = makeConfig([{ name: 'arm', frame: makeFrame({ parent: 'base' }) }])
 
-		const result = applyFrameDeltas([{ componentName: 'arm', parent: 'world' }], config, {
-			updateFrame,
-		})
-
-		expect(calls[0].parent).toBe('world')
-		expect(result.errors).toHaveLength(0)
-	})
-
-	it('applies a full orientation replacement', () => {
-		const { updateFrame, calls } = recordingDeps()
-		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
-
-		applyFrameDeltas(
-			[{ componentName: 'arm', orientation: { x: 0, y: 1, z: 0, th: 90 } }],
-			config,
-			{ updateFrame }
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', parent: 'world' }],
+			config
 		)
 
-		expect(calls[0].pose.oX).toBe(0)
-		expect(calls[0].pose.oY).toBe(1)
-		expect(calls[0].pose.oZ).toBe(0)
-		expect(calls[0].pose.theta).toBe(90)
+		expect(prepared[0].parent).toBe('world')
+		expect(errors).toHaveLength(0)
+	})
+
+	it('computes prepared update with a full orientation replacement', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', orientation: { x: 0, y: 1, z: 0, th: 90 } }],
+			config
+		)
+
+		expect(prepared[0].pose.oX).toBe(0)
+		expect(prepared[0].pose.oY).toBe(1)
+		expect(prepared[0].pose.oZ).toBe(0)
+		expect(prepared[0].pose.theta).toBe(90)
 	})
 
 	it.each([
@@ -136,78 +116,99 @@ describe('applyFrameDeltas', () => {
 	] satisfies FrameDelta[])(
 		'surfaces an error for component $componentName not in config',
 		(delta) => {
-			const { updateFrame, calls } = recordingDeps()
 			const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
-			const result = applyFrameDeltas([delta], config, { updateFrame })
+			const { prepared, errors } = validateProposedFrameDeltas([delta], config)
 
-			expect(calls).toHaveLength(0)
-			expect(result.errors).toHaveLength(1)
-			expect(result.errors[0].componentName).toBe(delta.componentName)
+			expect(prepared).toHaveLength(0)
+			expect(errors).toHaveLength(1)
+			expect(errors[0].componentName).toBe(delta.componentName)
 		}
 	)
 
 	it('surfaces an error for a component with no frame', () => {
-		const { updateFrame, calls } = recordingDeps()
 		const config = makeConfig([{ name: 'sensor' }])
 
-		const result = applyFrameDeltas(
+		const { prepared, errors } = validateProposedFrameDeltas(
 			[{ componentName: 'sensor', translation: { x: 50 } }],
-			config,
-			{ updateFrame }
+			config
 		)
 
-		expect(calls).toHaveLength(0)
-		expect(result.errors[0].reason).toMatch(/no frame/i)
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/no frame/i)
 	})
 
 	it('surfaces an error for an unknown proposed parent', () => {
-		const { updateFrame, calls } = recordingDeps()
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
-		const result = applyFrameDeltas(
+		const { prepared, errors } = validateProposedFrameDeltas(
 			[{ componentName: 'arm', parent: 'ghost-frame' }],
-			config,
-			{ updateFrame }
+			config
 		)
 
-		expect(calls).toHaveLength(0)
-		expect(result.errors[0].reason).toContain('ghost-frame')
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toContain('ghost-frame')
 	})
 
 	it('surfaces an error for non-finite numeric values', () => {
-		const { updateFrame, calls } = recordingDeps()
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
-		const result = applyFrameDeltas(
+		const { prepared, errors } = validateProposedFrameDeltas(
 			[{ componentName: 'arm', translation: { x: Number.NaN } }],
-			config,
-			{ updateFrame }
+			config
 		)
 
-		expect(calls).toHaveLength(0)
-		expect(result.errors[0].reason).toMatch(/non-finite/i)
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/non-finite/i)
 	})
 
-	it('applies valid deltas and surfaces errors for invalid ones in the same batch', () => {
-		const { updateFrame, calls } = recordingDeps()
+	it('prepares valid deltas and surfaces errors for invalid ones in the same batch', () => {
 		const config = makeConfig([
 			{ name: 'arm', frame: makeFrame() },
 			{ name: 'gripper', frame: makeFrame() },
 		])
 
-		const result = applyFrameDeltas(
+		const { prepared, errors } = validateProposedFrameDeltas(
 			[
 				{ componentName: 'arm', translation: { x: 100 } },
 				{ componentName: 'ghost', translation: { x: 50 } },
 				{ componentName: 'gripper', translation: { z: 200 } },
 			],
-			config,
-			{ updateFrame }
+			config
 		)
 
+		expect(prepared).toHaveLength(2)
+		expect(errors).toHaveLength(1)
+		expect(errors[0].componentName).toBe('ghost')
+	})
+})
+
+describe('applyPreparedUpdates', () => {
+	it('calls updateFrame for each prepared update', () => {
+		const { updateFrame, calls } = recordingDeps()
+		const prepared: PreparedUpdate[] = [
+			{
+				componentName: 'arm',
+				parent: 'world',
+				previousParent: 'world',
+				pose: { x: 100, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
+				previousPose: { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
+			},
+			{
+				componentName: 'gripper',
+				parent: 'arm',
+				previousParent: 'world',
+				pose: { x: 0, y: 0, z: 50, oX: 0, oY: 0, oZ: 1, theta: 0 },
+				previousPose: { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
+			},
+		]
+
+		applyPreparedUpdates(prepared, { updateFrame })
+
 		expect(calls).toHaveLength(2)
-		expect(result.errors).toHaveLength(1)
-		expect(result.errors[0].componentName).toBe('ghost')
+		expect(calls[0].name).toBe('arm')
+		expect(calls[0].pose.x).toBe(100)
+		expect(calls[1].name).toBe('gripper')
+		expect(calls[1].parent).toBe('arm')
 	})
 })

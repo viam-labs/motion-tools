@@ -97,6 +97,7 @@
 
 	let root = $state.raw<HTMLElement>()
 
+	$inspect(localConfigProps, 'LOCAL')
 	providePartConfig(
 		() => partID,
 		() => localConfigProps

@@ -2,7 +2,7 @@
 	import { Icon } from '@viamrobotics/prime-core'
 
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { applyFrameDeltas, type AppliedChange, type FrameDelta, type UpdateError } from './frameDeltaAdapter'
+	import { applyPreparedUpdates, validateProposedFrameDeltas, type FrameDelta, type PreparedUpdate, type UpdateError } from './frameDeltaAdapter'
 	import { backendIP, websocketPort } from '$lib/defines'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
@@ -12,13 +12,36 @@
 	let isOpen = $state(false)
 	let uiState: UIState = $state('idle')
 	let prompt = $state('')
-	let applied = $state<AppliedChange[]>([])
+	let pendingUpdates = $state<PreparedUpdate[]>([])
 	let updateErrors = $state<UpdateError[]>([])
 	let explanation = $state('')
 	let errorMessage = $state('')
 
 	const partConfig = usePartConfig()
 	const canSubmit = $derived(prompt.trim().length > 0 && uiState === 'idle')
+
+	const diffRows = $derived(
+		pendingUpdates.flatMap((u) => {
+			const rows: { componentName: string; field: string; oldValue: string; newValue: string }[] = []
+			const fmt = (p: typeof u.pose) => `(${p.oX}, ${p.oY}, ${p.oZ}) @ ${p.theta}°`
+			if (u.parent !== u.previousParent) {
+				rows.push({ componentName: u.componentName, field: 'parent', oldValue: u.previousParent, newValue: u.parent })
+			}
+			if (u.pose.x !== u.previousPose.x) {
+				rows.push({ componentName: u.componentName, field: 'translation.x', oldValue: String(u.previousPose.x), newValue: String(u.pose.x) })
+			}
+			if (u.pose.y !== u.previousPose.y) {
+				rows.push({ componentName: u.componentName, field: 'translation.y', oldValue: String(u.previousPose.y), newValue: String(u.pose.y) })
+			}
+			if (u.pose.z !== u.previousPose.z) {
+				rows.push({ componentName: u.componentName, field: 'translation.z', oldValue: String(u.previousPose.z), newValue: String(u.pose.z) })
+			}
+			if (u.pose.oX !== u.previousPose.oX || u.pose.oY !== u.previousPose.oY || u.pose.oZ !== u.previousPose.oZ || u.pose.theta !== u.previousPose.theta) {
+				rows.push({ componentName: u.componentName, field: 'orientation', oldValue: fmt(u.previousPose), newValue: fmt(u.pose) })
+			}
+			return rows
+		})
+	)
 
 	async function submit() {
 		uiState = 'loading'
@@ -39,31 +62,29 @@
 			}
 
 			const data = (await res.json()) as { updates: FrameDelta[]; explanation: string }
-			const result = applyFrameDeltas(data.updates, partConfig.current, {
-				updateFrame: partConfig.updateFrame,
-			})
+			const result = validateProposedFrameDeltas(data.updates, partConfig.current)
 
-			applied = result.applied
+			pendingUpdates = result.prepared
 			updateErrors = result.errors
 			explanation = data.explanation
 			uiState = 'diff'
-		} catch (err) {
-			errorMessage = err instanceof Error ? err.message : String(err)
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : String(error)
 			uiState = 'error'
 		}
 	}
 
 	function confirm() {
-		applied = []
+		applyPreparedUpdates(pendingUpdates, { updateFrame: partConfig.updateFrame })
+		pendingUpdates = []
 		updateErrors = []
 		explanation = ''
 		prompt = ''
 		uiState = 'idle'
 	}
 
-	function revert() {
-		partConfig.discardChanges()
-		applied = []
+	function cancel() {
+		pendingUpdates = []
 		updateErrors = []
 		explanation = ''
 		prompt = ''
@@ -130,7 +151,7 @@
 				<p class="text-gray-6 italic">{explanation}</p>
 			{/if}
 
-			{#if applied.length > 0}
+			{#if diffRows.length > 0}
 				<div class="overflow-auto rounded border border-gray-200">
 					<table class="w-full text-left">
 						<thead class="bg-gray-50">
@@ -142,7 +163,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each applied as change (change.componentName + change.field)}
+							{#each diffRows as change (change.componentName + change.field)}
 								<tr class="border-t border-gray-100">
 									<td class="px-2 py-1 font-mono">{change.componentName}</td>
 									<td class="px-2 py-1 font-mono">{change.field}</td>
@@ -174,9 +195,9 @@
 				</button>
 				<button
 					class="rounded border border-gray-300 px-3 py-1.5 hover:bg-gray-50"
-					onclick={revert}
+					onclick={cancel}
 				>
-					Revert
+					Cancel
 				</button>
 			</div>
 		{/if}

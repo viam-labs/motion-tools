@@ -12,11 +12,13 @@ export interface FrameDelta {
 	parent?: string
 }
 
-export interface AppliedChange {
+export interface PreparedUpdate {
 	componentName: string
-	field: string
-	oldValue: string
-	newValue: string
+	parent: string
+	previousParent: string
+	pose: Pose
+	previousPose: Pose
+	geometry?: Frame['geometry']
 }
 
 export interface UpdateError {
@@ -24,27 +26,21 @@ export interface UpdateError {
 	reason: string
 }
 
-export interface AdapterResult {
-	applied: AppliedChange[]
-	errors: UpdateError[]
-}
-
 interface Deps {
 	updateFrame: (name: string, parent: string, pose: Pose, geometry?: Frame['geometry']) => void
 }
 
 /**
- * Applies LLM-proposed frame deltas to the current config via updateFrame().
- * Captures old values before applying so the caller can render a diff table.
- * Invalid deltas are collected in errors and never applied.
+ * Validates LLM-proposed frame deltas and computes the resulting changes without
+ * applying them. Each PreparedUpdate carries old and new values so the caller
+ * can render a diff and pass the result to applyPreparedUpdates() on confirmation.
  */
-export function applyFrameDeltas(
+export function validateProposedFrameDeltas(
 	deltas: FrameDelta[],
-	config: PartConfig,
-	deps: Deps
-): AdapterResult {
-	const applied: AppliedChange[] = []
+	config: PartConfig
+): { errors: UpdateError[]; prepared: PreparedUpdate[] } {
 	const errors: UpdateError[] = []
+	const prepared: PreparedUpdate[] = []
 	const knownNames = new Set(config.components.map((c) => c.name))
 
 	for (const delta of deltas) {
@@ -75,22 +71,21 @@ export function applyFrameDeltas(
 			continue
 		}
 
-		const currentPose = createPoseFromFrame(component.frame)
-		const currentParent = component.frame.parent
+		const previousPose = createPoseFromFrame(component.frame)
+		const previousParent = component.frame.parent
 
-		const newParent = delta.parent ?? currentParent
+		const newParent = delta.parent ?? previousParent
 		const newPose: Pose = {
-			x: delta.translation?.x ?? currentPose.x,
-			y: delta.translation?.y ?? currentPose.y,
-			z: delta.translation?.z ?? currentPose.z,
-			oX: delta.orientation?.x ?? currentPose.oX,
-			oY: delta.orientation?.y ?? currentPose.oY,
-			oZ: delta.orientation?.z ?? currentPose.oZ,
-			theta: delta.orientation?.th ?? currentPose.theta,
+			x: delta.translation?.x ?? previousPose.x,
+			y: delta.translation?.y ?? previousPose.y,
+			z: delta.translation?.z ?? previousPose.z,
+			oX: delta.orientation?.x ?? previousPose.oX,
+			oY: delta.orientation?.y ?? previousPose.oY,
+			oZ: delta.orientation?.z ?? previousPose.oZ,
+			theta: delta.orientation?.th ?? previousPose.theta,
 		}
 
-		const poseValues = [newPose.x, newPose.y, newPose.z, newPose.oX, newPose.oY, newPose.oZ, newPose.theta]
-		if (poseValues.some((v) => !Number.isFinite(v))) {
+		if ([newPose.x, newPose.y, newPose.z, newPose.oX, newPose.oY, newPose.oZ, newPose.theta].some((v) => !Number.isFinite(v))) {
 			errors.push({
 				componentName: delta.componentName,
 				reason: 'Proposed values contain non-finite numbers',
@@ -98,50 +93,25 @@ export function applyFrameDeltas(
 			continue
 		}
 
-		if (newParent !== currentParent) {
-			applied.push({
-				componentName: delta.componentName,
-				field: 'parent',
-				oldValue: currentParent,
-				newValue: newParent,
-			})
-		}
-		if (delta.translation?.x !== undefined) {
-			applied.push({
-				componentName: delta.componentName,
-				field: 'translation.x',
-				oldValue: String(currentPose.x),
-				newValue: String(newPose.x),
-			})
-		}
-		if (delta.translation?.y !== undefined) {
-			applied.push({
-				componentName: delta.componentName,
-				field: 'translation.y',
-				oldValue: String(currentPose.y),
-				newValue: String(newPose.y),
-			})
-		}
-		if (delta.translation?.z !== undefined) {
-			applied.push({
-				componentName: delta.componentName,
-				field: 'translation.z',
-				oldValue: String(currentPose.z),
-				newValue: String(newPose.z),
-			})
-		}
-		if (delta.orientation !== undefined) {
-			const fmt = (p: Pose) => `(${p.oX}, ${p.oY}, ${p.oZ}) @ ${p.theta}°`
-			applied.push({
-				componentName: delta.componentName,
-				field: 'orientation',
-				oldValue: fmt(currentPose),
-				newValue: fmt(newPose),
-			})
-		}
-
-		deps.updateFrame(delta.componentName, newParent, newPose, component.frame.geometry)
+		prepared.push({
+			componentName: delta.componentName,
+			parent: newParent,
+			previousParent,
+			pose: newPose,
+			previousPose,
+			geometry: component.frame.geometry,
+		})
 	}
 
-	return { applied, errors }
+	return { errors, prepared }
+}
+
+/**
+ * Applies previously validated and prepared frame updates to the config.
+ * Call this on user confirmation after validateProposedFrameDeltas().
+ */
+export function applyPreparedUpdates(prepared: PreparedUpdate[], deps: Deps): void {
+	for (const update of prepared) {
+		deps.updateFrame(update.componentName, update.parent, update.pose, update.geometry)
+	}
 }
