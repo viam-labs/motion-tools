@@ -7,7 +7,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService } from '$lib/plugins'
+	import { DrawService, Gizmos } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -75,6 +75,8 @@
 				{/snippet}
 
 				<DrawService config={{ backendIP, websocketPort }} />
+
+				<Gizmos />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
