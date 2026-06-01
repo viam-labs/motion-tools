@@ -12,7 +12,44 @@ export const POLYLINE_COLOR = new Uint8Array([33, 150, 243])
 export const VERTEX_NORMALS_COLOR = new Uint8Array([0, 188, 212])
 export const SURFACE_NORMALS_COLOR = new Uint8Array([255, 152, 0])
 
-const nextIndex = (world: World, kind: string): number => {
+interface GizmoSpec {
+	kind: string
+	traits: ConfigurableTrait[]
+	matrix?: Matrix4
+}
+
+interface PendingGizmoSpec extends GizmoSpec {
+	position: Vector3
+}
+
+export const spawnGizmo = (world: World, spec: GizmoSpec) =>
+	world.spawn(...commonTraits(world, spec), ...spec.traits)
+
+export const spawnPending = (world: World, spec: PendingGizmoSpec) => {
+	const matrix =
+		spec.matrix ?? new Matrix4().setPosition(spec.position.x, spec.position.y, spec.position.z)
+
+	return world.spawn(
+		...commonTraits(world, { ...spec, matrix }),
+		gizmoTraits.PendingGizmo,
+		...spec.traits
+	)
+}
+
+export const confirmPending = (entity: Entity) => {
+	if (entity.isAlive() && entity.has(gizmoTraits.PendingGizmo)) {
+		entity.remove(gizmoTraits.PendingGizmo)
+	}
+}
+
+export const cancelPending = (entity: Entity | undefined) => {
+	if (!entity) return
+	if (!entity.isAlive()) return
+	if (!entity.has(gizmoTraits.PendingGizmo)) return
+	entity.destroy()
+}
+
+const nextIndex = (world: World, kind: string) => {
 	const used = new Set<number>()
 	for (const entity of world.query(traits.Name)) {
 		const name = entity.get(traits.Name)
@@ -27,50 +64,10 @@ const nextIndex = (world: World, kind: string): number => {
 	return i
 }
 
-interface GizmoSpec {
-	kind: string
-	traits: ConfigurableTrait[]
-	matrix?: Matrix4
-}
-
-interface PendingGizmoSpec extends GizmoSpec {
-	position: Vector3
-}
-
-const commonTraits = (world: World, spec: GizmoSpec): ConfigurableTrait[] => [
+const commonTraits = (world: World, spec: GizmoSpec) => [
 	traits.Name(`${spec.kind} ${nextIndex(world, spec.kind)}`),
 	traits.Matrix(spec.matrix ?? new Matrix4()),
 	traits.Removable,
 	traits.Transformable,
 	gizmoTraits.Gizmo,
 ]
-
-/** Spawn a gizmo with common traits. */
-export const spawnGizmo = (world: World, spec: GizmoSpec): Entity =>
-	world.spawn(...commonTraits(world, spec), ...spec.traits)
-
-/** Spawn a pending gizmo. */
-export const spawnPending = (world: World, spec: PendingGizmoSpec): Entity => {
-	const matrix =
-		spec.matrix ?? new Matrix4().setPosition(spec.position.x, spec.position.y, spec.position.z)
-	return world.spawn(
-		...commonTraits(world, { ...spec, matrix }),
-		gizmoTraits.PendingGizmo,
-		...spec.traits
-	)
-}
-
-/** Confirm a pending gizmo. Drops the `PendingGizmo` tag so it persists. */
-export const confirmPending = (entity: Entity): void => {
-	if (entity.isAlive() && entity.has(gizmoTraits.PendingGizmo)) {
-		entity.remove(gizmoTraits.PendingGizmo)
-	}
-}
-
-/** Cancel a pending gizmo. Destroys the entity if it's still pending. */
-export const cancelPending = (entity: Entity | undefined): void => {
-	if (!entity) return
-	if (!entity.isAlive()) return
-	if (!entity.has(gizmoTraits.PendingGizmo)) return
-	entity.destroy()
-}

@@ -1,62 +1,19 @@
 import { type Entity } from 'koota'
-import { type Intersection, type Material, type Mesh, type Object3D, Vector3 } from 'three'
+import { type Intersection, type Object3D, Vector3 } from 'three'
 
-const isVisibleInTree = (object: Object3D): boolean => {
-	let cursor: Object3D | null = object
-	while (cursor) {
-		if (cursor.visible === false) return false
-		cursor = cursor.parent
-	}
-
-	return true
-}
-
-const isDiscardMaterial = (material: Material): boolean => {
-	return (
-		material.type === 'MeshDiscardMaterial' || material.constructor.name === 'MeshDiscardMaterial'
-	)
-}
-
-const isInEntitySubtree = (object: Object3D, entity: Entity): boolean => {
-	let cursor: Object3D | null = object
-	while (cursor) {
-		if ((cursor as unknown as { name: unknown }).name === entity) return true
-		cursor = cursor.parent
-	}
-
-	return false
-}
-
-export const isUsableHit = (hit: Intersection, ignoreEntity?: Entity): boolean => {
+export const isUsableHit = (hit: Intersection, ignoreEntity?: Entity) => {
 	if (ignoreEntity !== undefined && isInEntitySubtree(hit.object, ignoreEntity)) return false
-	if (!isVisibleInTree(hit.object)) return false
-
-	const material = (hit.object as Mesh).material as Material | Material[] | undefined
-	if (!material) return true
-	if (Array.isArray(material)) return material.some((m) => !isDiscardMaterial(m))
-
-	return !isDiscardMaterial(material)
+	return isVisibleInTree(hit.object)
 }
 
-export const cursorPoint = (
-	intersections: Intersection[],
-	ignoreEntity?: Entity
-): Vector3 | undefined => {
+export const cursorPoint = (intersections: Intersection[], ignoreEntity?: Entity) => {
 	const hit = intersections.find((i) => isUsableHit(i, ignoreEntity))
 	if (!hit) return undefined
 
 	return hit.point.clone()
 }
 
-export interface CursorHit {
-	position: Vector3
-	normal: Vector3
-}
-
-export const cursorHit = (
-	intersections: Intersection[],
-	ignoreEntity?: Entity
-): CursorHit | undefined => {
+export const cursorHit = (intersections: Intersection[], ignoreEntity?: Entity) => {
 	const hit = intersections.find((i) => isUsableHit(i, ignoreEntity))
 	if (!hit) return undefined
 
@@ -66,4 +23,24 @@ export const cursorHit = (
 		: new Vector3(0, 0, 1)
 
 	return { position, normal }
+}
+
+const isVisibleInTree = (object: Object3D) => {
+	let cursor: Object3D | null = object
+	while (cursor) {
+		if (cursor.visible === false) return false
+		cursor = cursor.parent
+	}
+
+	return true
+}
+
+const isInEntitySubtree = (object: Object3D, entity: Entity) => {
+	let cursor: Object3D | null = object
+	while (cursor) {
+		if ((cursor.name as unknown) === entity) return true
+		cursor = cursor.parent
+	}
+
+	return false
 }

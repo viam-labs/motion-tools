@@ -31,7 +31,7 @@
 	} from 'svelte-tweakpane-ui'
 
 	import { hierarchy, traits, useParentName, useQuery, useTrait } from '$lib/ecs'
-	import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
@@ -82,28 +82,21 @@
 		}
 	})
 
-	const writeLocalMatrix = (
-		next: Partial<Pick<Pose, 'x' | 'y' | 'z' | 'oX' | 'oY' | 'oZ' | 'theta'>>
-	) => {
-		const m = entity.get(traits.Matrix)
-		if (!m) return
-		const pose = matrixToPose(m, createPose())
-		Object.assign(pose, next)
-		poseToMatrix(pose, m)
-		entity.changed(traits.Matrix)
+	const applyLocal = (patch: Partial<Pose>) => {
+		traits.writeMatrix(entity, patch)
 		invalidate()
 	}
 
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue3dObject
-		writeLocalMatrix({ x: next.x, y: next.y, z: next.z })
+		applyLocal({ x: next.x, y: next.y, z: next.z })
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue4dObject
-		writeLocalMatrix({ oX: next.x, oY: next.y, oZ: next.z, theta: next.w })
+		applyLocal({ oX: next.x, oY: next.y, oZ: next.z, theta: next.w })
 	}
 
 	const handleParentChange = (event: ListChangeEvent) => {
@@ -125,7 +118,7 @@
 		)
 		quaternion.setFromEuler(euler)
 		ov.setFromQuaternion(quaternion)
-		writeLocalMatrix({ oX: ov.x, oY: ov.y, oZ: ov.z, theta: MathUtils.radToDeg(ov.th) })
+		applyLocal({ oX: ov.x, oY: ov.y, oZ: ov.z, theta: MathUtils.radToDeg(ov.th) })
 	}
 </script>
 

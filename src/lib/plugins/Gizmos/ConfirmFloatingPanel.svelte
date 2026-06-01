@@ -6,28 +6,13 @@
 
 	interface Props {
 		position: Vector3Tuple
-
-		/** Commit the pending gizmo and exit gizmo mode with it selected. */
 		onConfirm: () => void
-
-		/** Discard the pending gizmo; if no pending, exit gizmo mode. */
 		onCancel: () => void
-
-		/**
-		 * Commit the pending gizmo and stay in placement mode so the user can
-		 * drop another of the same kind. Hidden when omitted (e.g. for tools
-		 * that only ever place a single instance).
-		 */
 		onAddNext?: () => void
-
-		/**
-		 * Step-undo the most recent placed gizmo in multi-place flows. Hidden
-		 * when there's nothing to roll back.
-		 */
 		onUndo?: () => void
 	}
 
-	let { position, onConfirm, onCancel, onAddNext, onUndo }: Props = $props()
+	const { position, onConfirm, onCancel, onAddNext, onUndo }: Props = $props()
 
 	const stopPointerBubble = (el: HTMLElement) => {
 		const stop = (event: PointerEvent) => event.stopPropagation()

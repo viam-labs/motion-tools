@@ -50,7 +50,9 @@
 
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
+	import { untrack } from 'svelte'
 	import {
+		Button,
 		Folder,
 		List,
 		type ListChangeEvent,
@@ -58,7 +60,6 @@
 		Separator,
 		Slider,
 		type SliderChangeEvent,
-		Button as TPButton,
 	} from 'svelte-tweakpane-ui'
 
 	import { asRGB } from '$lib/buffer'
@@ -69,52 +70,53 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import GizmoDetails from './GizmoDetails.svelte'
-	import { planeMatrix } from './planeMatrix'
-	import PolylineMeasureRenderer from './PolylineMeasureRenderer.svelte'
-	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
-	import SurfaceNormalsRenderer from './SurfaceNormalsRenderer.svelte'
-	import ArrowTool from './tools/ArrowTool.svelte'
-	import CoordinateSystemTool from './tools/CoordinateSystemTool.svelte'
-	import GeometryTool from './tools/GeometryTool.svelte'
-	import LineTool from './tools/LineTool.svelte'
-	import PlaneTool from './tools/PlaneTool.svelte'
-	import SurfaceNormalsTool from './tools/SurfaceNormalsTool.svelte'
-	import VertexNormalsTool from './tools/VertexNormalsTool.svelte'
-	import { ReferencePlane } from './traits'
+	import GizmoEntities from './GizmoEntities.svelte'
 	import {
 		type ArrowAxis,
 		type GeometryPlacement,
 		type GeometryShape,
 		type GizmoMode,
+		GizmoModes,
 		type LineMeasure,
 		type LineSpace,
 		type PlaneAxis,
 		type PlanePlacement,
-		provideGizmosPlugin,
-	} from './useGizmosPlugin.svelte'
-	import VertexNormalsRenderer from './VertexNormalsRenderer.svelte'
+	} from './gizmos'
+	import { planeMatrix } from './matrix'
+	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
+	import ArrowTool from './tools/ArrowTool.svelte'
+	import CoordinateSystemTool from './tools/CoordinateSystemTool.svelte'
+	import GeometryTool from './tools/GeometryTool.svelte'
+	import LineTool from './tools/LineTool.svelte'
+	import NormalsTool from './tools/NormalsTool.svelte'
+	import PlaneTool from './tools/PlaneTool.svelte'
+	import { ReferencePlane } from './traits'
+	import { provideGizmos } from './useGizmos.svelte'
 
 	const settings = useSettings()
 	const world = useWorld()
 	const selectedEntity = useSelectedEntity()
-	const plugin = provideGizmosPlugin(() => toggleOff())
+	const gizmos = provideGizmos(() => toggleOff())
 
 	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'vertex-normals' | 'surface-normals'
 	let openFolder = $state<FolderName>()
 
 	const isGizmoMode = $derived(settings.current.interactionMode === 'gizmo')
 	$effect(() => {
-		if (!isGizmoMode && plugin.mode !== 'idle') plugin.mode = 'idle'
+		if (isGizmoMode) return
+		untrack(() => {
+			if (gizmos.mode !== 'idle') gizmos.mode = 'idle'
+		})
 	})
 
 	const pick = (mode: GizmoMode) => {
 		settings.current.interactionMode = 'gizmo'
-		plugin.mode = mode
+		gizmos.mode = mode
 	}
 
 	const toggleOff = () => {
 		settings.current.interactionMode = 'navigate'
-		plugin.mode = 'idle'
+		gizmos.mode = 'idle'
 	}
 
 	const setOpenFolder = (name: FolderName, expanded: boolean) => {
@@ -122,25 +124,25 @@
 		else if (openFolder === name) openFolder = undefined
 	}
 
-	const placePlaneAtOffset = async () => {
-		const offsetMeters = plugin.planeOffset * 0.001
-		const position = plugin.planeAxisVector.multiplyScalar(offsetMeters)
+	const placePlaneAtOffset = () => {
+		const offsetMeters = gizmos.planeOffset * 0.001
+		const position = gizmos.planeAxisVector.multiplyScalar(offsetMeters)
 		const entity = spawnGizmo(world, {
 			kind: 'reference plane',
-			traits: [ReferencePlane({ width: 500, height: 500 }), traits.Opacity(0.7)],
-			matrix: planeMatrix(plugin.planeAxis, position),
+			traits: [ReferencePlane, traits.Opacity(0.7)],
+			matrix: planeMatrix(gizmos.planeAxis, position),
 		})
 
 		selectedEntity.set(entity)
 	}
 
 	const placeGeometryAtOrigin = async () => {
-		const surfaceOpacity = plugin.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY
+		const surfaceOpacity = gizmos.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY
 
 		const entity = spawnGizmo(world, {
-			kind: `reference ${plugin.geometryShape}`,
+			kind: `reference ${gizmos.geometryShape}`,
 			traits: [
-				plugin.geometryTrait,
+				gizmos.geometryTrait,
 				traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
 				traits.Opacity(surfaceOpacity),
 			],
@@ -157,7 +159,7 @@
 					{...triggerProps}
 					active={isGizmoMode || isOpen}
 					icon="shapes"
-					description={isGizmoMode ? `Gizmo: ${plugin.mode}` : 'Add gizmo'}
+					description={isGizmoMode ? `Gizmo: ${gizmos.mode}` : 'Add gizmo'}
 					disableTooltip={isGizmoMode}
 				/>
 			{/snippet}
@@ -169,7 +171,7 @@
 						title="Gizmos"
 						userExpandable={false}
 					>
-						<TPButton
+						<Button
 							title="Place coordinate system"
 							on:click={() => {
 								pick('coordinate-system')
@@ -184,35 +186,35 @@
 							<List
 								label="Type"
 								options={planePlacements}
-								value={plugin.planeConstruction}
+								value={gizmos.planeConstruction}
 								on:change={(event: ListChangeEvent) => {
-									plugin.planeConstruction = event.detail.value as PlanePlacement
+									gizmos.planeConstruction = event.detail.value as PlanePlacement
 								}}
-							/>
+							/>reference-plane
 							<List
 								label="Normal"
 								options={axisOptions}
-								value={plugin.planeAxis}
+								value={gizmos.planeAxis}
 								on:change={(event: ListChangeEvent) => {
-									plugin.planeAxis = event.detail.value as PlaneAxis
+									gizmos.planeAxis = event.detail.value as PlaneAxis
 								}}
 							/>
-							{#if plugin.planeConstruction === 'offset'}
+							{#if gizmos.planeConstruction === 'offset'}
 								<Slider
 									label="Offset (mm)"
-									value={plugin.planeOffset}
+									value={gizmos.planeOffset}
 									min={-1000}
 									max={1000}
 									step={10}
 									on:change={(event: SliderChangeEvent) => {
-										plugin.planeOffset = event.detail.value
+										gizmos.planeOffset = event.detail.value
 									}}
 								/>
 							{/if}
-							<TPButton
+							<Button
 								title="Place reference plane"
 								on:click={() => {
-									if (plugin.planeConstruction === 'free') pick('plane')
+									if (gizmos.planeConstruction === 'free') pick(GizmoModes.ReferencePlane)
 									else placePlaneAtOffset()
 									close()
 								}}
@@ -226,31 +228,31 @@
 							<List
 								label="Type"
 								options={geometryPlacementOptions}
-								value={plugin.geometryConstruction}
+								value={gizmos.geometryConstruction}
 								on:change={(event: ListChangeEvent) => {
-									plugin.geometryConstruction = event.detail.value as GeometryPlacement
+									gizmos.geometryConstruction = event.detail.value as GeometryPlacement
 								}}
 							/>
 							<List
 								label="Shape"
 								options={geometryShapeOptions}
-								value={plugin.geometryShape}
+								value={gizmos.geometryShape}
 								on:change={(event: ListChangeEvent) => {
-									plugin.geometryShape = event.detail.value as GeometryShape
+									gizmos.geometryShape = event.detail.value as GeometryShape
 								}}
 							/>
 							<List
 								label="Style"
 								options={wireframeOptions}
-								value={plugin.isGeometryWireframe}
+								value={gizmos.isGeometryWireframe}
 								on:change={(event: ListChangeEvent) => {
-									plugin.isGeometryWireframe = event.detail.value as boolean
+									gizmos.isGeometryWireframe = event.detail.value as boolean
 								}}
 							/>
-							<TPButton
+							<Button
 								title="Place reference geometry"
 								on:click={() => {
-									if (plugin.geometryConstruction === 'free') pick('geometry')
+									if (gizmos.geometryConstruction === 'free') pick(GizmoModes.ReferenceGeometry)
 									else placeGeometryAtOrigin()
 									close()
 								}}
@@ -264,23 +266,23 @@
 							<List
 								label="Space"
 								options={lineSpaceOptions}
-								value={plugin.lineSpace}
+								value={gizmos.lineSpace}
 								on:change={(event: ListChangeEvent) => {
-									plugin.lineSpace = event.detail.value as LineSpace
+									gizmos.lineSpace = event.detail.value as LineSpace
 								}}
 							/>
 							<List
 								label="Measure"
 								options={lineMeasureOptions}
-								value={plugin.lineMeasure}
+								value={gizmos.lineMeasure}
 								on:change={(event: ListChangeEvent) => {
-									plugin.lineMeasure = event.detail.value as LineMeasure
+									gizmos.lineMeasure = event.detail.value as LineMeasure
 								}}
 							/>
-							<TPButton
+							<Button
 								title="Place polyline"
 								on:click={() => {
-									pick('line')
+									pick(GizmoModes.Polyline)
 									close()
 								}}
 							/>
@@ -293,15 +295,15 @@
 							<List
 								label="Initial axis"
 								options={arrowAxisOptions}
-								value={plugin.arrowAxis}
+								value={gizmos.arrowAxis}
 								on:change={(event: ListChangeEvent) => {
-									plugin.arrowAxis = event.detail.value as ArrowAxis
+									gizmos.arrowAxis = event.detail.value as ArrowAxis
 								}}
 							/>
-							<TPButton
+							<Button
 								title="Place arrow"
 								on:click={() => {
-									pick('arrow')
+									pick(GizmoModes.Arrow)
 									close()
 								}}
 							/>
@@ -315,15 +317,15 @@
 						>
 							<Slider
 								label="Length (mm)"
-								value={plugin.vertexNormalsLength}
+								value={gizmos.vertexNormalsLength}
 								min={10}
 								max={500}
 								step={10}
 								on:change={(event: SliderChangeEvent) => {
-									plugin.vertexNormalsLength = event.detail.value
+									gizmos.vertexNormalsLength = event.detail.value
 								}}
 							/>
-							<TPButton
+							<Button
 								title="Place vertex normals"
 								on:click={() => {
 									pick('vertex-normals')
@@ -340,15 +342,15 @@
 						>
 							<Slider
 								label="Length (mm)"
-								value={plugin.surfaceNormalsLength}
+								value={gizmos.surfaceNormalsLength}
 								min={10}
 								max={500}
 								step={10}
 								on:change={(event: SliderChangeEvent) => {
-									plugin.surfaceNormalsLength = event.detail.value
+									gizmos.surfaceNormalsLength = event.detail.value
 								}}
 							/>
-							<TPButton
+							<Button
 								title="Place surface normals"
 								on:click={() => {
 									pick('surface-normals')
@@ -359,7 +361,7 @@
 
 						{#if isGizmoMode}
 							<Separator />
-							<TPButton
+							<Button
 								title="Exit gizmo mode"
 								on:click={() => {
 									toggleOff()
@@ -375,25 +377,25 @@
 </Portal>
 
 {#if isGizmoMode}
-	{#if plugin.mode === 'coordinate-system'}
+	{#if gizmos.mode === GizmoModes.CoordinateSystem}
 		<CoordinateSystemTool />
-	{:else if plugin.mode === 'plane'}
+	{:else if gizmos.mode === GizmoModes.ReferencePlane}
 		<PlaneTool />
-	{:else if plugin.mode === 'geometry'}
+	{:else if gizmos.mode === GizmoModes.ReferenceGeometry}
 		<GeometryTool />
-	{:else if plugin.mode === 'line'}
+	{:else if gizmos.mode === GizmoModes.Polyline}
 		<LineTool />
-	{:else if plugin.mode === 'arrow'}
+	{:else if gizmos.mode === GizmoModes.Arrow}
 		<ArrowTool />
-	{:else if plugin.mode === 'vertex-normals'}
-		<VertexNormalsTool />
-	{:else if plugin.mode === 'surface-normals'}
-		<SurfaceNormalsTool />
+	{:else if gizmos.mode === GizmoModes.VertexNormals}
+		<NormalsTool kind="vertex" />
+	{:else if gizmos.mode === GizmoModes.SurfaceNormals}
+		<NormalsTool kind="surface" />
 	{/if}
 {/if}
 
-<PolylineMeasureRenderer />
-<VertexNormalsRenderer />
-<SurfaceNormalsRenderer />
+<GizmoEntities />
 
-<GizmoDetails />
+{#if isGizmoMode}
+	<GizmoDetails />
+{/if}

@@ -1,5 +1,7 @@
 import { trait } from 'koota'
 
+export type PolylineMeasureMode = 'segment' | 'total'
+
 /**  Marks an entity as a user-placed gizmo, not part of the robot's frame system.*/
 export const Gizmo = trait(() => true)
 
@@ -19,4 +21,4 @@ export const VertexNormals = trait({ length: 100 })
 export const SurfaceNormals = trait({ length: 100 })
 
 /** Renders distance labels along a polyline gizmo. */
-export const PolylineMeasure = trait({ mode: 'segment' as 'segment' | 'total' })
+export const PolylineMeasure = trait(() => ({ mode: 'segment' as PolylineMeasureMode }))

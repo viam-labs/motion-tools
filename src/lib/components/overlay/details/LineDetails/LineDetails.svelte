@@ -13,6 +13,12 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
+	import {
+		appendLinePosition as appendLinePositionPure,
+		removeLinePosition as removeLinePositionPure,
+		writeLinePosition as writeLinePositionPure,
+	} from './linePositions'
+
 	interface Props {
 		entity: Entity
 	}
@@ -43,32 +49,24 @@
 	const writeLinePosition = (index: number, value: PointValue3dObject) => {
 		const current = linePositions.current
 		if (!current) return
-		const next = new Float32Array(current)
-		next[index * 3 + 0] = value.x
-		next[index * 3 + 1] = value.y
-		next[index * 3 + 2] = value.z
-		entity.set(traits.LinePositions, next)
+		entity.set(
+			traits.LinePositions,
+			writeLinePositionPure(current, index, value.x, value.y, value.z)
+		)
 	}
 
 	const appendLinePosition = () => {
-		const current = linePositions.current ?? new Float32Array()
-		const next = new Float32Array(current.length + 3)
-		next.set(current)
-		const lastIndex = current.length - 3
-		if (lastIndex >= 0) {
-			next[current.length + 0] = current[lastIndex]! + 0.1
-			next[current.length + 1] = current[lastIndex + 1]!
-			next[current.length + 2] = current[lastIndex + 2]!
-		}
-		entity.set(traits.LinePositions, next)
+		entity.set(
+			traits.LinePositions,
+			appendLinePositionPure(linePositions.current ?? new Float32Array())
+		)
 	}
 
 	const removeLinePosition = (index: number) => {
 		const current = linePositions.current
-		if (!current || current.length <= 6) return
-		const next = new Float32Array(current.length - 3)
-		next.set(current.subarray(0, index * 3), 0)
-		next.set(current.subarray((index + 1) * 3), index * 3)
+		if (!current) return
+		const next = removeLinePositionPure(current, index)
+		if (next === current) return
 		entity.set(traits.LinePositions, next)
 	}
 

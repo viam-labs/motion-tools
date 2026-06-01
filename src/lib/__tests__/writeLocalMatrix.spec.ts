@@ -1,0 +1,69 @@
+import { createWorld } from 'koota'
+import { Matrix4 } from 'three'
+import { describe, expect, it, vi } from 'vitest'
+
+import { traits } from '$lib/ecs'
+import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+
+import { writeMatrix } from '../writeLocalMatrix'
+
+const seedMatrix = () =>
+	poseToMatrix(
+		createPose({
+			x: 10,
+			y: 20,
+			z: 30,
+			oX: 0.6,
+			oY: 0.8,
+			oZ: 0,
+			theta: 45,
+		}),
+		new Matrix4()
+	)
+
+describe('writeLocalMatrix', () => {
+	it('no-ops when the entity has no Matrix trait', () => {
+		const world = createWorld()
+		const entity = world.spawn()
+		expect(() => writeMatrix(entity, { x: 1 })).not.toThrow()
+	})
+
+	it('overwrites only the supplied position fields', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		writeMatrix(entity, { x: 99 })
+		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
+		expect(pose.x).toBeCloseTo(99)
+		expect(pose.y).toBeCloseTo(20)
+		expect(pose.z).toBeCloseTo(30)
+	})
+
+	it('overwrites only the supplied orientation fields', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		writeMatrix(entity, { theta: 90 })
+		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
+		// Position is preserved.
+		expect(pose.x).toBeCloseTo(10)
+		// Theta is updated.
+		expect(pose.theta).toBeCloseTo(90)
+	})
+
+	it('notifies subscribers via entity.changed', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const onChange = vi.fn()
+		world.onChange(traits.Matrix, onChange)
+		writeMatrix(entity, { x: 5 })
+		expect(onChange).toHaveBeenCalledWith(entity)
+	})
+
+	it('mutates the existing Matrix4 in place (does not allocate a new one)', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const before = entity.get(traits.Matrix)
+		writeMatrix(entity, { x: 5 })
+		const after = entity.get(traits.Matrix)
+		expect(after).toBe(before)
+	})
+})

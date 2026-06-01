@@ -12,7 +12,7 @@
 		position: Vector3Tuple
 	}
 
-	let { entity, position }: Props = $props()
+	const { entity, position }: Props = $props()
 
 	const name = useTrait(() => entity, traits.Name)
 </script>

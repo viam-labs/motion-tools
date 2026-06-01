@@ -13,13 +13,13 @@
 
 <script lang="ts">
 	import type { Pose } from '@viamrobotics/sdk'
-	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { draggable } from '@neodrag/svelte'
 	import { isInstanceOf, useThrelte } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { Button, Icon, Switch, Tooltip } from '@viamrobotics/prime-core'
+	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
 		List,
@@ -55,7 +55,7 @@
 	} from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import * as gizmoTraits from '$lib/plugins/Gizmos/traits'
-	import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
 		details?: Snippet<[{ entity: Entity }]>
@@ -133,7 +133,7 @@
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
 
-	let geometryType = $derived.by<'box' | 'sphere' | 'capsule' | 'none'>(() => {
+	const geometryType = $derived.by(() => {
 		if (box.current) return 'box'
 		if (sphere.current) return 'sphere'
 		if (capsule.current) return 'capsule'
@@ -146,13 +146,17 @@
 	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
 
 	$effect(() => {
+		if (!entity || !isFrameNode) return
+
+		const next = geometryTypes[geometryTabIndex]
+		if (next === undefined || next === geometryType) return
+
 		// setGeometryType guards against no-ops, so this is safe to fire on every
 		// tab-index change (whether user-initiated or trait-derived).
-		setGeometryType(geometryTypes[geometryTabIndex])
+		detailConfigUpdater.setGeometryType(entity, next)
 	})
 
 	let copied = $state(false)
-
 	let dragElement = $state.raw<HTMLElement>()
 
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
@@ -174,16 +178,10 @@
 	// Matrix4 instances are shared by `useTrait`, so we must call
 	// `entity.changed(Matrix)` to notify the world-matrix system and any
 	// other listeners.
-	const writeLocalMatrix = (
-		next: Partial<Pick<Pose, 'x' | 'y' | 'z' | 'oX' | 'oY' | 'oZ' | 'theta'>>
-	) => {
+	const applyLocal = (patch: Partial<Pose>) => {
 		if (!entity) return
-		const m = entity.get(traits.Matrix)
-		if (!m) return
-		const pose = matrixToPose(m, createPose())
-		Object.assign(pose, next)
-		poseToMatrix(pose, m)
-		entity.changed(traits.Matrix)
+
+		traits.writeMatrix(entity, patch)
 		invalidate()
 	}
 
@@ -197,7 +195,7 @@
 		if (isFrameNode) {
 			detailConfigUpdater.updateLocalPosition(entity, next)
 		} else {
-			writeLocalMatrix({ x: next.x, y: next.y, z: next.z })
+			applyLocal({ x: next.x, y: next.y, z: next.z })
 		}
 	}
 
@@ -208,7 +206,7 @@
 		if (isFrameNode) {
 			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
 		} else {
-			writeLocalMatrix(ovValue)
+			applyLocal(ovValue)
 		}
 	}
 
@@ -232,7 +230,7 @@
 		if (isFrameNode) {
 			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
 		} else {
-			writeLocalMatrix(ovValue)
+			applyLocal(ovValue)
 		}
 	}
 
@@ -288,18 +286,6 @@
 		// robot config, so skip the config sync.
 		if (isFrameNode) {
 			detailConfigUpdater.setFrameParent(entity, value)
-		}
-	}
-
-	const setGeometryType = (type: 'none' | 'box' | 'sphere' | 'capsule') => {
-		if (type === geometryType) {
-			return
-		}
-
-		geometryType = type
-
-		if (entity) {
-			detailConfigUpdater.setGeometryType(entity, type)
 		}
 	}
 

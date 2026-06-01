@@ -1,8 +1,8 @@
 <script module>
 	import { EdgesGeometry, PlaneGeometry } from 'three'
 
-	const unitPlane = new PlaneGeometry(1, 1)
-	const unitPlaneEdges = new EdgesGeometry(unitPlane, 0)
+	const planeUtil = new PlaneGeometry(1, 1)
+	const edgesUtil = new EdgesGeometry(planeUtil, 0)
 
 	const SURFACE_COLOR = '#FFA726'
 	const EDGE_COLOR = '#F4A460'
@@ -26,23 +26,21 @@
 		children?: Snippet
 	}
 
-	let { entity, children }: Props = $props()
+	const { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const plane = useTrait(() => entity, gizmoTraits.ReferencePlane)
-	const invisible = useTrait(() => entity, traits.Invisible)
-
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const events = useEntityEvents(() => entity)
 
-	const currentOpacity = $derived(opacity.current ?? 1)
-
+	const mesh = new Mesh()
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
-	const mesh = new Mesh()
+	const currentOpacity = $derived(opacity.current ?? 1)
 
 	$effect.pre(() => {
 		if (!worldMatrix.current) return
@@ -71,7 +69,7 @@
 		{...events}
 	>
 		<T
-			is={unitPlane}
+			is={planeUtil}
 			dispose={false}
 		/>
 		<T.MeshToonMaterial
@@ -86,14 +84,13 @@
 			bvh={{ enabled: false }}
 		>
 			<T
-				is={unitPlaneEdges}
+				is={edgesUtil}
 				dispose={false}
 			/>
 			<T.LineBasicMaterial color={EDGE_COLOR} />
 		</T.LineSegments>
 	</T>
 
-	<!-- `depthTest={false}` so the X/Y axes don't z-fight with the plane. -->
 	<AxesHelper
 		name={entity}
 		width={3}

@@ -10,43 +10,33 @@ const centroid = new Vector3()
 const tip = new Vector3()
 const matrix = new Matrix3()
 
-/**
- * Build a LineSegments-compatible BufferGeometry where each face of `source`
- * contributes one segment: from the triangle centroid out along its face
- * normal by `lengthMeters`. Positions and normal directions are baked into
- * the `transform` matrix.
- */
-export const faceNormalsGeometry = (
+export const buildSurfaceNormalsGeometry = (
 	source: BufferGeometry,
 	lengthMeters: number,
 	transform: Matrix4
-): BufferGeometry => {
-	const positionAttr = source.attributes.position
-	const indexAttr = source.index
-	const triangleCount = indexAttr ? indexAttr.count / 3 : positionAttr.count / 3
+) => {
+	const triangleCount = Math.floor(
+		source.index ? source.index.count / 3 : source.attributes.position.count / 3
+	)
+
 	const positions = new Float32Array(triangleCount * 6)
 	matrix.getNormalMatrix(transform)
-
 	for (let i = 0; i < triangleCount; i++) {
 		const base = i * 3
-		const ia = indexAttr ? indexAttr.getX(base) : base
-		const ib = indexAttr ? indexAttr.getX(base + 1) : base + 1
-		const ic = indexAttr ? indexAttr.getX(base + 2) : base + 2
+		const ia = source.index ? source.index.getX(base) : base
+		const ib = source.index ? source.index.getX(base + 1) : base + 1
+		const ic = source.index ? source.index.getX(base + 2) : base + 2
 
-		a.fromBufferAttribute(positionAttr, ia)
-		b.fromBufferAttribute(positionAttr, ib)
-		c.fromBufferAttribute(positionAttr, ic)
+		a.fromBufferAttribute(source.attributes.position, ia)
+		b.fromBufferAttribute(source.attributes.position, ib)
+		c.fromBufferAttribute(source.attributes.position, ic)
 
 		centroid.copy(a).add(b).add(c).divideScalar(3)
 		ab.subVectors(b, a)
 		ac.subVectors(c, a)
 		normal.crossVectors(ab, ac).normalize()
-
-		if (transform) {
-			centroid.applyMatrix4(transform)
-			normal.applyMatrix3(matrix).normalize()
-		}
-
+		centroid.applyMatrix4(transform)
+		normal.applyMatrix3(matrix).normalize()
 		tip.copy(centroid).addScaledVector(normal, lengthMeters)
 
 		const offset = i * 6

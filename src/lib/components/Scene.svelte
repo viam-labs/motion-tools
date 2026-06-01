@@ -21,7 +21,6 @@
 	import CameraControls from './CameraControls.svelte'
 	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
-	import TerminalEffect from './TerminalEffect.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
@@ -68,10 +67,6 @@
 
 {#if settings.current.renderStats}
 	<PerfMonitor anchorX="right" />
-{/if}
-
-{#if settings.current.terminalMode}
-	<TerminalEffect />
 {/if}
 
 <Environment url={hdrImage} />

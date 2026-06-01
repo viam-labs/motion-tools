@@ -4,7 +4,7 @@
 
 	import ColorDetails from '$lib/components/overlay/details/ColorDetails.svelte'
 	import GeometryDetails from '$lib/components/overlay/details/GeometryDetails.svelte'
-	import LineDetails from '$lib/components/overlay/details/LineDetails.svelte'
+	import LineDetails from '$lib/components/overlay/details/LineDetails/LineDetails.svelte'
 	import MatrixDetails from '$lib/components/overlay/details/MatrixDetails.svelte'
 	import { useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
@@ -13,11 +13,10 @@
 
 	const selectedEntity = useSelectedEntity()
 	const focusedEntity = useFocusedEntity()
+	const gizmo = useTrait(() => entity, Gizmo)
 
 	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
-
-	const gizmo = useTrait(() => entity, Gizmo)
-	const isGizmo = $derived(!!gizmo.current)
+	const isGizmo = $derived(Boolean(gizmo.current))
 </script>
 
 {#if isGizmo}

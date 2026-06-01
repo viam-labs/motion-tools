@@ -24,7 +24,7 @@
 		children?: Snippet
 	}
 
-	let { entity, children }: Props = $props()
+	const { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
@@ -32,9 +32,14 @@
 	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
-	const invisible = useTrait(() => entity, traits.Invisible)
-
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const events = useEntityEvents(() => entity)
+
+	const group = new Group()
+	group.matrixAutoUpdate = false
+
+	const mesh = new Mesh()
+	mesh.position.y = -ARROW_LENGTH
 
 	const color = $derived.by(() => {
 		if (entityColor.current) {
@@ -47,11 +52,6 @@
 	})
 
 	const currentOpacity = $derived(opacity.current ?? 1)
-	const group = new Group()
-	group.matrixAutoUpdate = false
-
-	const mesh = new Mesh()
-	mesh.position.y = -ARROW_LENGTH
 
 	$effect.pre(() => {
 		if (!worldMatrix.current) return
