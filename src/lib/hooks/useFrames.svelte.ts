@@ -89,8 +89,15 @@ export const provideFrames = (partID: () => string) => {
 		// embedder never provided a dial config (e.g. the Viam app's
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
+		//
+		// isDirty is included alongside didRecentlyEdit because didRecentlyEdit
+		// is set by a plain $effect (runs after DOM) and lags by one flush on
+		// the first edit from monitor mode. isDirty is $state and flips
+		// synchronously in updateFrame(), so configFrames becomes a tracked
+		// dependency of this derivation the moment the user makes any edit.
 		if (
 			didRecentlyEdit ||
+			partConfig.isDirty ||
 			partConfig.hasPendingSave ||
 			connectionStatus.current !== MachineConnectionEvent.CONNECTED
 		) {
@@ -233,6 +240,25 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
+					// TODO: Ran into some weird local vs. world matrix computation bug.
+					// Matrix is the "baseline" — the robot's config position before
+					// the current round of edits. The world matrix formula is:
+					//   WorldMatrix = live × baseline⁻¹ × edited
+					// When live ≈ baseline (robot at rest), this simplifies to `edited`,
+					// which is the user's desired position. Keeping baseline stale while
+					// the user has unsaved edits is what makes the 3D preview work.
+					//
+					// I chose to use isDirty (not isEditMode) because isEditMode is driven by
+					// viewerMode, which is set in a plain $effect that runs *after*
+					// $effect.pre — so isEditMode is stale on the first update from
+					// monitor mode. isDirty is $state and updates synchronously with
+					// updateFrame(), so it's always current here. Correct me if I'm wrong here!
+					//
+					// We unlock baseline during save (hasPendingSave=true) so it resets
+					// to the new config before the robot moves. Without this, once the
+					// robot reaches the new position (live = new), the formula gives
+					// live × old⁻¹ × new = 2× the change — a world-position doubling.
+					// if (!partConfig.isDirty || partConfig.hasPendingSave) {
 					if (!isEditMode && !partConfig.hasPendingSave) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
@@ -245,13 +271,15 @@ export const provideFrames = (partID: () => string) => {
 						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
-					// Skip the EditedMatrix overwrite while in edit mode. The merged
-					// `frames` source can differ from query.data once didRecentlyEdit
-					// flips (fragment overrides, round-trip drift), and writing those
-					// values would shift entities whose parents the user is portaling
-					// into — the gizmo's drag target moves underneath it. Once we're
-					// back in monitor mode, the next sync resumes the overwrite.
-					if (!isEditMode) {
+					// EditedMatrix is the user's desired local pose. It must stay in
+					// sync with the config so that previews (frame builder confirm,
+					// arm-tab edits) appear immediately in the 3D view.
+					//
+					// The one exception: while a drag gesture is active, the session
+					// owns the entity and writes EditedMatrix directly via stagePose().
+					// Overwriting it here mid-drag would fight the gizmo and snap the
+					// frame to an intermediate config value.
+					if (!isEditMode || !editSession.current) {
 						const edited = existing.get(traits.EditedMatrix)
 						if (edited) {
 							poseToMatrix(pose, edited)

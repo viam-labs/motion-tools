@@ -3,7 +3,6 @@ import { getContext, setContext } from 'svelte'
 import {
 	applyPreparedUpdates,
 	type FrameDelta,
-	type PreparedUpdate,
 	type UpdateError,
 	validateProposedFrameDeltas,
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
@@ -24,7 +23,6 @@ interface DiffRow {
 
 interface SceneBuilderContext {
 	readonly uiState: UIState
-	readonly pendingUpdates: PreparedUpdate[]
 	readonly updateErrors: UpdateError[]
 	readonly explanation: string
 	readonly errorMessage: string
@@ -39,30 +37,70 @@ export const provideSceneBuilder = (): void => {
 	const partConfig = usePartConfig()
 
 	let uiState = $state<UIState>('idle')
-	let pendingUpdates = $state<PreparedUpdate[]>([])
-	let updateErrors = $state<UpdateError[]>([])
+	let deltas = $state<FrameDelta[]>([])
 	let explanation = $state('')
 	let errorMessage = $state('')
 
+	// Re-derived whenever deltas or the current config changes (e.g. from a drag).
+	// confirm() therefore always applies the LLM's intent against the latest config —
+	// drag changes to unspecified axes are preserved, not overwritten.
+	const validation = $derived.by(() =>
+		deltas.length > 0
+			? validateProposedFrameDeltas(deltas, partConfig.current)
+			: { prepared: [], errors: [] }
+	)
+
+	const updateErrors = $derived(validation.errors)
+
 	const diffRows = $derived(
-		pendingUpdates.flatMap((u) => {
+		validation.prepared.flatMap((u) => {
 			const rows: DiffRow[] = []
 			const fmt = (p: typeof u.pose) => `(${p.oX}, ${p.oY}, ${p.oZ}) @ ${p.theta}°`
 
 			if (u.parent !== u.previousParent) {
-				rows.push({ componentName: u.componentName, field: 'parent', oldValue: u.previousParent, newValue: u.parent })
+				rows.push({
+					componentName: u.componentName,
+					field: 'parent',
+					oldValue: u.previousParent,
+					newValue: u.parent,
+				})
 			}
 			if (u.pose.x !== u.previousPose.x) {
-				rows.push({ componentName: u.componentName, field: 'translation.x', oldValue: String(u.previousPose.x), newValue: String(u.pose.x) })
+				rows.push({
+					componentName: u.componentName,
+					field: 'translation.x',
+					oldValue: String(u.previousPose.x),
+					newValue: String(u.pose.x),
+				})
 			}
 			if (u.pose.y !== u.previousPose.y) {
-				rows.push({ componentName: u.componentName, field: 'translation.y', oldValue: String(u.previousPose.y), newValue: String(u.pose.y) })
+				rows.push({
+					componentName: u.componentName,
+					field: 'translation.y',
+					oldValue: String(u.previousPose.y),
+					newValue: String(u.pose.y),
+				})
 			}
 			if (u.pose.z !== u.previousPose.z) {
-				rows.push({ componentName: u.componentName, field: 'translation.z', oldValue: String(u.previousPose.z), newValue: String(u.pose.z) })
+				rows.push({
+					componentName: u.componentName,
+					field: 'translation.z',
+					oldValue: String(u.previousPose.z),
+					newValue: String(u.pose.z),
+				})
 			}
-			if (u.pose.oX !== u.previousPose.oX || u.pose.oY !== u.previousPose.oY || u.pose.oZ !== u.previousPose.oZ || u.pose.theta !== u.previousPose.theta) {
-				rows.push({ componentName: u.componentName, field: 'orientation', oldValue: fmt(u.previousPose), newValue: fmt(u.pose) })
+			if (
+				u.pose.oX !== u.previousPose.oX ||
+				u.pose.oY !== u.previousPose.oY ||
+				u.pose.oZ !== u.previousPose.oZ ||
+				u.pose.theta !== u.previousPose.theta
+			) {
+				rows.push({
+					componentName: u.componentName,
+					field: 'orientation',
+					oldValue: fmt(u.previousPose),
+					newValue: fmt(u.pose),
+				})
 			}
 
 			return rows
@@ -70,19 +108,27 @@ export const provideSceneBuilder = (): void => {
 	)
 
 	const clear = () => {
-		pendingUpdates = []
-		updateErrors = []
+		deltas = []
 		explanation = ''
 		errorMessage = ''
 	}
 
 	setContext<SceneBuilderContext>(key, {
-		get uiState() { return uiState },
-		get pendingUpdates() { return pendingUpdates },
-		get updateErrors() { return updateErrors },
-		get explanation() { return explanation },
-		get errorMessage() { return errorMessage },
-		get diffRows() { return diffRows },
+		get uiState() {
+			return uiState
+		},
+		get updateErrors() {
+			return updateErrors
+		},
+		get explanation() {
+			return explanation
+		},
+		get errorMessage() {
+			return errorMessage
+		},
+		get diffRows() {
+			return diffRows
+		},
 
 		async submit(prompt: string) {
 			uiState = 'loading'
@@ -103,10 +149,8 @@ export const provideSceneBuilder = (): void => {
 				}
 
 				const data = (await res.json()) as { updates: FrameDelta[]; explanation: string }
-				const result = validateProposedFrameDeltas(data.updates, partConfig.current)
 
-				pendingUpdates = result.prepared
-				updateErrors = result.errors
+				deltas = data.updates
 				explanation = data.explanation
 				uiState = 'diff'
 			} catch (error) {
@@ -116,7 +160,7 @@ export const provideSceneBuilder = (): void => {
 		},
 
 		confirm() {
-			applyPreparedUpdates(pendingUpdates, { updateFrame: partConfig.updateFrame })
+			applyPreparedUpdates(validation.prepared, { updateFrame: partConfig.updateFrame })
 			clear()
 			uiState = 'idle'
 		},
