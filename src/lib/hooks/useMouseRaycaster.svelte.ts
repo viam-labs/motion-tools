@@ -116,6 +116,9 @@ export const useMouseRaycaster = (getOptions?: () => MouseRaycasterOptions) => {
 			return
 		}
 
+		// firstHitOnly is set on the shared raycaster instance, so it applies to
+		// both onPointerMove (hover) and onPointerUp (click). This is intentional
+		// for gizmo-style consumers that only care about the closest hit.
 		raycaster.firstHitOnly = options.firstHitOnly
 
 		dom.addEventListener('pointermove', onPointerMove, { passive: true })

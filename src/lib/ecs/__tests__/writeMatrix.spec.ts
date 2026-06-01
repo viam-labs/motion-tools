@@ -45,6 +45,9 @@ describe('writeMatrix', () => {
 		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
 		expect(pose.x).toBeCloseTo(10)
 		expect(pose.theta).toBeCloseTo(90)
+		expect(pose.oX).toBeCloseTo(0.6)
+		expect(pose.oY).toBeCloseTo(0.8)
+		expect(pose.oZ).toBeCloseTo(0)
 	})
 
 	it('notifies subscribers via entity.changed', () => {
