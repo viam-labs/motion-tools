@@ -2,7 +2,6 @@
 	import type { Snippet } from 'svelte'
 
 	import { provideHierarchy, provideWorldMatrix } from '$lib/ecs'
-	import { provideFocus } from '$lib/hooks/provideFocus.svelte'
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
@@ -54,7 +53,6 @@
 	provideArmKinematics(() => partID.current)
 	provideWorldStates()
 	provideFramelessComponents()
-	provideFocus()
 
 	provideLinkedEntities()
 </script>

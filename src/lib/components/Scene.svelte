@@ -8,12 +8,10 @@
 
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
-	import Focus from '$lib/components/Focus.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
-	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
@@ -32,7 +30,6 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
-	const environment = useEnvironment()
 	const origin = useOrigin()
 
 	// @ts-expect-error This is for debugging
@@ -59,8 +56,6 @@
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
-
-	const focusing = $derived(environment.current.focusing)
 
 	const { isPresenting } = useXR()
 </script>
@@ -89,8 +84,7 @@
 			raycast={() => null}
 			bvh={{ enabled: false }}
 			plane="xy"
-			sectionColor={focusing ? '#bbb' : '#333'}
-			cellColor={focusing ? '#ddd' : undefined}
+			sectionColor="#333"
 			infiniteGrid
 			renderOrder={999}
 			cellSize={settings.current.gridCellSize}
@@ -100,18 +94,14 @@
 		/>
 	{/if}
 
-	{#if focusing}
-		<Focus />
-	{:else}
-		{#if !$isPresenting}
-			<Camera position={[3, 3, 3]}>
-				<CameraControls />
-			</Camera>
-		{/if}
-
-		<StaticGeometries />
-		<Selected />
+	{#if !$isPresenting}
+		<Camera position={[3, 3, 3]}>
+			<CameraControls />
+		</Camera>
 	{/if}
+
+	<StaticGeometries />
+	<Selected />
 
 	<PortalTarget />
 

@@ -2,7 +2,7 @@ import { type Entity, trait } from 'koota'
 
 import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
-import { useEnvironment } from './useEnvironment.svelte'
+import { useEnvironment } from '../../hooks/useEnvironment.svelte'
 
 const HiddenByFocus = trait()
 
@@ -22,13 +22,15 @@ export const provideFocus = () => {
 			return
 		}
 
-		// Entities only render when their `InheritedInvisible` is unset, and that
-		// trait is computed by walking `ChildOf` ancestors (see
-		// `useInheritedInvisible`). So hiding a selected entity's parent — or its
-		// renderable sub-entities, which are `ChildOf` children that never carry
-		// `Selected` — makes the selection itself disappear. Keep the whole
-		// connected subtree of each selection visible: its ancestors (so the
-		// cascade can't reach it) and its descendants (so its geometry shows).
+		/**
+		 * Entities only render when their `InheritedInvisible` is unset, and that
+		 * trait is computed by walking `ChildOf` ancestors (see
+		 * `useInheritedInvisible`). So hiding a selected entity's parent — or its
+		 * renderable sub-entities, which are `ChildOf` children that never carry
+		 * `Selected` — makes the selection itself disappear. Keep the whole
+		 * connected subtree of each selection visible: its ancestors (so the
+		 * cascade can't reach it) and its descendants (so its geometry shows).
+		 */
 		const keep = new Set<Entity>()
 
 		const keepSubtree = (entity: Entity) => {
@@ -48,16 +50,20 @@ export const provideFocus = () => {
 			keepSubtree(entity)
 		}
 
-		// Reveal anything we previously hid that now belongs to a kept subtree
-		// (e.g. the selection changed while focus was active).
+		/**
+		 * Reveal anything we previously hid that now belongs to a kept subtree
+		 * (e.g. the selection changed while focus was active).
+		 */
 		for (const entity of world.query(HiddenByFocus)) {
 			if (keep.has(entity)) {
 				entity.remove(HiddenByFocus, traits.Invisible)
 			}
 		}
 
-		// Hide the rest. Skip already-invisible entities so we don't take
-		// ownership of — and later wrongly reveal — user-hidden entities.
+		/**
+		 * Hide the rest. Skip already-invisible entities so we don't take
+		 * ownership of — and later wrongly reveal — user-hidden entities.
+		 */
 		for (const entity of world.query(traits.Name)) {
 			if (keep.has(entity)) continue
 			if (!entity.has(traits.Invisible)) {
