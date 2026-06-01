@@ -1,10 +1,11 @@
 import type { Pose } from '@viamrobotics/sdk'
+
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyPreparedUpdates, validateProposedFrameDeltas, type FrameDelta, type PreparedUpdate } from '../frameDeltaAdapter'
+import { applyPreparedUpdates, type FrameDelta, type PreparedUpdate, validateProposedFrameDeltas } from '../frameDeltaAdapter'
 
 const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 	parent: 'world',

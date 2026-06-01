@@ -2,6 +2,7 @@ import type { Pose } from '@viamrobotics/sdk'
 
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
+
 import { createPoseFromFrame } from '$lib/transform'
 
 export interface FrameDelta {
@@ -85,7 +86,11 @@ export function validateProposedFrameDeltas(
 			theta: delta.orientation?.th ?? previousPose.theta,
 		}
 
-		if ([newPose.x, newPose.y, newPose.z, newPose.oX, newPose.oY, newPose.oZ, newPose.theta].some((v) => !Number.isFinite(v))) {
+		if (
+			[newPose.x, newPose.y, newPose.z, newPose.oX, newPose.oY, newPose.oZ, newPose.theta].some(
+				(v) => !Number.isFinite(v)
+			)
+		) {
 			errors.push({
 				componentName: delta.componentName,
 				reason: 'Proposed values contain non-finite numbers',

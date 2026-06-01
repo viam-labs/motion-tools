@@ -1,13 +1,13 @@
 import { getContext, setContext } from 'svelte'
 
-import { backendIP, websocketPort } from '$lib/defines'
 import {
 	applyPreparedUpdates,
-	validateProposedFrameDeltas,
 	type FrameDelta,
 	type PreparedUpdate,
 	type UpdateError,
+	validateProposedFrameDeltas,
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
+import { backendIP, websocketPort } from '$lib/defines'
 
 import { usePartConfig } from './usePartConfig.svelte'
 
