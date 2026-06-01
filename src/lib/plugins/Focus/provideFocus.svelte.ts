@@ -2,23 +2,21 @@ import { type Entity, trait } from 'koota'
 
 import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
-import { useEnvironment } from '../../hooks/useEnvironment.svelte'
-
 const HiddenByFocus = trait()
 
-export const provideFocus = () => {
+export const provideFocus = (focusing: () => boolean) => {
 	const world = useWorld()
-	const environment = useEnvironment()
 	const selected = useQuery(traits.Selected)
 
 	$effect(() => {
 		// Re-run when selection changes mid-focus, not just when focus toggles.
 		const selectedEntities = selected.current
 
-		if (!environment.current.focusing) {
+		if (!focusing()) {
 			for (const entity of world.query(HiddenByFocus)) {
 				entity.remove(HiddenByFocus, traits.Invisible)
 			}
+
 			return
 		}
 

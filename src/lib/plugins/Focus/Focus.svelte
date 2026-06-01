@@ -8,9 +8,9 @@
 	import FocusBox from './FocusBox.svelte'
 	import { provideFocus } from './provideFocus.svelte'
 
-	provideFocus()
-
 	let focusing = $state(false)
+
+	provideFocus(() => focusing)
 
 	const selected = useQuery(traits.Selected)
 
