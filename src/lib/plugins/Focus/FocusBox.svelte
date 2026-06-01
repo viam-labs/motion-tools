@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useThrelte } from '@threlte/core'
 	import { Gizmo, TrackballControls } from '@threlte/extras'
-	import { onDestroy, untrack } from 'svelte'
+	import { untrack } from 'svelte'
 	import { Box3, Vector3 } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
