@@ -16,6 +16,24 @@ Adds progressive/chunked delivery of large point clouds and point sets so they c
 streamed incrementally instead of sent as a single payload.
 ```
 
+## Stacked PRs
+
+When a PR is part of a multi-PR stack, follow the opening paragraph with a `### Stack` section that lists every PR in the chain from bottom (base) to top (tip). This lets a reviewer who lands in the middle of the stack navigate to neighboring PRs without hunting through GitHub.
+
+For each entry, link the PR by number, give a short phrase naming the scope, and mark the current PR in bold (without a self-link). Example:
+
+```markdown
+### Stack
+
+1. Shared ECS traits and helpers (#735)
+2. Details refactor (#736)
+3. Component tweaks (#737)
+4. **This PR**: Gizmos plugin
+5. Gizmos plugin docs (#739)
+```
+
+The opening paragraph should still name the immediate parent PR; the `### Stack` block exists so reviewers can jump anywhere in the chain.
+
 ## Layer-by-Layer Breakdown
 
 Break changes into sections that match the architecture layers they touch. Use the exact heading names below (singular or plural depending on scope). Omit any section with no changes.
