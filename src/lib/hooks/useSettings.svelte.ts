@@ -7,7 +7,7 @@ const key = Symbol('dashboard-context')
 
 export interface Settings {
 	cameraMode: 'orthographic' | 'perspective'
-	interactionMode: 'navigate' | 'measure' | 'select'
+	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo'
 	refreshRates: {
 		poses: number
 		pointclouds: number

@@ -35,7 +35,7 @@ import { isPointCloud } from './geometry'
 const vec3 = new Vector3()
 const rgb = { r: 0, g: 0, b: 0 }
 
-const DEFAULT_LINE_WIDTH = 5
+export const DEFAULT_LINE_WIDTH = 5
 const DEFAULT_POINT_SIZE = 10
 const DEFAULT_NURBS_DEGREE = 3
 const DEFAULT_NURBS_WEIGHT = 1

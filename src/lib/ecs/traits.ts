@@ -1,6 +1,6 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
+import { Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
@@ -9,6 +9,7 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { parsePlyInput } from '$lib/ply'
+import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -71,8 +72,26 @@ export const InstancedMatrix = trait(() => ({
 	index: -1,
 }))
 
+export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
+	const matrix = entity.get(Matrix)
+	if (!matrix) return
+
+	const pose = matrixToPose(matrix, createPose())
+	Object.assign(pose, patch)
+	poseToMatrix(pose, matrix)
+	entity.changed(Matrix)
+}
+
 export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
+
+/**
+ * Suppresses the default frame-style world/local pose and parent-frame blocks
+ * in the details panel. Entities that render their own pose UI via the
+ * `details-extensions` portal target (e.g. gizmo plugin entities) opt in by
+ * adding this trait.
+ */
+export const CustomDetails = trait(() => true)
 
 /**
  * True when the entity itself, or any of its parents up the `ChildOf`

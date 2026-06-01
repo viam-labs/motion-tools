@@ -14,11 +14,17 @@ interface RaycastEvent<T extends EventNames> {
 
 type Callback<T extends EventNames> = (event: RaycastEvent<T>) => void
 
-export const useMouseRaycaster = (getOptions?: () => { enabled: boolean }) => {
+interface MouseRaycasterOptions {
+	enabled?: boolean
+	firstHitOnly?: boolean
+}
+
+export const useMouseRaycaster = (getOptions?: () => MouseRaycasterOptions) => {
 	let intersections: Intersection[] = []
 
-	const options = $derived({
+	const options = $derived<Required<MouseRaycasterOptions>>({
 		enabled: true,
+		firstHitOnly: false,
 		...getOptions?.(),
 	})
 
@@ -109,6 +115,8 @@ export const useMouseRaycaster = (getOptions?: () => { enabled: boolean }) => {
 		if (!options.enabled) {
 			return
 		}
+
+		raycaster.firstHitOnly = options.firstHitOnly
 
 		dom.addEventListener('pointermove', onPointerMove, { passive: true })
 		dom.addEventListener('pointerdown', onPointerDown, { passive: true })
