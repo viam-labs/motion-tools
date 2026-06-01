@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TransformControls } from '@threlte/extras'
-	import { Matrix4, Quaternion, Vector3 } from 'three'
+	import { Matrix4 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
@@ -64,8 +64,6 @@
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
 	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
 
-	const quaternion = new Quaternion()
-	const vector3 = new Vector3()
 	const refPose = createPose()
 	const tempRefMatrix = new Matrix4()
 	const tempEditedMatrix = new Matrix4()
@@ -131,11 +129,19 @@
 				const matrix = entity.get(traits.Matrix)
 				if (matrix) {
 					matrixToPose(matrix, tempPose)
+					// Frame-style renderers (Frame.svelte, GizmoPlane, GizmoArrow,
+					// etc.) set `group.matrixAutoUpdate = false` and re-compose the
+					// matrix from `worldMatrix` on every flush. Under that flag,
+					// `getWorldQuaternion`/`getWorldPosition` skip updating the
+					// local matrix and return the stale pre-drag transform — so
+					// the gizmo handles move visually but the entity never
+					// actually rotates/translates. Read what TransformControls
+					// wrote into the local fields directly. Renderers mount under
+					// an identity-ish root, so local ≈ world here.
 					if (activeMode === 'translate') {
-						vector3ToPose(ref.getWorldPosition(vector3), tempPose)
+						vector3ToPose(ref.position, tempPose)
 					} else {
-						quaternionToPose(ref.getWorldQuaternion(quaternion), tempPose)
-						ref.quaternion.copy(quaternion)
+						quaternionToPose(ref.quaternion, tempPose)
 					}
 					poseToMatrix(tempPose, matrix)
 					entity.changed(traits.Matrix)

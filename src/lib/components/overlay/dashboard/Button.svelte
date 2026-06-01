@@ -2,15 +2,21 @@
 	import type { ClassValue, HTMLButtonAttributes, MouseEventHandler } from 'svelte/elements'
 
 	import { Icon, type IconName, Tooltip } from '@viamrobotics/prime-core'
-	import { MousePointer2, Ruler } from 'lucide-svelte'
+	import { MousePointer2, Ruler, Shapes } from 'lucide-svelte'
 
 	interface Props extends HTMLButtonAttributes {
-		icon: IconName | 'ruler' | 'mouse-pointer'
+		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes'
 		active?: boolean
 		description: string
 		hotkey?: string
 		class?: ClassValue | null | undefined
 		tooltipLocation?: 'bottom' | 'right' | 'left' | 'top'
+		/**
+		 * When `true`, the hover/focus tooltip is force-suppressed. Useful for
+		 * "this tool is currently the active mode" states where the tooltip is
+		 * distracting and the active visual already conveys what the button is.
+		 */
+		disableTooltip?: boolean
 		onclick?: MouseEventHandler<HTMLButtonElement> | null | undefined
 	}
 
@@ -21,6 +27,7 @@
 		hotkey = '',
 		class: className = '',
 		tooltipLocation,
+		disableTooltip = false,
 		onclick,
 		...rest
 	}: Props = $props()
@@ -29,6 +36,7 @@
 <Tooltip
 	let:tooltipID
 	location={tooltipLocation ?? 'bottom'}
+	state={disableTooltip ? 'invisible' : undefined}
 >
 	<label
 		class={[
@@ -50,6 +58,8 @@
 				<Ruler size="16" />
 			{:else if icon === 'mouse-pointer'}
 				<MousePointer2 size="16" />
+			{:else if icon === 'shapes'}
+				<Shapes size="16" />
 			{:else}
 				<Icon name={icon} />
 			{/if}
