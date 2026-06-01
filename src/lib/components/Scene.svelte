@@ -18,7 +18,6 @@
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
 	import KeyboardBindings from './KeyboardBindings.svelte'
-	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
 
@@ -72,7 +71,6 @@
 	rotation.z={origin.rotation}
 >
 	<PointerMissBox />
-	<MeasureTool />
 	<SelectedTransformControls />
 
 	{#if !$isPresenting && settings.current.grid}

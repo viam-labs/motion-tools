@@ -4,6 +4,8 @@ export * as selectionTraits from './Selection/traits'
 export * as selectionRelations from './Selection/relations'
 export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 
+export { default as MeasureTool } from './MeasureTool/MeasureTool.svelte'
+
 // DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'
 

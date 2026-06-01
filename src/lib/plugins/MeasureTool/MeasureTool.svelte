@@ -5,11 +5,11 @@
 	import { type Intersection, Vector3 } from 'three'
 
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
+	import Popover from '$lib/components/overlay/Popover.svelte'
+	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import Popover from '../overlay/Popover.svelte'
-	import ToggleGroup from '../overlay/ToggleGroup.svelte'
 	import MeasurePoint from './MeasurePoint.svelte'
 
 	const settings = useSettings()
