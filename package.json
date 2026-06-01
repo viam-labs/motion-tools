@@ -43,6 +43,8 @@
 		"@ag-grid-community/core": "32.3.9",
 		"@ag-grid-community/styles": "32.3.9",
 		"@changesets/cli": "2.29.6",
+		"@connectrpc/connect": "1.7.0",
+		"@connectrpc/connect-web": "1.7.0",
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
@@ -86,6 +88,7 @@
 		"@zag-js/tree-view": "1.22.1",
 		"camera-controls": "3.1.0",
 		"concurrently": "^9.2.1",
+		"earcut": "^3.0.2",
 		"esbuild": "^0.27.3",
 		"eslint": "10.0.2",
 		"eslint-config-prettier": "10.1.8",
@@ -121,6 +124,8 @@
 		"@ag-grid-community/client-side-row-model": ">=32.3.0",
 		"@ag-grid-community/core": ">=32.3.0",
 		"@ag-grid-community/styles": ">=32.3.0",
+		"@connectrpc/connect": ">=1",
+		"@connectrpc/connect-web": ">=1",
 		"@dimforge/rapier3d-compat": ">=0.17",
 		"@tanstack/svelte-query-devtools": ">=6",
 		"@threlte/core": ">=8",
@@ -139,6 +144,7 @@
 		"@zag-js/toggle-group": ">=1",
 		"@zag-js/tree-view": ">=1",
 		"camera-controls": ">=3",
+		"earcut": ">=3",
 		"idb-keyval": ">=6",
 		"lucide-svelte": ">=0.511",
 		"runed": ">=0.28",
@@ -147,7 +153,16 @@
 		"svelte-virtuallists": ">=1"
 	},
 	"peerDependenciesMeta": {
+		"@connectrpc/connect": {
+			"optional": true
+		},
+		"@connectrpc/connect-web": {
+			"optional": true
+		},
 		"@tanstack/svelte-query-devtools": {
+			"optional": true
+		},
+		"earcut": {
 			"optional": true
 		}
 	},
@@ -193,10 +208,7 @@
 	],
 	"dependencies": {
 		"@bufbuild/protobuf": "1.10.1",
-		"@connectrpc/connect": "1.7.0",
-		"@connectrpc/connect-web": "1.7.0",
 		"@neodrag/svelte": "^2.3.3",
-		"earcut": "^3.0.2",
 		"filtrex": "^3.1.0",
 		"koota": "0.6.5",
 		"lodash-es": "4.18.1",
