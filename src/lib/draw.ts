@@ -36,17 +36,17 @@ const vec3 = new Vector3()
 const rgb = { r: 0, g: 0, b: 0 }
 
 export const DEFAULT_LINE_WIDTH = 5
-export const DEFAULT_POINT_SIZE = 10
-export const DEFAULT_NURBS_DEGREE = 3
-export const DEFAULT_NURBS_WEIGHT = 1
-export const DEFAULT_ANIMATION_NAME = ''
+const DEFAULT_POINT_SIZE = 10
+const DEFAULT_NURBS_DEGREE = 3
+const DEFAULT_NURBS_WEIGHT = 1
+const DEFAULT_ANIMATION_NAME = ''
 
-export const DEFAULT_ARROWS_COLORS = new Uint8Array([0, 255, 0])
-export const DEFAULT_LINE_COLORS = new Uint8Array([0, 128, 255])
-export const DEFAULT_LINE_DOT_COLORS = new Uint8Array([0, 0, 139])
-export const DEFAULT_POINTS_COLORS = new Uint8Array([51, 51, 51])
-export const DEFAULT_NURBS_COLORS = new Uint8Array([0, 255, 255])
-export const DEFAULT_OPACITY = 1
+const DEFAULT_ARROWS_COLORS = new Uint8Array([0, 255, 0])
+const DEFAULT_LINE_COLORS = new Uint8Array([0, 128, 255])
+const DEFAULT_LINE_DOT_COLORS = new Uint8Array([0, 0, 139])
+const DEFAULT_POINTS_COLORS = new Uint8Array([51, 51, 51])
+const DEFAULT_NURBS_COLORS = new Uint8Array([0, 255, 255])
+const DEFAULT_OPACITY = 1
 
 export type Transform = TransformWithUUID | TransformProto
 

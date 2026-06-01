@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { buildSurfaceNormalsGeometry } from '../buildSurfaceNormalsGeometry'
 
-describe('faceNormalsGeometry', () => {
+describe('buildSurfaceNormalsGeometry', () => {
 	it('emits two endpoints per triangle face for an indexed BoxGeometry', () => {
 		const box = new BoxGeometry(1, 1, 1)
 		const triangleCount = (box.index?.count ?? 0) / 3

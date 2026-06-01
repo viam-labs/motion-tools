@@ -69,5 +69,6 @@ const commonTraits = (world: World, spec: GizmoSpec) => [
 	traits.Matrix(spec.matrix ?? new Matrix4()),
 	traits.Removable,
 	traits.Transformable,
+	traits.CustomDetails,
 	gizmoTraits.Gizmo,
 ]

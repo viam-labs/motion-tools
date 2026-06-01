@@ -190,7 +190,7 @@
 								on:change={(event: ListChangeEvent) => {
 									gizmos.planeConstruction = event.detail.value as PlanePlacement
 								}}
-							/>reference-plane
+							/>
 							<List
 								label="Normal"
 								options={axisOptions}

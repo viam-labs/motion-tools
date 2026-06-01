@@ -86,6 +86,14 @@ export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
 
 /**
+ * Suppresses the default frame-style world/local pose and parent-frame blocks
+ * in the details panel. Entities that render their own pose UI via the
+ * `details-extensions` portal target (e.g. gizmo plugin entities) opt in by
+ * adding this trait.
+ */
+export const CustomDetails = trait(() => true)
+
+/**
  * True when the entity itself, or any of its parents up the `ChildOf`
  * chain, has `Invisible`. Maintained by `provideInheritedInvisible`;
  * don't add or remove it by hand — toggle `Invisible` and the cascade

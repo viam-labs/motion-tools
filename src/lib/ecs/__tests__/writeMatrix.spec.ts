@@ -5,9 +5,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { traits } from '$lib/ecs'
 import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
-import { writeMatrix } from '../writeLocalMatrix'
+import { writeMatrix } from '../traits'
 
-const seedMatrix = () =>
+const matrix = () =>
 	poseToMatrix(
 		createPose({
 			x: 10,
@@ -21,7 +21,7 @@ const seedMatrix = () =>
 		new Matrix4()
 	)
 
-describe('writeLocalMatrix', () => {
+describe('writeMatrix', () => {
 	it('no-ops when the entity has no Matrix trait', () => {
 		const world = createWorld()
 		const entity = world.spawn()
@@ -30,7 +30,7 @@ describe('writeLocalMatrix', () => {
 
 	it('overwrites only the supplied position fields', () => {
 		const world = createWorld()
-		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const entity = world.spawn(traits.Matrix(matrix()))
 		writeMatrix(entity, { x: 99 })
 		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
 		expect(pose.x).toBeCloseTo(99)
@@ -40,18 +40,16 @@ describe('writeLocalMatrix', () => {
 
 	it('overwrites only the supplied orientation fields', () => {
 		const world = createWorld()
-		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const entity = world.spawn(traits.Matrix(matrix()))
 		writeMatrix(entity, { theta: 90 })
 		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
-		// Position is preserved.
 		expect(pose.x).toBeCloseTo(10)
-		// Theta is updated.
 		expect(pose.theta).toBeCloseTo(90)
 	})
 
 	it('notifies subscribers via entity.changed', () => {
 		const world = createWorld()
-		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const entity = world.spawn(traits.Matrix(matrix()))
 		const onChange = vi.fn()
 		world.onChange(traits.Matrix, onChange)
 		writeMatrix(entity, { x: 5 })
@@ -60,7 +58,7 @@ describe('writeLocalMatrix', () => {
 
 	it('mutates the existing Matrix4 in place (does not allocate a new one)', () => {
 		const world = createWorld()
-		const entity = world.spawn(traits.Matrix(seedMatrix()))
+		const entity = world.spawn(traits.Matrix(matrix()))
 		const before = entity.get(traits.Matrix)
 		writeMatrix(entity, { x: 5 })
 		const after = entity.get(traits.Matrix)

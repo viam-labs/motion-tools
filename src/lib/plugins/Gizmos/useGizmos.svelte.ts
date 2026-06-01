@@ -17,10 +17,10 @@ import type {
 const key = Symbol('gizmos-plugin-context')
 
 const planeNormalForAxis = {
-	yz: [1, 0, 0],
-	xz: [0, 1, 0],
-	xy: [0, 0, 1],
-} as const satisfies Record<PlaneAxis, readonly [number, number, number]>
+	yz: new Vector3(1, 0, 0),
+	xz: new Vector3(0, 1, 0),
+	xy: new Vector3(0, 0, 1),
+} as const satisfies Record<PlaneAxis, Vector3>
 
 const geometryTraits = {
 	box: traits.Box({ x: 200, y: 200, z: 200 }),
@@ -77,8 +77,7 @@ export const provideGizmos = (exit: () => void) => {
 		},
 
 		get planeAxisVector() {
-			const [x, y, z] = planeNormalForAxis[planeAxis]
-			return new Vector3(x, y, z)
+			return planeNormalForAxis[planeAxis].clone()
 		},
 
 		get geometryShape() {

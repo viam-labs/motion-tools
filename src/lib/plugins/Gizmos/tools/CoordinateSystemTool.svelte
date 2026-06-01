@@ -31,4 +31,4 @@
 		position={place.current.toArray()}
 		opacity={0.5}
 	/>
-{/if}current
+{/if}

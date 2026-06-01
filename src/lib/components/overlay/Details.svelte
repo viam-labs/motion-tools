@@ -54,7 +54,6 @@
 		useSelectedObject3d,
 	} from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import * as gizmoTraits from '$lib/plugins/Gizmos/traits'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
@@ -97,8 +96,8 @@
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
-	const gizmo = useTrait(() => entity, gizmoTraits.Gizmo)
-	const isGizmo = $derived(gizmo.current === true)
+	const customDetails = useTrait(() => entity, traits.CustomDetails)
+	const hasCustomDetails = $derived(customDetails.current === true)
 
 	const handleAxesHelperToggle = (next: boolean) => {
 		if (!entity) return
@@ -488,8 +487,7 @@
 		<h3 class="text-subtle-2 pt-3 pb-2">Details</h3>
 
 		<div class="flex flex-col gap-2.5">
-			<!-- This gate can be removed when frame editing becomes a plugin -->
-			{#if !isGizmo}
+			{#if !hasCustomDetails}
 				<div>
 					<strong class="font-semibold">world position</strong>
 					<span class="text-subtle-2">(mm)</span>

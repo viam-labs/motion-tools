@@ -16,7 +16,6 @@ type Callback<T extends EventNames> = (event: RaycastEvent<T>) => void
 
 interface MouseRaycasterOptions {
 	enabled?: boolean
-	/** When true, the underlying BVH-aware raycaster stops at the first hit. */
 	firstHitOnly?: boolean
 }
 

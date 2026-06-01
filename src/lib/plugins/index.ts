@@ -10,7 +10,7 @@ export { default as DrawService } from './DrawService/DrawService.svelte'
 // Gizmos
 export { default as Gizmos } from './Gizmos/Gizmos.svelte'
 export * as gizmoTraits from './Gizmos/traits'
-export { useGizmos as useGizmosPlugin } from './Gizmos/useGizmos'
+export { useGizmos } from './Gizmos/useGizmos.svelte'
 
 // Skybox
 export { default as Skybox } from './Skybox/Skybox.svelte'
