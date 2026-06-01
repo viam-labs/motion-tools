@@ -16,6 +16,25 @@ vi.mock('@threlte/core', () => ({
 	isInstanceOf: vi.fn(() => false),
 }))
 
+// `@threlte/extras` components (PortalTarget, HTML, etc.) call into Threlte's
+// internal context which requires a `<Canvas>` parent. Tests render Svelte
+// components in isolation, so stub the pieces Details / plugin Details panels
+// touch with no-op components.
+vi.mock('@threlte/extras', () => ({
+	PortalTarget: vi.fn(),
+	Portal: vi.fn(),
+	HTML: vi.fn(),
+}))
+
+// Mock selection hooks
+vi.mock('$lib/hooks/useSelection.svelte', () => ({
+	useFocused: vi.fn(() => ({ current: undefined, set: vi.fn() })),
+	useFocusedEntity: vi.fn(() => ({ current: undefined })),
+	useFocusedObject3d: vi.fn(() => ({ current: undefined })),
+	useSelectedEntity: vi.fn(() => ({ current: undefined })),
+	useSelectedObject3d: vi.fn(() => ({ current: undefined })),
+}))
+
 // Mock useFrames hook
 vi.mock('$lib/hooks/useFrames.svelte', () => ({
 	useFrames: vi.fn(() => ({ current: [], fetching: false })),
