@@ -22,6 +22,7 @@
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { provideSceneBuilder } from '$lib/hooks/useSceneBuilder.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
@@ -102,6 +103,7 @@
 		() => partID,
 		() => localConfigProps
 	)
+	provideSceneBuilder()
 
 	$effect(() => {
 		environment.current.inputBindingsEnabled = inputBindingsEnabled
