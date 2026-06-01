@@ -1,0 +1,89 @@
+---
+title: <Gizmos />
+description: Add a toolset for placing editable reference geometry, lines, arrows, and normals inside a motion-tools visualizer.
+---
+
+`<Gizmos />` adds a "Gizmos" dashboard toggle with a popover of tools for placing editable scene aids: a coordinate system, reference planes, reference geometries (box / sphere / capsule), polylines with optional measurement, arrows, and vertex or surface normals.
+
+Each tool places a Koota entity in the world, selects it, and renders a custom Details panel for editing its parameters in place. Switching the visualizer's interaction mode back to `navigate`, `measure`, or `select` exits gizmo mode automatically.
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Gizmos } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<Gizmos />
+	</Visualizer>
+</div>
+```
+
+A new toggle appears in the top dashboard with the `shapes` icon. Clicking it opens a popover that lets you pick which gizmo to place; selecting one switches the visualizer into `'gizmo'` interaction mode and arms the chosen tool. Click in the scene to place the gizmo. The placed entity is auto-selected so its Details panel opens for further editing.
+
+`<Gizmos />` takes no props.
+
+## Available gizmos
+
+| Gizmo               | Mode key              | Behavior                                                                                                       |
+| ------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Coordinate system   | `coordinate-system`   | Place a labeled XYZ triad at a clicked surface point.                                                          |
+| Reference plane     | `reference-plane`     | Place a `yz` / `xz` / `xy` plane either at a clicked point ("free") or at a numeric offset from world origin.  |
+| Reference geometry  | `reference-geometry`  | Drop a `box`, `sphere`, or `capsule` (solid or wireframe) at world origin or at a clicked point.               |
+| Polyline            | `polyline`            | Click to build a multi-segment line in world or screen space. Optional segment / total measurement labels.     |
+| Arrow               | `arrow`               | Place an arrow oriented to a chosen world axis or to the clicked surface normal.                               |
+| Vertex normals      | `vertex-normals`      | Render the per-vertex normals of a clicked mesh.                                                               |
+| Surface normals     | `surface-normals`     | Render the per-face normals of a clicked surface.                                                              |
+
+## Reading and driving plugin state
+
+Use `useGizmos` to read or mutate the plugin's state from anywhere inside `<Visualizer />`. The hook is reactive (Svelte 5 runes), so reading its properties subscribes to changes:
+
+```svelte
+<script lang="ts">
+	import { useGizmos } from '@viamrobotics/motion-tools/plugins'
+
+	const gizmos = useGizmos()
+</script>
+
+<p>Active gizmo: {gizmos.mode}</p>
+<button onclick={gizmos.exit}>Exit gizmo mode</button>
+```
+
+Mutable properties (read/write):
+
+| Property               | Type                                | Description                                            |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------ |
+| `mode`                 | `GizmoMode`                         | Active tool (`'idle'` when no tool is armed).          |
+| `planeAxis`            | `'yz' \| 'xz' \| 'xy'`              | Axis-aligned plane for the reference-plane tool.       |
+| `planeConstruction`    | `'free' \| 'offset'`                | Placement strategy for the reference-plane tool.       |
+| `planeOffset`          | `number`                            | Offset (mm) from world origin in `'offset'` mode.      |
+| `geometryShape`        | `'box' \| 'sphere' \| 'capsule'`    | Shape used by the reference-geometry tool.             |
+| `geometryConstruction` | `'at-origin' \| 'free'`             | Placement strategy for reference geometries.           |
+| `isGeometryWireframe`  | `boolean`                           | Render reference geometries as wireframe instead of solid. |
+| `lineSpace`            | `'world' \| 'screen'`               | Coordinate space used by the polyline tool.            |
+| `lineMeasure`          | `'none' \| 'segment' \| 'total'`    | Measurement labels rendered on polylines.              |
+| `arrowAxis`            | `'x' \| 'y' \| 'z' \| 'surface'`    | Direction the arrow tool orients to.                   |
+| `vertexNormalsLength`  | `number`                            | Length (mm) of vertex-normals lines.                   |
+| `surfaceNormalsLength` | `number`                            | Length (mm) of surface-normals lines.                  |
+
+Read-only:
+
+| Property            | Description                                                                |
+| ------------------- | -------------------------------------------------------------------------- |
+| `planeAxisVector`   | Cloned `THREE.Vector3` normal for the current `planeAxis`.                 |
+| `geometryTrait`     | Pre-configured size trait for the current `geometryShape`.                 |
+| `exit()`            | Switch the visualizer back to `'navigate'` and set `mode` to `'idle'`.     |
+
+## Traits
+
+For lower-level access (e.g. iterating placed gizmos in your own queries), the plugin exports its Koota traits under the `gizmoTraits` namespace:
+
+```ts
+import { gizmoTraits } from '@viamrobotics/motion-tools/plugins'
+```
+
+Every placed entity carries the generic `Gizmo` marker (with `PendingGizmo` added while the user is still placing it). Specific gizmos additionally carry a typed trait: `ReferencePlane`, `GizmoArrow`, `VertexNormals`, `SurfaceNormals`, or `PolylineMeasure`. Filter on these from your own queries to scope behavior to user-placed gizmos vs. robot frames.
