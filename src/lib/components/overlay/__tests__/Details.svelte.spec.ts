@@ -189,6 +189,7 @@ describe('Details component', () => {
 		})
 
 		const { container } = render(Details, {
+			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, weblabContext],
 				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
