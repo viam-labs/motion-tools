@@ -28,9 +28,9 @@ const FrameDeltaSchema = z.object({
 		.optional(),
 	orientation: z
 		.object({
-			roll: z.number().optional(),
-			pitch: z.number().optional(),
-			yaw: z.number().optional(),
+			roll: z.number().min(-180).max(180).optional(),
+			pitch: z.number().min(-180).max(180).optional(),
+			yaw: z.number().min(-180).max(180).optional(),
 		})
 		.optional(),
 	parent: z.string().optional(),
@@ -66,7 +66,7 @@ Rules:
   - yaw: rotation around Z — positive turns left, negative turns right.
   - pitch: rotation around Y — positive tilts nose up, negative tilts nose down.
   - roll: rotation around X — positive rolls right side up, negative rolls left side up.
-  - For relative changes (e.g. "rotate 90° more"), add the delta to the current value and return the result.
+  - For relative changes (e.g. "rotate 90° more"), add the delta to the current value and return the result. Normalize the result to [-180, 180] by wrapping (e.g. 190° → -170°).
   - If the user specifies Viam's orientation vector format { x, y, z, th }, convert it to euler angles.
   - Examples (assuming current orientation is 0/0/0 unless stated):
     - "rotate the sensor 90° to the left" → { yaw: 90 }
@@ -78,9 +78,12 @@ Rules:
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 
 export async function handleSceneBuilder(req: Request): Promise<Response> {
-	const apiKey = process.env.ANTHROPIC_API_KEY
+	const apiKey = req.headers.get('X-Anthropic-Key') || process.env.ANTHROPIC_API_KEY
 	if (!apiKey) {
-		return new Response('ANTHROPIC_API_KEY not configured', { status: 500, headers: CORS_HEADERS })
+		return new Response(
+			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
+			{ status: 401, headers: CORS_HEADERS }
+		)
 	}
 
 	let body: unknown
