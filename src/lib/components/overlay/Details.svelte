@@ -457,7 +457,11 @@
 					class="text-subtle-2"
 					aria-describedby={tooltipID}
 					onclick={async () => {
-						navigator.clipboard.writeText(getCopyClipboardText())
+						try {
+							await navigator.clipboard.writeText(getCopyClipboardText())
+						} catch {
+							// clipboard unavailable (non-secure context or permission denied)
+						}
 						copied = true
 						setTimeout(() => (copied = false), 1000)
 					}}
