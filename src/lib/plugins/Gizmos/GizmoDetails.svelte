@@ -6,7 +6,7 @@
 	import GeometryDetails from '$lib/components/overlay/details/GeometryDetails.svelte'
 	import LineDetails from '$lib/components/overlay/details/LineDetails/LineDetails.svelte'
 	import MatrixDetails from '$lib/components/overlay/details/MatrixDetails.svelte'
-	import { traits, useQuery, useTrait } from '$lib/ecs'
+	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 	import { Gizmo } from './traits'
@@ -54,6 +54,8 @@
 			<MatrixDetails
 				{entity}
 				{parentOptions}
+				onPoseChange={(patch) => traits.writeMatrix(entity, patch)}
+				onParentChange={(next) => hierarchy.setParent(entity, next)}
 			/>
 			<GeometryDetails {entity} />
 			<LineDetails {entity} />
