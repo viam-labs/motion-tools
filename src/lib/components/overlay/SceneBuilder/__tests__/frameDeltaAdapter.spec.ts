@@ -1,11 +1,9 @@
-import type { Pose } from '@viamrobotics/sdk'
-
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyPreparedUpdates, type FrameDelta, type PreparedUpdate, validateProposedFrameDeltas } from '../frameDeltaAdapter'
+import { type FrameDelta, validateProposedFrameDeltas } from '../frameDeltaAdapter'
 
 const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 	parent: 'world',
@@ -16,15 +14,6 @@ const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 
 const makeConfig = (components: PartConfig['components']): PartConfig => ({ components })
 
-const recordingDeps = () => {
-	const calls: { name: string; parent: string; pose: Pose; geometry: Frame['geometry'] }[] = []
-	return {
-		updateFrame: (name: string, parent: string, pose: Pose, geometry?: Frame['geometry']) => {
-			calls.push({ name, parent, pose, geometry })
-		},
-		calls,
-	}
-}
 
 describe('validateProposedFrameDeltas', () => {
 	it('computes a prepared update with merged pose for a valid translation delta', () => {
@@ -206,32 +195,3 @@ describe('validateProposedFrameDeltas', () => {
 	})
 })
 
-describe('applyPreparedUpdates', () => {
-	it('calls updateFrame for each prepared update', () => {
-		const { updateFrame, calls } = recordingDeps()
-		const prepared: PreparedUpdate[] = [
-			{
-				componentName: 'arm',
-				parent: 'world',
-				previousParent: 'world',
-				pose: { x: 100, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
-				previousPose: { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
-			},
-			{
-				componentName: 'gripper',
-				parent: 'arm',
-				previousParent: 'world',
-				pose: { x: 0, y: 0, z: 50, oX: 0, oY: 0, oZ: 1, theta: 0 },
-				previousPose: { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
-			},
-		]
-
-		applyPreparedUpdates(prepared, { updateFrame })
-
-		expect(calls).toHaveLength(2)
-		expect(calls[0].name).toBe('arm')
-		expect(calls[0].pose.x).toBe(100)
-		expect(calls[1].name).toBe('gripper')
-		expect(calls[1].parent).toBe('arm')
-	})
-})

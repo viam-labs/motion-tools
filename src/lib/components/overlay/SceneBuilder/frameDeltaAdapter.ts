@@ -29,14 +29,10 @@ export interface UpdateError {
 	reason: string
 }
 
-interface Deps {
-	updateFrame: (name: string, parent: string, pose: Pose, geometry?: Frame['geometry']) => void
-}
-
 /**
  * Validates LLM-proposed frame deltas and computes the resulting changes without
  * applying them. Each PreparedUpdate carries old and new values so the caller
- * can render a diff and pass the result to applyPreparedUpdates() on confirmation.
+ * can render a diff and confirm via useSceneBuilder's confirm().
  */
 export function validateProposedFrameDeltas(
 	deltas: FrameDelta[],
@@ -114,12 +110,3 @@ export function validateProposedFrameDeltas(
 	return { errors, prepared }
 }
 
-/**
- * Applies previously validated and prepared frame updates to the config.
- * Call this on user confirmation after validateProposedFrameDeltas().
- */
-export function applyPreparedUpdates(prepared: PreparedUpdate[], deps: Deps): void {
-	for (const update of prepared) {
-		deps.updateFrame(update.componentName, update.parent, update.pose, update.geometry)
-	}
-}

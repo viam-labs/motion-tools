@@ -1,7 +1,6 @@
 import { getContext, setContext } from 'svelte'
 
 import {
-	applyPreparedUpdates,
 	type FrameDelta,
 	type UpdateError,
 	validateProposedFrameDeltas,
@@ -141,7 +140,9 @@ export const provideSceneBuilder = (): void => {
 		},
 
 		confirm() {
-			applyPreparedUpdates(validation.prepared, { updateFrame: partConfig.updateFrame })
+			for (const update of validation.prepared) {
+				partConfig.updateFrame(update.componentName, update.parent, update.pose, update.geometry)
+			}
 			clear()
 			uiState = 'idle'
 		},
