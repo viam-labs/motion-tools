@@ -113,7 +113,7 @@
 	})
 
 	let previousSource: Entity | undefined = undefined
-	$effect(() => {
+	$effect.pre(() => {
 		if (source !== undefined && source.isAlive()) {
 			previousSource = source
 			return

@@ -171,7 +171,7 @@
 
 	const onAddNext = () => {
 		if (!pending.current || !hasSegment) return
-		finalizePending()
+		finalizePending() // intentionally leaves selection on the new (pending) entity
 	}
 
 	const onConfirm = () => {

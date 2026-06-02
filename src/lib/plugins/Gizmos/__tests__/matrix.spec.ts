@@ -35,6 +35,15 @@ describe('arrowMatrix', () => {
 		expect(yAxis.z).toBeCloseTo(0)
 	})
 
+	it('y-axis: antiparallel rotation — local +Y points opposite world +Y', () => {
+		// direction = yAxis, directionUtil = -yAxis: a 180° antiparallel rotation.
+		// Three.js picks an arbitrary perpendicular axis for roll; the only
+		// guarantee is that the local +Y ends up pointing in the -Y world direction.
+		const m = arrowMatrix('y', new Vector3(), undefined)
+		const { yAxis: localY } = decompose(m)
+		expect(localY.y).toBeCloseTo(-1)
+	})
+
 	it('uses the supplied surface normal when axis is "surface"', () => {
 		const m = arrowMatrix('surface', new Vector3(), new Vector3(0, 0, 1))
 		const { yAxis } = decompose(m)
