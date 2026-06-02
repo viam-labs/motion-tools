@@ -30,15 +30,15 @@ A new toggle appears in the top dashboard with the `shapes` icon. Clicking it op
 
 ## Available gizmos
 
-| Gizmo               | Mode key              | Behavior                                                                                                       |
-| ------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Coordinate system   | `coordinate-system`   | Place a labeled XYZ triad at a clicked surface point.                                                          |
-| Reference plane     | `reference-plane`     | Place a `yz` / `xz` / `xy` plane either at a clicked point ("free") or at a numeric offset from world origin.  |
-| Reference geometry  | `reference-geometry`  | Drop a `box`, `sphere`, or `capsule` (solid or wireframe) at world origin or at a clicked point.               |
-| Polyline            | `polyline`            | Click to build a multi-segment line in world or screen space. Optional segment / total measurement labels.     |
-| Arrow               | `arrow`               | Place an arrow oriented to a chosen world axis or to the clicked surface normal.                               |
-| Vertex normals      | `vertex-normals`      | Render the per-vertex normals of a clicked mesh.                                                               |
-| Surface normals     | `surface-normals`     | Render the per-face normals of a clicked surface.                                                              |
+| Gizmo              | Mode key             | Behavior                                                                                                      |
+| ------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Coordinate system  | `coordinate-system`  | Place a labeled XYZ triad at a clicked surface point.                                                         |
+| Reference plane    | `reference-plane`    | Place a `yz` / `xz` / `xy` plane either at a clicked point ("free") or at a numeric offset from world origin. |
+| Reference geometry | `reference-geometry` | Drop a `box`, `sphere`, or `capsule` (solid or wireframe) at world origin or at a clicked point.              |
+| Polyline           | `polyline`           | Click to build a multi-segment line in world or screen space. Optional segment / total measurement labels.    |
+| Arrow              | `arrow`              | Place an arrow oriented to a chosen world axis or to the clicked surface normal.                              |
+| Vertex normals     | `vertex-normals`     | Render the per-vertex normals of a clicked mesh.                                                              |
+| Surface normals    | `surface-normals`    | Render the per-face normals of a clicked surface.                                                             |
 
 ## Reading and driving plugin state
 
@@ -57,33 +57,33 @@ Use `useGizmos` to read or mutate the plugin's state from anywhere inside `<Visu
 
 Mutable properties (read/write):
 
-| Property               | Type                                | Description                                            |
-| ---------------------- | ----------------------------------- | ------------------------------------------------------ |
-| `mode`                 | `GizmoMode`                         | Active tool (`'idle'` when no tool is armed).          |
-| `planeAxis`            | `'yz' \| 'xz' \| 'xy'`              | Axis-aligned plane for the reference-plane tool.       |
-| `planeConstruction`    | `'free' \| 'offset'`                | Placement strategy for the reference-plane tool.       |
-| `planeOffset`          | `number`                            | Offset (mm) from world origin in `'offset'` mode.      |
-| `geometryShape`        | `'box' \| 'sphere' \| 'capsule'`    | Shape used by the reference-geometry tool.             |
-| `geometryConstruction` | `'at-origin' \| 'free'`             | Placement strategy for reference geometries.           |
-| `isGeometryWireframe`  | `boolean`                           | Render reference geometries as wireframe instead of solid. |
-| `lineSpace`            | `'world' \| 'screen'`               | Coordinate space used by the polyline tool.            |
-| `lineMeasure`          | `'none' \| 'segment' \| 'total'`    | Measurement labels rendered on polylines.              |
-| `arrowAxis`            | `'x' \| 'y' \| 'z' \| 'surface'`    | Direction the arrow tool orients to.                   |
-| `vertexNormalsLength`  | `number`                            | Length (mm) of vertex-normals lines.                   |
-| `surfaceNormalsLength` | `number`                            | Length (mm) of surface-normals lines.                  |
+| Property               | Type                             | Description                                                |
+| ---------------------- | -------------------------------- | ---------------------------------------------------------- |
+| `mode`                 | `GizmoMode`                      | Active tool (`'idle'` when no tool is armed).              |
+| `planeAxis`            | `'yz' \| 'xz' \| 'xy'`           | Axis-aligned plane for the reference-plane tool.           |
+| `planeConstruction`    | `'free' \| 'offset'`             | Placement strategy for the reference-plane tool.           |
+| `planeOffset`          | `number`                         | Offset (mm) from world origin in `'offset'` mode.          |
+| `geometryShape`        | `'box' \| 'sphere' \| 'capsule'` | Shape used by the reference-geometry tool.                 |
+| `geometryConstruction` | `'at-origin' \| 'free'`          | Placement strategy for reference geometries.               |
+| `isGeometryWireframe`  | `boolean`                        | Render reference geometries as wireframe instead of solid. |
+| `lineSpace`            | `'world' \| 'screen'`            | Coordinate space used by the polyline tool.                |
+| `lineMeasure`          | `'none' \| 'segment' \| 'total'` | Measurement labels rendered on polylines.                  |
+| `arrowAxis`            | `'x' \| 'y' \| 'z' \| 'surface'` | Direction the arrow tool orients to.                       |
+| `vertexNormalsLength`  | `number`                         | Length (mm) of vertex-normals lines.                       |
+| `surfaceNormalsLength` | `number`                         | Length (mm) of surface-normals lines.                      |
 
 Read-only:
 
-| Property          | Description                                                    |
-| ----------------- | -------------------------------------------------------------- |
-| `planeAxisVector` | Cloned `THREE.Vector3` normal for the current `planeAxis`.     |
-| `geometryTrait`   | Pre-configured size trait for the current `geometryShape`.     |
+| Property          | Description                                                |
+| ----------------- | ---------------------------------------------------------- |
+| `planeAxisVector` | Cloned `THREE.Vector3` normal for the current `planeAxis`. |
+| `geometryTrait`   | Pre-configured size trait for the current `geometryShape`. |
 
 Methods:
 
-| Method    | Description                                                                    |
-| --------- | ------------------------------------------------------------------------------ |
-| `exit()`  | Switch the visualizer back to `'navigate'` and set `mode` to `'idle'`.         |
+| Method   | Description                                                            |
+| -------- | ---------------------------------------------------------------------- |
+| `exit()` | Switch the visualizer back to `'navigate'` and set `mode` to `'idle'`. |
 
 ## Traits
 
@@ -98,6 +98,7 @@ Every placed entity carries the generic `Gizmo` marker (with `PendingGizmo` adde
 <Aside type="note" title="Coordinate system and reference geometry">
 	**Coordinate system** and **reference geometry** gizmos have no dedicated `gizmoTraits` entry. To scope a query to those types specifically, combine the generic `Gizmo` marker with traits from the main `traits` module:
 
-	- **Coordinate system** — `Gizmo` + `traits.ReferenceFrame` (also carries `traits.ShowAxesHelper`)
-	- **Reference geometry** — `Gizmo` + `traits.Box`, `traits.Sphere`, or `traits.Capsule`
+    - **Coordinate system** — `Gizmo` + `traits.ReferenceFrame` (also carries `traits.ShowAxesHelper`)
+    - **Reference geometry** — `Gizmo` + `traits.Box`, `traits.Sphere`, or `traits.Capsule`
+
 </Aside>
