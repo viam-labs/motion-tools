@@ -3,6 +3,8 @@ title: <Gizmos />
 description: Add a toolset for placing editable reference geometry, lines, arrows, and normals inside a motion-tools visualizer.
 ---
 
+import { Aside } from '@astrojs/starlight/components'
+
 `<Gizmos />` adds a "Gizmos" dashboard toggle with a popover of tools for placing editable scene aids: a coordinate system, reference planes, reference geometries (box / sphere / capsule), polylines with optional measurement, arrows, and vertex or surface normals.
 
 Each tool places a Koota entity in the world, selects it, and renders a custom Details panel for editing its parameters in place. Switching the visualizer's interaction mode back to `navigate`, `measure`, or `select` exits gizmo mode automatically.
@@ -92,3 +94,10 @@ import { gizmoTraits } from '@viamrobotics/motion-tools/plugins'
 ```
 
 Every placed entity carries the generic `Gizmo` marker (with `PendingGizmo` added while the user is still placing it). Specific gizmos additionally carry a typed trait: `ReferencePlane`, `GizmoArrow`, `VertexNormals`, `SurfaceNormals`, or `PolylineMeasure`. Filter on these from your own queries to scope behavior to user-placed gizmos vs. robot frames.
+
+<Aside type="note" title="Coordinate system and reference geometry">
+	**Coordinate system** and **reference geometry** gizmos have no dedicated `gizmoTraits` entry. To scope a query to those types specifically, combine the generic `Gizmo` marker with traits from the main `traits` module:
+
+	- **Coordinate system** — `Gizmo` + `traits.ReferenceFrame` (also carries `traits.ShowAxesHelper`)
+	- **Reference geometry** — `Gizmo` + `traits.Box`, `traits.Sphere`, or `traits.Capsule`
+</Aside>
