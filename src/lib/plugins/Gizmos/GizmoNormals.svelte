@@ -112,14 +112,14 @@
 		invalidate()
 	})
 
-	let previousSourceId: number | undefined = undefined
+	let previousSource: Entity | undefined = undefined
 	$effect(() => {
-		if (source !== undefined && source?.isAlive()) {
-			previousSourceId = source
+		if (source !== undefined && source.isAlive()) {
+			previousSource = source
 			return
 		}
 
-		if (previousSourceId !== undefined && entity.isAlive()) {
+		if (previousSource !== undefined && entity.isAlive()) {
 			hierarchy.destroyEntityTree(world, entity)
 		}
 	})

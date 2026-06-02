@@ -17,6 +17,8 @@ export const findSurfaceHit = (world: World, intersections: Intersection[]) => {
 	return undefined
 }
 
+// Allocates a new Set on each call — acceptable because gizmo counts are small
+// and this runs on pointer-move at low entity counts; revisit if move latency is ever an issue.
 const queryUsableSurfaces = (world: World) =>
 	new Set(world.query(Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry)))
 
