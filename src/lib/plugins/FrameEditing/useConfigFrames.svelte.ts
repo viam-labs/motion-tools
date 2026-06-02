@@ -41,7 +41,7 @@ export const provideConfigFrames = () => {
 
 	const [fragmentFrames, fragmentUnsetFrameNames] = $derived.by(() => {
 		const { fragment_mods: fragmentMods = [] } = partConfig.current
-		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentInfo)
+		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentInfo ?? {})
 
 		const results: Record<string, Transform> = {}
 		const unsetResults: string[] = []
