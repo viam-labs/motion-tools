@@ -3,7 +3,7 @@ import { getContext, setContext } from 'svelte'
 export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
 
 interface Environemnt {
-	viewerMode: 'edit' | 'monitor' | 'focus'
+	viewerMode: 'edit' | 'monitor'
 	isStandalone: boolean
 	inputBindingsEnabled: boolean
 }

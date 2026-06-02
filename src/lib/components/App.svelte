@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Struct } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
-	import type { Snippet } from 'svelte'
 
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
+	import { onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
@@ -18,7 +18,7 @@
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
-	import { provideWorld } from '$lib/ecs'
+	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
@@ -107,9 +107,11 @@
 		environment.current.isStandalone = !localConfigProps
 	})
 
-	$effect(() => {
+	onMount(() => {
 		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
+
+	const selected = useQuery(traits.Selected)
 </script>
 
 <div
@@ -118,53 +120,56 @@
 >
 	<Canvas renderMode="on-demand">
 		<SceneProviders>
-			{#snippet children({ focus })}
-				<Scene>
-					{@render appChildren?.()}
-				</Scene>
+			<Scene>
+				{@render appChildren?.()}
+			</Scene>
 
-				<XR {@attach domPortal(root)} />
+			<XR {@attach domPortal(root)} />
 
-				{#if settings.current.renderSubEntityHoverDetail}
-					<HoveredEntities />
+			{#if settings.current.renderSubEntityHoverDetail}
+				<HoveredEntities />
+			{/if}
+
+			<!-- Overlays that need Threlte context -->
+			<div {@attach domPortal(root)}>
+				<FileDrop />
+				<Dashboard {dashboard} />
+				<Controls />
+
+				{#each selected.current as entity, index (entity)}
+					<Details
+						{entity}
+						{details}
+						style="transform: translate(0, {index * 40}px)"
+					/>
+				{/each}
+
+				{#if environment.current.isStandalone}
+					<LiveUpdatesBanner />
 				{/if}
 
-				<!-- Overlays that need Threlte context -->
-				<div {@attach domPortal(root)}>
-					<FileDrop />
-					<Dashboard {dashboard} />
-					<Controls />
-					<Details {details} />
+				<TreeContainer />
 
-					{#if environment.current.isStandalone}
-						<LiveUpdatesBanner />
-					{/if}
+				{#if settings.current.enableArmPositionsWidget}
+					<ArmPositions />
+				{/if}
 
-					{#if !focus}
-						<TreeContainer />
-					{/if}
+				{#if !$isPresenting}
+					{#each currentRobotCameraWidgets as cameraName (cameraName)}
+						<Camera name={cameraName} />
+					{/each}
 
-					{#if !focus && settings.current.enableArmPositionsWidget}
-						<ArmPositions />
-					{/if}
+					{#each currentFramePovWidgets as povFrameName (povFrameName)}
+						<FramePov frameName={povFrameName} />
+					{/each}
+				{/if}
 
-					{#if !focus && !$isPresenting}
-						{#each currentRobotCameraWidgets as cameraName (cameraName)}
-							<Camera name={cameraName} />
-						{/each}
+				<PortalTarget id="dom" />
 
-						{#each currentFramePovWidgets as povFrameName (povFrameName)}
-							<FramePov frameName={povFrameName} />
-						{/each}
-					{/if}
-
-					<PortalTarget id="dom" />
-
-					<Settings />
-					<Logs />
-					<AddFrames />
-				</div>
-			{/snippet}
+				<Settings />
+				<Logs />
+				<AddFrames />
+			</div>
 		</SceneProviders>
 	</Canvas>
 

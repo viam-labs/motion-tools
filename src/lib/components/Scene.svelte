@@ -4,21 +4,20 @@
 	import { T, useThrelte } from '@threlte/core'
 	import { Environment, Grid, interactivity, PerfMonitor, PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
-	import { ShaderMaterial, Vector3 } from 'three'
+	import { ShaderMaterial } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
-	import Focus from '$lib/components/Focus.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
-	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
+	import KeyboardBindings from './KeyboardBindings.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
 	import { useOrigin } from './xr/useOrigin.svelte'
 
@@ -30,7 +29,6 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
-	const focusedObject3d = useFocusedObject3d()
 	const origin = useOrigin()
 
 	// @ts-expect-error This is for debugging
@@ -58,8 +56,6 @@
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
 
-	const focusedObject = $derived(focusedObject3d.current)
-
 	const { isPresenting } = useXR()
 </script>
 
@@ -67,6 +63,7 @@
 	<PerfMonitor anchorX="right" />
 {/if}
 
+<KeyboardBindings />
 <Environment url={hdrImage} />
 
 <T.Group
@@ -74,46 +71,40 @@
 	rotation.z={origin.rotation}
 >
 	<PointerMissBox />
+	<SelectedTransformControls />
 
-	{#if focusedObject}
-		<Focus object3d={focusedObject} />
-	{:else}
-		{#if !$isPresenting}
-			<Camera position={[3, 3, 3]}>
-				<CameraControls />
-			</Camera>
-		{/if}
-
-		<StaticGeometries />
-		<Selected />
-		<SelectedTransformControls />
-
-		{#if !$isPresenting && settings.current.grid}
-			<Grid
-				oncreate={(ref) => {
-					const material = ref.material as ShaderMaterial
-					material.depthWrite = false
-				}}
-				raycast={() => null}
-				bvh={{ enabled: false }}
-				plane="xy"
-				sectionColor="#333"
-				infiniteGrid
-				renderOrder={999}
-				cellSize={settings.current.gridCellSize}
-				sectionSize={settings.current.gridSectionSize}
-				fadeOrigin={new Vector3()}
-				fadeDistance={settings.current.gridFadeDistance}
-			/>
-		{/if}
+	{#if !$isPresenting && settings.current.grid}
+		<Grid
+			oncreate={(ref) => {
+				const material = ref.material as ShaderMaterial
+				material.depthWrite = false
+			}}
+			raycast={() => null}
+			bvh={{ enabled: false }}
+			plane="xy"
+			sectionColor="#333"
+			infiniteGrid
+			renderOrder={999}
+			cellSize={settings.current.gridCellSize}
+			sectionSize={settings.current.gridSectionSize}
+			fadeOrigin={[0, 0, 0]}
+			fadeDistance={settings.current.gridFadeDistance}
+		/>
 	{/if}
 
-	<T.Group attach={focusedObject ? false : undefined}>
-		<PortalTarget />
+	{#if !$isPresenting}
+		<Camera position={[3, 3, 3]}>
+			<CameraControls />
+		</Camera>
+	{/if}
 
-		<Entities />
-		<BatchedArrows />
-	</T.Group>
+	<StaticGeometries />
+	<Selected />
+
+	<PortalTarget />
+
+	<Entities />
+	<BatchedArrows />
 
 	{@render children?.()}
 
