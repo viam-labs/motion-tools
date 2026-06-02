@@ -12,11 +12,12 @@ import MatrixDetails from '../MatrixDetails.svelte'
 
 describe('MatrixDetails', () => {
 	const world = createWorld()
+	const parentOptions = [{ value: 'world', text: 'world' }]
 
 	it('always renders parent, world position, and world orientation sections', () => {
 		const entity = world.spawn()
 		render(MatrixDetails, {
-			props: { entity },
+			props: { entity, parentOptions },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
 		expect(screen.getByText('parent')).toBeInTheDocument()
@@ -31,7 +32,7 @@ describe('MatrixDetails', () => {
 		)
 		const entity = world.spawn(traits.Matrix(matrix))
 		render(MatrixDetails, {
-			props: { entity },
+			props: { entity, parentOptions },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
 		expect(screen.getByLabelText('mutable local position')).toBeInTheDocument()
@@ -41,7 +42,7 @@ describe('MatrixDetails', () => {
 	it('does not render local position/orientation when entity has no matrix or center', () => {
 		const entity = world.spawn()
 		render(MatrixDetails, {
-			props: { entity },
+			props: { entity, parentOptions },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
 		expect(screen.queryByLabelText('mutable local position')).not.toBeInTheDocument()
