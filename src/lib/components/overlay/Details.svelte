@@ -271,6 +271,7 @@
 		const value = event.detail.value as string
 		if (value === parent.current) return
 		hierarchy.setParent(entity, value)
+		invalidate()
 		// Non-frame entities (gizmos, custom geometries) aren't backed by the
 		// robot config, so skip the config sync.
 		if (isFrameNode) {
