@@ -9,6 +9,7 @@ import {
 import { backendIP, websocketPort } from '$lib/defines'
 import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
+import { useAnthropicKey } from './useAnthropicKey.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 
 const key = Symbol('scene-builder-context')
@@ -41,6 +42,7 @@ interface SceneBuilderContext {
 
 export const provideSceneBuilder = (): void => {
 	const partConfig = usePartConfig()
+	const anthropicKey = useAnthropicKey()
 
 	let uiState = $state<UIState>('idle')
 	let deltas = $state<FrameDelta[]>([])
@@ -142,7 +144,11 @@ export const provideSceneBuilder = (): void => {
 				const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ prompt: prompt.trim(), components }),
+					body: JSON.stringify({
+						prompt: prompt.trim(),
+						components,
+						anthropicApiKey: anthropicKey.current || undefined,
+					}),
 				})
 
 				if (!res.ok) {

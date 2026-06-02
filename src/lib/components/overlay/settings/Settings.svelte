@@ -9,6 +9,7 @@
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import XRControllerSettings from '$lib/components/xr/XRControllerSettings.svelte'
+	import { useAnthropicKey } from '$lib/hooks/useAnthropicKey.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
@@ -27,6 +28,7 @@
 	const cameras = useResourceNames(() => partID.current, 'camera')
 	const visionServices = useResourceNames(() => partID.current, 'vision')
 	const settings = useSettings()
+	const anthropicKey = useAnthropicKey()
 	const { disabledCameras, disabledVisionServices } = $derived(settings.current)
 	const geometries = useGeometries()
 	const pointclouds = usePointClouds()
@@ -290,6 +292,27 @@
 	</div>
 {/snippet}
 
+{#snippet AI()}
+	<div class="flex flex-col gap-2.5 text-xs">
+		{@render SectionTitle('Anthropic')}
+		<label class="flex flex-col gap-1">
+			API key
+			<Input
+				type="password"
+				value={anthropicKey.current}
+				placeholder="sk-ant-..."
+				on:change={(event) => {
+					anthropicKey.save((event.target as HTMLInputElement).value.trim())
+				}}
+				on:keydown={(event) => event.stopImmediatePropagation()}
+			/>
+		</label>
+		<p class="text-gray-5">
+			Used by the Scene Builder AI feature. Stored locally in your browser.
+		</p>
+	</div>
+{/snippet}
+
 {#snippet Weblabs()}
 	<div class="flex flex-col gap-1 text-xs">
 		{#each knownWeblabs as experiment (experiment)}
@@ -356,6 +379,7 @@
 			{ label: 'Vision', content: Vision },
 			{ label: 'Widgets', content: Widgets },
 			{ label: 'Stats', content: Stats },
+			{ label: 'AI', content: AI },
 			{ label: 'Weblabs', content: Weblabs },
 			...('xr' in navigator ? [{ label: 'VR / AR', content: XR }] : []),
 		]}

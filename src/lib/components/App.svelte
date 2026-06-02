@@ -23,6 +23,7 @@
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
+	import { provideAnthropicKey } from '$lib/hooks/useAnthropicKey.svelte'
 	import { provideSceneBuilder } from '$lib/hooks/useSceneBuilder.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
@@ -94,6 +95,7 @@
 	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
 
+	provideAnthropicKey()
 	provideWeblabs()
 	provideToast()
 

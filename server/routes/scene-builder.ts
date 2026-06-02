@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 const RequestSchema = z.object({
 	prompt: z.string().min(1),
+	anthropicApiKey: z.string().optional(),
 	components: z.array(
 		z.object({
 			name: z.string(),
@@ -78,14 +79,6 @@ Rules:
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 
 export async function handleSceneBuilder(req: Request): Promise<Response> {
-	const apiKey = req.headers.get('X-Anthropic-Key') || process.env.ANTHROPIC_API_KEY
-	if (!apiKey) {
-		return new Response(
-			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
-			{ status: 401, headers: CORS_HEADERS }
-		)
-	}
-
 	let body: unknown
 	try {
 		body = await req.json()
@@ -101,7 +94,14 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		})
 	}
 
-	const { prompt, components } = parsed.data
+	const { prompt, components, anthropicApiKey } = parsed.data
+	const apiKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY
+	if (!apiKey) {
+		return new Response(
+			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
+			{ status: 401, headers: CORS_HEADERS }
+		)
+	}
 
 	const model = new ChatAnthropic({ model: 'claude-haiku-4-5-20251001', apiKey }).withStructuredOutput(
 		ResponseSchema
