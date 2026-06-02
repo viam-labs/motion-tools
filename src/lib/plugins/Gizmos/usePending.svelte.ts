@@ -1,8 +1,9 @@
 import { type Entity } from 'koota'
 import { onDestroy } from 'svelte'
 
-import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+import { traits, useWorld } from '$lib/ecs'
 
+import { clearSelection } from './selection'
 import { cancelPending } from './spawn'
 import { useAddNextInput, useCancelInput, useConfirmInput, useUndoInput } from './useInputs.svelte'
 
@@ -14,7 +15,7 @@ interface Options {
 }
 
 export const usePending = (options: () => Options = () => ({})) => {
-	const selectedEntity = useSelectedEntity()
+	const world = useWorld()
 
 	let pending = $state.raw<Entity>()
 
@@ -24,7 +25,7 @@ export const usePending = (options: () => Options = () => ({})) => {
 	useUndoInput(() => options().onUndo?.())
 
 	onDestroy(() => {
-		if (pending !== undefined && selectedEntity.current === pending) selectedEntity.set()
+		if (pending !== undefined && pending.has(traits.Selected)) clearSelection(world)
 		cancelPending(pending)
 	})
 
