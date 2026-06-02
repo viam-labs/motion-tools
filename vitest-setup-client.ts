@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 vi.mock('@threlte/core', () => ({
 	useTask: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
 	useThrelte: vi.fn(() => ({
+		invalidate: vi.fn(),
 		scene: {
 			getObjectByName: vi.fn(() => undefined),
 			getObjectByProperty: vi.fn(() => ({
@@ -14,14 +15,7 @@ vi.mock('@threlte/core', () => ({
 		invalidate: vi.fn(),
 	})),
 	isInstanceOf: vi.fn(() => false),
-    useThrelte: vi.fn(() => ({
-        invalidate: vi.fn(),
-        scene: {
-            getObjectByProperty: vi.fn(() => ({
-                clone: vi.fn(() => ({ traverse: vi.fn() })),
-            })),
-        },
-    })),
+}))
 
 // `@threlte/extras` components (PortalTarget, HTML, etc.) call into Threlte's
 // internal context which requires a `<Canvas>` parent. Tests render Svelte
