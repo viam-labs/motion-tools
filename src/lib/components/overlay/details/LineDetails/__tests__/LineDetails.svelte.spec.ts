@@ -12,9 +12,7 @@ describe('LineDetails', () => {
 	const world = createWorld()
 
 	it('renders line positions section when entity has LinePositions trait', () => {
-		const entity = world.spawn(
-			traits.LinePositions(new Float32Array([0, 0, 0, 1, 1, 1, 2, 2, 2]))
-		)
+		const entity = world.spawn(traits.LinePositions(new Float32Array([0, 0, 0, 1, 1, 1, 2, 2, 2])))
 		render(LineDetails, {
 			props: { entity },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
