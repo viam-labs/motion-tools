@@ -749,8 +749,10 @@
 
 			<PortalTarget id="details-extensions" />
 
-			<OpacityDetails {entity} />
-			<AxesHelperDetails {entity} />
+			{#if !hasCustomDetails}
+				<OpacityDetails {entity} />
+				<AxesHelperDetails {entity} />
+			{/if}
 		</div>
 
 		{#if linkedEntities.current.length > 0}
