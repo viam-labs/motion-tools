@@ -67,4 +67,19 @@ describe('<Button> (dashboard)', () => {
 		expect(radio).toBeInTheDocument()
 		expect(radio).toHaveAttribute('aria-checked', 'true')
 	})
+
+	it('preserves aria and role when disableTooltip is true and inactive', () => {
+		render(Button, {
+			props: {
+				icon: 'cursor-move',
+				description: 'Translate',
+				active: false,
+				disableTooltip: true,
+			},
+		})
+
+		const radio = screen.getByRole('radio', { name: 'Translate' })
+		expect(radio).toBeInTheDocument()
+		expect(radio).toHaveAttribute('aria-checked', 'false')
+	})
 })
