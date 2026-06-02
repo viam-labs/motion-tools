@@ -14,11 +14,16 @@ const key = Symbol('scene-builder-context')
 
 type UIState = 'idle' | 'loading' | 'diff' | 'error'
 
-interface DiffRow {
-	componentName: string
+interface FieldChange {
 	field: string
 	oldValue: string
 	newValue: string
+}
+
+interface DiffGroup {
+	componentName: string
+	explanation?: string
+	changes: FieldChange[]
 }
 
 interface SceneBuilderContext {
@@ -26,7 +31,7 @@ interface SceneBuilderContext {
 	readonly updateErrors: UpdateError[]
 	readonly explanation: string
 	readonly errorMessage: string
-	readonly diffRows: DiffRow[]
+	readonly diffGroups: DiffGroup[]
 	submit(prompt: string): Promise<void>
 	confirm(): void
 	cancel(): void
@@ -52,42 +57,22 @@ export const provideSceneBuilder = (): void => {
 
 	const updateErrors = $derived(validation.errors)
 
-	const diffRows = $derived(
-		validation.prepared.flatMap((u) => {
-			const rows: DiffRow[] = []
+	const diffGroups = $derived(
+		validation.prepared.flatMap((u): DiffGroup[] => {
+			const changes: FieldChange[] = []
 			const fmt = (p: typeof u.pose) => `(${p.oX}, ${p.oY}, ${p.oZ}) @ ${p.theta}°`
 
 			if (u.parent !== u.previousParent) {
-				rows.push({
-					componentName: u.componentName,
-					field: 'parent',
-					oldValue: u.previousParent,
-					newValue: u.parent,
-				})
+				changes.push({ field: 'parent', oldValue: u.previousParent, newValue: u.parent })
 			}
 			if (u.pose.x !== u.previousPose.x) {
-				rows.push({
-					componentName: u.componentName,
-					field: 'translation.x',
-					oldValue: String(u.previousPose.x),
-					newValue: String(u.pose.x),
-				})
+				changes.push({ field: 'translation.x', oldValue: String(u.previousPose.x), newValue: String(u.pose.x) })
 			}
 			if (u.pose.y !== u.previousPose.y) {
-				rows.push({
-					componentName: u.componentName,
-					field: 'translation.y',
-					oldValue: String(u.previousPose.y),
-					newValue: String(u.pose.y),
-				})
+				changes.push({ field: 'translation.y', oldValue: String(u.previousPose.y), newValue: String(u.pose.y) })
 			}
 			if (u.pose.z !== u.previousPose.z) {
-				rows.push({
-					componentName: u.componentName,
-					field: 'translation.z',
-					oldValue: String(u.previousPose.z),
-					newValue: String(u.pose.z),
-				})
+				changes.push({ field: 'translation.z', oldValue: String(u.previousPose.z), newValue: String(u.pose.z) })
 			}
 			if (
 				u.pose.oX !== u.previousPose.oX ||
@@ -95,15 +80,12 @@ export const provideSceneBuilder = (): void => {
 				u.pose.oZ !== u.previousPose.oZ ||
 				u.pose.theta !== u.previousPose.theta
 			) {
-				rows.push({
-					componentName: u.componentName,
-					field: 'orientation',
-					oldValue: fmt(u.previousPose),
-					newValue: fmt(u.pose),
-				})
+				changes.push({ field: 'orientation', oldValue: fmt(u.previousPose), newValue: fmt(u.pose) })
 			}
 
-			return rows
+			return changes.length > 0
+				? [{ componentName: u.componentName, explanation: u.explanation, changes }]
+				: []
 		})
 	)
 
@@ -126,8 +108,8 @@ export const provideSceneBuilder = (): void => {
 		get errorMessage() {
 			return errorMessage
 		},
-		get diffRows() {
-			return diffRows
+		get diffGroups() {
+			return diffGroups
 		},
 
 		async submit(prompt: string) {

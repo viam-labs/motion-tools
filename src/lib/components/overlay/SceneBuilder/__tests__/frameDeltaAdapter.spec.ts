@@ -163,6 +163,28 @@ describe('validateProposedFrameDeltas', () => {
 		expect(errors[0].reason).toMatch(/non-finite/i)
 	})
 
+	it('passes explanation through to the prepared update when present', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { x: 200 }, explanation: 'move 200mm forward along X' }],
+			config
+		)
+
+		expect(prepared[0].explanation).toBe('move 200mm forward along X')
+	})
+
+	it('leaves explanation undefined when the delta omits it', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { x: 200 } }],
+			config
+		)
+
+		expect(prepared[0].explanation).toBeUndefined()
+	})
+
 	it('prepares valid deltas and surfaces errors for invalid ones in the same batch', () => {
 		const config = makeConfig([
 			{ name: 'arm', frame: makeFrame() },

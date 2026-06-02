@@ -11,6 +11,7 @@ export interface FrameDelta {
 	/** Full orientation replacement as ov_degrees { x, y, z, th } */
 	orientation?: { x: number; y: number; z: number; th: number }
 	parent?: string
+	explanation?: string
 }
 
 export interface PreparedUpdate {
@@ -20,6 +21,7 @@ export interface PreparedUpdate {
 	pose: Pose
 	previousPose: Pose
 	geometry?: Frame['geometry']
+	explanation?: string
 }
 
 export interface UpdateError {
@@ -105,6 +107,7 @@ export function validateProposedFrameDeltas(
 			pose: newPose,
 			previousPose,
 			geometry: component.frame.geometry,
+			explanation: delta.explanation,
 		})
 	}
 

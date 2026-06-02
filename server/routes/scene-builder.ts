@@ -37,6 +37,7 @@ const FrameDeltaSchema = z.object({
 		})
 		.optional(),
 	parent: z.string().optional(),
+	explanation: z.string().optional(),
 })
 
 const ResponseSchema = z.object({
@@ -55,7 +56,8 @@ Rules:
 - For orientation, return the full { x, y, z, th } orientation vector: (x,y,z) is the unit axis, th is the rotation angle in degrees.
 - For parent, return the new parent frame name as a string.
 - All translation values are in millimeters.
-- Do not change geometry or attributes.`
+- Do not change geometry or attributes.
+- For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 
 export async function handleSceneBuilder(req: Request): Promise<Response> {
 	const apiKey = process.env.ANTHROPIC_API_KEY

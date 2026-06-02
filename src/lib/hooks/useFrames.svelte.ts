@@ -240,7 +240,6 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					// TODO: Ran into some weird local vs. world matrix computation bug.
 					// Matrix is the "baseline" — the robot's config position before
 					// the current round of edits. The world matrix formula is:
 					//   WorldMatrix = live × baseline⁻¹ × edited
@@ -248,18 +247,19 @@ export const provideFrames = (partID: () => string) => {
 					// which is the user's desired position. Keeping baseline stale while
 					// the user has unsaved edits is what makes the 3D preview work.
 					//
-					// I chose to use isDirty (not isEditMode) because isEditMode is driven by
+					// We use isDirty (not isEditMode) because isEditMode is driven by
 					// viewerMode, which is set in a plain $effect that runs *after*
 					// $effect.pre — so isEditMode is stale on the first update from
 					// monitor mode. isDirty is $state and updates synchronously with
-					// updateFrame(), so it's always current here. Correct me if I'm wrong here!
+					// updateFrame(), so it's always current here.
 					//
-					// We unlock baseline during save (hasPendingSave=true) so it resets
-					// to the new config before the robot moves. Without this, once the
-					// robot reaches the new position (live = new), the formula gives
-					// live × old⁻¹ × new = 2× the change — a world-position doubling.
-					// if (!partConfig.isDirty || partConfig.hasPendingSave) {
-					if (!isEditMode && !partConfig.hasPendingSave) {
+					// !isDirty also handles the post-save case: standalone save() clears
+					// isDirty synchronously after the mutation resolves (at the same time
+					// hasPendingSave is set), so the baseline unlocks to the saved config
+					// as soon as the save completes. If the user edits again before the
+					// robot confirms (isDirty=true again), the baseline re-freezes,
+					// keeping the new preview correct.
+					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
 							poseToMatrix(pose, baseline)

@@ -71,28 +71,36 @@
 				<p class="text-gray-6 italic">{sceneBuilder.explanation}</p>
 			{/if}
 
-			{#if sceneBuilder.diffRows.length > 0}
-				<div class="overflow-auto rounded border border-gray-200">
-					<table class="w-full text-left">
-						<thead class="bg-gray-50">
-							<tr>
-								<th class="px-2 py-1 font-medium">Component</th>
-								<th class="px-2 py-1 font-medium">Field</th>
-								<th class="px-2 py-1 font-medium">Before</th>
-								<th class="px-2 py-1 font-medium">After</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each sceneBuilder.diffRows as change (change.componentName + change.field)}
-								<tr class="border-t border-gray-100">
-									<td class="px-2 py-1 font-mono">{change.componentName}</td>
-									<td class="px-2 py-1 font-mono">{change.field}</td>
-									<td class="text-red-6 px-2 py-1 font-mono">{change.oldValue}</td>
-									<td class="text-green-6 px-2 py-1 font-mono">{change.newValue}</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
+			{#if sceneBuilder.diffGroups.length > 0}
+				<div class="flex flex-col gap-2 overflow-auto">
+					{#each sceneBuilder.diffGroups as group (group.componentName)}
+						<div class="rounded border border-gray-200">
+							<div class="flex items-baseline gap-2 border-b border-gray-200 bg-gray-50 px-2 py-1">
+								<span class="font-mono font-medium">{group.componentName}</span>
+								{#if group.explanation}
+									<span class="text-gray-5 truncate italic">{group.explanation}</span>
+								{/if}
+							</div>
+							<table class="w-full text-left">
+								<thead class="sr-only">
+									<tr>
+										<th>Field</th>
+										<th>Before</th>
+										<th>After</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each group.changes as change (change.field)}
+										<tr class="border-t border-gray-100 first:border-t-0">
+											<td class="px-2 py-1 font-mono">{change.field}</td>
+											<td class="text-red-6 px-2 py-1 font-mono">{change.oldValue}</td>
+											<td class="text-green-6 px-2 py-1 font-mono">{change.newValue}</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					{/each}
 				</div>
 			{:else}
 				<p class="text-gray-5 text-center">No frame changes proposed.</p>
