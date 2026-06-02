@@ -33,6 +33,7 @@
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import Logs from './overlay/Logs.svelte'
+	import SceneBuilder from './overlay/SceneBuilder/SceneBuilder.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
@@ -165,6 +166,7 @@
 					<Settings />
 					<Logs />
 					<AddFrames />
+					<SceneBuilder />
 				</div>
 			{/snippet}
 		</SceneProviders>

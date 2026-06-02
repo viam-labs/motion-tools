@@ -9,7 +9,6 @@
 	import { backendIP, websocketPort } from '$lib/defines'
 	import { DrawService, MeasureTool } from '$lib/plugins'
 
-	import SceneBuilder from '$lib/components/overlay/SceneBuilder/SceneBuilder.svelte'
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
 	import {
@@ -73,7 +72,6 @@
 
 				{#snippet dashboard()}
 					<Machines bind:isOpen={isMachinesPageOpen} />
-					<SceneBuilder />
 				{/snippet}
 
 				<DrawService config={{ backendIP, websocketPort }} />

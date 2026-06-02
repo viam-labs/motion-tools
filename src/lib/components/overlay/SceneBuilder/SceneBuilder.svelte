@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { Icon } from '@viamrobotics/prime-core'
+	import { Portal } from '@threlte/extras'
 
 	import { useSceneBuilder } from '$lib/hooks/useSceneBuilder.svelte'
 
+	import DashboardButton from '../dashboard/Button.svelte'
 	import FloatingPanel from '../FloatingPanel.svelte'
 
 	const sceneBuilder = useSceneBuilder()
@@ -13,16 +14,16 @@
 	const canSubmit = $derived(prompt.trim().length > 0 && sceneBuilder.uiState === 'idle')
 </script>
 
-<button
-	class="flex items-center gap-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50"
-	onclick={() => (isOpen = !isOpen)}
->
-	<Icon
-		name="robot-outline"
-		size="sm"
-	/>
-	Frame Builder
-</button>
+<Portal id="dashboard">
+	<fieldset>
+		<DashboardButton
+			active={isOpen}
+			icon="robot-outline"
+			description="Frame Builder"
+			onclick={() => (isOpen = !isOpen)}
+		/>
+	</fieldset>
+</Portal>
 
 <FloatingPanel
 	bind:isOpen
