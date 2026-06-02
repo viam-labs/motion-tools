@@ -4,11 +4,11 @@
 	import { Vector3 } from 'three'
 
 	import { asRGB } from '$lib/buffer'
-	import MeasurePoint from '$lib/components/MeasureTool/MeasurePoint.svelte'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorHit } from '../cursor'
