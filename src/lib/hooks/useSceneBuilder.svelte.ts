@@ -7,7 +7,7 @@ import {
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
 
 import { backendIP, websocketPort } from '$lib/defines'
-import { poseToEulerDegrees } from '$lib/transform'
+import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
 import { usePartConfig } from './usePartConfig.svelte'
 
@@ -125,7 +125,18 @@ export const provideSceneBuilder = (): void => {
 
 			const components = partConfig.current.components
 				.filter((c) => c.frame !== undefined)
-				.map(({ name, frame }) => ({ name, frame }))
+				.map(({ name, frame }) => {
+					const pose = createPoseFromFrame(frame!)
+					const { roll, pitch, yaw } = poseToEulerDegrees(pose)
+					return {
+						name,
+						frame: {
+							parent: frame!.parent,
+							translation: frame!.translation,
+							orientation: { roll, pitch, yaw },
+						},
+					}
+				})
 
 			try {
 				const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {

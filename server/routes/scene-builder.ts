@@ -9,10 +9,7 @@ const RequestSchema = z.object({
 			frame: z.object({
 				parent: z.string(),
 				translation: z.object({ x: z.number(), y: z.number(), z: z.number() }),
-				orientation: z.object({
-					type: z.string(),
-					value: z.record(z.string(), z.number()),
-				}),
+				orientation: z.object({ roll: z.number(), pitch: z.number(), yaw: z.number() }),
 			}),
 		})
 	),
@@ -46,8 +43,14 @@ const FrameDeltaSchema = z.object({
 })
 
 const ResponseSchema = z.object({
-	updates: z.array(FrameDeltaSchema),
-	explanation: z.string(),
+	updates: z
+		.array(FrameDeltaSchema)
+		.describe(
+			'One entry per component that needs to change. Always populate for any requested change — empty only if truly nothing needs to change.'
+		),
+	explanation: z
+		.string()
+		.describe('One sentence summarizing the changes made, e.g. "Rotated arm-1 yaw to 90°."'),
 })
 
 const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -58,17 +61,18 @@ Rules:
 - Only modify components listed in the context below. Each component has a "name" field — use that exact string as "componentName" in your response.
 - Return only components that actually need to change.
 - For translation, return only the changed axes (x, y, z are each optional). All translation values are in millimeters.
-- For orientation, return only the euler angle fields that are changing (roll, pitch, yaw are each optional, in degrees).
+- For orientation, current values are shown as { roll, pitch, yaw } in degrees. Return only the axes that are changing with their new absolute values.
   - Coordinate system: X is forward, Y is left, Z is up (right-handed).
   - yaw: rotation around Z — positive turns left, negative turns right.
   - pitch: rotation around Y — positive tilts nose up, negative tilts nose down.
   - roll: rotation around X — positive rolls right side up, negative rolls left side up.
-  - If the user describes orientation using Viam's orientation vector format { x, y, z, th }, convert it to equivalent euler angles in your response.
-  - Examples:
+  - For relative changes (e.g. "rotate 90° more"), add the delta to the current value and return the result.
+  - If the user specifies Viam's orientation vector format { x, y, z, th }, convert it to euler angles.
+  - Examples (assuming current orientation is 0/0/0 unless stated):
     - "rotate the sensor 90° to the left" → { yaw: 90 }
     - "tilt the camera down 30°" → { pitch: -30 }
     - "roll the end effector 45° clockwise" → { roll: -45 }
-    - "point the arm forward and tilt it down 20°" → { yaw: 0, pitch: -20 }
+    - "rotate arm-1 yaw by +90° more" (current yaw 45°) → { yaw: 135 }
 - For parent, return the new parent frame name as a string.
 - Do not change geometry or attributes.
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
