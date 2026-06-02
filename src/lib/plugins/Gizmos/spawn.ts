@@ -49,6 +49,7 @@ export const cancelPending = (entity: Entity | undefined) => {
 	entity.destroy()
 }
 
+// O(n) over all named entities — acceptable because gizmo counts are small (< 100).
 const nextIndex = (world: World, kind: string) => {
 	const used = new Set<number>()
 	for (const entity of world.query(traits.Name)) {

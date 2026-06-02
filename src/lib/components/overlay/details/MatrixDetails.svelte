@@ -6,9 +6,9 @@
 
 	import { OrientationVector } from '$lib/three/OrientationVector'
 
-	const quaternion = new Quaternion()
-	const ov = new OrientationVector()
-	const euler = new Euler()
+	const quaternionUtil = new Quaternion()
+	const ovUtil = new OrientationVector()
+	const eulerUtil = new Euler()
 </script>
 
 <script lang="ts">
@@ -30,14 +30,15 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { hierarchy, traits, useParentName, useQuery, useTrait } from '$lib/ecs'
+	import { hierarchy, traits, useParentName, useTrait } from '$lib/ecs'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
+		parentOptions: Array<{ value: string; text: string }>
 	}
 
-	let { entity }: Props = $props()
+	const { entity, parentOptions }: Props = $props()
 
 	const { invalidate } = useThrelte()
 
@@ -46,18 +47,6 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const parent = useParentName(() => entity)
-	const namedEntities = useQuery(traits.Name)
-
-	const parentOptions = $derived.by(() => {
-		const opts = [{ value: 'world', text: 'world' }]
-		for (const candidate of namedEntities.current) {
-			if (candidate === entity) continue
-			const candidateName = candidate.get(traits.Name)
-			if (!candidateName || candidateName === 'world') continue
-			opts.push({ value: candidateName, text: candidateName })
-		}
-		return opts
-	})
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -73,12 +62,12 @@
 
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
 		if (!localPose) return { x: 0, y: 0, z: 0 }
-		ov.set(localPose.oX, localPose.oY, localPose.oZ, MathUtils.degToRad(localPose.theta))
-		ov.toEuler(euler)
+		ovUtil.set(localPose.oX, localPose.oY, localPose.oZ, MathUtils.degToRad(localPose.theta))
+		ovUtil.toEuler(eulerUtil)
 		return {
-			x: MathUtils.radToDeg(euler.x),
-			y: MathUtils.radToDeg(euler.y),
-			z: MathUtils.radToDeg(euler.z),
+			x: MathUtils.radToDeg(eulerUtil.x),
+			y: MathUtils.radToDeg(eulerUtil.y),
+			z: MathUtils.radToDeg(eulerUtil.z),
 		}
 	})
 
@@ -110,15 +99,15 @@
 	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as RotationEulerValueObject
-		euler.set(
+		eulerUtil.set(
 			MathUtils.degToRad(next.x),
 			MathUtils.degToRad(next.y),
 			MathUtils.degToRad(next.z),
 			'ZYX'
 		)
-		quaternion.setFromEuler(euler)
-		ov.setFromQuaternion(quaternion)
-		applyLocal({ oX: ov.x, oY: ov.y, oZ: ov.z, theta: MathUtils.radToDeg(ov.th) })
+		quaternionUtil.setFromEuler(eulerUtil)
+		ovUtil.setFromQuaternion(quaternionUtil)
+		applyLocal({ oX: ovUtil.x, oY: ovUtil.y, oZ: ovUtil.z, theta: MathUtils.radToDeg(ovUtil.th) })
 	}
 </script>
 

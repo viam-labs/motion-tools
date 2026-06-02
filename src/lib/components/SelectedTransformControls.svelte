@@ -136,8 +136,15 @@
 					// local matrix and return the stale pre-drag transform — so
 					// the gizmo handles move visually but the entity never
 					// actually rotates/translates. Read what TransformControls
-					// wrote into the local fields directly. Renderers mount under
-					// an identity-ish root, so local ≈ world here.
+					// wrote into the local fields directly.
+					//
+					// NOTE: this branch is only reached for non-`FramesAPI` entities
+					// (frame entities go through `stageFrameTransform` above). It
+					// assumes non-frame entity renderers mount directly under the
+					// scene root so local ≈ world. If a future plugin mounts a
+					// gizmo entity under a non-identity parent, switch back to
+					// `getWorldPosition`/`getWorldQuaternion` with a
+					// parent-inverse step (see `stageFrameTransform`).
 					if (activeMode === 'translate') {
 						vector3ToPose(ref.position, tempPose)
 					} else {

@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 vi.mock('@threlte/core', () => ({
 	useTask: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
 	useThrelte: vi.fn(() => ({
+		invalidate: vi.fn(),
 		scene: {
 			getObjectByProperty: vi.fn(() => ({
 				clone: vi.fn(() => ({ traverse: vi.fn() })),

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
+	import { useThrelte } from '@threlte/core'
 	import {
 		Color,
 		type ColorChangeEvent,
@@ -23,8 +24,9 @@
 		entity: Entity
 	}
 
-	let { entity }: Props = $props()
+	const { entity }: Props = $props()
 
+	const { invalidate } = useThrelte()
 	const linePositions = useTrait(() => entity, traits.LinePositions)
 	const lineWidth = useTrait(() => entity, traits.LineWidth)
 	const dotSize = useTrait(() => entity, traits.DotSize)
@@ -53,6 +55,7 @@
 			traits.LinePositions,
 			writeLinePositionPure(current, index, value.x, value.y, value.z)
 		)
+		invalidate()
 	}
 
 	const appendLinePosition = () => {
@@ -60,6 +63,7 @@
 			traits.LinePositions,
 			appendLinePositionPure(linePositions.current ?? new Float32Array())
 		)
+		invalidate()
 	}
 
 	const removeLinePosition = (index: number) => {
@@ -68,16 +72,19 @@
 		const next = removeLinePositionPure(current, index)
 		if (next === current) return
 		entity.set(traits.LinePositions, next)
+		invalidate()
 	}
 
 	const handleLineWidthChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		entity.set(traits.LineWidth, event.detail.value)
+		invalidate()
 	}
 
 	const handleDotSizeChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		entity.set(traits.DotSize, event.detail.value)
+		invalidate()
 	}
 
 	const handleDotColorChange = (event: ColorChangeEvent) => {
@@ -87,6 +94,7 @@
 			traits.DotColors,
 			new Uint8Array([Math.round(next.r * 255), Math.round(next.g * 255), Math.round(next.b * 255)])
 		)
+		invalidate()
 	}
 </script>
 

@@ -10,12 +10,12 @@
 	import { Vector3 } from 'three'
 
 	import { asRGB } from '$lib/buffer'
-	import MeasurePoint from '$lib/components/MeasureTool/MeasurePoint.svelte'
 	import { DEFAULT_LINE_WIDTH } from '$lib/draw'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'
@@ -127,7 +127,8 @@
 			if (index === 0 && points.length >= 3) {
 				// close the loop
 				points = [...points, position]
-				finalizePending()
+				const committed = finalizePending()
+				if (committed) selectedEntity.set(committed)
 				return
 			}
 
@@ -159,12 +160,13 @@
 	const finalizePending = () => {
 		if (!pending.current) return undefined
 
-		pending.current.set(traits.LinePositions, flatPositions(points))
-		pending.current.set(traits.DotSize, DEFAULT_LINE_WIDTH)
-		confirmPending(pending.current)
+		const committed = pending.current
+		committed.set(traits.LinePositions, flatPositions(points))
+		committed.set(traits.DotSize, DEFAULT_LINE_WIDTH)
+		confirmPending(committed)
 		pending.set(undefined)
 		points = []
-		return pending.current
+		return committed
 	}
 
 	const onAddNext = () => {

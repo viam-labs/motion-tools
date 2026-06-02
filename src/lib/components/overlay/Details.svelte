@@ -281,6 +281,7 @@
 		const value = event.detail.value as string
 		if (value === parent.current) return
 		hierarchy.setParent(entity, value)
+		invalidate()
 		// Non-frame entities (gizmos, custom geometries) aren't backed by the
 		// robot config, so skip the config sync.
 		if (isFrameNode) {
@@ -348,7 +349,7 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-80 border p-2 text-xs"
+		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs"
 		role="region"
 		aria-label="Details panel"
 		onkeydown={stopKeyboardPropagation}
@@ -457,7 +458,11 @@
 					class="text-subtle-2"
 					aria-describedby={tooltipID}
 					onclick={async () => {
-						navigator.clipboard.writeText(getCopyClipboardText())
+						try {
+							await navigator.clipboard.writeText(getCopyClipboardText())
+						} catch {
+							// clipboard unavailable (non-secure context or permission denied)
+						}
 						copied = true
 						setTimeout(() => (copied = false), 1000)
 					}}

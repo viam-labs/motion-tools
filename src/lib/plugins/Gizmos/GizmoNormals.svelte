@@ -91,7 +91,7 @@
 		invalidate()
 	})
 
-	$effect(() => {
+	$effect.pre(() => {
 		if (!colorTrait.current) return
 		if (!helper) return
 

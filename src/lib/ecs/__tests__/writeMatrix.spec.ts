@@ -45,6 +45,9 @@ describe('writeMatrix', () => {
 		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
 		expect(pose.x).toBeCloseTo(10)
 		expect(pose.theta).toBeCloseTo(90)
+		expect(pose.oX).toBeCloseTo(0.6)
+		expect(pose.oY).toBeCloseTo(0.8)
+		expect(pose.oZ).toBeCloseTo(0)
 	})
 
 	it('notifies subscribers via entity.changed', () => {
@@ -63,5 +66,33 @@ describe('writeMatrix', () => {
 		writeMatrix(entity, { x: 5 })
 		const after = entity.get(traits.Matrix)
 		expect(after).toBe(before)
+	})
+
+	it('ignores explicitly undefined fields', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(matrix()))
+		writeMatrix(entity, { x: undefined })
+		const pose = matrixToPose(entity.get(traits.Matrix)!, createPose())
+		expect(pose.x).toBeCloseTo(10)
+		expect(pose.y).toBeCloseTo(20)
+		expect(pose.z).toBeCloseTo(30)
+	})
+
+	it('does not notify subscribers when patch is empty', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(matrix()))
+		const onChange = vi.fn()
+		world.onChange(traits.Matrix, onChange)
+		writeMatrix(entity, {})
+		expect(onChange).not.toHaveBeenCalled()
+	})
+
+	it('does not notify subscribers when all patch fields are undefined', () => {
+		const world = createWorld()
+		const entity = world.spawn(traits.Matrix(matrix()))
+		const onChange = vi.fn()
+		world.onChange(traits.Matrix, onChange)
+		writeMatrix(entity, { x: undefined, y: undefined })
+		expect(onChange).not.toHaveBeenCalled()
 	})
 })

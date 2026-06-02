@@ -152,7 +152,7 @@
 </script>
 
 <Portal id="dashboard">
-	<fieldset class="relative">
+	<div class="relative">
 		<Popover>
 			{#snippet trigger(triggerProps, { isOpen })}
 				<DashboardButton
@@ -373,7 +373,7 @@
 				</div>
 			{/snippet}
 		</Popover>
-	</fieldset>
+	</div>
 </Portal>
 
 {#if isGizmoMode}

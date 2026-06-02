@@ -1,6 +1,6 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
+import { type Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
@@ -71,16 +71,6 @@ export const InstancedMatrix = trait(() => ({
 	matrix: new Matrix4(),
 	index: -1,
 }))
-
-export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
-	const matrix = entity.get(Matrix)
-	if (!matrix) return
-
-	const pose = matrixToPose(matrix, createPose())
-	Object.assign(pose, patch)
-	poseToMatrix(pose, matrix)
-	entity.changed(Matrix)
-}
 
 export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
@@ -308,6 +298,25 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
 	}
+}
+
+/**
+ * Patches an entity's `Matrix` trait in-place via the `Pose` round-trip
+ * (`matrixToPose` → merge → `poseToMatrix`), then signals `entity.changed(Matrix)`.
+ * No-ops silently if the entity has no `Matrix` trait.
+ */
+export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
+	const matrix = entity.get(Matrix)
+	if (!matrix) return
+
+	const pose = matrixToPose(matrix, createPose())
+	const filtered = Object.fromEntries(
+		Object.entries(patch).filter(([, v]) => v !== undefined)
+	) as Partial<Pose>
+	if (Object.keys(filtered).length === 0) return
+	Object.assign(pose, filtered)
+	poseToMatrix(pose, matrix)
+	entity.changed(Matrix)
 }
 
 const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
