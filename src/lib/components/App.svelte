@@ -136,10 +136,11 @@
 				<Dashboard {dashboard} />
 				<Controls />
 
-				{#each selected.current as entity (entity)}
+				{#each selected.current as entity, index (entity)}
 					<Details
 						{entity}
 						{details}
+						style="transform: translate(0, {index * 40}px)"
 					/>
 				{/each}
 

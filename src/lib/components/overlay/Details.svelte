@@ -14,7 +14,8 @@
 <script lang="ts">
 	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
-	import type { Snippet } from 'svelte'
+	import { onMount, type Snippet } from 'svelte'
+	import type { HTMLAttributes } from 'svelte/elements'
 
 	import { draggable } from '@neodrag/svelte'
 	import { isInstanceOf, useThrelte } from '@threlte/core'
@@ -34,6 +35,7 @@
 		type SliderChangeEvent,
 		TabGroup,
 		TabPage,
+		ThemeUtils,
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
@@ -48,13 +50,14 @@
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
+	import { primeTheme } from '@viamrobotics/tweakpane-config'
 
-	interface Props {
+	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
 		details?: Snippet<[{ entity: Entity }]>
 	}
 
-	const { entity, details }: Props = $props()
+	const { entity, details, ...rest }: Props = $props()
 
 	const world = useWorld()
 	const { scene, invalidate } = useThrelte()
@@ -119,8 +122,7 @@
 	})
 
 	const geometryTypes = ['none', 'box', 'sphere', 'capsule'] as const
-	// Writable derived: re-derives from the trait, but TabGroup's bind:selectedIndex
-	// can write a transient override that lasts until the trait re-derives.
+
 	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
 
 	$effect(() => {
@@ -282,6 +284,10 @@
 			2
 		)
 	}
+
+	// onMount(() => {
+	// 	ThemeUtils.setGlobalDefaultTheme(primeTheme)
+	// })
 </script>
 
 {#snippet ImmutableField({
@@ -306,18 +312,22 @@
 {/snippet}
 
 {#if entity}
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- tabindex makes the whole panel focusable so a click anywhere in it (not
+	just the inputs) raises it via `focus-within:z-5`. -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs"
+		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
 		role="region"
 		aria-label="Details panel"
+		tabindex="-1"
 		onkeydown={stopKeyboardPropagation}
 		onkeyup={stopKeyboardPropagation}
 		use:draggable={{
 			bounds: 'body',
 			handle: dragElement,
 		}}
+		{...rest}
 	>
 		<div
 			class="flex cursor-move items-center justify-between gap-2 pb-2"
