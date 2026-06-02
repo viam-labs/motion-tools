@@ -58,7 +58,7 @@
 		return rgb
 	})
 
-	const currentOpacity = $derived(opacity.current ?? 1)
+	const currentOpacity = $derived(opacity.current ?? 0.7)
 
 	const mesh = new Line2()
 	mesh.matrixAutoUpdate = false
