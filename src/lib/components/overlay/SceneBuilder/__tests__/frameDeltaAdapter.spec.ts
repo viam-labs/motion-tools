@@ -14,7 +14,6 @@ const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 
 const makeConfig = (components: PartConfig['components']): PartConfig => ({ components })
 
-
 describe('validateProposedFrameDeltas', () => {
 	it('computes a prepared update with merged pose for a valid translation delta', () => {
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
@@ -141,9 +140,7 @@ describe('validateProposedFrameDeltas', () => {
 		expect(fromPitched[0].pose.oY).toBeCloseTo(-0.5)
 	})
 
-	it.each([
-		{ componentName: 'missing', translation: { x: 1 } },
-	] satisfies FrameDelta[])(
+	it.each([{ componentName: 'missing', translation: { x: 1 } }] satisfies FrameDelta[])(
 		'surfaces an error for component $componentName not in config',
 		(delta) => {
 			const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
@@ -196,7 +193,13 @@ describe('validateProposedFrameDeltas', () => {
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
 		const { prepared } = validateProposedFrameDeltas(
-			[{ componentName: 'arm', translation: { x: 200 }, explanation: 'move 200mm forward along X' }],
+			[
+				{
+					componentName: 'arm',
+					translation: { x: 200 },
+					explanation: 'move 200mm forward along X',
+				},
+			],
 			config
 		)
 
@@ -234,4 +237,3 @@ describe('validateProposedFrameDeltas', () => {
 		expect(errors[0].componentName).toBe('ghost')
 	})
 })
-

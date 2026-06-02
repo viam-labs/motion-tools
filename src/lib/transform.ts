@@ -161,7 +161,9 @@ export const matrixToPose = (matrix: Matrix4, pose: Pose): Pose => {
  * `Frame.svelte` uses to blend live kinematics with user-staged edits;
  * `worldMatrix.ts` premultiplies the result by the parent's `WorldMatrix`.
  */
-export const poseToEulerDegrees = (pose: Partial<Pose>): { roll: number; pitch: number; yaw: number } => {
+export const poseToEulerDegrees = (
+	pose: Partial<Pose>
+): { roll: number; pitch: number; yaw: number } => {
 	poseToQuaternion(pose, quaternion)
 	euler.setFromQuaternion(quaternion, 'ZYX')
 	return {

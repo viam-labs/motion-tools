@@ -112,4 +112,3 @@ export function validateProposedFrameDeltas(
 
 	return { errors, prepared }
 }
-

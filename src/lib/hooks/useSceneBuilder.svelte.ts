@@ -5,7 +5,6 @@ import {
 	type UpdateError,
 	validateProposedFrameDeltas,
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
-
 import { backendIP, websocketPort } from '$lib/defines'
 import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
@@ -70,13 +69,25 @@ export const provideSceneBuilder = (): void => {
 				changes.push({ field: 'parent', oldValue: u.previousParent, newValue: u.parent })
 			}
 			if (u.pose.x !== u.previousPose.x) {
-				changes.push({ field: 'translation.x', oldValue: roundMm(u.previousPose.x), newValue: roundMm(u.pose.x) })
+				changes.push({
+					field: 'translation.x',
+					oldValue: roundMm(u.previousPose.x),
+					newValue: roundMm(u.pose.x),
+				})
 			}
 			if (u.pose.y !== u.previousPose.y) {
-				changes.push({ field: 'translation.y', oldValue: roundMm(u.previousPose.y), newValue: roundMm(u.pose.y) })
+				changes.push({
+					field: 'translation.y',
+					oldValue: roundMm(u.previousPose.y),
+					newValue: roundMm(u.pose.y),
+				})
 			}
 			if (u.pose.z !== u.previousPose.z) {
-				changes.push({ field: 'translation.z', oldValue: roundMm(u.previousPose.z), newValue: roundMm(u.pose.z) })
+				changes.push({
+					field: 'translation.z',
+					oldValue: roundMm(u.previousPose.z),
+					newValue: roundMm(u.pose.z),
+				})
 			}
 			if (
 				u.pose.oX !== u.previousPose.oX ||
@@ -88,7 +99,11 @@ export const provideSceneBuilder = (): void => {
 				const next = poseToEulerDegrees(u.pose)
 				for (const axis of ['yaw', 'pitch', 'roll'] as const) {
 					if (Math.abs(next[axis] - prev[axis]) > 0.01) {
-						changes.push({ field: axis, oldValue: roundDeg(prev[axis]), newValue: roundDeg(next[axis]) })
+						changes.push({
+							field: axis,
+							oldValue: roundDeg(prev[axis]),
+							newValue: roundDeg(next[axis]),
+						})
 					}
 				}
 			}

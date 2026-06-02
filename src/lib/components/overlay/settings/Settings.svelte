@@ -307,9 +307,7 @@
 				on:keydown={(event) => event.stopImmediatePropagation()}
 			/>
 		</label>
-		<p class="text-gray-5">
-			Used by the Scene Builder AI feature. Stored locally in your browser.
-		</p>
+		<p class="text-gray-5">Used by the Scene Builder AI feature. Stored locally in your browser.</p>
 	</div>
 {/snippet}
 

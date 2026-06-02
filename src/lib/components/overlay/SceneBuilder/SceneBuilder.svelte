@@ -35,7 +35,7 @@
 		<!-- prompt input -->
 		<div class="flex gap-2">
 			<textarea
-				class="flex-1 resize-none rounded border border-gray-300 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
+				class="flex-1 resize-none rounded border border-gray-300 p-2 text-xs focus:ring-1 focus:ring-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
 				placeholder="Describe the frame change, e.g. 'Move the arm 200mm forward along X'"
 				rows={3}
 				disabled={sceneBuilder.uiState === 'loading' || sceneBuilder.uiState === 'diff'}

@@ -103,9 +103,10 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		)
 	}
 
-	const model = new ChatAnthropic({ model: 'claude-haiku-4-5-20251001', apiKey }).withStructuredOutput(
-		ResponseSchema
-	)
+	const model = new ChatAnthropic({
+		model: 'claude-haiku-4-5-20251001',
+		apiKey,
+	}).withStructuredOutput(ResponseSchema)
 
 	try {
 		const result = await model.invoke([
@@ -116,9 +117,9 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 			{ role: 'user', content: prompt },
 		])
 
-		return new Response(JSON.stringify(result), { status: 200, headers: CORS_HEADERS })
-	} catch (err) {
-		console.error('LLM error:', err)
+		return Response.json(result, { status: 200, headers: CORS_HEADERS })
+	} catch (error) {
+		console.error('LLM error:', error)
 		return new Response('LLM call failed', { status: 502, headers: CORS_HEADERS })
 	}
 }
