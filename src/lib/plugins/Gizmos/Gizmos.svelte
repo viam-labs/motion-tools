@@ -136,7 +136,7 @@
 		selectedEntity.set(entity)
 	}
 
-	const placeGeometryAtOrigin = async () => {
+	const placeGeometryAtOrigin = () => {
 		const surfaceOpacity = gizmos.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY
 
 		const entity = spawnGizmo(world, {

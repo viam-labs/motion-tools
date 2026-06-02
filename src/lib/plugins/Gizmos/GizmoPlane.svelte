@@ -50,7 +50,7 @@
 		invalidate()
 	})
 
-	$effect(() => {
+	$effect.pre(() => {
 		if (plane.current) {
 			mesh.scale.set(plane.current.width * 0.001, plane.current.height * 0.001, 1)
 			invalidate()
