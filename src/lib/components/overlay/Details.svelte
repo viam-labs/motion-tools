@@ -18,7 +18,7 @@
 	import { draggable } from '@neodrag/svelte'
 	import { isInstanceOf, useThrelte } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
-	import { Button, Icon, Switch, Tooltip } from '@viamrobotics/prime-core'
+	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
@@ -38,6 +38,8 @@
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
+	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
+	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
@@ -92,19 +94,10 @@
 	const removable = useTrait(() => entity, traits.Removable)
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
-	const opacity = useTrait(() => entity, traits.Opacity)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const customDetails = useTrait(() => entity, traits.CustomDetails)
 	const hasCustomDetails = $derived(customDetails.current === true)
-
-	const handleAxesHelperToggle = (next: boolean) => {
-		if (!entity) return
-		if (next) entity.add(traits.ShowAxesHelper)
-		else entity.remove(traits.ShowAxesHelper)
-		invalidate()
-	}
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -257,19 +250,6 @@
 	const handleCapsuleLChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
-	}
-
-	const opacityValue = $derived(opacity.current ?? 0.7)
-
-	const handleOpacityChange = (event: SliderChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const next = event.detail.value
-		if (entity.has(traits.Opacity)) {
-			entity.set(traits.Opacity, next)
-		} else {
-			entity.add(traits.Opacity(next))
-		}
-		invalidate()
 	}
 
 	const handleParentChange = (event: ListChangeEvent) => {
@@ -776,27 +756,8 @@
 
 			<PortalTarget id="details-extensions" />
 
-			<div>
-				<strong class="font-semibold">opacity</strong>
-				<div aria-label="mutable opacity">
-					<Slider
-						value={opacityValue}
-						min={0}
-						max={1}
-						step={0.01}
-						format={(v) => v.toFixed(2)}
-						on:change={handleOpacityChange}
-					/>
-				</div>
-			</div>
-
-			<div class="flex items-center justify-between">
-				<strong class="font-semibold">show axes helper</strong>
-				<Switch
-					on={showAxesHelper.current === true}
-					on:change={(event) => handleAxesHelperToggle(event.detail)}
-				/>
-			</div>
+			<OpacityDetails {entity} />
+			<AxesHelperDetails {entity} />
 		</div>
 
 		{#if linkedEntities.current.length > 0}
