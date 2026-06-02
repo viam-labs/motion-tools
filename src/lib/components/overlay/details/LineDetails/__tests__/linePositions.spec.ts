@@ -15,6 +15,13 @@ describe('writeLinePosition', () => {
 		expect(next).not.toBe(source)
 		expect([...source]).toEqual([1, 2, 3])
 	})
+
+	it('returns a copy unchanged when index is out of bounds', () => {
+		const source = new Float32Array([1, 2, 3])
+		const next = writeLinePosition(source, 5, 99, 99, 99)
+		expect(next).not.toBe(source)
+		expect([...next]).toEqual([1, 2, 3])
+	})
 })
 
 describe('appendLinePosition', () => {
@@ -40,6 +47,12 @@ describe('appendLinePosition', () => {
 })
 
 describe('removeLinePosition', () => {
+	it('refuses to remove when there is only one point', () => {
+		const source = new Float32Array([0, 0, 0])
+		const next = removeLinePosition(source, 0)
+		expect(next).toBe(source)
+	})
+
 	it('refuses to remove when there are only two points', () => {
 		const source = new Float32Array([0, 0, 0, 1, 1, 1])
 		const next = removeLinePosition(source, 0)
