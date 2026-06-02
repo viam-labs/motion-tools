@@ -127,7 +127,8 @@
 			if (index === 0 && points.length >= 3) {
 				// close the loop
 				points = [...points, position]
-				finalizePending()
+				const committed = finalizePending()
+				if (committed) selectedEntity.set(committed)
 				return
 			}
 
@@ -159,12 +160,13 @@
 	const finalizePending = () => {
 		if (!pending.current) return undefined
 
-		pending.current.set(traits.LinePositions, flatPositions(points))
-		pending.current.set(traits.DotSize, DEFAULT_LINE_WIDTH)
-		confirmPending(pending.current)
+		const committed = pending.current
+		committed.set(traits.LinePositions, flatPositions(points))
+		committed.set(traits.DotSize, DEFAULT_LINE_WIDTH)
+		confirmPending(committed)
 		pending.set(undefined)
 		points = []
-		return pending.current
+		return committed
 	}
 
 	const onAddNext = () => {

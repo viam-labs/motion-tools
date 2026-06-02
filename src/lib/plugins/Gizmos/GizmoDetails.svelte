@@ -13,9 +13,8 @@
 
 	const selectedEntity = useSelectedEntity()
 	const focusedEntity = useFocusedEntity()
-	const gizmo = useTrait(() => entity, Gizmo)
-
 	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
+	const gizmo = useTrait(() => entity, Gizmo)
 	const isGizmo = $derived(Boolean(gizmo.current))
 </script>
 
