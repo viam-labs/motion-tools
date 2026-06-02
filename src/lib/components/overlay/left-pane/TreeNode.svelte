@@ -63,12 +63,14 @@
 		]}
 	>
 		<div {...api.getBranchControlProps(nodeProps)}>
-			<span
-				{...api.getBranchIndicatorProps(nodeProps)}
-				class={{ 'rotate-90': expanded }}
+			<button
+				type="button"
+				aria-label={expanded ? 'Collapse' : 'Expand'}
+				{...api.getBranchTriggerProps(nodeProps)}
+				class={['flex items-center', { 'rotate-90': expanded }]}
 			>
 				<ChevronRight size={14} />
-			</span>
+			</button>
 			<span
 				class="flex items-center overflow-hidden text-ellipsis"
 				{...api.getBranchTextProps(nodeProps)}

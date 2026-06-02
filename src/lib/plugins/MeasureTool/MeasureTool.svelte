@@ -8,12 +8,10 @@
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
-	import { useFocusedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import MeasurePoint from './MeasurePoint.svelte'
 
-	const focusedEntity = useFocusedEntity()
 	const settings = useSettings()
 
 	const htmlPosition = new Vector3()
@@ -73,9 +71,9 @@
 	}
 
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		;(focusedEntity.current, enabled)
-		untrack(() => clear())
+		if (!enabled) {
+			untrack(() => clear())
+		}
 	})
 </script>
 

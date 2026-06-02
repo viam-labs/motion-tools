@@ -14,3 +14,5 @@ export { default as Skybox } from './Skybox/Skybox.svelte'
 
 // Debug
 export { default as Debug } from './Debug/Debug.svelte'
+
+export { default as Focus } from './Focus/Focus.svelte'
