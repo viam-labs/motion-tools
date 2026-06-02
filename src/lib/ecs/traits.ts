@@ -313,6 +313,7 @@ export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
 	const filtered = Object.fromEntries(
 		Object.entries(patch).filter(([, v]) => v !== undefined)
 	) as Partial<Pose>
+	if (Object.keys(filtered).length === 0) return
 	Object.assign(pose, filtered)
 	poseToMatrix(pose, matrix)
 	entity.changed(Matrix)
