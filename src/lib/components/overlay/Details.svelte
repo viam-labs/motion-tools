@@ -249,16 +249,12 @@
 		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
-	const opacityValue = $derived(opacity.current ?? 1)
+	const opacityValue = $derived(opacity.current ?? 0.7)
 
 	const handleOpacityChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value
-		// No trait === fully opaque, so drop the trait when the user returns to 1
-		// instead of leaving an Opacity(1) entry on the entity.
-		if (next >= 1) {
-			entity.remove(traits.Opacity)
-		} else if (entity.has(traits.Opacity)) {
+		if (entity.has(traits.Opacity)) {
 			entity.set(traits.Opacity, next)
 		} else {
 			entity.add(traits.Opacity(next))
