@@ -6,20 +6,19 @@
 	import { asRGB } from '$lib/buffer'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorHit } from '../cursor'
 	import { arrowMatrix } from '../matrix'
+	import { clearSelection, selectOnly } from '../selection'
 	import { ARROW_COLOR, cancelPending, confirmPending, spawnPending } from '../spawn'
 	import { GizmoArrow } from '../traits'
 	import { useGizmos } from '../useGizmos.svelte'
 	import { usePending } from '../usePending.svelte'
 
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
 	const settings = useSettings()
 	const gizmos = useGizmos()
 
@@ -60,7 +59,7 @@
 		pending.set(entity)
 		position = [hit.position.x, hit.position.y, hit.position.z]
 		settings.current.transformMode = 'rotate'
-		selectedEntity.set(entity)
+		selectOnly(world, entity)
 	})
 
 	const onConfirm = () => {
@@ -69,7 +68,7 @@
 		const committed = pending.current
 		confirmPending(committed)
 		pending.set(undefined)
-		selectedEntity.set(committed)
+		selectOnly(world, committed)
 		gizmos.exit()
 	}
 
@@ -80,7 +79,7 @@
 		}
 
 		cancelPending(pending.current)
-		selectedEntity.set(undefined)
+		clearSelection(world)
 		pending.set(undefined)
 	}
 

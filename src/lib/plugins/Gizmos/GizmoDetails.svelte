@@ -9,32 +9,15 @@
 	import MatrixDetails from '$lib/components/overlay/details/MatrixDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
-	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
-<<<<<<< Updated upstream
-	import { Gizmo, GizmoArrow } from './traits'
-=======
-	import PolylineMeasureDetails from './PolylineMeasureDetails.svelte'
+	import PlaneDetails from './PlaneDetails.svelte'
 	import { Gizmo, GizmoArrow, ReferencePlane } from './traits'
->>>>>>> Stashed changes
 
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
-
-	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
+	const selected = useQuery(traits.Selected)
+	const entity = $derived(selected.current[0])
 	const gizmo = useTrait(() => entity, Gizmo)
 	const isGizmo = $derived(Boolean(gizmo.current))
 
-<<<<<<< Updated upstream
-	const referenceFrame = useTrait(() => entity, traits.ReferenceFrame)
-	const box = useTrait(() => entity, traits.Box)
-	const sphere = useTrait(() => entity, traits.Sphere)
-	const capsule = useTrait(() => entity, traits.Capsule)
-	const gizmoArrow = useTrait(() => entity, GizmoArrow)
-
-	const isCoordinateSystem = $derived(Boolean(referenceFrame.current))
-	const isReferenceGeometry = $derived(Boolean(box.current || sphere.current || capsule.current))
-=======
 	const plane = useTrait(() => entity, ReferencePlane)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
@@ -45,7 +28,6 @@
 	const isReferencePlane = $derived(Boolean(plane.current))
 	const isReferenceGeometry = $derived(Boolean(box.current || sphere.current || capsule.current))
 	const isLine = $derived(Boolean(linePositions.current))
->>>>>>> Stashed changes
 	const isArrow = $derived(Boolean(gizmoArrow.current))
 
 	const entities = useQuery(traits.Name)
@@ -87,16 +69,8 @@
 				onPoseChange={(patch) => traits.writeMatrix(entity, patch)}
 				onParentChange={(next) => hierarchy.setParent(entity, next)}
 			/>
-<<<<<<< Updated upstream
-			<GeometryDetails {entity} />
-			<LineDetails {entity} />
-			<ColorDetails {entity} />
-			{#if !isCoordinateSystem}
-				<OpacityDetails {entity} />
-			{/if}
-			{#if isReferenceGeometry || isArrow}
-=======
 			{#if isReferencePlane}
+				<PlaneDetails {entity} />
 				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
 			{/if}
@@ -108,13 +82,11 @@
 			{/if}
 			{#if isLine}
 				<LineDetails {entity} />
-				<PolylineMeasureDetails {entity} />
 				<OpacityDetails {entity} />
 			{/if}
 			{#if isArrow}
 				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
->>>>>>> Stashed changes
 				<AxesHelperDetails {entity} />
 			{/if}
 		</div>
