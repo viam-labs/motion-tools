@@ -324,6 +324,33 @@ func handlePlanRequest(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 	}
 }
 
+// handlePlanRequestClear handles POST /plan-request/clear. It removes every
+// entity added by the most recent /plan-request invocation and resets the
+// playback state, leaving any entities pushed by other producers (e.g. a live
+// machine module) untouched.
+func handlePlanRequestClear(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		planPlayback.mu.Lock()
+		prevUUIDs := planPlayback.entityUUIDs
+		planPlayback.entityUUIDs = nil
+		planPlayback.state = nil
+		planPlayback.mu.Unlock()
+
+		ctx := r.Context()
+		for _, uuid := range prevUUIDs {
+			_, _ = svc.RemoveEntity(ctx, connect.NewRequest(&drawv1.RemoveEntityRequest{Uuid: uuid}))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int{"removed": len(prevUUIDs)})
+	}
+}
+
 func handlePlanRequestStep(svc drawv1connect.DrawServiceHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

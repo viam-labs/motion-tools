@@ -15,6 +15,7 @@ interface Context {
 	loadPlan: (name: string, content: string, prefix?: string) => Promise<PlanRequestLoadResult>
 	stepPlan: (direction: 'prev' | 'next') => Promise<StepResult>
 	setStep: (index: number) => Promise<StepResult>
+	clearPlan: () => Promise<void>
 }
 
 const key = Symbol('plan-controller-context')
@@ -42,6 +43,16 @@ export const providePlanController = (drawServerURL: () => string) => {
 		sendStep({ direction })
 
 	const setStep = (index: number): Promise<StepResult> => sendStep({ step: index })
+
+	const clearPlan = async (): Promise<void> => {
+		try {
+			await fetch(`${drawServerURL()}/plan-request/clear`, { method: 'POST' })
+		} catch {
+			// Best-effort: ignore network errors so toggling off never throws.
+		}
+		totalSteps = 0
+		currentStep = -1
+	}
 
 	const sendStep = async (
 		body: { direction: 'prev' | 'next' } | { step: number }
@@ -89,6 +100,7 @@ export const providePlanController = (drawServerURL: () => string) => {
 		loadPlan,
 		stepPlan,
 		setStep,
+		clearPlan,
 	}
 
 	setContext<Context>(key, context)

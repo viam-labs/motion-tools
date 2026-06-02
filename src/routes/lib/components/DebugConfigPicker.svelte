@@ -11,9 +11,10 @@
 
 	interface Props {
 		debugConfig: DebugConfig
+		isActive: boolean
 	}
 
-	const { debugConfig }: Props = $props()
+	const { debugConfig, isActive }: Props = $props()
 
 	const planController = usePlanController()
 
@@ -54,9 +55,10 @@
 		errorMessage = ''
 	})
 
-	// Auto-refresh the plan list whenever credentials are ready.
+	// Auto-refresh the plan list whenever credentials are ready and this config
+	// is the active debug config.
 	$effect(() => {
-		if (ready && !loaded && !loading) {
+		if (isActive && ready && !loaded && !loading) {
 			void refresh()
 		}
 	})
@@ -136,9 +138,18 @@
 		// Also track items.length so this re-fires when the list populates after
 		// an auto-refresh, allowing the persisted selection to be loaded.
 		const hasItems = items.length > 0
-		if (hasItems && id && id !== lastLoadedId && !fetching) {
+		if (isActive && hasItems && id && id !== lastLoadedId && !fetching) {
 			lastLoadedId = id
 			void load()
+		}
+	})
+
+	// When this picker is deactivated after having loaded a plan, clear the
+	// scene entities it pushed so toggling off actually wipes the view.
+	$effect(() => {
+		if (!isActive && lastLoadedId) {
+			lastLoadedId = ''
+			void planController.clearPlan()
 		}
 	})
 </script>

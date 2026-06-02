@@ -98,8 +98,11 @@
 	The visible pickers inside the panel handle interactive selection.
 -->
 <div class="hidden">
-	{#each debugConfigs.current as config}
-		<DebugConfigPicker debugConfig={config} />
+	{#each debugConfigs.current as config, index}
+		<DebugConfigPicker
+			debugConfig={config}
+			isActive={index === activeDebugConfig.activeIndex}
+		/>
 	{/each}
 </div>
 
@@ -204,8 +207,11 @@
 				topFieldLabel="Name"
 				showSignalingAddress={false}
 			>
-				{#snippet extra(config)}
-					<DebugConfigPicker debugConfig={config} />
+				{#snippet extra(config, index)}
+					<DebugConfigPicker
+						debugConfig={config}
+						isActive={index === activeDebugConfig.activeIndex}
+					/>
 				{/snippet}
 			</ConfigList>
 		{/if}
