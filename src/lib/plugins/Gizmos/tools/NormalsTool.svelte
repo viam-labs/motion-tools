@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { asRGB } from '$lib/buffer'
 	import { relations, traits, useWorld } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 	import type { NormalsKind } from '../gizmos'
 
+	import { selectOnly } from '../selection'
 	import { spawnGizmo, SURFACE_NORMALS_COLOR, VERTEX_NORMALS_COLOR } from '../spawn'
 	import { findSurfaceHit } from '../surface'
 	import SurfacePoint from '../SurfacePoint.svelte'
@@ -19,7 +19,6 @@
 	const { kind }: Props = $props()
 
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
 	const gizmos = useGizmos()
 	const place = usePlace(() => ({
 		findHit: (intersections) => findSurfaceHit(world, intersections),
@@ -39,7 +38,7 @@
 				],
 			})
 
-			selectedEntity.set(entity)
+			selectOnly(world, entity)
 			gizmos.exit()
 		},
 	}))

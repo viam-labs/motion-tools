@@ -66,7 +66,6 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import { traits, useWorld } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import GizmoDetails from './GizmoDetails.svelte'
@@ -84,6 +83,7 @@
 	} from './gizmos'
 	import { planeMatrix } from './matrix'
 	import PolylineVertexEditor from './PolylineVertexEditor.svelte'
+	import { selectOnly } from './selection'
 	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
 	import ArrowTool from './tools/ArrowTool.svelte'
 	import CoordinateSystemTool from './tools/CoordinateSystemTool.svelte'
@@ -97,7 +97,6 @@
 
 	const settings = useSettings()
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
 	const gizmos = provideGizmos(() => toggleOff())
 	provideSelectedPolylineVertex()
 
@@ -136,7 +135,7 @@
 			matrix: planeMatrix(gizmos.planeAxis, position),
 		})
 
-		selectedEntity.set(entity)
+		selectOnly(world, entity)
 	}
 
 	const placeGeometryAtOrigin = () => {
@@ -150,7 +149,7 @@
 				traits.Opacity(surfaceOpacity),
 			],
 		})
-		selectedEntity.set(entity)
+		selectOnly(world, entity)
 	}
 </script>
 

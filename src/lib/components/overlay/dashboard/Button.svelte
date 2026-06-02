@@ -2,10 +2,10 @@
 	import type { ClassValue, HTMLButtonAttributes, MouseEventHandler } from 'svelte/elements'
 
 	import { Icon, type IconName, Tooltip } from '@viamrobotics/prime-core'
-	import { MousePointer2, Ruler, Shapes } from 'lucide-svelte'
+	import { Focus, MousePointer2, Ruler, Shapes } from 'lucide-svelte'
 
 	interface Props extends HTMLButtonAttributes {
-		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes'
+		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes' | 'focus'
 		active?: boolean
 		description: string
 		hotkey?: string
@@ -41,7 +41,7 @@
 	<label
 		class={[
 			className,
-			'relative block rounded-md border',
+			'relative block rounded-md border active:z-4 active:border-[#666] active:bg-[#666] active:text-white',
 			active ? 'z-4 border-[#666] bg-[#666] text-white' : 'border-gray-5 text-gray-8 bg-white',
 		]}
 		aria-describedby={tooltipID}
@@ -60,6 +60,8 @@
 				<MousePointer2 size="16" />
 			{:else if icon === 'shapes'}
 				<Shapes size="16" />
+			{:else if icon === 'focus'}
+				<Focus size="16" />
 			{:else}
 				<Icon name={icon} />
 			{/if}

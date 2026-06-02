@@ -16,7 +16,6 @@
 
 	<fieldset class="flex flex-col">
 		<Button
-			active
 			class="rounded-b-none"
 			icon="camera-outline"
 			description="Reset camera"
@@ -26,7 +25,6 @@
 			}}
 		/>
 		<Button
-			active
 			class="-my-0.5 rounded-t-none"
 			icon={isOrthographic ? 'grid-orthographic' : 'grid-perspective'}
 			description={isOrthographic ? 'Switch to perspective view' : 'Switch to orthographic view'}

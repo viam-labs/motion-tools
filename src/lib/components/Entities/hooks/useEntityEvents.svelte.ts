@@ -3,8 +3,7 @@ import type { Entity } from 'koota'
 import { type IntersectionEvent, useCursor } from '@threlte/extras'
 import { MathUtils, Matrix4, Quaternion, Vector2 } from 'three'
 
-import { traits, useTrait } from '$lib/ecs'
-import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+import { traits, useTrait, useWorld } from '$lib/ecs'
 import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
 import { OrientationVector } from '$lib/three/OrientationVector'
 
@@ -22,8 +21,7 @@ const infoToLocalMatrix = (info: HoverInfo, out: Matrix4) => {
 export const useEntityEvents = (entity: () => Entity | undefined) => {
 	const down = new Vector2()
 
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
+	const world = useWorld()
 	const cursor = useCursor()
 	const invisible = useTrait(entity, traits.InheritedInvisible)
 
@@ -98,15 +96,6 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		}
 	}
 
-	const ondblclick = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
-
-		event.stopPropagation()
-
-		const currentEntity = entity()
-		focusedEntity.set(currentEntity, event.instanceId ?? event.batchId)
-	}
-
 	const onpointerdown = (event: IntersectionEvent<MouseEvent>) => {
 		if (invisible.current) return
 
@@ -114,13 +103,38 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 	}
 
 	const onclick = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
+		if (invisible.current) {
+			return
+		}
 
 		event.stopPropagation()
 
-		if (down.distanceToSquared(event.pointer) < 0.1) {
-			const currentEntity = entity()
-			selectedEntity.set(currentEntity, event.instanceId ?? event.batchId)
+		if (down.distanceToSquared(event.pointer) >= 0.1) {
+			return
+		}
+
+		const currentEntity = entity()
+		if (!currentEntity) return
+
+		if (event.nativeEvent.shiftKey) {
+			if (currentEntity.has(traits.Selected)) {
+				currentEntity.remove(traits.Selected)
+			} else {
+				currentEntity.add(traits.Selected)
+			}
+		} else {
+			for (const entity of world.query(traits.Selected)) {
+				if (entity !== currentEntity) {
+					entity.remove(traits.Selected)
+				}
+			}
+			if (!currentEntity.has(traits.Selected)) {
+				currentEntity.add(traits.Selected)
+			}
+		}
+
+		if (event.instanceId || event.batchId) {
+			currentEntity.add(traits.InstanceId(event.instanceId ?? event.batchId))
 		}
 	}
 
@@ -132,6 +146,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 			if (currentEntity?.has(traits.Hovered)) {
 				currentEntity.remove(traits.Hovered)
 			}
+
 			if (currentEntity?.has(traits.InstancedMatrix)) {
 				currentEntity.remove(traits.InstancedMatrix)
 			}
@@ -142,7 +157,6 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
 		onpointerenter,
 		onpointermove,
 		onpointerleave,
-		ondblclick,
 		onpointerdown,
 		onclick,
 	}

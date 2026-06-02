@@ -9,26 +9,24 @@
 	import MatrixDetails from '$lib/components/overlay/details/MatrixDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
-	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
+	import PlaneDetails from './PlaneDetails.svelte'
 	import PolylineMeasureDetails from './PolylineMeasureDetails.svelte'
-	import { Gizmo, GizmoArrow } from './traits'
+	import { Gizmo, GizmoArrow, ReferencePlane } from './traits'
 
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
-
-	const entity = $derived(focusedEntity.current ?? selectedEntity.current)
+	const selected = useQuery(traits.Selected)
+	const entity = $derived(selected.current[0])
 	const gizmo = useTrait(() => entity, Gizmo)
 	const isGizmo = $derived(Boolean(gizmo.current))
 
-	const referenceFrame = useTrait(() => entity, traits.ReferenceFrame)
+	const plane = useTrait(() => entity, ReferencePlane)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const linePositions = useTrait(() => entity, traits.LinePositions)
 	const gizmoArrow = useTrait(() => entity, GizmoArrow)
 
-	const isCoordinateSystem = $derived(Boolean(referenceFrame.current))
+	const isReferencePlane = $derived(Boolean(plane.current))
 	const isReferenceGeometry = $derived(Boolean(box.current || sphere.current || capsule.current))
 	const isLine = $derived(Boolean(linePositions.current))
 	const isArrow = $derived(Boolean(gizmoArrow.current))
@@ -72,18 +70,25 @@
 				onPoseChange={(patch) => traits.writeMatrix(entity, patch)}
 				onParentChange={(next) => hierarchy.setParent(entity, next)}
 			/>
-			{#if isReferenceGeometry}
-				<GeometryDetails {entity} />
-			{/if}
-			{#if isLine}
-				<LineDetails {entity} />
-				<PolylineMeasureDetails {entity} />
-			{/if}
-			{#if !isCoordinateSystem}
+			{#if isReferencePlane}
+				<PlaneDetails {entity} />
 				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
 			{/if}
-			{#if isReferenceGeometry || isArrow}
+			{#if isReferenceGeometry}
+				<GeometryDetails {entity} />
+				<ColorDetails {entity} />
+				<OpacityDetails {entity} />
+				<AxesHelperDetails {entity} />
+			{/if}
+			{#if isLine}
+				<LineDetails {entity} />
+				<OpacityDetails {entity} />
+				<PolylineMeasureDetails {entity} />
+			{/if}
+			{#if isArrow}
+				<ColorDetails {entity} />
+				<OpacityDetails {entity} />
 				<AxesHelperDetails {entity} />
 			{/if}
 		</div>

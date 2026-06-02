@@ -7,8 +7,7 @@
 
 	import AxesHelper from '$lib/components/AxesHelper.svelte'
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
-	import { traits, useTrait } from '$lib/ecs'
-	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { meshBoundsRaycast, raycast } from '$lib/three/InstancedArrows/raycast'
 
 	interface Props {
@@ -20,19 +19,17 @@
 
 	const { invalidate } = useThrelte()
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
+	const selected = useTag(() => entity, traits.Selected)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 
 	const events = useEntityEvents(() => entity)
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
-
-	const displayEntity = $derived(selectedEntity.current ?? focusedEntity.current)
 
 	const raycastFunction = $derived.by(() => {
-		if (displayEntity) {
+		if (selected.current) {
 			return raycast
 		}
+
 		return meshBoundsRaycast
 	})
 

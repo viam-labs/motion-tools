@@ -14,20 +14,19 @@
 	import { DEFAULT_LINE_WIDTH } from '$lib/draw'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
 	import { quantize } from '$lib/quantize'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'
+	import { clearSelection, selectOnly } from '../selection'
 	import { cancelPending, confirmPending, POLYLINE_COLOR, spawnPending } from '../spawn'
 	import { PolylineMeasure } from '../traits'
 	import { useGizmos } from '../useGizmos.svelte'
 	import { usePending } from '../usePending.svelte'
 
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
 	const gizmos = useGizmos()
 	const settings = useSettings()
 
@@ -129,7 +128,7 @@
 				// close the loop
 				points = [...points, position]
 				const committed = finalizePending()
-				if (committed) selectedEntity.set(committed)
+				if (committed) selectOnly(world, committed)
 				return
 			}
 
@@ -154,7 +153,7 @@
 
 		pending.set(entity)
 		points = [position]
-		selectedEntity.set(entity)
+		selectOnly(world, entity)
 		updatePending(position)
 	})
 
@@ -179,7 +178,7 @@
 		if (!pending.current || !hasSegment) return
 
 		const committed = finalizePending()
-		if (committed) selectedEntity.set(committed)
+		if (committed) selectOnly(world, committed)
 		gizmos.exit()
 	}
 
@@ -190,7 +189,7 @@
 		}
 
 		cancelPending(pending.current)
-		selectedEntity.set(undefined)
+		clearSelection(world)
 		pending.set(undefined)
 		points = []
 	}
