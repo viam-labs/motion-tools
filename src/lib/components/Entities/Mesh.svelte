@@ -70,7 +70,7 @@
 		return colors.default
 	})
 
-	const currentOpacity = $derived(opacity.current ?? 1)
+	const currentOpacity = $derived(opacity.current ?? 0.7)
 
 	const isCapsule = $derived(capsule.current !== undefined)
 
