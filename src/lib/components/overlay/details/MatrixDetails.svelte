@@ -46,6 +46,9 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const parent = useParentName(() => entity)
+	// Query all named entities in the world (not config-validated frames) so
+	// gizmo entities can parent to any named entity, including other gizmos.
+	// This intentionally diverges from Details.svelte's configFrames.getParentFrameOptions().
 	const namedEntities = useQuery(traits.Name)
 
 	const parentOptions = $derived.by(() => {
@@ -122,6 +125,9 @@
 	}
 </script>
 
+<!-- Always renders: world position/orientation default to zeros when no matrix is
+     present, which is correct for a newly-created gizmo entity. Unlike
+     ColorDetails/GeometryDetails, this component does not guard on trait presence. -->
 <div class="flex flex-col gap-2.5 text-xs">
 	<div>
 		<strong class="font-semibold">parent</strong>

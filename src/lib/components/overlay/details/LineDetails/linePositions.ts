@@ -5,6 +5,7 @@ export const writeLinePosition = (
 	y: number,
 	z: number
 ): Float32Array => {
+	if (index * 3 + 2 >= source.length) return new Float32Array(source)
 	const next = new Float32Array(source)
 	next[index * 3 + 0] = x
 	next[index * 3 + 1] = y
