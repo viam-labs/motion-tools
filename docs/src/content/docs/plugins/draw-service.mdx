@@ -1,6 +1,81 @@
 ---
 title: <DrawService />
-description: Stream draw-server output into an embedded motion-tools visualizer.
+description: Stream a running draw server's output into an embedded motion-tools visualizer.
 ---
 
-Documentation coming soon.
+`<DrawService />` connects an embedded `<Visualizer />` to a running draw server over WebSocket so any `client/api` calls made elsewhere render in this instance live. Skip it if you only render snapshots — snapshots are entirely client-side and don't need the server.
+
+The plugin is **headless**: it provides the connection context and starts the stream; it doesn't render anything itself.
+
+The Connect RPC client is required for the `<DrawService />`.
+
+## Install
+
+```bash
+pnpm add @connectrpc/connect @connectrpc/connect-web
+```
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { DrawService } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<DrawService config={{ backendIP: 'localhost', websocketPort: '3030' }} />
+	</Visualizer>
+</div>
+```
+
+## Props
+
+| Prop     | Type                                           | Description                                                   |
+| -------- | ---------------------------------------------- | ------------------------------------------------------------- |
+| `config` | `{ backendIP: string; websocketPort: string }` | Host and port of the draw server. Default dev port is `3030`. |
+
+The `config` prop is reactive — change it and the plugin reconnects to the new endpoint.
+
+## Running a draw server
+
+`<DrawService />` is a client — it needs a draw server to talk to. You have three options:
+
+### Use the motion-tools local app
+
+The fastest path: run motion-tools locally (`make up` or `pnpm dev`). The local app already hosts a draw server on port `3030`, and `client/api` calls to the same host land in it.
+
+### Host the Go `DrawService` yourself
+
+Motion-tools exports a ready-made `DrawService` from `github.com/viam-labs/motion-tools/draw` — the same Connect-RPC handler the local app uses. Wire it up to your own HTTP server:
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"connectrpc.com/connect"
+	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+)
+
+func main() {
+	svc := draw.NewDrawService("") // "" = use os.TempDir for chunked buffers
+
+	mux := http.NewServeMux()
+	mux.Handle(drawv1connect.NewDrawServiceHandler(svc))
+
+	log.Fatal(http.ListenAndServe(":3030", mux))
+}
+```
+
+Your `client/api` producer code then points at this server, and `<DrawService config={{ backendIP, websocketPort: '3030' }} />` in the browser subscribes to its stream.
+
+### Implement your own server
+
+If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viam-labs/motion-tools/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs (`AddEntity`, `UpdateEntity`, `RemoveEntity`, `StreamEntityChanges`, …) in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
+
+See the [`client/api`](../../api/client-api/) reference for the producer-side calls regardless of which server you use.
