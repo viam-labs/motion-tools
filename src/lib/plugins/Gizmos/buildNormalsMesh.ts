@@ -11,7 +11,7 @@ export const buildNormalsMesh = (entity: Entity): Mesh | undefined => {
 	if (box) return makeMesh(new BoxGeometry(box.x * 0.001, box.y * 0.001, box.z * 0.001))
 
 	const sphere = entity.get(traits.Sphere)
-	if (sphere) return makeMesh(new SphereGeometry((sphere.r ?? 0) * 0.001, 16, 12))
+	if (sphere) return makeMesh(new SphereGeometry(sphere.r * 0.001, 16, 12))
 
 	const capsule = entity.get(traits.Capsule)
 	if (capsule) return makeMesh(new CapsuleGeometry(capsule.r * 0.001, capsule.l * 0.001))

@@ -6,7 +6,7 @@ import { useGizmos } from './useGizmos.svelte'
  * Cancel a pending tool action. Escape always triggers. Right-click triggers
  * only while a tool is active.
  */
-export const useCancelGesture = (handler: () => void) => {
+export const useCancelInput = (handler: () => void) => {
 	const { dom } = useThrelte()
 	const plugin = useGizmos()
 
@@ -32,7 +32,7 @@ export const useCancelGesture = (handler: () => void) => {
 }
 
 /** Confirm a pending tool action. */
-export const useConfirmGesture = (handler: () => void) => {
+export const useConfirmInput = (handler: () => void) => {
 	const onKey = (event: KeyboardEvent) => {
 		if (event.key !== 'Enter') return
 		if (isInteractive(event.target as HTMLElement | null)) return
@@ -47,7 +47,7 @@ export const useConfirmGesture = (handler: () => void) => {
 }
 
 /** Undo the last pending tool action. */
-export const useUndoGesture = (handler: () => void) => {
+export const useUndoInput = (handler: () => void) => {
 	const onKey = (event: KeyboardEvent) => {
 		if (event.key !== 'Backspace') return
 		if (isInteractive(event.target as HTMLElement | null)) return
@@ -62,7 +62,7 @@ export const useUndoGesture = (handler: () => void) => {
 }
 
 /** Commit the current pending tool action and add another. */
-export const useAddNextGesture = (handler: () => void) => {
+export const useAddNextInput = (handler: () => void) => {
 	const onKey = (event: KeyboardEvent) => {
 		if (event.key !== ' ') return
 		if (isInteractive(event.target as HTMLElement | null)) return

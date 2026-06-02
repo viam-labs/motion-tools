@@ -5,10 +5,10 @@ import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 import { cancelPending } from './spawn'
 import {
-	useAddNextGesture,
-	useCancelGesture,
-	useConfirmGesture,
-	useUndoGesture,
+	useAddNextInput,
+	useCancelInput,
+	useConfirmInput,
+	useUndoInput,
 } from './useGestures.svelte'
 
 interface Options {
@@ -23,10 +23,10 @@ export const usePending = (options: () => Options = () => ({})) => {
 
 	let pending = $state.raw<Entity>()
 
-	useConfirmGesture(() => options().onConfirm?.())
-	useCancelGesture(() => options().onCancel?.())
-	useAddNextGesture(() => options().onAddNext?.())
-	useUndoGesture(() => options().onUndo?.())
+	useConfirmInput(() => options().onConfirm?.())
+	useCancelInput(() => options().onCancel?.())
+	useAddNextInput(() => options().onAddNext?.())
+	useUndoInput(() => options().onUndo?.())
 
 	onDestroy(() => {
 		if (pending !== undefined && selectedEntity.current === pending) selectedEntity.set()

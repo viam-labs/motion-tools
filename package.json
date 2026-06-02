@@ -15,7 +15,7 @@
 		"prepare": "svelte-kit sync && pnpm build:workers || echo ''",
 		"check": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json && pnpm vet",
 		"check:watch": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "eslint . --fix",
+		"format": "prettier --write . && eslint . --fix",
 		"lint:draw": "golangci-lint run ./draw/...",
 		"lint:client": "golangci-lint run ./client/...",
 		"lint:prettier": "prettier --check .",

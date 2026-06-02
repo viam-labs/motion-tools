@@ -2,8 +2,8 @@ import { type Intersection } from 'three'
 
 import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 
-import { useCancelGesture } from './useGestures.svelte'
 import { useGizmos } from './useGizmos.svelte'
+import { useCancelInput } from './useInputs.svelte'
 
 interface Options<Hit> {
 	findHit: (intersections: Intersection[]) => Hit | undefined
@@ -17,7 +17,7 @@ export const usePlace = <Hit>(options: () => Options<Hit>) => {
 		firstHitOnly: true,
 	}))
 
-	useCancelGesture(plugin.exit)
+	useCancelInput(plugin.exit)
 
 	let hit = $state.raw<Hit>()
 
