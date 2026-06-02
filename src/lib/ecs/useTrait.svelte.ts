@@ -1,4 +1,5 @@
 import { type Entity, $internal as internal, type Trait, type World } from 'koota'
+import { untrack } from 'svelte'
 
 import { useWorld } from './useWorld'
 
@@ -17,11 +18,6 @@ type TraitRecordFromSchema<T extends Schema> = T extends AoSFactory
 			[P in keyof T]: T[P] extends (...args: never[]) => unknown ? ReturnType<T[P]> : T[P]
 		}
 
-/**
- * The record of a trait.
- * For SoA it is a snapshot of the state for a single entity.
- * For AoS it is the state instance for a single entity.
- */
 type TraitRecord<T extends Trait | Schema> = T extends Trait
 	? TraitRecordFromSchema<T['schema']>
 	: TraitRecordFromSchema<T>
@@ -33,32 +29,39 @@ export function isWorld(target: Entity | World | null | undefined): target is Wo
 export function useTrait<T extends Trait>(
 	target: () => Entity | World | undefined | null,
 	trait: T
-): { current: TraitRecord<T> | undefined } {
+): { readonly current: TraitRecord<T> | undefined } {
 	const contextWorld = useWorld()
-	const targetEntity = $derived(target())
-	const world = $derived(isWorld(targetEntity) ? targetEntity : contextWorld)
-	const entity = $derived(isWorld(targetEntity) ? targetEntity[internal].worldEntity : targetEntity)
-
-	// Initialize the state with the current value of the trait.
-	let value = $derived(entity?.get(trait))
+	let value = $state.raw<TraitRecord<T>>()
+	// Version counter to force reactivity when the value reference is the same (AoS traits).
+	// Only read in the getter, never in the effect.
+	let version = $state(0)
 
 	$effect(() => {
-		const onAddUnsub = world.onAdd(trait, (e) => {
-			if (e === entity) {
-				value = e.get(trait)
-			}
-		})
+		const t = target()
 
-		const onRemoveUnsub = world.onRemove(trait, (e) => {
-			if (e === entity) {
-				value = undefined
-			}
-		})
+		if (!t) {
+			value = undefined
+			return
+		}
+
+		const world = isWorld(t) ? t : contextWorld
+		const entity = isWorld(t) ? t[internal].worldEntity : t
+
+		value = entity.has(trait) ? entity.get(trait) : undefined
 
 		const onChangeUnsub = world.onChange(trait, (e) => {
 			if (e === entity) {
 				value = e.get(trait)
+				untrack(() => version++)
 			}
+		})
+
+		const onAddUnsub = world.onAdd(trait, (e) => {
+			if (e === entity) value = e.get(trait)
+		})
+
+		const onRemoveUnsub = world.onRemove(trait, (e) => {
+			if (e === entity) value = undefined
 		})
 
 		return () => {
@@ -70,6 +73,7 @@ export function useTrait<T extends Trait>(
 
 	return {
 		get current() {
+			void version
 			return value
 		},
 	}

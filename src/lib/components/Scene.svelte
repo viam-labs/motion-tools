@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	import { T } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { Environment, Grid, interactivity, PerfMonitor, PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { ShaderMaterial } from 'three'
@@ -12,16 +12,14 @@
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
+	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
 	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { bvh } from '$lib/plugins/bvh.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
-	import MeasureTool from './MeasureTool/MeasureTool.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
-	import XRPlugins from './xr/XRPlugins.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -29,8 +27,12 @@
 
 	let { children }: Props = $props()
 
+	const threlte = useThrelte()
 	const settings = useSettings()
 	const focusedObject3d = useFocusedObject3d()
+
+	// @ts-expect-error This is for debugging
+	globalThis.__threlte__ = threlte
 
 	const { raycaster, enabled } = interactivity({
 		filter: (intersections) => {
@@ -46,7 +48,13 @@
 		enabled.set(settings.current.interactionMode === 'navigate')
 	})
 
-	bvh(raycaster, () => ({ helper: false }))
+	const bvhEnabled = $derived(
+		settings.current.renderSubEntityHoverDetail ||
+			settings.current.interactionMode === 'measure' ||
+			settings.current.interactionMode === 'select'
+	)
+
+	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
 
 	const focusedObject = $derived(focusedObject3d.current)
 
@@ -60,11 +68,6 @@
 <Environment url={hdrImage} />
 
 <PointerMissBox />
-<MeasureTool />
-
-{#if $isPresenting}
-	<XRPlugins />
-{/if}
 
 {#if focusedObject}
 	<Focus object3d={focusedObject} />

@@ -137,9 +137,18 @@
 		renderOrder={renderOrder.current}
 		{...rest}
 	>
-		{#if box.current}
+		{#if box.current || sphere.current}
+			{@const meshGeometry = box.current ? unitBox : unitSphere}
+			{@const edgesGeometry = box.current ? unitBoxEdges : unitSphereEdges}
+			<!--
+				Switch via a derived `is` on the same <T> so `useAttach`'s effect
+				cleanup runs before the new attach. Splitting these across two
+				branches of an {#if}/{:else if} races mount-new against unmount-old:
+				the new attach saves `mesh.geometry`, then the old cleanup restores
+				it to the pre-attach value (null), leaving the mesh geometryless.
+			-->
 			<T
-				is={unitBox}
+				is={meshGeometry}
 				dispose={false}
 			/>
 			<T.LineSegments
@@ -147,22 +156,7 @@
 				bvh={{ enabled: false }}
 			>
 				<T
-					is={unitBoxEdges}
-					dispose={false}
-				/>
-				<T.LineBasicMaterial color={darkenColor(color, 10)} />
-			</T.LineSegments>
-		{:else if sphere.current}
-			<T
-				is={unitSphere}
-				dispose={false}
-			/>
-			<T.LineSegments
-				raycast={() => null}
-				bvh={{ enabled: false }}
-			>
-				<T
-					is={unitSphereEdges}
+					is={edgesGeometry}
 					dispose={false}
 				/>
 				<T.LineBasicMaterial color={darkenColor(color, 10)} />

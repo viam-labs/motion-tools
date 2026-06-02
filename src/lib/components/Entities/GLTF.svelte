@@ -16,11 +16,10 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, type Props as ThrelteProps } from '@threlte/core'
-	import { Portal, PortalTarget, type ThrelteGltf, useGltfAnimations } from '@threlte/extras'
+	import { type ThrelteGltf, useGltfAnimations } from '@threlte/extras'
 	import { Group, type Object3D } from 'three'
 
-	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { poseToObject3d } from '$lib/transform'
+	import { traits, useTrait } from '$lib/ecs'
 
 	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -34,22 +33,21 @@
 
 	const { gltf, actions } = useGltfAnimations()
 
-	const name = useTrait(() => entity, traits.Name)
-	const parent = useParentName(() => entity)
-	const pose = useTrait(() => entity, traits.Pose)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const gltfTrait = useTrait(() => entity, traits.GLTF)
-	const scale = useTrait(() => entity, traits.Scale)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const events = useEntityEvents(() => entity)
 
 	const animationName = $derived(gltfTrait.current?.animationName)
 
 	const group = new Group()
+	group.matrixAutoUpdate = false
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, group)
+		if (worldMatrix.current) {
+			group.matrix.copy(worldMatrix.current)
+			group.updateMatrixWorld()
 		}
 	})
 
@@ -84,30 +82,23 @@
 	})
 </script>
 
-<Portal id={parent.current}>
-	<T is={group}>
-		{#if showAxesHelper.current}
-			<AxesHelper
-				name={entity}
-				width={3}
-				length={0.1}
-			/>
-		{/if}
-		{#if $gltf}
-			<T
-				is={$gltf.scene as Object3D}
-				scale={[scale.current?.x ?? 1, scale.current?.y ?? 1, scale.current?.z ?? 1]}
-				name={entity}
-				visible={invisible.current !== true}
-				{...events}
-				{...rest}
-			>
-				{@render children?.()}
-
-				{#if name.current}
-					<PortalTarget id={name.current} />
-				{/if}
-			</T>
-		{/if}
-	</T>
-</Portal>
+<T is={group}>
+	{#if showAxesHelper.current}
+		<AxesHelper
+			name={entity}
+			width={3}
+			length={0.1}
+		/>
+	{/if}
+	{#if $gltf}
+		<T
+			is={$gltf.scene as Object3D}
+			name={entity}
+			visible={invisible.current !== true}
+			{...events}
+			{...rest}
+		>
+			{@render children?.()}
+		</T>
+	{/if}
+</T>

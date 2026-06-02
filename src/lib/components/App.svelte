@@ -3,24 +3,22 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools'
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
+	import { primeTheme } from '@viamrobotics/tweakpane-config'
+	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { CameraPose } from '$lib/hooks/useControls.svelte'
+	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
 
+	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
-	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld } from '$lib/ecs'
-	import {
-		type DrawConnectionConfig,
-		provideDrawConnectionConfig,
-	} from '$lib/hooks/useDrawConnectionConfig.svelte'
+	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
@@ -35,13 +33,14 @@
 	import Logs from './overlay/Logs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
+	import FramePov from './overlay/widgets/FramePov.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
 	interface LocalConfigProps {
 		current: Struct
 		isDirty: boolean
-		componentToFragId: Record<string, string>
+		componentNameToFragmentInfo: Record<string, FragmentInfo>
 		setLocalPartConfig: (config: Struct) => void
 	}
 
@@ -49,7 +48,6 @@
 		partID?: string
 		inputBindingsEnabled?: boolean
 		localConfigProps?: LocalConfigProps
-		drawConnectionConfig?: DrawConnectionConfig
 
 		/**
 		 * Snippet for THREE objects
@@ -77,7 +75,6 @@
 		inputBindingsEnabled = true,
 		localConfigProps,
 		cameraPose,
-		drawConnectionConfig,
 		children: appChildren,
 		dashboard,
 		details,
@@ -88,14 +85,12 @@
 	const settings = provideSettings()
 	const environment = provideEnvironment()
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
+	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
-	$effect(() => {
-		environment.current.inputBindingsEnabled = inputBindingsEnabled
-	})
-
+	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
-	provideDrawConnectionConfig(() => drawConnectionConfig)
+
 	provideWeblabs()
 	provideToast()
 
@@ -106,27 +101,26 @@
 		() => localConfigProps
 	)
 
-	$effect.pre(() => {
+	$effect(() => {
+		environment.current.inputBindingsEnabled = inputBindingsEnabled
 		environment.current.isStandalone = !localConfigProps
 	})
-</script>
 
-{#if settings.current.enableQueryDevtools}
-	<SvelteQueryDevtools initialIsOpen />
-{/if}
+	$effect(() => {
+		ThemeUtils.setGlobalDefaultTheme(primeTheme)
+	})
+</script>
 
 <div
 	class="relative h-full w-full overflow-hidden dark:bg-white"
 	bind:this={root}
 >
 	<Canvas renderMode="on-demand">
-		<SceneProviders {cameraPose}>
+		<SceneProviders>
 			{#snippet children({ focus })}
 				<Scene>
 					{@render appChildren?.()}
 				</Scene>
-
-				<XR {@attach domPortal(root)} />
 
 				{#if settings.current.renderSubEntityHoverDetail}
 					<HoveredEntities />
@@ -136,6 +130,7 @@
 				<div {@attach domPortal(root)}>
 					<FileDrop />
 					<Dashboard {dashboard} />
+					<Controls />
 					<Details {details} />
 
 					{#if environment.current.isStandalone}
@@ -153,6 +148,10 @@
 					{#if !focus && !$isPresenting}
 						{#each currentRobotCameraWidgets as cameraName (cameraName)}
 							<Camera name={cameraName} />
+						{/each}
+
+						{#each currentFramePovWidgets as povFrameName (povFrameName)}
+							<FramePov frameName={povFrameName} />
 						{/each}
 					{/if}
 

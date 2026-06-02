@@ -1,4 +1,11 @@
-import { ArmClient, BaseClient, CameraClient, GantryClient, GripperClient } from '@viamrobotics/sdk'
+import {
+	ArmClient,
+	BaseClient,
+	CameraClient,
+	GantryClient,
+	GenericComponentClient,
+	GripperClient,
+} from '@viamrobotics/sdk'
 import {
 	createResourceClient,
 	createResourceQuery,
@@ -6,13 +13,13 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
-import { Color } from 'three'
+import { Color, Matrix4 } from 'three'
 
 import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
-import { createPose } from '$lib/transform'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useLogs } from './useLogs.svelte'
@@ -26,6 +33,7 @@ interface Context {
 }
 
 const colorUtil = new Color()
+const tempMatrix = new Matrix4()
 
 export const provideGeometries = (partID: () => string) => {
 	const environment = useEnvironment()
@@ -37,6 +45,7 @@ export const provideGeometries = (partID: () => string) => {
 	const cameras = useResourceNames(partID, 'camera')
 	const grippers = useResourceNames(partID, 'gripper')
 	const gantries = useResourceNames(partID, 'gantry')
+	const generics = useResourceNames(partID, 'generic')
 
 	const settings = useSettings()
 	const { refreshRates } = $derived(settings.current)
@@ -57,6 +66,11 @@ export const provideGeometries = (partID: () => string) => {
 	)
 	const gantryClients = $derived(
 		gantries.current.map((gantry) => createResourceClient(GantryClient, partID, () => gantry.name))
+	)
+	const genericClients = $derived(
+		generics.current
+			.filter((generic) => generic.type === 'component')
+			.map((generic) => createResourceClient(GenericComponentClient, partID, () => generic.name))
 	)
 
 	const interval = $derived(refreshRates[RefreshRates.poses])
@@ -96,6 +110,12 @@ export const provideGeometries = (partID: () => string) => {
 				[client.current?.name, createResourceQuery(client, 'getGeometries', () => options)] as const
 		)
 	)
+	const genericQueries = $derived(
+		genericClients.map(
+			(client) =>
+				[client.current?.name, createResourceQuery(client, 'getGeometries', () => options)] as const
+		)
+	)
 
 	const queries = $derived([
 		...armQueries,
@@ -103,6 +123,7 @@ export const provideGeometries = (partID: () => string) => {
 		...gripperQueries,
 		...cameraQueries,
 		...gantryQueries,
+		...genericQueries,
 	])
 
 	$effect(() => {
@@ -158,7 +179,12 @@ export const provideGeometries = (partID: () => string) => {
 
 						if (existing) {
 							hierarchy.setParent(existing, name)
-							existing.set(traits.Center, center)
+							poseToMatrix(center, tempMatrix)
+							const matrix = existing.get(traits.Matrix)
+							if (matrix && !matrix.equals(tempMatrix)) {
+								matrix.copy(tempMatrix)
+								existing.changed(traits.Matrix)
+							}
 							updateGeometryTrait(existing, geometry)
 							continue
 						}
@@ -166,7 +192,7 @@ export const provideGeometries = (partID: () => string) => {
 						const entityTraits: ConfigurableTrait[] = [
 							...hierarchy.parentTraits(name),
 							traits.Name(label),
-							traits.Center(center),
+							traits.Matrix(poseToMatrix(center, new Matrix4())),
 							traits.GeometriesAPI,
 							traits.Geometry(geometry),
 						]

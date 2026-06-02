@@ -40,6 +40,16 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Plugins',
+					items: [
+						{ label: '<Debug />', link: '/plugins/debug/' },
+						{ label: '<DrawService />', link: '/plugins/draw-service/' },
+						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },
+						{ label: '<SelectionTool />', link: '/plugins/selection/' },
+						{ label: '<Skybox />', link: '/plugins/skybox/' },
+					],
+				},
+				{
 					label: 'API reference',
 					items: [
 						{

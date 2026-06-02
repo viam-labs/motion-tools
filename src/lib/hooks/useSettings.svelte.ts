@@ -41,11 +41,11 @@ export interface Settings {
 	enableMeasureAxisZ: boolean
 
 	enableLabels: boolean
-	enableQueryDevtools: boolean
 
 	// Widgets
 	enableArmPositionsWidget: boolean
 	openCameraWidgets: Record<string, string[]>
+	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean
 	renderArmModels: 'colliders' | 'colliders+model' | 'model'
@@ -115,10 +115,10 @@ const defaults = (): Settings => ({
 	enableMeasureAxisZ: true,
 
 	enableLabels: false,
-	enableQueryDevtools: false,
 
 	enableArmPositionsWidget: false,
 	openCameraWidgets: {},
+	openFramePovWidgets: {},
 
 	renderStats: false,
 	renderArmModels: 'colliders+model',

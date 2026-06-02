@@ -4,19 +4,30 @@
 	import { Button } from '@viamrobotics/prime-core'
 	import { ElementRect } from 'runed'
 
-	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
-	import { useSelectionPlugin } from '$lib/components/Selection/useSelectionPlugin.svelte'
+	import { FloatingPanel } from '$lib'
 	import { traits } from '$lib/ecs'
+	import { useWorld } from '$lib/ecs'
+	import { useSelectionPlugin } from '$lib/plugins'
+	import { PointsCapturedBy, SelectedFrom } from '$lib/plugins/Selection/relations'
 
 	const { dom } = useThrelte()
+	const world = useWorld()
 	const selectionCtx = useSelectionPlugin()
-
 	const rect = new ElementRect(() => dom)
 
 	$effect(() => {
 		const entity = selectionCtx.current.at(-1)
 		if (entity) {
 			entity.set(traits.Color, { r: 0, g: 1, b: 0 })
+			const selectInstance = entity.targetFor(PointsCapturedBy)
+			if (!selectInstance) return
+			const selectionEntities = world.query(PointsCapturedBy(selectInstance))
+			for (const selectionEntity of selectionEntities) {
+				const name = selectionEntity.get(traits.Name)
+				const sourceEntity = selectionEntity.targetFor(SelectedFrom)
+				const selectedFrom = sourceEntity?.get(traits.Name)
+				selectionEntity.set(traits.Name, `${name} (selected from ${selectedFrom})`)
+			}
 		}
 	})
 </script>

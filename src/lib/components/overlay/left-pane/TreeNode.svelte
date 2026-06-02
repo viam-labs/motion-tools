@@ -6,7 +6,7 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import type { TreeNode } from './buildTree'
+	import type { TreeNode } from './useTree.svelte'
 
 	import Self from './TreeNode.svelte'
 
@@ -20,6 +20,7 @@
 
 	const name = useTrait(() => node.entity, traits.Name)
 	const invisible = useTrait(() => node.entity, traits.Invisible)
+	const inheritedInvisible = useTrait(() => node.entity, traits.InheritedInvisible)
 	const chunkProgress = useTrait(() => node.entity, traits.ChunkProgress)
 	const loading = $derived(chunkProgress.current !== undefined)
 	const progress = $derived(
@@ -55,7 +56,7 @@
 		class={[
 			'w-full',
 			{
-				'text-disabled': invisible.current,
+				'text-disabled': inheritedInvisible.current,
 				'bg-medium': nodeState.selected,
 				sticky: true,
 			},
@@ -129,7 +130,7 @@
 	<div
 		class={{
 			'flex justify-between': true,
-			'text-disabled': invisible.current,
+			'text-disabled': inheritedInvisible.current,
 			'bg-medium': nodeState.selected,
 		}}
 		{...api.getItemProps(nodeProps)}
