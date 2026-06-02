@@ -11,7 +11,6 @@ import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnviro
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
 import * as useResourceByName from '$lib/hooks/useResourceByName.svelte'
-import * as useSelection from '$lib/hooks/useSelection.svelte'
 import { createWeblabs, WEBLABS_CONTEXT_KEY } from '$lib/hooks/useWeblabs.svelte'
 
 import Details from '../Details.svelte'
@@ -29,15 +28,6 @@ describe('Details component', () => {
 
 		entity = createEntityFixture(world)
 
-		vi.mocked(useSelection.useFocusedEntity).mockReturnValue({
-			current: entity,
-			instance: undefined,
-			set: () => {},
-		})
-
-		vi.mocked(useSelection.useFocusedObject3d).mockReturnValue({
-			current: undefined,
-		})
 		vi.mocked(useResourceByName.useResourceByName).mockReturnValue({
 			current: {},
 		})
@@ -68,6 +58,7 @@ describe('Details component', () => {
 	it('renders object name', () => {
 		const context = createWeblabs()
 		render(Details, {
+			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
 				[WORLD_CONTEXT_KEY, world],
@@ -87,7 +78,7 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 		expect(screen.getByText('parent frame')).toBeInTheDocument()
 		const parentFrameNameSpan = screen.getByLabelText('immutable parent frame name')
 		const parentFrameNameText = parentFrameNameSpan.nextSibling as HTMLElement
@@ -159,7 +150,7 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 
 		const positionGroup = screen.getByLabelText('mutable local position')
 		expect(positionGroup).toBeInTheDocument()
@@ -198,6 +189,7 @@ describe('Details component', () => {
 		})
 
 		const { container } = render(Details, {
+			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, weblabContext],
 				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
