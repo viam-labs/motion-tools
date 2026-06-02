@@ -30,22 +30,17 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { hierarchy, traits, useParentName, useTrait } from '$lib/ecs'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
 		parentOptions: Array<{ value: string; text: string }>
-		onPoseChange?: (patch: Partial<Pose>) => void
-		onParentChange?: (parent: string) => void
+		onPoseChange: (patch: Partial<Pose>) => void
+		onParentChange: (parent: string) => void
 	}
 
-	const {
-		entity,
-		parentOptions,
-		onPoseChange = (patch) => traits.writeMatrix(entity, patch),
-		onParentChange = (next) => hierarchy.setParent(entity, next),
-	}: Props = $props()
+	const { entity, parentOptions, onPoseChange, onParentChange }: Props = $props()
 
 	const { invalidate } = useThrelte()
 
