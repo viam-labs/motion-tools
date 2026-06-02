@@ -1,5 +1,26 @@
 # motion-tools
 
+## 1.31.0
+
+### Minor Changes
+
+- af2df29: create snapshot --> drawn pcd helper
+- 33579d3: feat: have select plugin emit multiple entities per selection (one per source entity)
+
+## 1.30.0
+
+### Minor Changes
+
+- a62cf24: feat: disallow edit components where fragment has variables; update props for Visualizer component
+- 9e60e37: Move query dev tools to `<Debug />` plugin
+
+### Patch Changes
+
+- 03544e9: fix: bug resolving frame updates for non fragment frames
+- c81c67c: fix: hide transform controls on invisible entities
+- 1821030: Redesign dashboard button: inactive state now uses white background with visible icons, active state uses sky-blue background with white icons
+- b0a929b: Remove `dpr` attribute from `<Canvas />`
+
 ## 1.29.1
 
 ### Patch Changes

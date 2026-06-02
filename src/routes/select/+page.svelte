@@ -12,6 +12,15 @@
 
 {#await createRandomPcdBinary(10_000, 1) then data}
 	<PCD
+		name="Points 1"
+		{data}
+		interactionLayers={['selectTool']}
+	/>
+{/await}
+
+{#await createRandomPcdBinary(1_000, 1) then data}
+	<PCD
+		name="Points 2"
 		{data}
 		interactionLayers={['selectTool']}
 	/>

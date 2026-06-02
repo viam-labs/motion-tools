@@ -42,14 +42,14 @@ export const provideConfigFrames = () => {
 
 	const [fragmentFrames, fragmentUnsetFrameNames] = $derived.by(() => {
 		const { fragment_mods: fragmentMods = [] } = partConfig.current
-		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentId)
+		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentInfo ?? {})
 
 		const results: Record<string, Transform> = {}
 		const unsetResults: string[] = []
 
 		// deal with fragment defined components
 		for (const fragmentComponentName of fragmentDefinedComponents || []) {
-			const fragmentId = partConfig.componentNameToFragmentId[fragmentComponentName]
+			const fragmentId = partConfig.componentNameToFragmentInfo[fragmentComponentName].id
 			const fragmentMod = fragmentMods?.find((mod) => mod.fragment_id === fragmentId)
 
 			if (!fragmentMod) {
@@ -96,7 +96,7 @@ export const provideConfigFrames = () => {
 		 * any whose frame the user has $unset.
 		 */
 		const unsetFragmentNames = new Set(fragmentUnsetFrameNames)
-		for (const name of Object.keys(partConfig.componentNameToFragmentId)) {
+		for (const name of Object.keys(partConfig.componentNameToFragmentInfo)) {
 			if (!unsetFragmentNames.has(name)) {
 				validFrames.add(name)
 			}

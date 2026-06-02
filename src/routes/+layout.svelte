@@ -7,7 +7,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService } from '$lib/plugins'
+	import { DrawService, MeasureTool } from '$lib/plugins'
 	import { providePlanController } from '$lib/hooks/usePlanController.svelte'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
@@ -81,6 +81,7 @@
 				{/snippet}
 
 				<DrawService config={{ backendIP, websocketPort }} />
+				<MeasureTool />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

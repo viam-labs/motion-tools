@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/svelte'
+import { fireEvent, render, screen } from '@testing-library/svelte'
 import { createWorld, type Entity } from 'koota'
+import { on } from 'svelte/events'
 import '@testing-library/jest-dom/vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -47,7 +48,7 @@ describe('Details component', () => {
 		})
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: { components: [] },
-			componentNameToFragmentId: {},
+			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,
@@ -139,7 +140,7 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
-			componentNameToFragmentId: {},
+			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,
@@ -169,5 +170,63 @@ describe('Details component', () => {
 		// 4 OV inputs (x, y, z, theta) plus 3 Euler inputs (x, y, z) — both
 		// TabPages are mounted simultaneously by tweakpane's TabGroup.
 		expect(orientationGroup.querySelectorAll('input')).toHaveLength(7)
+	})
+
+	it('stops keyboard events from propagating out of the panel', async () => {
+		const weblabContext = createWeblabs()
+		weblabContext.isActive = vi.fn(() => true)
+		const environmentContext = createEnvironment()
+		environmentContext.current.isStandalone = true
+
+		entity.add(traits.FramesAPI)
+
+		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
+			current: {
+				components: [resource],
+			},
+			componentNameToFragmentInfo: {},
+			updateFrame: vi.fn(),
+			isDirty: false,
+			hasPendingSave: false,
+			clearPendingSave: vi.fn(),
+			setPendingSave: vi.fn(),
+			save: vi.fn(),
+			discardChanges: vi.fn(),
+			deleteFrame: vi.fn(),
+			createFrame: vi.fn(),
+			hasEditPermissions: true,
+		})
+
+		const { container } = render(Details, {
+			context: new Map<symbol, unknown>([
+				[WEBLABS_CONTEXT_KEY, weblabContext],
+				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+				[WORLD_CONTEXT_KEY, world],
+			]),
+		})
+
+		// Svelte 5 delegates keydown/keyup; use `on` from svelte/events so the
+		// listener participates in the same propagation chain as onkeydown.
+		const parentListener = vi.fn()
+		const stopKeydown = on(container, 'keydown', parentListener)
+		const stopKeyup = on(container, 'keyup', parentListener)
+
+		const panel = screen.getByRole('region', { name: 'Details panel' })
+		const positionGroup = screen.getByLabelText('mutable local position')
+		const input = positionGroup.querySelector('input')
+
+		expect(input).not.toBeNull()
+		expect(panel.contains(input)).toBe(true)
+
+		input!.focus()
+		expect(document.activeElement).toBe(input)
+
+		await fireEvent.keyDown(input!, { key: 'ArrowDown', bubbles: true })
+		await fireEvent.keyUp(input!, { key: 'ArrowDown', bubbles: true })
+
+		expect(parentListener).not.toHaveBeenCalled()
+
+		stopKeydown()
+		stopKeyup()
 	})
 })
