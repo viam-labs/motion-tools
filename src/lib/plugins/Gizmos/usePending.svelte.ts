@@ -4,12 +4,7 @@ import { onDestroy } from 'svelte'
 import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 import { cancelPending } from './spawn'
-import {
-	useAddNextInput,
-	useCancelInput,
-	useConfirmInput,
-	useUndoInput,
-} from './useGestures.svelte'
+import { useAddNextInput, useCancelInput, useConfirmInput, useUndoInput } from './useInputs.svelte'
 
 interface Options {
 	onConfirm?: () => void
