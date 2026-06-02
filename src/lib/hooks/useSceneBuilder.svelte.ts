@@ -6,7 +6,6 @@ import {
 	type UpdateError,
 	validateProposedFrameDeltas,
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
-import { backendIP, websocketPort } from '$lib/defines'
 
 import { usePartConfig } from './usePartConfig.svelte'
 
@@ -120,7 +119,7 @@ export const provideSceneBuilder = (): void => {
 				.map(({ name, frame }) => ({ name, frame }))
 
 			try {
-				const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {
+				const res = await fetch('/api/scene-builder', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ prompt: prompt.trim(), components }),
