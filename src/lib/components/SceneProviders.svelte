@@ -22,8 +22,6 @@
 	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
 
-	import { provideOrigin } from './xr/useOrigin.svelte'
-
 	interface Props {
 		children: Snippet<[{ focus: boolean }]>
 	}
@@ -38,7 +36,6 @@
 	provideHierarchy()
 	provideWorldMatrix()
 	provideInheritedInvisible()
-	provideOrigin()
 
 	provideRelationships()
 

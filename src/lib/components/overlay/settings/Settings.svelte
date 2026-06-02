@@ -8,7 +8,7 @@
 	import { Color } from 'three'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
-	import XRControllerSettings from '$lib/components/xr/XRControllerSettings.svelte'
+	import XRControllerSettings from '$lib/plugins/XR/XRControllerSettings.svelte'
 	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'

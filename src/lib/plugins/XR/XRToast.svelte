@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte'
 	import { CanvasTexture, PlaneGeometry } from 'three'
 
-	import { type ToastVariant, xrToast, type XRToastItem } from '$lib/components/xr/toasts.svelte'
+	import { type ToastVariant, xrToast, type XRToastItem } from './toasts.svelte'
 
 	import WristDisplay from './WristDisplay.svelte'
 

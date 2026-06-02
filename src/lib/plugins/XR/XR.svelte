@@ -15,19 +15,21 @@
 	import PendingEditsPanel from './PendingEditsPanel.svelte'
 	import TeleopControllers from './teleop/Controllers.svelte'
 	import { provideAnchors } from './useAnchors.svelte'
-	import { useOrigin } from './useOrigin.svelte'
+	import { provideOrigin } from './useOrigin.svelte'
 	import XRPlugins from './XRPlugins.svelte'
 	import XRToast from './XRToast.svelte'
 
 	const { ...rest } = $props()
 
+	const origin = provideOrigin()
+	provideAnchors()
+
+	const { renderer } = useThrelte()
 	const { isPresenting } = useXR()
 	const settings = useSettings()
-	const origin = useOrigin()
-	provideAnchors()
-	const enableXR = $derived(settings.current.enableXR)
-
 	const partID = usePartID()
+
+	const enableXR = $derived(settings.current.enableXR)
 
 	// Get all enabled camera widgets for the current part
 	const enabledCameras = $derived.by(() => {
@@ -50,8 +52,6 @@
 	const controllerConfig = $derived(settings.current.xrController)
 	const leftArmName = $derived(controllerConfig.left.armName)
 	const rightArmName = $derived(controllerConfig.right.armName)
-
-	const { renderer } = useThrelte()
 
 	// Compose the XR reference space from:
 	//   1) a -π/2 rotation around X to switch from WebXR's Y-up to Viam's Z-up

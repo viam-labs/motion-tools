@@ -30,7 +30,7 @@ export const provideOrigin = () => {
 	let rotation = $state(0)
 	let commitFn: () => void = () => {}
 
-	setContext<Context>(key, {
+	const context: Context = {
 		get position() {
 			return position
 		},
@@ -72,7 +72,11 @@ export const provideOrigin = () => {
 			v.y = sin * x + cos * v.y
 			return v
 		},
-	})
+	}
+
+	setContext<Context>(key, context)
+
+	return context
 }
 
 export const useOrigin = () => {
