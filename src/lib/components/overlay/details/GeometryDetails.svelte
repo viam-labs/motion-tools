@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
+	import { useThrelte } from '@threlte/core'
 	import {
 		Point,
 		type PointChangeEvent,
@@ -17,6 +18,7 @@
 
 	let { entity }: Props = $props()
 
+	const { invalidate } = useThrelte()
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -25,11 +27,13 @@
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue3dObject
 		entity.set(traits.Box, { x: next.x, y: next.y, z: next.z })
+		invalidate()
 	}
 
 	const handleSphereRChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		entity.set(traits.Sphere, { r: event.detail.value })
+		invalidate()
 	}
 
 	const handleCapsuleRChange = (event: SliderChangeEvent) => {
@@ -37,6 +41,7 @@
 		const current = capsule.current
 		if (!current) return
 		entity.set(traits.Capsule, { r: event.detail.value, l: current.l })
+		invalidate()
 	}
 
 	const handleCapsuleLChange = (event: SliderChangeEvent) => {
@@ -44,6 +49,7 @@
 		const current = capsule.current
 		if (!current) return
 		entity.set(traits.Capsule, { r: current.r, l: event.detail.value })
+		invalidate()
 	}
 </script>
 
