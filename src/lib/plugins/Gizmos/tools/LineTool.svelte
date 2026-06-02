@@ -4,6 +4,7 @@
 >
 	const SNAP_DISTANCE = 0.05
 	const PLACEMENT_DOT_SIZE = 20
+	const GRID_SNAP_STEP = 0.1
 </script>
 
 <script lang="ts">
@@ -16,6 +17,7 @@
 	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
+	import { quantize } from '$lib/quantize'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'
@@ -64,11 +66,10 @@
 	}
 
 	const getCursorPosition = (hit: Vector3) => {
-		const index = pending.current && settings.current.snapping ? nearestVertex(hit) : undefined
-		return {
-			index,
-			position: index === undefined ? hit : points[index].clone(),
-		}
+		const snap = settings.current.snapping
+		const index = pending.current && snap ? nearestVertex(hit) : undefined
+		if (index !== undefined) return { index, position: points[index].clone() }
+		return { index, position: snap ? quantize(hit, GRID_SNAP_STEP) : hit }
 	}
 
 	const flatPositions = (pts: Vector3[], preview?: Vector3): Float32Array => {

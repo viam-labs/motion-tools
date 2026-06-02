@@ -83,6 +83,7 @@
 		type PlanePlacement,
 	} from './gizmos'
 	import { planeMatrix } from './matrix'
+	import PolylineVertexEditor from './PolylineVertexEditor.svelte'
 	import { REFERENCE_GEOMETRY_COLOR, REFERENCE_GEOMETRY_OPACITY, spawnGizmo } from './spawn'
 	import ArrowTool from './tools/ArrowTool.svelte'
 	import CoordinateSystemTool from './tools/CoordinateSystemTool.svelte'
@@ -92,11 +93,13 @@
 	import PlaneTool from './tools/PlaneTool.svelte'
 	import { ReferencePlane } from './traits'
 	import { provideGizmos } from './useGizmos.svelte'
+	import { provideSelectedPolylineVertex } from './useSelectedPolylineVertex.svelte'
 
 	const settings = useSettings()
 	const world = useWorld()
 	const selectedEntity = useSelectedEntity()
 	const gizmos = provideGizmos(() => toggleOff())
+	provideSelectedPolylineVertex()
 
 	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'vertex-normals' | 'surface-normals'
 	let openFolder = $state<FolderName>()
@@ -395,6 +398,8 @@
 {/if}
 
 <GizmoEntities />
+
+<PolylineVertexEditor />
 
 {#if isGizmoMode}
 	<GizmoDetails />
