@@ -2,7 +2,6 @@
 	import { type Entity, IsExcluded } from 'koota'
 
 	import { traits, useWorld } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
 	import Tree from './Tree.svelte'
@@ -11,7 +10,6 @@
 
 	provideTreeExpandedContext()
 
-	const selectedEntity = useSelectedEntity()
 	const world = useWorld()
 
 	const worldEntity = world.spawn(IsExcluded, traits.Name('World'))
@@ -35,9 +33,16 @@
 	<Tree
 		{rootNode}
 		onSelectionChange={(event) => {
-			const value = event.selectedValue[0]
+			const next = new Set(event.selectedValue.map(Number))
 
-			selectedEntity.set(value ? (Number(value) as Entity) : undefined)
+			for (const entity of world.query(traits.Selected)) {
+				if (!next.has(entity as number)) entity.remove(traits.Selected)
+			}
+
+			for (const id of next) {
+				const entity = id as Entity
+				if (!entity.has(traits.Selected)) entity.add(traits.Selected)
+			}
 		}}
 	/>
 </FloatingPanel>
