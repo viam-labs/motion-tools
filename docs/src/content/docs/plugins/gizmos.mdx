@@ -40,6 +40,63 @@ A new toggle appears in the top dashboard with the `shapes` icon. Clicking it op
 | Vertex normals     | `vertex-normals`     | Render the per-vertex normals of a clicked mesh.                                                              |
 | Surface normals    | `surface-normals`    | Render the per-face normals of a clicked surface.                                                             |
 
+## Tool reference
+
+Each tool lives behind an entry in the Gizmos dashboard popover. Picking a tool puts the visualizer into `'gizmo'` interaction mode and arms the placement gesture described below. After placement, the new entity is auto-selected and its Details panel renders the relevant editors (pose, color, geometry, line, opacity, axes helper) for the gizmo kind.
+
+### Coordinate system
+
+Click **Place coordinate system** in the popover, then click any surface to drop a labeled XYZ triad at the picked point. The placed entity carries `ShowAxesHelper` from the start. The Details panel exposes pose and parent only (no opacity, no axes-helper toggle, since the gizmo is itself an axes helper).
+
+### Reference plane
+
+Open the **Reference plane** folder. Pick an axis (`YZ`, `XZ`, `XY`) and a placement mode:
+
+- **Free (click to place)**: clicking **Place reference plane** arms a single-click gesture. Click anywhere in the scene to drop the plane at that point with the chosen normal.
+- **Offset from coordinate plane**: drag the offset slider (in mm) to position the plane along its normal from world origin, then click **Place reference plane** to commit.
+
+Details for the placed plane: pose, opacity, color.
+
+### Reference geometry
+
+Open the **Reference geometry** folder. Pick a shape (`Box`, `Sphere`, `Capsule`), a placement mode (**At origin** or **Free (click to place)**), and toggle **Solid** / **Wireframe**:
+
+- **At origin** drops the geometry at world origin immediately on **Place reference geometry**.
+- **Free** arms a single-click gesture; click a surface to drop it there.
+
+Details: pose, geometry size (per shape), opacity, axes helper toggle, color.
+
+### Polyline
+
+Open the **Polyline** folder. Pick a coordinate space (`World` / `Screen`) and a measurement mode (`Off` / `Per segment` / `Total length`). Click **Place polyline** to arm the tool.
+
+Each click adds a vertex. A floating confirm panel follows the cursor with these hotkeys:
+
+- `⌫` undo the last vertex
+- `esc` cancel and discard
+- `space` commit the current polyline and start a new one
+- `↵` confirm and exit
+
+Details: pose, opacity, color.
+
+### Arrow
+
+Open the **Arrow** folder. Pick the orientation source: `Surface normal` (aligns with the clicked face's outward normal), or one of `X`, `Y`, `Z` (world axes). Click **Place arrow** to arm the tool, then click a surface to drop the arrow.
+
+Details: pose, opacity, axes helper toggle, color.
+
+### Vertex normals
+
+Open the **Vertex normals** folder. Adjust the length slider (in mm) for the helper lines, then click **Place vertex normals** to arm the tool. Click a mesh to attach a helper that renders one outward segment per vertex of the clicked surface.
+
+Details: helper length, opacity, color.
+
+### Surface normals
+
+Same flow as Vertex normals but the helper renders one segment per triangle face instead of per vertex. Open **Surface normals**, set length, click **Place surface normals**, then click a surface.
+
+Details: helper length, opacity, color.
+
 ## Reading and driving plugin state
 
 Use `useGizmos` to read or mutate the plugin's state from anywhere inside `<Visualizer />`. The hook is reactive (Svelte 5 runes), so reading its properties subscribes to changes:
