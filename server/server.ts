@@ -3,6 +3,8 @@ import { stat } from 'node:fs/promises'
 import path from 'node:path'
 import { UuidTool } from 'uuid-tool'
 
+import { handleSceneBuilder } from './routes/scene-builder'
+
 const connections = new Set<Bun.ServerWebSocket<unknown>>()
 const isProduction = process.env.NODE_ENV === 'production' || process.argv.includes('--production')
 const buildDir = path.resolve(import.meta.dir, '../build')
@@ -277,6 +279,9 @@ try {
 			}
 
 			if (req.method === 'POST') {
+				if (pathname === '/scene-builder') {
+					return handleSceneBuilder(req)
+				}
 				return handlePost(req, pathname)
 			}
 

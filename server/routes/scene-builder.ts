@@ -1,8 +1,5 @@
 import { ChatAnthropic } from '@langchain/anthropic'
-import { error, json } from '@sveltejs/kit'
 import { z } from 'zod'
-
-import type { RequestHandler } from './$types'
 
 const RequestSchema = z.object({
 	prompt: z.string().min(1),
@@ -53,6 +50,8 @@ const ResponseSchema = z.object({
 	explanation: z.string(),
 })
 
+const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+
 const SYSTEM_PROMPT = `You are a robot spatial configuration assistant. The user wants to adjust frame positions and orientations of robot components. Return only the components that need to change and only the fields being changed (delta — do not repeat unchanged fields).
 
 Rules:
@@ -74,30 +73,32 @@ Rules:
 - Do not change geometry or attributes.
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 
-export const POST: RequestHandler = async ({ request }) => {
+export async function handleSceneBuilder(req: Request): Promise<Response> {
 	const apiKey = process.env.ANTHROPIC_API_KEY
 	if (!apiKey) {
-		error(500, 'ANTHROPIC_API_KEY not configured')
+		return new Response('ANTHROPIC_API_KEY not configured', { status: 500, headers: CORS_HEADERS })
 	}
 
 	let body: unknown
 	try {
-		body = await request.json()
+		body = await req.json()
 	} catch {
-		error(400, 'Invalid JSON body')
+		return new Response('Invalid JSON body', { status: 400, headers: CORS_HEADERS })
 	}
 
 	const parsed = RequestSchema.safeParse(body)
 	if (!parsed.success) {
-		error(400, `Invalid request: ${parsed.error.message}`)
+		return new Response(`Invalid request: ${parsed.error.message}`, {
+			status: 400,
+			headers: CORS_HEADERS,
+		})
 	}
 
 	const { prompt, components } = parsed.data
 
-	const model = new ChatAnthropic({
-		model: 'claude-haiku-4-5-20251001',
-		apiKey,
-	}).withStructuredOutput(ResponseSchema)
+	const model = new ChatAnthropic({ model: 'claude-haiku-4-5-20251001', apiKey }).withStructuredOutput(
+		ResponseSchema
+	)
 
 	try {
 		const result = await model.invoke([
@@ -108,9 +109,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			{ role: 'user', content: prompt },
 		])
 
-		return json(result)
-	} catch (error_) {
-		console.error('LLM error:', error_)
-		error(502, 'LLM call failed')
+		return new Response(JSON.stringify(result), { status: 200, headers: CORS_HEADERS })
+	} catch (err) {
+		console.error('LLM error:', err)
+		return new Response('LLM call failed', { status: 502, headers: CORS_HEADERS })
 	}
 }
