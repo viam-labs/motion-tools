@@ -19,11 +19,10 @@
 	import { providePointclouds } from '$lib/hooks/usePointclouds.svelte'
 	import { provideRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { provideSelection } from '$lib/hooks/useSelection.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
 
 	interface Props {
-		children: Snippet<[{ focus: boolean }]>
+		children: Snippet
 	}
 
 	let { children }: Props = $props()
@@ -52,8 +51,7 @@
 	provideWorldStates()
 	provideFramelessComponents()
 
-	const { focus } = provideSelection()
 	provideLinkedEntities()
 </script>
 
-{@render children({ focus: focus.current !== undefined })}
+{@render children()}

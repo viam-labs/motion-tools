@@ -8,17 +8,16 @@
 
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
-	import Focus from '$lib/components/Focus.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
-	import { useFocusedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
+	import KeyboardBindings from './KeyboardBindings.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
 
 	interface Props {
@@ -29,7 +28,6 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
-	const focusedObject3d = useFocusedObject3d()
 
 	// @ts-expect-error This is for debugging
 	globalThis.__threlte__ = threlte
@@ -56,8 +54,6 @@
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
 
-	const focusedObject = $derived(focusedObject3d.current)
-
 	const { isPresenting } = useXR()
 </script>
 
@@ -65,49 +61,44 @@
 	<PerfMonitor anchorX="right" />
 {/if}
 
+<KeyboardBindings />
 <Environment url={hdrImage} />
 
 <PointerMissBox />
+<SelectedTransformControls />
 
-{#if focusedObject}
-	<Focus object3d={focusedObject} />
-{:else}
-	{#if !$isPresenting}
-		<Camera position={[3, 3, 3]}>
-			<CameraControls />
-		</Camera>
-	{/if}
-
-	<StaticGeometries />
-	<Selected />
-	<SelectedTransformControls />
-
-	{#if !$isPresenting && settings.current.grid}
-		<Grid
-			oncreate={(ref) => {
-				const material = ref.material as ShaderMaterial
-				material.depthWrite = false
-			}}
-			raycast={() => null}
-			bvh={{ enabled: false }}
-			plane="xy"
-			sectionColor="#333"
-			infiniteGrid
-			renderOrder={999}
-			cellSize={settings.current.gridCellSize}
-			sectionSize={settings.current.gridSectionSize}
-			fadeOrigin={[0, 0, 0]}
-			fadeDistance={settings.current.gridFadeDistance}
-		/>
-	{/if}
+{#if !$isPresenting && settings.current.grid}
+	<Grid
+		oncreate={(ref) => {
+			const material = ref.material as ShaderMaterial
+			material.depthWrite = false
+		}}
+		raycast={() => null}
+		bvh={{ enabled: false }}
+		plane="xy"
+		sectionColor="#333"
+		infiniteGrid
+		renderOrder={999}
+		cellSize={settings.current.gridCellSize}
+		sectionSize={settings.current.gridSectionSize}
+		fadeOrigin={[0, 0, 0]}
+		fadeDistance={settings.current.gridFadeDistance}
+	/>
 {/if}
 
-<T.Group attach={focusedObject ? false : undefined}>
-	<PortalTarget />
+{#if !$isPresenting}
+	<Camera position={[3, 3, 3]}>
+		<CameraControls />
+	</Camera>
+{/if}
 
-	<Entities />
-	<BatchedArrows />
-</T.Group>
+<StaticGeometries />
+<Selected />
+
+<PortalTarget />
+
+<Entities />
+<BatchedArrows />
 
 {@render children?.()}
 

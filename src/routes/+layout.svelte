@@ -7,7 +7,11 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
+<<<<<<< HEAD
 	import { DrawService, MeasureTool, XR } from '$lib/plugins'
+=======
+	import { DrawService, Focus, MeasureTool } from '$lib/plugins'
+>>>>>>> bca0cd6fad4eee384eb7b90124e0ec058f885ee9
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -75,6 +79,7 @@
 				{/snippet}
 
 				<DrawService config={{ backendIP, websocketPort }} />
+				<Focus />
 				<MeasureTool />
 				<XR />
 			</Visualizer>
