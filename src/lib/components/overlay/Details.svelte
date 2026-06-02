@@ -14,7 +14,7 @@
 <script lang="ts">
 	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
-	import { onMount, type Snippet } from 'svelte'
+	import type { Snippet } from 'svelte'
 	import type { HTMLAttributes } from 'svelte/elements'
 
 	import { draggable } from '@neodrag/svelte'
@@ -35,7 +35,6 @@
 		type SliderChangeEvent,
 		TabGroup,
 		TabPage,
-		ThemeUtils,
 	} from 'svelte-tweakpane-ui'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
@@ -50,7 +49,6 @@
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
-	import { primeTheme } from '@viamrobotics/tweakpane-config'
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
@@ -284,10 +282,6 @@
 			2
 		)
 	}
-
-	// onMount(() => {
-	// 	ThemeUtils.setGlobalDefaultTheme(primeTheme)
-	// })
 </script>
 
 {#snippet ImmutableField({
@@ -314,7 +308,6 @@
 {#if entity}
 	<!-- tabindex makes the whole panel focusable so a click anywhere in it (not
 	just the inputs) raises it via `focus-within:z-5`. -->
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 	<div
 		id="details-panel"
 		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
