@@ -11,6 +11,7 @@
 	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
 	import { useFocusedEntity, useSelectedEntity } from '$lib/hooks/useSelection.svelte'
 
+	import PolylineMeasureDetails from './PolylineMeasureDetails.svelte'
 	import { Gizmo, GizmoArrow } from './traits'
 
 	const selectedEntity = useSelectedEntity()
@@ -24,10 +25,12 @@
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const linePositions = useTrait(() => entity, traits.LinePositions)
 	const gizmoArrow = useTrait(() => entity, GizmoArrow)
 
 	const isCoordinateSystem = $derived(Boolean(referenceFrame.current))
 	const isReferenceGeometry = $derived(Boolean(box.current || sphere.current || capsule.current))
+	const isLine = $derived(Boolean(linePositions.current))
 	const isArrow = $derived(Boolean(gizmoArrow.current))
 
 	const entities = useQuery(traits.Name)
@@ -69,10 +72,15 @@
 				onPoseChange={(patch) => traits.writeMatrix(entity, patch)}
 				onParentChange={(next) => hierarchy.setParent(entity, next)}
 			/>
-			<GeometryDetails {entity} />
-			<LineDetails {entity} />
-			<ColorDetails {entity} />
+			{#if isReferenceGeometry}
+				<GeometryDetails {entity} />
+			{/if}
+			{#if isLine}
+				<LineDetails {entity} />
+				<PolylineMeasureDetails {entity} />
+			{/if}
 			{#if !isCoordinateSystem}
+				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
 			{/if}
 			{#if isReferenceGeometry || isArrow}

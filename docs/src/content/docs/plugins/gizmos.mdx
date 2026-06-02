@@ -77,7 +77,19 @@ Each click adds a vertex. A floating confirm panel follows the cursor with these
 - `space` commit the current polyline and start a new one
 - `↵` confirm and exit
 
+With the visualizer's global snap toggle on, each click also snaps to the nearest existing vertex if within ~5 cm, and otherwise quantizes to a 0.1 m grid.
+
 Details: pose, opacity, color.
+
+#### Editing vertices after placement
+
+Selecting a committed polyline gizmo surfaces a pickable handle at each vertex. Click a handle to attach a `TransformControls` gizmo to that vertex; drag to move it anywhere — including into empty space, since the handle isn't constrained to a surface. With the global snap toggle on, vertex drags snap to 0.1 m.
+
+This is the recommended way to place a measurement endpoint that doesn't lie on any object: place the polyline roughly on a nearby surface, then drag the vertex into position.
+
+#### Persistent measurements
+
+Polylines with `lineMeasure` set to `'segment'` or `'total'` produce persistent measurement entities that survive tool exit. They can be hidden via the scene-tree eye toggle and deleted from the Details panel — useful when you want a measurement to stay in the scene for reference. For a single quick distance check that vanishes when you're done, prefer [`<MeasureTool />`](/plugins/measure-tool/) instead.
 
 ### Arrow
 
