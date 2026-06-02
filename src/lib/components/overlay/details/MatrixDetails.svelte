@@ -36,9 +36,16 @@
 	interface Props {
 		entity: Entity
 		parentOptions: Array<{ value: string; text: string }>
+		onPoseChange?: (patch: Partial<Pose>) => void
+		onParentChange?: (parent: string) => void
 	}
 
-	const { entity, parentOptions }: Props = $props()
+	const {
+		entity,
+		parentOptions,
+		onPoseChange = (patch) => traits.writeMatrix(entity, patch),
+		onParentChange = (next) => hierarchy.setParent(entity, next),
+	}: Props = $props()
 
 	const { invalidate } = useThrelte()
 
@@ -72,7 +79,7 @@
 	})
 
 	const applyLocal = (patch: Partial<Pose>) => {
-		traits.writeMatrix(entity, patch)
+		onPoseChange(patch)
 		invalidate()
 	}
 
@@ -92,7 +99,7 @@
 		if (event.detail.origin !== 'internal') return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		hierarchy.setParent(entity, value)
+		onParentChange(value)
 		invalidate()
 	}
 
