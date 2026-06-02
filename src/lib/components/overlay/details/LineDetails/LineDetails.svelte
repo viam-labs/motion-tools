@@ -29,6 +29,7 @@
 	const { invalidate } = useThrelte()
 	const linePositions = useTrait(() => entity, traits.LinePositions)
 	const lineWidth = useTrait(() => entity, traits.LineWidth)
+	const lineColor = useTrait(() => entity, traits.Color)
 	const dotSize = useTrait(() => entity, traits.DotSize)
 	const dotColors = useTrait(() => entity, traits.DotColors)
 
@@ -81,6 +82,13 @@
 		invalidate()
 	}
 
+	const handleLineColorChange = (event: ColorChangeEvent) => {
+		if (event.detail.origin !== 'internal') return
+		const next = event.detail.value as ColorValueRgbObject
+		entity.set(traits.Color, { r: next.r, g: next.g, b: next.b })
+		invalidate()
+	}
+
 	const handleDotSizeChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		entity.set(traits.DotSize, event.detail.value)
@@ -99,11 +107,16 @@
 </script>
 
 {#if linePositions.current}
-	<div>
-		<strong class="font-semibold">line positions</strong>
-		<span class="text-subtle-2">(m)</span>
-		<div aria-label="mutable line positions">
-			<div class="flex max-h-64 flex-col gap-1 overflow-y-auto">
+	<details>
+		<summary class="cursor-pointer select-none">
+			<strong class="font-semibold">line positions</strong>
+			<span class="text-subtle-2">(m, {linePositionList.length})</span>
+		</summary>
+		<div
+			aria-label="mutable line positions"
+			class="mt-1"
+		>
+			<div class="flex max-h-48 flex-col gap-1 overflow-y-auto">
 				{#each linePositionList as position, index (index)}
 					<div class="flex items-end gap-1">
 						<div class="flex-1">
@@ -135,7 +148,7 @@
 				Add position
 			</button>
 		</div>
-	</div>
+	</details>
 
 	<div>
 		<strong class="font-semibold">line width</strong>
@@ -147,6 +160,17 @@
 			on:change={handleLineWidthChange}
 		/>
 	</div>
+
+	{#if lineColor.current}
+		<div>
+			<strong class="font-semibold">line color</strong>
+			<Color
+				value={lineColor.current}
+				type="float"
+				on:change={handleLineColorChange}
+			/>
+		</div>
+	{/if}
 
 	<div>
 		<strong class="font-semibold">dot size</strong>
