@@ -3,13 +3,12 @@ import type { Pose } from '@viamrobotics/sdk'
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { createPoseFromFrame } from '$lib/transform'
+import { applyEulerDeltaToPose, createPoseFromFrame } from '$lib/transform'
 
 export interface FrameDelta {
 	componentName: string
 	translation?: { x?: number; y?: number; z?: number }
-	/** Full orientation replacement as ov_degrees { x, y, z, th } */
-	orientation?: { x: number; y: number; z: number; th: number }
+	orientation?: { roll?: number; pitch?: number; yaw?: number }
 	parent?: string
 	explanation?: string
 }
@@ -78,10 +77,14 @@ export function validateProposedFrameDeltas(
 			x: delta.translation?.x ?? previousPose.x,
 			y: delta.translation?.y ?? previousPose.y,
 			z: delta.translation?.z ?? previousPose.z,
-			oX: delta.orientation?.x ?? previousPose.oX,
-			oY: delta.orientation?.y ?? previousPose.oY,
-			oZ: delta.orientation?.z ?? previousPose.oZ,
-			theta: delta.orientation?.th ?? previousPose.theta,
+			oX: previousPose.oX,
+			oY: previousPose.oY,
+			oZ: previousPose.oZ,
+			theta: previousPose.theta,
+		}
+
+		if (delta.orientation) {
+			applyEulerDeltaToPose(previousPose, delta.orientation, newPose)
 		}
 
 		if (

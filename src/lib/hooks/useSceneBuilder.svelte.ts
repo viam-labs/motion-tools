@@ -6,6 +6,8 @@ import {
 	validateProposedFrameDeltas,
 } from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
 
+import { poseToEulerDegrees } from '$lib/transform'
+
 import { usePartConfig } from './usePartConfig.svelte'
 
 const key = Symbol('scene-builder-context')
@@ -58,19 +60,20 @@ export const provideSceneBuilder = (): void => {
 	const diffGroups = $derived(
 		validation.prepared.flatMap((u): DiffGroup[] => {
 			const changes: FieldChange[] = []
-			const fmt = (p: typeof u.pose) => `(${p.oX}, ${p.oY}, ${p.oZ}) @ ${p.theta}°`
+			const roundMm = (v: number) => `${Math.round(v * 100) / 100}mm`
+			const roundDeg = (v: number) => `${Math.round(v * 100) / 100}°`
 
 			if (u.parent !== u.previousParent) {
 				changes.push({ field: 'parent', oldValue: u.previousParent, newValue: u.parent })
 			}
 			if (u.pose.x !== u.previousPose.x) {
-				changes.push({ field: 'translation.x', oldValue: String(u.previousPose.x), newValue: String(u.pose.x) })
+				changes.push({ field: 'translation.x', oldValue: roundMm(u.previousPose.x), newValue: roundMm(u.pose.x) })
 			}
 			if (u.pose.y !== u.previousPose.y) {
-				changes.push({ field: 'translation.y', oldValue: String(u.previousPose.y), newValue: String(u.pose.y) })
+				changes.push({ field: 'translation.y', oldValue: roundMm(u.previousPose.y), newValue: roundMm(u.pose.y) })
 			}
 			if (u.pose.z !== u.previousPose.z) {
-				changes.push({ field: 'translation.z', oldValue: String(u.previousPose.z), newValue: String(u.pose.z) })
+				changes.push({ field: 'translation.z', oldValue: roundMm(u.previousPose.z), newValue: roundMm(u.pose.z) })
 			}
 			if (
 				u.pose.oX !== u.previousPose.oX ||
@@ -78,7 +81,13 @@ export const provideSceneBuilder = (): void => {
 				u.pose.oZ !== u.previousPose.oZ ||
 				u.pose.theta !== u.previousPose.theta
 			) {
-				changes.push({ field: 'orientation', oldValue: fmt(u.previousPose), newValue: fmt(u.pose) })
+				const prev = poseToEulerDegrees(u.previousPose)
+				const next = poseToEulerDegrees(u.pose)
+				for (const axis of ['yaw', 'pitch', 'roll'] as const) {
+					if (Math.abs(next[axis] - prev[axis]) > 0.01) {
+						changes.push({ field: axis, oldValue: roundDeg(prev[axis]), newValue: roundDeg(next[axis]) })
+					}
+				}
 			}
 
 			return changes.length > 0

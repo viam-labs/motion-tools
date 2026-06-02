@@ -87,18 +87,58 @@ describe('validateProposedFrameDeltas', () => {
 		expect(errors).toHaveLength(0)
 	})
 
-	it('computes prepared update with a full orientation replacement', () => {
+	it('applies a yaw euler delta to an identity frame', () => {
 		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
 
 		const { prepared } = validateProposedFrameDeltas(
-			[{ componentName: 'arm', orientation: { x: 0, y: 1, z: 0, th: 90 } }],
+			[{ componentName: 'arm', orientation: { yaw: 90 } }],
 			config
 		)
 
-		expect(prepared[0].pose.oX).toBe(0)
-		expect(prepared[0].pose.oY).toBe(1)
-		expect(prepared[0].pose.oZ).toBe(0)
-		expect(prepared[0].pose.theta).toBe(90)
+		expect(prepared[0].pose.oX).toBeCloseTo(0)
+		expect(prepared[0].pose.oY).toBeCloseTo(0)
+		expect(prepared[0].pose.oZ).toBeCloseTo(1)
+		expect(prepared[0].pose.theta).toBeCloseTo(90)
+	})
+
+	it('applies a pitch euler delta to an identity frame', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', orientation: { pitch: -30 } }],
+			config
+		)
+
+		// The Viam OV encodes where Z points: pitch -30° tilts Z toward -X
+		expect(prepared[0].pose.oX).toBeCloseTo(-0.5)
+		expect(prepared[0].pose.oZ).toBeCloseTo(0.866)
+	})
+
+	it('incorporates previous orientation when applying a partial euler delta', () => {
+		const identityConfig = makeConfig([{ name: 'arm', frame: makeFrame() }])
+		// OV encoding of a -30° pitch (Z points toward (-0.5, 0, 0.866), th=-180° is the Viam twist)
+		const pitchedConfig = makeConfig([
+			{
+				name: 'arm',
+				frame: makeFrame({
+					orientation: { type: 'ov_degrees', value: { x: -0.5, y: 0, z: 0.866, th: -180 } },
+				}),
+			},
+		])
+
+		const { prepared: fromIdentity } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', orientation: { yaw: 90 } }],
+			identityConfig
+		)
+		const { prepared: fromPitched } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', orientation: { yaw: 90 } }],
+			pitchedConfig
+		)
+
+		// Yaw on identity: Z stays along Z (oY=0); yaw on a pre-pitched frame: the pitch-tilted Z
+		// axis rotates into the Y direction under 90° yaw, so oY=-0.5
+		expect(fromIdentity[0].pose.oY).toBeCloseTo(0)
+		expect(fromPitched[0].pose.oY).toBeCloseTo(-0.5)
 	})
 
 	it.each([

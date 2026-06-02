@@ -22,7 +22,9 @@ const RequestSchema = z.object({
 })
 
 const FrameDeltaSchema = z.object({
-	componentName: z.string(),
+	componentName: z
+		.string()
+		.describe('the exact component name from the provided context that needs updating'),
 	translation: z
 		.object({
 			x: z.number().optional(),
@@ -30,17 +32,20 @@ const FrameDeltaSchema = z.object({
 			z: z.number().optional(),
 		})
 		.optional(),
-	// Full orientation replacement as ov_degrees { x, y, z, th }
 	orientation: z
 		.object({
-			x: z.number(),
-			y: z.number(),
-			z: z.number(),
-			th: z.number(),
+			roll: z.number().optional(),
+			pitch: z.number().optional(),
+			yaw: z.number().optional(),
 		})
 		.optional(),
 	parent: z.string().optional(),
-	explanation: z.string().optional(),
+	explanation: z
+		.string()
+		.optional()
+		.describe(
+			'brief phrase explaining what this specific change does — omit for simple single-field changes'
+		),
 })
 
 const ResponseSchema = z.object({
@@ -53,10 +58,19 @@ const SYSTEM_PROMPT = `You are a robot spatial configuration assistant. The user
 Rules:
 - Only modify components listed in the context below. Each component has a "name" field — use that exact string as "componentName" in your response.
 - Return only components that actually need to change.
-- For translation, return only the changed axes (x, y, z are each optional).
-- For orientation, return the full { x, y, z, th } orientation vector: (x,y,z) is the unit axis, th is the rotation angle in degrees.
+- For translation, return only the changed axes (x, y, z are each optional). All translation values are in millimeters.
+- For orientation, return only the euler angle fields that are changing (roll, pitch, yaw are each optional, in degrees).
+  - Coordinate system: X is forward, Y is left, Z is up (right-handed).
+  - yaw: rotation around Z — positive turns left, negative turns right.
+  - pitch: rotation around Y — positive tilts nose up, negative tilts nose down.
+  - roll: rotation around X — positive rolls right side up, negative rolls left side up.
+  - If the user describes orientation using Viam's orientation vector format { x, y, z, th }, convert it to equivalent euler angles in your response.
+  - Examples:
+    - "rotate the sensor 90° to the left" → { yaw: 90 }
+    - "tilt the camera down 30°" → { pitch: -30 }
+    - "roll the end effector 45° clockwise" → { roll: -45 }
+    - "point the arm forward and tilt it down 20°" → { yaw: 0, pitch: -20 }
 - For parent, return the new parent frame name as a string.
-- All translation values are in millimeters.
 - Do not change geometry or attributes.
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 

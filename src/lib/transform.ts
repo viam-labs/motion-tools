@@ -161,6 +161,30 @@ export const matrixToPose = (matrix: Matrix4, pose: Pose): Pose => {
  * `Frame.svelte` uses to blend live kinematics with user-staged edits;
  * `worldMatrix.ts` premultiplies the result by the parent's `WorldMatrix`.
  */
+export const poseToEulerDegrees = (pose: Partial<Pose>): { roll: number; pitch: number; yaw: number } => {
+	poseToQuaternion(pose, quaternion)
+	euler.setFromQuaternion(quaternion, 'ZYX')
+	return {
+		roll: MathUtils.radToDeg(euler.x),
+		pitch: MathUtils.radToDeg(euler.y),
+		yaw: MathUtils.radToDeg(euler.z),
+	}
+}
+
+export const applyEulerDeltaToPose = (
+	pose: Partial<Pose>,
+	delta: { roll?: number; pitch?: number; yaw?: number },
+	out: Partial<Pose>
+): void => {
+	poseToQuaternion(pose, quaternion)
+	euler.setFromQuaternion(quaternion, 'ZYX')
+	if (delta.roll !== undefined) euler.x = MathUtils.degToRad(delta.roll)
+	if (delta.pitch !== undefined) euler.y = MathUtils.degToRad(delta.pitch)
+	if (delta.yaw !== undefined) euler.z = MathUtils.degToRad(delta.yaw)
+	quaternion.setFromEuler(euler)
+	quaternionToPose(quaternion, out)
+}
+
 export const composeLocalMatrix = (
 	live: Matrix4,
 	baseline: Matrix4,
