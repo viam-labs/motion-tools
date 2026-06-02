@@ -16,7 +16,7 @@
 		entity: Entity
 	}
 
-	let { entity }: Props = $props()
+	const { entity }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const box = useTrait(() => entity, traits.Box)

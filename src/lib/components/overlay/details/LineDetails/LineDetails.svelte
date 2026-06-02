@@ -24,7 +24,7 @@
 		entity: Entity
 	}
 
-	let { entity }: Props = $props()
+	const { entity }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const linePositions = useTrait(() => entity, traits.LinePositions)
