@@ -154,19 +154,6 @@
 
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
-	// Mutate the entity's local Matrix in place: read current pose, overwrite
-	// position or orientation, write back. Used for non-frame entities (gizmos,
-	// custom static geometries) that don't round-trip through the robot config.
-	// Matrix4 instances are shared by `useTrait`, so we must call
-	// `entity.changed(Matrix)` to notify the world-matrix system and any
-	// other listeners.
-	const applyLocal = (patch: Partial<Pose>) => {
-		if (!entity) return
-
-		traits.writeMatrix(entity, patch)
-		invalidate()
-	}
-
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
 	}
@@ -174,22 +161,18 @@
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalPosition(entity, next)
-		} else {
-			applyLocal({ x: next.x, y: next.y, z: next.z })
-		}
+		detailConfigUpdater.updateLocalPosition(entity, next)
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue4dObject
-		const ovValue = { oX: next.x, oY: next.y, oZ: next.z, theta: next.w }
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
-		} else {
-			applyLocal(ovValue)
-		}
+		detailConfigUpdater.updateLocalOrientation(entity, {
+			oX: next.x,
+			oY: next.y,
+			oZ: next.z,
+			theta: next.w,
+		})
 	}
 
 	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
@@ -203,17 +186,12 @@
 		)
 		quaternion.setFromEuler(euler)
 		ov.setFromQuaternion(quaternion)
-		const ovValue = {
+		detailConfigUpdater.updateLocalOrientation(entity, {
 			oX: ov.x,
 			oY: ov.y,
 			oZ: ov.z,
 			theta: MathUtils.radToDeg(ov.th),
-		}
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
-		} else {
-			applyLocal(ovValue)
-		}
+		})
 	}
 
 	const handleBoxChange = (event: PointChangeEvent) => {
