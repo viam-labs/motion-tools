@@ -7,7 +7,6 @@
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import { useOrigin } from '../../xr/useOrigin.svelte'
 	import Button from '../dashboard/Button.svelte'
 	import FloatingPanel from '../FloatingPanel.svelte'
 
@@ -20,7 +19,6 @@
 	const { scene, renderer: mainRenderer, renderStage, invalidate } = useThrelte()
 	const settings = useSettings()
 	const partID = usePartID()
-	const origin = useOrigin()
 
 	// Three.js cameras look down -Z; Viam camera frames conventionally have the
 	// optical axis along +Z with image-down along +Y. A 180° rotation around X
@@ -53,7 +51,6 @@
 	const orthoHeight = $derived(BASE_ORTHO_HEIGHT / orthoZoom)
 
 	const composed = new Matrix4()
-	const originMat = new Matrix4()
 
 	$effect(() => {
 		if (!canvasEl) return
@@ -121,15 +118,7 @@
 
 			const povCamera = cameraMode === 'perspective' ? perspectiveCamera : orthographicCamera
 
-			// Compose origin × worldMatrix × VIAM_TO_THREE_CAMERA. The frame
-			// entities' WorldMatrix lives in ECS world space; the rendered scene
-			// is wrapped in a T.Group that applies `origin` on top, so the POV
-			// camera needs the same origin transform to share coordinate space
-			// with the meshes it's rendering.
-			originMat
-				.makeRotationZ(origin.rotation)
-				.setPosition(origin.position[0], origin.position[1], origin.position[2])
-			composed.copy(originMat).multiply(worldMat).multiply(VIAM_TO_THREE_CAMERA)
+			composed.multiplyMatrices(worldMat, VIAM_TO_THREE_CAMERA)
 			composed.decompose(povCamera.position, povCamera.quaternion, povCamera.scale)
 
 			const aspect = width / height
