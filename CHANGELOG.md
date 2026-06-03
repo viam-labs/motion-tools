@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.33.0
+
+### Minor Changes
+
+- 617679e: Migrate WebXR features to a plugin
+
 ## 1.32.0
 
 ### Minor Changes
