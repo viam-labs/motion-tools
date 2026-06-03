@@ -1,6 +1,6 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
+import { type Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
@@ -9,6 +9,7 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { parsePlyInput } from '$lib/ply'
+import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -75,6 +76,14 @@ export const Hovered = trait(() => true)
 export const Invisible = trait(() => true)
 
 /**
+ * Suppresses the default frame-style world/local pose and parent-frame blocks
+ * in the details panel. Entities that render their own pose UI via the
+ * `details-extensions` portal target (e.g. gizmo plugin entities) opt in by
+ * adding this trait.
+ */
+export const CustomDetails = trait(() => true)
+
+/**
  * True when the entity itself, or any of its parents up the `ChildOf`
  * chain, has `Invisible`. Maintained by `provideInheritedInvisible`;
  * don't add or remove it by hand — toggle `Invisible` and the cascade
@@ -86,11 +95,15 @@ export const InheritedInvisible = trait(() => true)
  * Represents that an entity is composed of many instances, so that the treeview and
  * details panel may display all instances
  */
-export const Instanced = trait(() => true)
+export const InstanceId = trait(() => -1)
 
 export const Instance = trait({
 	meshID: -1,
 	instanceID: -1,
+})
+
+export const Instances = trait({
+	count: 0,
 })
 
 export const RenderOrder = trait(() => 0)
@@ -124,10 +137,6 @@ export const Colors = trait(() => new Uint8Array() as Uint8Array)
  * Per-vertex opacity values packed as uint8 (0-255).
  */
 export const Opacities = trait(() => new Uint8Array())
-
-export const Instances = trait({
-	count: 0,
-})
 
 export const Arrows = trait({
 	headAtPose: true,
@@ -226,6 +235,11 @@ export type InteractionLayerValue = 'selectTool'
 export const SelectToolInteractionLayer = trait(() => true)
 
 /**
+ * This entity is selected by the user
+ */
+export const Selected = trait()
+
+/**
  * This entity can be safely removed from the scene by the user
  */
 export const Removable = trait(() => true)
@@ -289,6 +303,25 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
 	}
+}
+
+/**
+ * Patches an entity's `Matrix` trait in-place via the `Pose` round-trip
+ * (`matrixToPose` → merge → `poseToMatrix`), then signals `entity.changed(Matrix)`.
+ * No-ops silently if the entity has no `Matrix` trait.
+ */
+export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
+	const matrix = entity.get(Matrix)
+	if (!matrix) return
+
+	const pose = matrixToPose(matrix, createPose())
+	const filtered = Object.fromEntries(
+		Object.entries(patch).filter(([, v]) => v !== undefined)
+	) as Partial<Pose>
+	if (Object.keys(filtered).length === 0) return
+	Object.assign(pose, filtered)
+	poseToMatrix(pose, matrix)
+	entity.changed(Matrix)
 }
 
 const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
