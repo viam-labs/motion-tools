@@ -28,6 +28,7 @@ export const appendLinePosition = (source: Float32Array): Float32Array => {
 
 export const removeLinePosition = (source: Float32Array, index: number): Float32Array => {
 	if (source.length <= 6) return source
+	if (index * 3 + 2 >= source.length) return source
 
 	const next = new Float32Array(source.length - 3)
 	next.set(source.subarray(0, index * 3), 0)
