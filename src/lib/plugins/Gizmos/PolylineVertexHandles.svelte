@@ -1,9 +1,17 @@
+<script
+	lang="ts"
+	module
+>
+	import { Vector3 } from 'three'
+
+	const positionUtil = new Vector3()
+</script>
+
 <script lang="ts">
 	import type { Entity } from 'koota'
 
 	import { T } from '@threlte/core'
 	import { type IntersectionEvent, useCursor } from '@threlte/extras'
-	import { Vector3 } from 'three'
 
 	import { traits, useTrait } from '$lib/ecs'
 
@@ -20,16 +28,17 @@
 	const vertex = useSelectedPolylineVertex()
 	const cursor = useCursor()
 
-	const positions = $derived.by<[number, number, number][]>(() => {
-		const buf = linePositions.current
-		if (!buf || buf.length < 3) return []
+	const positions = $derived.by(() => {
+		const positions = linePositions.current
+		if (!positions || positions.length < 3) return []
+
 		const result: [number, number, number][] = []
-		const p = new Vector3()
-		for (let i = 0; i + 2 < buf.length; i += 3) {
-			p.set(buf[i]!, buf[i + 1]!, buf[i + 2]!)
-			if (worldMatrix.current) p.applyMatrix4(worldMatrix.current)
-			result.push([p.x, p.y, p.z])
+		for (let i = 0; i + 2 < positions.length; i += 3) {
+			positionUtil.set(positions[i]!, positions[i + 1]!, positions[i + 2]!)
+			if (worldMatrix.current) positionUtil.applyMatrix4(worldMatrix.current)
+			result.push([positionUtil.x, positionUtil.y, positionUtil.z])
 		}
+
 		return result
 	})
 

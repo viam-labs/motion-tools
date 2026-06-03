@@ -1,10 +1,3 @@
-<script
-	lang="ts"
-	module
->
-	const GRID_SNAP_STEP = 0.1
-</script>
-
 <script lang="ts">
 	import { T } from '@threlte/core'
 	import { HTML, MeshLineGeometry, MeshLineMaterial, Portal } from '@threlte/extras'
@@ -16,7 +9,7 @@
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { quantize } from '$lib/quantize'
+	import { GRID_SNAP_STEP, quantize } from '$lib/quantize'
 
 	import MeasurePoint from './MeasurePoint.svelte'
 

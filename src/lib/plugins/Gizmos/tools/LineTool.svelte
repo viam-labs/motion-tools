@@ -4,7 +4,6 @@
 >
 	const SNAP_DISTANCE = 0.05
 	const PLACEMENT_DOT_SIZE = 20
-	const GRID_SNAP_STEP = 0.1
 </script>
 
 <script lang="ts">
@@ -16,7 +15,7 @@
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
-	import { quantize } from '$lib/quantize'
+	import { GRID_SNAP_STEP, quantize } from '$lib/quantize'
 
 	import ConfirmFloatingPanel from '../ConfirmFloatingPanel.svelte'
 	import { cursorPoint } from '../cursor'

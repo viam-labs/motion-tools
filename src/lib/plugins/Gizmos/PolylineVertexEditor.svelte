@@ -25,14 +25,9 @@
 			!inheritedInvisible.current
 	)
 
-	// Drop any stale vertex selection when the user picks a different entity,
-	// hides the polyline, deletes it, or re-enters pending placement.
 	$effect(() => {
-		const sel = vertex.current
-		const isEditable = editable
-		const currentEntity = entity
-		if (!sel) return
-		if (sel.entity !== currentEntity || !isEditable) {
+		if (!vertex.current) return
+		if (vertex.current.entity !== entity || !editable) {
 			untrack(() => vertex.set(undefined))
 		}
 	})
