@@ -6,12 +6,12 @@ vi.mock('@threlte/core', () => ({
 	useTask: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
 	useThrelte: vi.fn(() => ({
 		scene: {
-		scene: {
 			getObjectByName: vi.fn(() => undefined),
 			getObjectByProperty: vi.fn(() => ({
 				clone: vi.fn(() => ({ traverse: vi.fn() })),
 			})),
 		},
+		invalidate: vi.fn(),
 	})),
 	isInstanceOf: vi.fn(() => false),
 }))
