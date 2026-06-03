@@ -11,12 +11,11 @@
 	import { Button, ButtonIcon, ButtonLabel, Panel } from 'threlte-uikit/horizon'
 	import { Icon, Locate, Move3d, Plus, Rotate3d, Scale3d } from 'threlte-uikit/lucide'
 
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useQuery, useTrait } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
 	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	import { useOrigin } from '../useOrigin.svelte'
@@ -31,16 +30,19 @@
 	type GeometryBase = BoxBase | SphereBase | CapsuleBase
 
 	const { camera, renderer, scene } = useThrelte()
-	const selectedEntity = useSelectedEntity()
-	const selectedObject3d = useSelectedObject3d()
+
 	const partConfig = usePartConfig()
 	const transformControls = useTransformControls()
 	const framelessComponents = useFramelessComponents()
-	const framesAPI = useTrait(() => selectedEntity.current, traits.FramesAPI)
 	const leftController = useController('left')
 	const rightController = useController('right')
 	const headset = useHeadset()
 	const origin = useOrigin()
+	const selected = useQuery(traits.Selected)
+
+	const selectedEntity = $derived(selected.current[0])
+	const selectedObject3d = $derived(scene.getObjectByName(`${selectedEntity}`))
+	const framesAPI = useTrait(() => selectedEntity, traits.FramesAPI)
 
 	const resetForward = new Vector3()
 	const resetHead = new Vector3()
@@ -62,9 +64,9 @@
 
 	const updater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
-	const box = useTrait(() => selectedEntity.current, traits.Box)
-	const sphere = useTrait(() => selectedEntity.current, traits.Sphere)
-	const capsule = useTrait(() => selectedEntity.current, traits.Capsule)
+	const box = useTrait(() => selectedEntity, traits.Box)
+	const sphere = useTrait(() => selectedEntity, traits.Sphere)
+	const capsule = useTrait(() => selectedEntity, traits.Capsule)
 
 	const geometryType = $derived.by<'box' | 'sphere' | 'capsule' | undefined>(() => {
 		if (box.current) return 'box'
@@ -154,7 +156,9 @@
 			attached = false
 			return
 		}
-		const target = selectedObject3d.current?.parent
+
+		const target = selectedObject3d?.parent
+
 		if (target && target !== scene) {
 			controls.attach(target)
 			attached = true
@@ -238,20 +242,19 @@
 	})
 
 	controls.addEventListener('objectChange', () => {
-		const entity = selectedEntity.current
 		const target = controls.object
-		if (!entity || !target) return
+		if (!selectedEntity || !target) return
 
 		if (mode === 'translate') {
 			// three.js scene is in meters; FrameConfigUpdater stores mm.
-			updater.updateLocalPosition(entity, {
+			updater.updateLocalPosition(selectedEntity, {
 				x: target.position.x * 1000,
 				y: target.position.y * 1000,
 				z: target.position.z * 1000,
 			})
 		} else if (mode === 'rotate') {
 			ov.setFromQuaternion(target.quaternion)
-			updater.updateLocalOrientation(entity, {
+			updater.updateLocalOrientation(selectedEntity, {
 				oX: ov.x,
 				oY: ov.y,
 				oZ: ov.z,
@@ -265,19 +268,19 @@
 			// frame's regenerated geometry isn't re-scaled visually.
 			const s = target.scale
 			if (geometryBase.type === 'box') {
-				updater.updateGeometry(entity, {
+				updater.updateGeometry(selectedEntity, {
 					type: 'box',
 					x: geometryBase.x * s.x,
 					y: geometryBase.y * s.y,
 					z: geometryBase.z * s.z,
 				})
 			} else if (geometryBase.type === 'sphere') {
-				updater.updateGeometry(entity, {
+				updater.updateGeometry(selectedEntity, {
 					type: 'sphere',
 					r: geometryBase.r * s.x,
 				})
 			} else {
-				updater.updateGeometry(entity, {
+				updater.updateGeometry(selectedEntity, {
 					type: 'capsule',
 					r: geometryBase.r * s.x,
 					l: geometryBase.l * s.z,
