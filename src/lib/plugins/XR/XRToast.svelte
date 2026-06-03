@@ -4,7 +4,6 @@
 	import { CanvasTexture, PlaneGeometry } from 'three'
 
 	import { type ToastVariant, xrToast, type XRToastItem } from './toasts.svelte'
-
 	import WristDisplay from './WristDisplay.svelte'
 
 	const CANVAS_WIDTH = 700
