@@ -53,7 +53,11 @@
 			kind: 'arrow',
 			position: hit.position,
 			matrix: arrowMatrix(gizmos.arrowAxis, hit.position, hit.normal),
-			traits: [GizmoArrow, traits.Color(asRGB(ARROW_COLOR, { r: 0, g: 0, b: 0 }))],
+			traits: [
+				GizmoArrow,
+				traits.Color(asRGB(ARROW_COLOR, { r: 0, g: 0, b: 0 })),
+				traits.Opacity(1),
+			],
 		})
 
 		pending.set(entity)
