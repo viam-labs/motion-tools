@@ -81,7 +81,7 @@ export const Invisible = trait(() => true)
  * `details-extensions` portal target (e.g. gizmo plugin entities) opt in by
  * adding this trait.
  */
-export const CustomDetails = trait(() => true)
+export const CustomDetails = trait()
 
 /**
  * True when the entity itself, or any of its parents up the `ChildOf`
