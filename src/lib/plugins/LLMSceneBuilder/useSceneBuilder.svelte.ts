@@ -1,15 +1,9 @@
 import { getContext, setContext } from 'svelte'
 
-import {
-	type FrameDelta,
-	type UpdateError,
-	validateProposedFrameDeltas,
-} from '$lib/components/overlay/SceneBuilder/frameDeltaAdapter'
-import { backendIP, websocketPort } from '$lib/defines'
+import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
-import { useAnthropicKey } from './useAnthropicKey.svelte'
-import { usePartConfig } from './usePartConfig.svelte'
+import { type FrameDelta, type UpdateError, validateProposedFrameDeltas } from './frameDeltaAdapter'
 
 const key = Symbol('scene-builder-context')
 
@@ -39,9 +33,22 @@ interface SceneBuilderContext {
 	resetError(): void
 }
 
-export const provideSceneBuilder = (): void => {
+export interface ComponentFrameInfo {
+	name: string
+	frame: {
+		parent: string | undefined
+		translation: { x?: number; y?: number; z?: number } | undefined
+		orientation: { roll: number; pitch: number; yaw: number }
+	}
+}
+
+export type InferCallback = (
+	prompt: string,
+	components: ComponentFrameInfo[]
+) => Promise<{ updates: FrameDelta[]; explanation: string }>
+
+export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	const partConfig = usePartConfig()
-	const anthropicKey = useAnthropicKey()
 
 	let uiState = $state<UIState>('idle')
 	let deltas = $state<FrameDelta[]>([])
@@ -156,22 +163,7 @@ export const provideSceneBuilder = (): void => {
 				})
 
 			try {
-				const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						prompt: prompt.trim(),
-						components,
-						anthropicApiKey: anthropicKey.current || undefined,
-					}),
-				})
-
-				if (!res.ok) {
-					throw new Error(`${res.status}: ${await res.text()}`)
-				}
-
-				const data = (await res.json()) as { updates: FrameDelta[]; explanation: string }
-
+				const data = await onInfer(prompt.trim(), components)
 				deltas = data.updates
 				explanation = data.explanation
 				uiState = 'diff'

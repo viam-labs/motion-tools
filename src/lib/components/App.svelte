@@ -18,23 +18,23 @@
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import XR from '$lib/components/xr/XR.svelte'
+	import { backendIP, websocketPort } from '$lib/defines'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
-	import { provideAnthropicKey } from '$lib/hooks/useAnthropicKey.svelte'
+	import { provideAnthropicKey, useAnthropicKey } from '$lib/hooks/useAnthropicKey.svelte'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
-	import { provideSceneBuilder } from '$lib/hooks/useSceneBuilder.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
 	import { domPortal } from '$lib/portal'
+	import { LLMSceneBuilder, type InferCallback } from '$lib/plugins'
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import Logs from './overlay/Logs.svelte'
-	import SceneBuilder from './overlay/SceneBuilder/SceneBuilder.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
@@ -72,6 +72,13 @@
 		 * Allows setting the initial camera pose
 		 */
 		cameraPose?: CameraPose
+
+		/**
+		 * When provided, mounts the LLM Frame Builder plugin using this callback for inference.
+		 * In the standalone visualizer, the plugin mounts automatically with the LLM endpoint
+		 * in the draw-server. In the embedded app, pass in the org-scoped inference instead.
+		 */
+		onInfer?: InferCallback
 	}
 
 	let {
@@ -79,6 +86,7 @@
 		inputBindingsEnabled = true,
 		localConfigProps,
 		cameraPose,
+		onInfer,
 		children: appChildren,
 		dashboard,
 		details,
@@ -99,13 +107,30 @@
 	provideWeblabs()
 	provideToast()
 
+	const anthropicKey = useAnthropicKey()
+
+	const standaloneInfer: InferCallback = async (prompt, components) => {
+		const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				prompt,
+				components,
+				anthropicApiKey: anthropicKey.current || undefined,
+			}),
+		})
+		if (!res.ok) {
+			throw new Error(`${res.status}: ${await res.text()}`)
+		}
+		return res.json()
+	}
+
 	let root = $state.raw<HTMLElement>()
 
 	providePartConfig(
 		() => partID,
 		() => localConfigProps
 	)
-	provideSceneBuilder()
 
 	$effect(() => {
 		environment.current.inputBindingsEnabled = inputBindingsEnabled
@@ -174,7 +199,9 @@
 				<Settings />
 				<Logs />
 				<AddFrames />
-				<SceneBuilder />
+				{#if !localConfigProps || onInfer}
+					<LLMSceneBuilder onInfer={onInfer ?? standaloneInfer} />
+				{/if}
 			</div>
 		</SceneProviders>
 	</Canvas>

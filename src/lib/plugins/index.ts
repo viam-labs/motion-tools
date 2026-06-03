@@ -16,3 +16,8 @@ export { default as Skybox } from './Skybox/Skybox.svelte'
 export { default as Debug } from './Debug/Debug.svelte'
 
 export { default as Focus } from './Focus/Focus.svelte'
+
+// LLMSceneBuilder
+export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
+export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'
+export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'

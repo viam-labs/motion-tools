@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
 
-	import { useSceneBuilder } from '$lib/hooks/useSceneBuilder.svelte'
+	import { useSceneBuilder } from './useSceneBuilder.svelte'
 
-	import DashboardButton from '../dashboard/Button.svelte'
-	import FloatingPanel from '../FloatingPanel.svelte'
+	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
 	const sceneBuilder = useSceneBuilder()
 
