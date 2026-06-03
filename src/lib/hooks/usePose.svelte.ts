@@ -1,23 +1,25 @@
-import { createRobotQuery, useRobotClient } from '@viamrobotics/svelte-sdk'
-import { usePartID } from './usePartID.svelte'
-import { commonApi, Pose } from '@viamrobotics/sdk'
-import { RefreshRates, useMachineSettings } from './useMachineSettings.svelte'
-import { useEnvironment } from './useEnvironment.svelte'
-import { observe } from '@threlte/core'
+import { commonApi, MachineConnectionEvent, Pose } from '@viamrobotics/sdk'
+import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
-import { useFrames } from './useFrames.svelte'
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { useLogs } from './useLogs.svelte'
-import { useResourceByName } from './useResourceByName.svelte'
-import { useRefetchPoses } from './useRefetchPoses'
 
-const origingFrameComponentTypes = ['arm', 'gantry', 'gripper', 'base']
+import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+
+import { useEnvironment } from './useEnvironment.svelte'
+import { useFrames } from './useFrames.svelte'
+import { useLogs } from './useLogs.svelte'
+import { usePartID } from './usePartID.svelte'
+import { useRefetchPoses } from './useRefetchPoses'
+import { useResourceByName } from './useResourceByName.svelte'
+import { RefreshRates, useSettings } from './useSettings.svelte'
+
+const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 export const usePose = (name: () => string | undefined, parent: () => string | undefined) => {
+	const partID = usePartID()
+	const connectionStatus = useConnectionStatus(() => partID.current)
 	const environment = useEnvironment()
 	const logs = useLogs()
-	const { refreshRates } = useMachineSettings()
-	const partID = usePartID()
+	const settings = useSettings()
 	const robotClient = useRobotClient(() => partID.current)
 	const currentName = $derived(name())
 	const currentParent = $derived(parent())
@@ -30,18 +32,14 @@ export const usePose = (name: () => string | undefined, parent: () => string | u
 
 	let pose = $state<Pose>()
 
-	const interval = $derived(refreshRates.get(RefreshRates.poses))
+	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 
 	const resolvedParent = $derived(
-		origingFrameComponentTypes.includes(parentResource?.subtype ?? '')
-			? `${parent()}_origin`
-			: parent()
+		originFrameComponentTypes.has(parentResource?.subtype ?? '') ? `${parent()}_origin` : parent()
 	)
 
 	const resolvedName = $derived(
-		origingFrameComponentTypes.includes(resource?.subtype ?? '')
-			? `${currentName}_origin`
-			: currentName
+		originFrameComponentTypes.has(resource?.subtype ?? '') ? `${currentName}_origin` : currentName
 	)
 
 	const query = createRobotQuery(
@@ -74,14 +72,15 @@ export const usePose = (name: () => string | undefined, parent: () => string | u
 		}
 	})
 
-	observe.pre(
-		() => [environment.current.viewerMode, frames.current],
-		() => {
-			if (environment.current.viewerMode === 'monitor') {
-				untrack(() => query.refetch())
-			}
+	$effect(() => {
+		if (
+			environment.current.viewerMode === 'monitor' &&
+			frames.current &&
+			connectionStatus.current === MachineConnectionEvent.CONNECTED
+		) {
+			untrack(() => query.refetch())
 		}
-	)
+	})
 
 	return {
 		get current() {

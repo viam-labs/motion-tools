@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { Entity } from 'koota'
-	import { Button, Select, Input } from '@viamrobotics/prime-core'
-	import { traits, useQuery, relations, useTrait } from '$lib/ecs'
+	import { Button, Input, Select } from '@viamrobotics/prime-core'
+	import { type Entity } from 'koota'
+
+	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { SubEntityLinkType } from '$lib/ecs/relations'
 
 	interface Props {
@@ -12,12 +13,20 @@
 
 	const allEntities = useQuery(traits.Name)
 	const name = useTrait(() => entity, traits.Name)
+	const drawServiceAPI = useTrait(() => entity, traits.DrawServiceAPI)
+	const isServiceManaged = $derived(!!drawServiceAPI.current)
+
 	const entityNames = $derived.by(() => {
 		const currentEntityName = name.current
 		return allEntities.current
-			.map((e: Entity) => e.get(traits.Name))
-			.filter((n: string | undefined): n is string => n !== undefined && n !== currentEntityName)
-			.sort()
+			.filter((e: Entity) => {
+				const entityName = e.get(traits.Name)
+				if (!entityName || entityName === currentEntityName) return false
+				if (isServiceManaged) return !!e.get(traits.DrawServiceAPI)
+				return true
+			})
+			.map((e: Entity) => e.get(traits.Name)!)
+			.toSorted()
 	})
 
 	let showRelationshipOptions = $state(false)
@@ -42,14 +51,14 @@
 		const selectedEntity = allEntities.current.find(
 			(e: Entity) => e.get(traits.Name) === selectedRelationshipEntity
 		)
-		if (selectedEntity) {
-			entity.add(
-				relations.SubEntityLink(selectedEntity, {
-					indexMapping: relationshipFormula,
-					type: linkType,
-				})
-			)
-		}
+		if (!selectedEntity) return
+
+		entity.add(
+			relations.SubEntityLink(selectedEntity, {
+				indexMapping: relationshipFormula,
+				type: linkType,
+			})
+		)
 		showRelationshipOptions = false
 		resetForm()
 	}

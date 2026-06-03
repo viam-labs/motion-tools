@@ -20,16 +20,18 @@ var (
 
 	// DefaultGridEnabled specifies whether the grid is visible by default.
 	DefaultGridEnabled = true
-	// DefaultGridCellSize is the default grid cell size in millimeters (500mm = 0.5m).
+	// DefaultGridCellSize is the default grid cell size in millimeters (500mm).
 	DefaultGridCellSize float32 = 500.0
-	// DefaultGridSectionSize is the default grid section size in millimeters (10000mm = 10m).
+	// DefaultGridSectionSize is the default grid section size in millimeters (10000mm).
 	DefaultGridSectionSize float32 = 10000.0
-	// DefaultGridFadeDistance is the default distance at which the grid fades out (25000mm = 25m).
+	// DefaultGridFadeDistance is the default distance at which the grid fades out (25000mm).
 	DefaultGridFadeDistance float32 = 25000.0
 )
 
-// SceneCamera configures the viewpoint for rendering a 3D scene. Supports both perspective
-// and orthographic projection modes. Exactly one of PerspectiveCamera or OrthographicCamera must be set.
+// SceneCamera configures the viewpoint for rendering a 3D scene. Set exactly one
+// of PerspectiveCamera or OrthographicCamera; if both are set, PerspectiveCamera
+// wins during proto serialization. Validate (on the parent SceneMetadata) rejects
+// the case where both are nil.
 type SceneCamera struct {
 	// Position is the camera location in millimeters (world coordinates).
 	Position r3.Vector
@@ -100,7 +102,9 @@ func NewSceneCamera(position r3.Vector, lookAt r3.Vector, options ...sceneCamera
 	}
 }
 
-// ToProto converts the SceneCamera to its Protocol Buffer representation for serialization.
+// ToProto converts the SceneCamera to its drawv1.SceneCamera proto. If
+// PerspectiveCamera is set it is selected as the camera type; otherwise the
+// orthographic camera type is used (even if OrthographicCamera itself is nil).
 func (camera *SceneCamera) ToProto() *drawv1.SceneCamera {
 	position := &commonv1.Vector3{X: camera.Position.X, Y: camera.Position.Y, Z: camera.Position.Z}
 	lookAt := &commonv1.Vector3{X: camera.LookAt.X, Y: camera.LookAt.Y, Z: camera.LookAt.Z}
@@ -122,20 +126,40 @@ func (camera *SceneCamera) ToProto() *drawv1.SceneCamera {
 	}
 }
 
-// SceneMetadata contains global configuration for rendering a 3D scene, including camera settings,
-// grid display options, default rendering styles, and visibility flags for different shape types.
+// SceneMetadata contains global configuration for rendering a 3D scene, including
+// camera settings, grid display options, default rendering styles, and visibility
+// flags for different shape types. Sizing fields are in millimeters unless noted.
 type SceneMetadata struct {
-	SceneCamera      SceneCamera
-	Grid             bool
-	GridCellSize     float32
-	GridSectionSize  float32
+	// SceneCamera configures the viewpoint used to render the scene.
+	SceneCamera SceneCamera
+	// Grid toggles the reference grid in the scene.
+	Grid bool
+	// GridCellSize is the side length of each grid cell in millimeters.
+	GridCellSize float32
+	// GridSectionSize is the side length of each grid section (a group of cells)
+	// in millimeters; section boundaries are typically rendered with thicker lines.
+	GridSectionSize float32
+	// GridFadeDistance is the world-space distance in millimeters at which the
+	// grid fades to transparent.
 	GridFadeDistance float32
-	PointSize        float32
-	PointColor       Color
-	LineWidth        float32
-	LinePointSize    float32
-	RenderArmModels  drawv1.RenderArmModels
-	RenderShapes     []drawv1.RenderShapes
+	// PointSize is the default rendered diameter (millimeters) for entities that
+	// do not specify their own point size.
+	PointSize float32
+	// PointColor is the default color for entities that do not specify their own
+	// point color.
+	PointColor Color
+	// LineWidth is the default rendered thickness (millimeters) for line entities
+	// that do not specify their own width.
+	LineWidth float32
+	// LineDotSize is the default rendered diameter (millimeters) for vertex dots
+	// on line entities that do not specify their own dot size.
+	LineDotSize float32
+	// RenderArmModels controls how robot arm entities are rendered (model only,
+	// colliders only, or both).
+	RenderArmModels drawv1.RenderArmModels
+	// RenderShapes lists the shape categories that are rendered. Categories not
+	// listed are hidden.
+	RenderShapes []drawv1.RenderShapes
 }
 
 // sceneMetadataConfig is a configuration for a scene metadata
@@ -148,7 +172,7 @@ type sceneMetadataConfig struct {
 	pointSize        float32
 	pointColor       Color
 	lineWidth        float32
-	linePointSize    float32
+	lineDotSize      float32
 	renderArmModels  drawv1.RenderArmModels
 	renderShapes     []drawv1.RenderShapes
 }
@@ -166,7 +190,7 @@ func newSceneMetadataConfig() *sceneMetadataConfig {
 		pointSize:        DefaultPointSize,
 		pointColor:       DefaultPointColor,
 		lineWidth:        DefaultLineWidth,
-		linePointSize:    DefaultPointSize,
+		lineDotSize:      DefaultLineDotSize,
 		renderArmModels:  drawv1.RenderArmModels_RENDER_ARM_MODELS_COLLIDERS_AND_MODEL,
 		renderShapes:     []drawv1.RenderShapes{drawv1.RenderShapes_RENDER_SHAPES_ARROWS, drawv1.RenderShapes_RENDER_SHAPES_POINTS, drawv1.RenderShapes_RENDER_SHAPES_LINES, drawv1.RenderShapes_RENDER_SHAPES_MODEL},
 	}
@@ -236,11 +260,11 @@ func WithSceneLineWidth(lineWidth float32) sceneMetadataOption {
 	}
 }
 
-// WithSceneLinePointSize creates a metadata option that sets the default size in millimeters
-// for vertex points on lines (can be overridden per-object).
-func WithSceneLinePointSize(linePointSize float32) sceneMetadataOption {
+// WithSceneLineDotSize creates a metadata option that sets the default size in millimeters
+// for vertex dots on lines (can be overridden per-object).
+func WithSceneLineDotSize(lineDotSize float32) sceneMetadataOption {
 	return func(config *sceneMetadataConfig) {
-		config.linePointSize = linePointSize
+		config.lineDotSize = lineDotSize
 	}
 }
 
@@ -277,7 +301,7 @@ func NewSceneMetadata(options ...sceneMetadataOption) SceneMetadata {
 		PointSize:        config.pointSize,
 		PointColor:       config.pointColor,
 		LineWidth:        config.lineWidth,
-		LinePointSize:    config.linePointSize,
+		LineDotSize:      config.lineDotSize,
 		RenderArmModels:  config.renderArmModels,
 		RenderShapes:     config.renderShapes,
 	}
@@ -294,7 +318,7 @@ func (metadata *SceneMetadata) ToProto() *drawv1.SceneMetadata {
 		PointSize:        &metadata.PointSize,
 		PointColor:       packColors([]Color{metadata.PointColor}),
 		LineWidth:        &metadata.LineWidth,
-		LinePointSize:    &metadata.LinePointSize,
+		LineDotSize:      &metadata.LineDotSize,
 		RenderArmModels:  &metadata.RenderArmModels,
 		RenderShapes:     metadata.RenderShapes,
 	}
@@ -323,8 +347,8 @@ func (metadata *SceneMetadata) Validate() error {
 	if metadata.LineWidth <= 0 {
 		return fmt.Errorf("line width must be positive, got %f", metadata.LineWidth)
 	}
-	if metadata.LinePointSize <= 0 {
-		return fmt.Errorf("line dot size must be positive, got %f", metadata.LinePointSize)
+	if metadata.LineDotSize <= 0 {
+		return fmt.Errorf("line dot size must be positive, got %f", metadata.LineDotSize)
 	}
 
 	if metadata.RenderArmModels != drawv1.RenderArmModels_RENDER_ARM_MODELS_COLLIDERS_AND_MODEL &&

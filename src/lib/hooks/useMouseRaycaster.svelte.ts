@@ -1,5 +1,5 @@
-import { Vector2, Raycaster, EventDispatcher, type Intersection } from 'three'
 import { useThrelte } from '@threlte/core'
+import { EventDispatcher, type Intersection, Raycaster, Vector2 } from 'three'
 
 const pointerDown = new Vector2()
 const pointerUp = new Vector2()
@@ -14,10 +14,14 @@ interface RaycastEvent<T extends EventNames> {
 
 type Callback<T extends EventNames> = (event: RaycastEvent<T>) => void
 
-export const useMouseRaycaster = (getOptions?: () => { enabled: boolean }) => {
+interface MouseRaycasterOptions {
+	enabled?: boolean
+}
+
+export const useMouseRaycaster = (getOptions?: () => MouseRaycasterOptions) => {
 	let intersections: Intersection[] = []
 
-	const options = $derived({
+	const options = $derived<Required<MouseRaycasterOptions>>({
 		enabled: true,
 		...getOptions?.(),
 	})
@@ -109,6 +113,8 @@ export const useMouseRaycaster = (getOptions?: () => { enabled: boolean }) => {
 		if (!options.enabled) {
 			return
 		}
+
+		raycaster.firstHitOnly = true
 
 		dom.addEventListener('pointermove', onPointerMove, { passive: true })
 		dom.addEventListener('pointerdown', onPointerDown, { passive: true })

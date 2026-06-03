@@ -1,5 +1,6 @@
-import { workerCode } from './worker.inline'
 import type { Message, SuccessMessage } from './messages'
+
+import { workerCode } from './worker.inline'
 
 const blob = new Blob([workerCode], { type: 'text/javascript' })
 const url = URL.createObjectURL(blob)
@@ -32,11 +33,12 @@ worker.addEventListener('message', (event: MessageEvent<Message>) => {
 	}
 })
 
-export const parsePcdInWorker = (data: Uint8Array<ArrayBufferLike>): Promise<SuccessMessage> => {
+export const parsePcdInWorker = (data: Uint8Array): Promise<SuccessMessage> => {
 	return new Promise((resolve, reject) => {
 		const id = ++requestId
 		pending.set(id, { resolve, reject })
 
-		worker.postMessage({ id, data }, [data.buffer])
+		const copy = new Uint8Array(data)
+		worker.postMessage({ id, data: copy }, [copy.buffer])
 	})
 }

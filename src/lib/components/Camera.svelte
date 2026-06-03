@@ -1,23 +1,18 @@
 <script lang="ts">
-	import { T, useThrelte } from '@threlte/core'
+	import { T } from '@threlte/core'
+
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import type { Camera } from 'three'
 
 	let { children, ...rest } = $props()
 
-	const { camera } = useThrelte()
 	const settings = useSettings()
 	const mode = $derived(settings.current.cameraMode)
-
-	$effect(() => {
-		;(window as unknown as { camera: Camera }).camera = $camera
-	})
 </script>
 
 {#if mode === 'perspective'}
 	<T.PerspectiveCamera
 		makeDefault
-		near={0.01}
+		near={0.001}
 		up={[0, 0, 1]}
 		oncreate={(ref) => {
 			ref.lookAt(0, 0, 0)

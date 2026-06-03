@@ -86,24 +86,24 @@ func TestDrawnGeometriesInFrame_ToTransforms(t *testing.T) {
 		test.That(t, transforms[0].PhysicalObject.GetBox(), test.ShouldResemble, &commonv1.RectangularPrism{
 			DimsMm: &commonv1.Vector3{X: 100, Y: 100, Z: 100},
 		})
-		// red = \xff\x00\x00\xff
-		test.That(t, fixtures.Byte64EncodedToString(transforms[0].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\xff\x00\x00\xff")
+		// red = \xff\x00\x00
+		test.That(t, fixtures.Byte64EncodedToString(transforms[0].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\xff\x00\x00")
 	})
 
 	t.Run("SphereTransform", func(t *testing.T) {
 		test.That(t, transforms[1].PhysicalObject.Label, test.ShouldEqual, "sphere")
 		test.That(t, transforms[1].ReferenceFrame, test.ShouldEqual, "sphere")
 		test.That(t, transforms[1].PhysicalObject.GetSphere(), test.ShouldResemble, &commonv1.Sphere{RadiusMm: 100})
-		// green = \x00\xff\x00\xff
-		test.That(t, fixtures.Byte64EncodedToString(transforms[1].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\x00\xff\x00\xff")
+		// green = \x00\xff\x00
+		test.That(t, fixtures.Byte64EncodedToString(transforms[1].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\x00\xff\x00")
 	})
 
 	t.Run("CapsuleTransform", func(t *testing.T) {
 		test.That(t, transforms[2].PhysicalObject.Label, test.ShouldEqual, "capsule")
 		test.That(t, transforms[2].ReferenceFrame, test.ShouldEqual, "capsule")
 		test.That(t, transforms[2].PhysicalObject.GetCapsule(), test.ShouldResemble, &commonv1.Capsule{RadiusMm: 100, LengthMm: 300})
-		// blue = \x00\x00\xff\xff
-		test.That(t, fixtures.Byte64EncodedToString(transforms[2].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\x00\x00\xff\xff")
+		// blue = \x00\x00\xff
+		test.That(t, fixtures.Byte64EncodedToString(transforms[2].Metadata.Fields["colors"].GetStringValue()), test.ShouldResemble, "\x00\x00\xff")
 	})
 
 	t.Run("Name_PrefixesReferenceFrame", func(t *testing.T) {
@@ -118,6 +118,34 @@ func TestDrawnGeometriesInFrame_ToTransforms(t *testing.T) {
 		test.That(t, named[1].PhysicalObject.Label, test.ShouldEqual, "sphere")
 		test.That(t, named[2].ReferenceFrame, test.ShouldEqual, "test:capsule")
 		test.That(t, named[2].PhysicalObject.Label, test.ShouldEqual, "capsule")
+	})
+
+	t.Run("Name_UsesNameAloneWhenLabelEmpty", func(t *testing.T) {
+		unlabeled, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 50, "")
+		test.That(t, err, test.ShouldBeNil)
+		gif := referenceframe.NewGeometriesInFrame("world", []spatialmath.Geometry{unlabeled})
+		d, err := NewDrawnGeometriesInFrame(gif, WithSingleGeometriesColor(ColorFromName("red")))
+		test.That(t, err, test.ShouldBeNil)
+		d.Name = "MyFrame"
+		transforms, err := d.ToTransforms()
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, transforms[0].ReferenceFrame, test.ShouldEqual, "MyFrame")
+		test.That(t, transforms[0].PhysicalObject.Label, test.ShouldEqual, "")
+	})
+
+	t.Run("Name_DeduplicatesWhenLabelEqualsName", func(t *testing.T) {
+		// When the RDK assigns the frame name as the geometry label, the reference frame
+		// should collapse to just the name rather than producing "name:name".
+		sphere, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 50, "MyFrame")
+		test.That(t, err, test.ShouldBeNil)
+		gif := referenceframe.NewGeometriesInFrame("world", []spatialmath.Geometry{sphere})
+		d, err := NewDrawnGeometriesInFrame(gif, WithSingleGeometriesColor(ColorFromName("red")))
+		test.That(t, err, test.ShouldBeNil)
+		d.Name = "MyFrame"
+		transforms, err := d.ToTransforms()
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, transforms[0].ReferenceFrame, test.ShouldEqual, "MyFrame")
+		test.That(t, transforms[0].PhysicalObject.Label, test.ShouldEqual, "MyFrame")
 	})
 
 	t.Run("WithParent_PropagatesParentToAllTransforms", func(t *testing.T) {

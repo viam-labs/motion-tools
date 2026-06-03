@@ -1,7 +1,8 @@
-import { getContext, setContext } from 'svelte'
 import type { Entity } from 'koota'
-import { relations, useWorld } from '$lib/ecs'
-import { useFocusedEntity, useSelectedEntity } from './useSelection.svelte'
+
+import { getContext, setContext } from 'svelte'
+
+import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
 const linkedKey = Symbol('linked-context')
 
@@ -11,29 +12,33 @@ interface LinkedEntitiesContext {
 
 export const provideLinkedEntities = () => {
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
+	const selected = useQuery(traits.Selected)
 
-	const displayEntity = $derived(selectedEntity.current ?? focusedEntity.current)
-	let linkedEntities = $derived(displayEntity?.targetsFor(relations.SubEntityLink) ?? [])
+	let linkedEntities = $derived(
+		selected.current
+			.flatMap((entity) => entity.targetFor(relations.SubEntityLink))
+			.filter((entity) => entity !== undefined)
+	)
 
 	const unsubAdd = world.onAdd(relations.SubEntityLink, (entity, target) => {
-		if (entity === displayEntity) {
+		if (selected.current.includes(entity)) {
 			linkedEntities = [...linkedEntities, target]
 		}
 	})
 
 	const unsubRemove = world.onRemove(relations.SubEntityLink, (entity, target) => {
-		if (entity === displayEntity) {
+		if (selected.current.includes(entity)) {
 			linkedEntities = linkedEntities.filter((e) => e !== target)
 		}
 	})
 
+	const unsub = () => {
+		unsubAdd()
+		unsubRemove()
+	}
+
 	$effect(() => {
-		return () => {
-			unsubAdd()
-			unsubRemove()
-		}
+		return unsub
 	})
 
 	setContext<LinkedEntitiesContext>(linkedKey, {

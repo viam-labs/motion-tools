@@ -1,8 +1,12 @@
+import type { Entity } from 'koota'
+
+import { useThrelte } from '@threlte/core'
 import {
-	WorldStateStoreClient,
-	TransformChangeType,
+	Struct,
 	type TransformChangeEvent,
+	TransformChangeType,
 	type TransformWithUUID,
+	WorldStateStoreClient,
 } from '@viamrobotics/sdk'
 import {
 	createResourceClient,
@@ -10,16 +14,18 @@ import {
 	createResourceStream,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
-import { parseMetadata } from '$lib/WorldObject.svelte'
-import { usePartID } from './usePartID.svelte'
+import { Matrix4 } from 'three'
+
+import { asFloat32Array, inMeters } from '$lib/buffer'
+import { createChunkLoader, type EntityChunk } from '$lib/chunking'
+import { drawTransform, updateMetadata } from '$lib/draw'
 import { traits, useWorld } from '$lib/ecs'
-import type { ConfigurableTrait, Entity } from 'koota'
-import { createPose } from '$lib/transform'
-import { useThrelte } from '@threlte/core'
-import { createBox, createCapsule, createSphere } from '$lib/geometry'
-import { parsePlyInput } from '$lib/ply'
-import { parsePcdInWorker } from '$lib/loaders/pcd'
-import { createBufferGeometry } from '$lib/attribute'
+import { isPointCloud } from '$lib/geometry'
+import { metadataFromStruct } from '$lib/metadata'
+import { createPose, poseToMatrix } from '$lib/transform'
+
+import { usePartID } from './usePartID.svelte'
+import { useRelationships } from './useRelationships.svelte'
 
 type TransformEvent = TransformChangeEvent & {
 	transform: TransformWithUUID
@@ -53,83 +59,111 @@ export const provideWorldStates = () => {
 	})
 }
 
+const decodeBase64 = (encoded: string): Uint8Array => {
+	const binary = atob(encoded)
+	const bytes = new Uint8Array(binary.length)
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i)
+	}
+	return bytes
+}
+
+/**
+ * Unpacks a `get_entity_chunk` DoCommand response into the shape the shared
+ * chunk loader expects. The world-state store sends binary buffers as base64
+ * strings inside a JSON `Struct`, which is why this adapter exists.
+ *
+ * Request:
+ *   { "command": "get_entity_chunk", "uuid": "<uuid-string>", "start": <element-offset> }
+ *
+ * Response:
+ *   {
+ *     "entity": {
+ *       "metadata": {
+ *         "colors":    "<base64 Uint8Array>" (optional),
+ *         "opacities": "<base64 Uint8Array>" (optional)
+ *       },
+ *       "physical_object": {
+ *         "points": { "positions": "<base64 Float32Array>" }
+ *       }
+ *     },
+ *     "start": <number>,
+ *     "done":  <boolean>
+ *   }
+ */
+const decodeWorldStateChunk = (response: unknown, fallbackStart: number): EntityChunk | null => {
+	const fields = response as Record<string, unknown>
+	const done = fields['done'] === true
+	const start = typeof fields['start'] === 'number' ? fields['start'] : fallbackStart
+
+	const chunkEntity = fields['entity'] as Record<string, unknown> | undefined
+	if (!chunkEntity) return null
+
+	const physicalObject = chunkEntity['physical_object'] as Record<string, unknown> | undefined
+	const points = physicalObject?.['points'] as Record<string, unknown> | undefined
+	const encodedPositions = points?.['positions']
+	if (typeof encodedPositions !== 'string' || encodedPositions.length === 0) return null
+
+	const positions = asFloat32Array(decodeBase64(encodedPositions), inMeters)
+
+	const metadata = chunkEntity['metadata'] as Record<string, unknown> | undefined
+	const encodedColors = metadata?.['colors']
+	const colors =
+		typeof encodedColors === 'string' && encodedColors.length > 0
+			? decodeBase64(encodedColors)
+			: undefined
+
+	const encodedOpacities = metadata?.['opacities']
+	const opacities =
+		typeof encodedOpacities === 'string' && encodedOpacities.length > 0
+			? decodeBase64(encodedOpacities)
+			: undefined
+
+	return { start, positions, colors, opacities, done }
+}
+
 const createWorldState = (client: { current: WorldStateStoreClient | undefined }) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
+	const relationships = useRelationships()
 
 	const entities = new Map<string, Entity>()
+
+	const chunkLoader = createChunkLoader({
+		world,
+		invalidate,
+		fetchChunk: async (uuid, start, signal) => {
+			const activeClient = client.current
+			if (!activeClient) return null
+
+			const response = await activeClient.doCommand(
+				Struct.fromJson({
+					command: 'get_entity_chunk',
+					uuid,
+					start,
+				})
+			)
+
+			if (signal.aborted) return null
+
+			return decodeWorldStateChunk(response, start)
+		},
+	})
 
 	const spawnEntity = (transform: TransformWithUUID) => {
 		if (entities.has(transform.uuidString)) {
 			return
 		}
-		const metadata = parseMetadata(transform.metadata?.fields)
-		const pose = createPose(transform.poseInObserverFrame?.pose)
 
-		const entityTraits: ConfigurableTrait[] = []
+		const spawned = drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
+		entities.set(transform.uuidString, spawned.entity)
+		relationships.apply(spawned.entity, spawned.relationships)
 
-		const parent = transform.poseInObserverFrame?.referenceFrame
-		if (parent && parent !== 'world') {
-			entityTraits.push(traits.Parent(parent))
-		}
+		const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
+		chunkLoader.start(transform.uuidString, spawned.entity, parsedMetadata)
+		relationships.flush(transform.uuidString)
 
-		if (metadata.color) {
-			entityTraits.push(traits.Color(metadata.color))
-		}
-
-		if (metadata.colors) {
-			entityTraits.push(traits.VertexColors(metadata.colors as Float32Array<ArrayBuffer>))
-		}
-
-		if (transform.physicalObject) {
-			if (transform.physicalObject.geometryType.case === 'pointcloud') {
-				parsePcdInWorker(
-					new Uint8Array(transform.physicalObject.geometryType.value.pointCloud)
-				).then((pointcloud) => {
-					// pcds are a special case since they have to be loaded in a worker and the trait will be added to the existing entity
-					const entity = entities.get(transform.uuidString)
-					if (!entity) {
-						console.error('Entity not found to add pointcloud trait to', transform.uuidString)
-						return
-					}
-					const geometry = createBufferGeometry(pointcloud.positions, pointcloud.colors)
-					entity.add(traits.BufferGeometry(geometry))
-					entity.add(traits.Points)
-				})
-			} else {
-				entityTraits.push(traits.Geometry(transform.physicalObject))
-			}
-		}
-
-		if (metadata.shape === 'line' && metadata.points) {
-			const { points } = metadata
-			const positions = new Float32Array(points.length * 3)
-			for (let i = 0, j = 0, l = points.length * 3; i < l; i += 3, j += 1) {
-				positions[i + 0] = points[j].x
-				positions[i + 1] = points[j].y
-				positions[i + 2] = points[j].z
-			}
-			entityTraits.push(traits.LinePositions(positions), traits.PointColor(metadata.lineDotColor))
-		}
-
-		if (metadata.gltf) {
-			entityTraits.push(traits.GLTF({ source: { gltf: metadata.gltf }, animationName: '' }))
-		}
-
-		if (metadata.shape === 'arrow') {
-			entityTraits.push(traits.Arrow)
-		}
-
-		entityTraits.push(
-			traits.Name(transform.referenceFrame),
-			traits.Pose(pose),
-			traits.ShowAxesHelper,
-			traits.WorldStateStoreAPI
-		)
-
-		const entity = world.spawn(...entityTraits)
-
-		entities.set(transform.uuidString, entity)
+		if (isPointCloud(transform.physicalObject?.geometryType)) invalidate()
 	}
 
 	const destroyEntity = (uuid: string) => {
@@ -148,24 +182,36 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 
 		if (!entity) return
 
+		let metadataDirty = false
+
 		for (const path of changes) {
 			if (typeof path === 'string') {
 				if (path.startsWith('poseInObserverFrame.pose')) {
-					entity.set(traits.Pose, transform.poseInObserverFrame?.pose ?? createPose())
-				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
-					const { geometryType } = transform.physicalObject
-
-					if (geometryType.case === 'box') {
-						entity.set(traits.Box, createBox(geometryType.value))
-					} else if (geometryType.case === 'capsule') {
-						entity.set(traits.Capsule, createCapsule(geometryType.value))
-					} else if (geometryType.case === 'sphere') {
-						entity.set(traits.Sphere, createSphere(geometryType.value))
-					} else if (geometryType.case === 'mesh') {
-						entity.set(traits.BufferGeometry, parsePlyInput(geometryType.value.mesh))
+					const matrix = entity.get(traits.Matrix)
+					if (matrix) {
+						poseToMatrix(createPose(transform.poseInObserverFrame?.pose), matrix)
+						entity.changed(traits.Matrix)
+					} else {
+						entity.add(
+							traits.Matrix(
+								poseToMatrix(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
+							)
+						)
 					}
+				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
+					traits.updateGeometryTrait(entity, transform.physicalObject)
+				} else if (path.startsWith('metadata')) {
+					metadataDirty = true
 				}
 			}
+		}
+
+		if (metadataDirty) {
+			const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
+			updateMetadata(entity, parsedMetadata, {
+				pointCloud: isPointCloud(transform.physicalObject?.geometryType),
+			})
+			relationships.apply(entity, parsedMetadata.relationships)
 		}
 	}
 
@@ -253,17 +299,19 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			}
 
 			switch (event.changeType) {
-				case TransformChangeType.REMOVED:
+				case TransformChangeType.REMOVED: {
 					eventsByUUID.set(uuid, event as TransformEvent)
 					break
+				}
 
-				case TransformChangeType.ADDED:
+				case TransformChangeType.ADDED: {
 					if (existing.changeType !== TransformChangeType.REMOVED) {
 						eventsByUUID.set(uuid, event as TransformEvent)
 					}
 					break
+				}
 
-				case TransformChangeType.UPDATED:
+				case TransformChangeType.UPDATED: {
 					// merge with existing updated event
 					if (existing.changeType === TransformChangeType.UPDATED) {
 						existing.updatedFields ??= { paths: [] }
@@ -283,6 +331,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 						eventsByUUID.set(uuid, event as TransformEvent)
 					}
 					break
+				}
 			}
 		}
 
@@ -291,6 +340,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	})
 
 	return () => {
+		chunkLoader.dispose()
 		for (const [, entity] of entities) {
 			if (world.has(entity)) {
 				entity.destroy()

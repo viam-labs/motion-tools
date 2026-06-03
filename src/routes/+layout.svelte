@@ -2,15 +2,20 @@
 	import '../app.css'
 
 	import type { DialConf } from '@viamrobotics/sdk'
-	import { ViamProvider, ViamAppProvider } from '@viamrobotics/svelte-sdk'
-	import { MotionTools } from '$lib'
+
+	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
+
+	import { Visualizer } from '$lib'
+	import { backendIP, websocketPort } from '$lib/defines'
+	import { DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
+
+	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
+	import Machines from './lib/components/Machines.svelte'
 	import {
 		provideConnectionConfigs,
 		useActiveConnectionConfig,
 	} from './lib/hooks/useConnectionConfigs.svelte'
-	import Machines from './lib/components/Machines.svelte'
 	import { getDialConfs } from './lib/robots'
-	import { backendIP, websocketPort } from '$lib/defines'
 
 	provideConnectionConfigs()
 
@@ -32,6 +37,7 @@
 	})
 
 	const partID = $derived(connectionConfig.current?.partId)
+	const dialConfig = $derived(partID ? dialConfigs[partID] : undefined)
 
 	let isMachinesPageOpen = $state(false)
 </script>
@@ -54,16 +60,26 @@
 			authEntity: connectionConfig.current?.apiKeyId ?? '',
 		}}
 	>
-		<MotionTools
+		<MachineConnectionProvider
 			{partID}
-			enableKeybindings={!isMachinesPageOpen}
-			drawConnectionConfig={{ backendIP, websocketPort }}
+			{dialConfig}
 		>
-			{@render children()}
+			<Visualizer
+				{partID}
+				inputBindingsEnabled={!isMachinesPageOpen}
+				settingsTabs={[{ label: 'AR', component: XRSettings }]}
+			>
+				{@render children()}
 
-			{#snippet dashboard()}
-				<Machines bind:isOpen={isMachinesPageOpen} />
-			{/snippet}
-		</MotionTools>
+				{#snippet dashboard()}
+					<Machines bind:isOpen={isMachinesPageOpen} />
+				{/snippet}
+
+				<DrawService config={{ backendIP, websocketPort }} />
+				<Focus />
+				<MeasureTool />
+				<XR />
+			</Visualizer>
+		</MachineConnectionProvider>
 	</ViamAppProvider>
 </ViamProvider>

@@ -2,18 +2,33 @@ test-results
 node_modules
 
 static/Big_Buck_Bunny_4K.webm
+static/test-fixtures
+
+# Temp files (disk-backed chunk storage)
+.tmp
 
 # Output
 .output
 .vercel
 .netlify
 .wrangler
-/.svelte-kit
-/build
-/coverage
-/dist
+.svelte-kit
+.astro
+build
+src/lib/**/__tests__/__screenshots__
+__snapshots__
+coverage
+dist
+.bin
+draw-server
+/examples
+docs/public/playground
+docs/src/content/docs/api/*.md
 viamrobotics-motion-tools-*.tgz
-.build-stamp
+
+# Logs
+*-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
@@ -40,6 +55,10 @@ vite.config.ts.timestamp-*
 # Protobuf
 src/lib/buf
 protos/vendor
+
+# E2E
+e2e/.bin
+e2e/.env.e2e
 
 # IDE
 .cursor

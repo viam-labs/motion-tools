@@ -1,23 +1,25 @@
 <script lang="ts">
-	import { traits, useTrait } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
-	import { useFocusedEntity } from '$lib/hooks/useSelection.svelte'
-	import HoveredEntity from './HoveredEntity.svelte'
-	import LinkedHoveredEntity from './LinkedHoveredEntity.svelte'
+	import { traits, useQuery, useTrait } from '$lib/ecs'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
 
-	const selectedEntity = useSelectedEntity()
-	const focusedEntity = useFocusedEntity()
-	const linkedEntities = useLinkedEntities()
+	import HoveredEntity from './HoveredEntity.svelte'
+	import LinkedHoveredEntity from './LinkedHoveredEntity.svelte'
 
-	const displayEntity = $derived(selectedEntity.current ?? focusedEntity.current)
-	const isHovered = useTrait(() => displayEntity, traits.Hovered)
+	const linkedEntities = useLinkedEntities()
+	const selected = useQuery(traits.Selected)
 </script>
 
-{#if isHovered}
-	<HoveredEntity />
+{#each selected.current as entity (entity)}
+	{@const isHovered = useTrait(() => entity, traits.Hovered)}
 
-	{#each linkedEntities.current as entity (entity)}
-		<LinkedHoveredEntity linkedEntity={entity} />
-	{/each}
-{/if}
+	{#if isHovered}
+		<HoveredEntity {entity} />
+
+		{#each linkedEntities.current as linkedEntity (linkedEntity)}
+			<LinkedHoveredEntity
+				{linkedEntity}
+				{entity}
+			/>
+		{/each}
+	{/if}
+{/each}

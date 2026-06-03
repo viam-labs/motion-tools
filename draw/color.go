@@ -9,8 +9,8 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-// DefaultAlpha is the default alpha value (fully opaque).
-var DefaultAlpha = uint8(255)
+// DefaultOpacity is the default alpha value (fully opaque).
+var DefaultOpacity = uint8(255)
 
 // Color represents an RGBA color with 8-bit channels (0-255 range).
 type Color struct {
@@ -32,8 +32,8 @@ var (
 	// DefaultLineColor is the default color for lines (blue).
 	DefaultLineColor = NewColor(WithName("blue"))
 
-	// DefaultLinePointColor is the default color for points at line vertices (dark blue).
-	DefaultLinePointColor = NewColor(WithName("darkblue"))
+	// DefaultLineDotColor is the default color for dots at line vertices (dark blue).
+	DefaultLineDotColor = NewColor(WithName("darkblue"))
 
 	// DefaultPointColor is the default color for point clouds (gray).
 	DefaultPointColor = NewColor(WithName("gray"))
@@ -55,7 +55,7 @@ func newColorConfig() *colorConfig {
 		r: 0,
 		g: 0,
 		b: 0,
-		a: DefaultAlpha,
+		a: DefaultOpacity,
 	}
 }
 
@@ -81,7 +81,7 @@ func WithRGBA(r, g, b, a uint8) colorOption {
 	}
 }
 
-// WithRGBA creates a color option that sets RGBA from a standard library color.RGBA struct.
+// WithColorRGBA creates a color option that sets RGBA from a standard library color.RGBA struct.
 func WithColorRGBA(rgba color.RGBA) colorOption {
 	return func(config *colorConfig) {
 		config.r = rgba.R
@@ -134,7 +134,10 @@ func WithHSV(h, s, v float32) colorOption {
 	}
 }
 
-// WithHex creates a color option that sets the color from a hex string.
+// WithHex creates a color option that sets the color from a 6-digit RGB hex string,
+// with or without a leading "#" (e.g., "#FF0000" or "FF0000"). Alpha is set to fully
+// opaque. If the input is not a valid 6-digit hex string, the color falls back to
+// black with full opacity.
 func WithHex(value string) colorOption {
 	return func(config *colorConfig) {
 		hexStr := strings.TrimPrefix(value, "#")
@@ -178,7 +181,7 @@ func (color Color) SetRGB(r, g, b uint8) Color {
 
 // SetRGBA returns a new Color with all RGBA values set.
 func (color Color) SetRGBA(r, g, b, a uint8) Color {
-	color.SetRGB(r, g, b)
+	color = color.SetRGB(r, g, b)
 	color.A = a
 	return color
 }
@@ -189,37 +192,48 @@ func (color Color) SetAlpha(alpha uint8) Color {
 	return color
 }
 
-// ToHex returns the color as a hex string.
+// ToHex returns the color's RGB channels as an uppercase hex string in the form
+// "#RRGGBB". The alpha channel is not included.
 func (color Color) ToHex() string {
 	return fmt.Sprintf("#%02X%02X%02X", color.R, color.G, color.B)
 }
 
-// ColorFromRGB creates a color from RGB values.
+// ColorFromRGB returns a Color with the given RGB channels and full opacity.
+// It is shorthand for NewColor(WithRGB(r, g, b)).
 func ColorFromRGB(r, g, b uint8) Color {
 	return NewColor(WithRGB(r, g, b))
 }
 
-// ColorFromRGBA creates a color from RGBA values.
+// ColorFromRGBA returns a Color with the given RGBA channels.
+// It is shorthand for NewColor(WithRGBA(r, g, b, a)).
 func ColorFromRGBA(r, g, b, a uint8) Color {
 	return NewColor(WithRGBA(r, g, b, a))
 }
 
-// ColorFromColorRGBA creates a color from a standard library color.RGBA struct.
+// ColorFromColorRGBA returns a Color converted from a standard library color.RGBA.
+// It is shorthand for NewColor(WithColorRGBA(rgba)).
 func ColorFromColorRGBA(rgba color.RGBA) Color {
 	return NewColor(WithColorRGBA(rgba))
 }
 
-// ColorFromName creates a color from a standard web color name.
+// ColorFromName returns a Color matching the given SVG/CSS color name (e.g., "red",
+// "magenta"). Unrecognized names produce a zero-valued (transparent black) Color.
+// See https://www.w3.org/TR/SVG11/types.html#ColorKeywords for the complete list.
+// It is shorthand for NewColor(WithName(name)).
 func ColorFromName(name string) Color {
 	return NewColor(WithName(name))
 }
 
-// ColorFromHSV creates a color from HSV values.
+// ColorFromHSV returns a Color converted from HSV values with full opacity. All
+// parameters must be in the range 0.0-1.0, where h is hue, s is saturation, and v
+// is value/brightness. It is shorthand for NewColor(WithHSV(h, s, v)).
 func ColorFromHSV(h, s, v float32) Color {
 	return NewColor(WithHSV(h, s, v))
 }
 
-// ColorFromHex creates a color from a hex string.
+// ColorFromHex returns a Color parsed from a 6-digit RGB hex string, with or without
+// a leading "#" (e.g., "#FF0000" or "FF0000"). Invalid input falls back to black with
+// full opacity. It is shorthand for NewColor(WithHex(hex)).
 func ColorFromHex(hex string) Color {
 	return NewColor(WithHex(hex))
 }

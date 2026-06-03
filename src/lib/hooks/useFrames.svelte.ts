@@ -1,19 +1,24 @@
-import { getContext, setContext, untrack } from 'svelte'
 import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
 import {
-	useRobotClient,
 	createRobotQuery,
-	useMachineStatus,
 	useConnectionStatus,
+	useMachineStatus,
+	useRobotClient,
 } from '@viamrobotics/svelte-sdk'
-import type { ConfigurableTrait, Entity } from 'koota'
-import { useLogs } from './useLogs.svelte'
-import { resourceNameToColor } from '$lib/color'
-import { useEnvironment } from './useEnvironment.svelte'
-import { createPose } from '$lib/transform'
-import { useResourceByName } from './useResourceByName.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { type ConfigurableTrait, type Entity } from 'koota'
+import { getContext, setContext, untrack } from 'svelte'
+import { Matrix4 } from 'three'
+
+import { resourceNameToColor, subtypeToColor } from '$lib/color'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
+
 import { useConfigFrames } from './useConfigFrames.svelte'
+import { useEnvironment } from './useEnvironment.svelte'
+import { useFrameEditSession } from './useFrameEditSession.svelte'
+import { useLogs } from './useLogs.svelte'
+import { usePartConfig } from './usePartConfig.svelte'
+import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {
 	current: Transform[]
@@ -23,6 +28,8 @@ const key = Symbol('frames-context')
 
 export const provideFrames = (partID: () => string) => {
 	const configFrames = useConfigFrames()
+	const partConfig = usePartConfig()
+	const editSession = useFrameEditSession()
 	const environment = useEnvironment()
 	const world = useWorld()
 	const resourceByName = useResourceByName()
@@ -31,8 +38,25 @@ export const provideFrames = (partID: () => string) => {
 	const machineStatus = useMachineStatus(partID)
 	const logs = useLogs()
 
+	const pendingSaveKey = $derived(`viam-pending-save-revision:${partID()}`)
+
+	let didRecentlyEdit = $state(false)
+
+	let lastPartID: string | undefined
+	$effect.pre(() => {
+		const id = partID()
+		if (lastPartID !== undefined && lastPartID !== id) {
+			// Don't let an edited flag from the previous part bleed into the
+			// new one — the merge condition would otherwise stay forced on for
+			// a freshly-switched part the user hasn't touched.
+			didRecentlyEdit = false
+		}
+		lastPartID = id
+	})
+
 	const isEditMode = $derived(environment.current.viewerMode === 'edit')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
+		refetchOnWindowFocus: false,
 		enabled: partID() !== '' && !isEditMode,
 	}))
 
@@ -49,15 +73,27 @@ export const provideFrames = (partID: () => string) => {
 	const frames = $derived.by(() => {
 		const frames: Record<string, Transform> = {}
 
-		for (const { frame } of query.data ?? []) {
-			if (frame === undefined) {
-				continue
-			}
+		if (!partConfig.hasPendingSave) {
+			for (const { frame } of query.data ?? []) {
+				if (frame === undefined) {
+					continue
+				}
 
-			frames[frame.referenceFrame] = frame
+				frames[frame.referenceFrame] = frame
+			}
 		}
 
-		if (isEditMode || connectionStatus.current === MachineConnectionEvent.DISCONNECTED) {
+		// Let config frames take priority if the user has made edits, has a
+		// pending save, or we don't have a live robot connection. The latter
+		// covers DISCONNECTED, CONNECTING, and the undefined case where the
+		// embedder never provided a dial config (e.g. the Viam app's
+		// dialConfigsForParts filters to live parts only, so offline parts
+		// never transition through DISCONNECTED).
+		if (
+			didRecentlyEdit ||
+			partConfig.hasPendingSave ||
+			connectionStatus.current !== MachineConnectionEvent.CONNECTED
+		) {
 			const mergedFrames = {
 				...frames,
 				...configFrames.current,
@@ -75,9 +111,8 @@ export const provideFrames = (partID: () => string) => {
 		}
 
 		/**
-		 * If we're not in edit mode and we have a robot connection,
+		 * If we haven't edited and we have a robot connection,
 		 * we only use frames reported by the machine
-		 *
 		 */
 		return frames
 	})
@@ -86,92 +121,193 @@ export const provideFrames = (partID: () => string) => {
 
 	const entities = new Map<string, Entity | undefined>()
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (revision) {
 			untrack(() => query.refetch())
 		}
 	})
 
-	$effect.pre(() => {
-		for (const frame of current) {
-			if (frame === undefined) {
-				continue
+	$effect(() => {
+		const key = pendingSaveKey
+		const storedRevision = sessionStorage.getItem(key)
+
+		if (!storedRevision) {
+			return
+		}
+
+		if (!revision) {
+			if (!partConfig.hasPendingSave) {
+				partConfig.setPendingSave()
 			}
+			return
+		}
 
-			const name = frame.referenceFrame
-			const parent = frame.poseInObserverFrame?.referenceFrame
-			const pose = createPose(frame.poseInObserverFrame?.pose)
-			const center = frame.physicalObject?.center
-				? createPose(frame.physicalObject.center)
-				: undefined
-			const resourceName = resourceByName.current[frame.referenceFrame]
-			const color = resourceNameToColor(resourceName)
+		if (revision === storedRevision) {
+			if (!partConfig.hasPendingSave) {
+				partConfig.setPendingSave()
+			}
+			return
+		}
 
-			const existing = entities.get(name)
+		sessionStorage.removeItem(key)
+		partConfig.clearPendingSave()
+		didRecentlyEdit = true
+	})
 
-			if (existing) {
-				if (!parent || parent === 'world') {
-					existing.remove(traits.Parent)
-				} else if (parent && existing.has(traits.Parent)) {
-					existing.set(traits.Parent, parent)
-				} else {
-					existing.add(traits.Parent(parent))
+	$effect(() => {
+		if (partConfig.hasPendingSave && revision) {
+			sessionStorage.setItem(pendingSaveKey, revision)
+		}
+	})
+
+	const componentSubtypeByName = $derived.by(() => {
+		const result: Record<string, string> = {}
+		for (const { name, api } of partConfig.current.components ?? []) {
+			if (api) {
+				const subtype = api.split(':').at(-1)
+				if (subtype) {
+					result[name] = subtype
+				}
+			}
+		}
+		return result
+	})
+
+	$effect(() => {
+		if (isEditMode) {
+			didRecentlyEdit = true
+		}
+	})
+
+	$effect.pre(() => {
+		const currentResourcesByName = resourceByName.current
+		const currentPartID = partID()
+		const currentComponentSubtypeByName = componentSubtypeByName
+
+		// We only want to update whenever "current" or "resourceByName.current" changes
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		current.length
+
+		untrack(() => {
+			const active: Record<string, boolean> = {}
+
+			for (const frame of current) {
+				const name = frame.referenceFrame
+				const entityKey = `${currentPartID}:${name}`
+				active[entityKey] = true
+
+				const parent = frame.poseInObserverFrame?.referenceFrame
+				const pose = createPose(frame.poseInObserverFrame?.pose)
+
+				const center = frame.physicalObject?.center
+					? createPose(frame.physicalObject.center)
+					: undefined
+				const resourceName = currentResourcesByName[frame.referenceFrame]
+				const color =
+					resourceNameToColor(resourceName) ??
+					subtypeToColor(currentComponentSubtypeByName[frame.referenceFrame])
+
+				const existing = entities.get(entityKey)
+
+				if (existing) {
+					// Active edit session owns the entity's traits for the duration of
+					// the user's gesture. Skip the entire re-sync — re-setting Parent
+					// would re-evaluate the <Portal> id and re-mount the group,
+					// detaching the gizmo's drag target mid-stroke.
+					if (editSession.current?.owns(existing)) {
+						continue
+					}
+
+					hierarchy.setParent(existing, parent)
+
+					if (color) {
+						const cur = existing.get(traits.Color)
+						if (!cur || cur.r !== color.r || cur.g !== color.g || cur.b !== color.b) {
+							existing.set(traits.Color, color)
+						}
+					}
+
+					if (center && !isPoseEqual(existing.get(traits.Center), center)) {
+						existing.set(traits.Center, center)
+					}
+
+					traits.updateGeometryTrait(existing, frame.physicalObject)
+
+					if (!isEditMode && !partConfig.hasPendingSave) {
+						const baseline = existing.get(traits.Matrix)
+						if (baseline) {
+							poseToMatrix(pose, baseline)
+							existing.changed(traits.Matrix)
+						}
+					}
+
+					if (!existing.has(traits.LiveMatrix)) {
+						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
+					}
+
+					// Skip the EditedMatrix overwrite while in edit mode. The merged
+					// `frames` source can differ from query.data once didRecentlyEdit
+					// flips (fragment overrides, round-trip drift), and writing those
+					// values would shift entities whose parents the user is portaling
+					// into — the gizmo's drag target moves underneath it. Once we're
+					// back in monitor mode, the next sync resumes the overwrite.
+					if (!isEditMode) {
+						const edited = existing.get(traits.EditedMatrix)
+						if (edited) {
+							poseToMatrix(pose, edited)
+							existing.changed(traits.EditedMatrix)
+						}
+					}
+
+					continue
 				}
 
+				const entityTraits: ConfigurableTrait[] = [
+					traits.Name(name),
+					traits.Matrix(poseToMatrix(pose, new Matrix4())),
+					traits.EditedMatrix(poseToMatrix(pose, new Matrix4())),
+					traits.LiveMatrix(poseToMatrix(pose, new Matrix4())),
+					traits.FramesAPI,
+					traits.Transformable,
+					traits.ShowAxesHelper,
+					...hierarchy.parentTraits(parent),
+				]
+
 				if (color) {
-					existing.set(traits.Color, color)
+					entityTraits.push(traits.Color(color))
 				}
 
 				if (center) {
-					existing.set(traits.Center, center)
+					entityTraits.push(traits.Center(center))
 				}
 
-				existing.remove(traits.Box, traits.Sphere, traits.BufferGeometry, traits.Capsule)
 				if (frame.physicalObject) {
-					const geometry = traits.Geometry(frame.physicalObject)
-					existing.add(geometry)
+					entityTraits.push(traits.Geometry(frame.physicalObject))
 				}
 
-				existing.set(traits.EditedPose, pose)
+				const entity = world.spawn(...entityTraits)
 
-				continue
+				entities.set(entityKey, entity)
 			}
 
-			const entityTraits: ConfigurableTrait[] = [
-				traits.Name(name),
-				traits.Pose(pose),
-				traits.EditedPose(pose),
-				traits.FramesAPI,
-				traits.ShowAxesHelper,
-			]
-
-			if (parent && parent !== 'world') {
-				entityTraits.push(traits.Parent(parent))
+			// Clean up non-active entities
+			for (const [entityKey, entity] of entities) {
+				if (!active[entityKey]) {
+					entity?.destroy()
+					entities.delete(entityKey)
+				}
 			}
+		})
+	})
 
-			if (color) {
-				entityTraits.push(traits.Color(color))
-			}
-
-			if (center) {
-				entityTraits.push(traits.Center(center))
-			}
-
-			if (frame.physicalObject) {
-				entityTraits.push(traits.Geometry(frame.physicalObject))
-			}
-
-			const entity = world.spawn(...entityTraits)
-
-			entities.set(name, entity)
-		}
-
-		// Clean up non-active entities
-		for (const [name, entity] of entities) {
-			if (!frames[name]) {
+	// Clear all entities on unmount
+	$effect(() => {
+		return () => {
+			for (const [, entity] of entities) {
 				entity?.destroy()
-				entities.delete(name)
 			}
+
+			entities.clear()
 		}
 	})
 

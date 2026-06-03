@@ -46,6 +46,18 @@ func TestNewPoints(t *testing.T) {
 		test.That(t, points.Colors[2], test.ShouldResemble, green)
 	})
 
+	t.Run("WithPointColorPalette", func(t *testing.T) {
+		red := NewColor(WithName("red"))
+		blue := NewColor(WithName("blue"))
+		palette := []Color{red, blue}
+		points, err := NewPoints(pointPositions, WithPointColorPalette(palette, 3))
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, points.Colors, test.ShouldHaveLength, 3)
+		test.That(t, points.Colors[0], test.ShouldResemble, red)
+		test.That(t, points.Colors[1], test.ShouldResemble, blue)
+		test.That(t, points.Colors[2], test.ShouldResemble, red)
+	})
+
 	t.Run("ErrorEmptyPositions", func(t *testing.T) {
 		_, err := NewPoints([]r3.Vector{})
 		test.That(t, err, test.ShouldNotBeNil)
@@ -102,7 +114,9 @@ func TestPoints_Draw(t *testing.T) {
 		protoPoints := proto.PhysicalObject.GetPoints()
 		test.That(t, protoPoints, test.ShouldNotBeNil)
 		test.That(t, *protoPoints.PointSize, test.ShouldEqual, float32(7))
-		// red (255, 0, 0, 255) packed as [r, g, b, a]
-		test.That(t, proto.Metadata.Colors, test.ShouldResemble, []byte{0xff, 0x00, 0x00, 0xff})
+		// red (255, 0, 0) packed as [r, g, b]
+		test.That(t, proto.Metadata.Colors, test.ShouldResemble, []byte{0xff, 0x00, 0x00})
+		// default alpha (255) — single uniform byte
+		test.That(t, proto.Metadata.Opacities, test.ShouldResemble, []byte{0xff})
 	})
 }

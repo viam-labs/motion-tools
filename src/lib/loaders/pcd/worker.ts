@@ -1,9 +1,10 @@
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
+
 import type { Message } from './messages'
 
 const loader = new PCDLoader()
 
-self.onmessage = async (event) => {
+globalThis.onmessage = async (event) => {
 	const { data, id } = event.data
 	if (!(data instanceof Uint8Array)) {
 		postMessage({ id, error: 'Invalid data format' } satisfies Message)
@@ -20,9 +21,9 @@ self.onmessage = async (event) => {
 			const positions =
 				(pcd.geometry.attributes.position?.array as Float32Array<ArrayBuffer>) ??
 				new Float32Array(0)
-			const colorsFloat: Float32Array | null =
-				(pcd.geometry.attributes.color?.array as Float32Array<ArrayBuffer>) ?? null
-			const colors = colorsFloat ? new Uint8Array(colorsFloat.length) : null
+			const colorsFloat: Float32Array | undefined =
+				(pcd.geometry.attributes.color?.array as Float32Array<ArrayBuffer>) ?? undefined
+			const colors = colorsFloat ? new Uint8Array(colorsFloat.length) : undefined
 
 			if (colors) {
 				for (let i = 0, l = colorsFloat.length; i < l; i++) {
@@ -30,10 +31,9 @@ self.onmessage = async (event) => {
 				}
 			}
 
-			postMessage(
-				{ positions, colors, id } satisfies Message,
-				colors ? [positions.buffer, colors.buffer] : [positions.buffer]
-			)
+			postMessage({ positions, colors, id } satisfies Message, {
+				transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],
+			})
 		} else {
 			postMessage({ id, error: 'Failed to extract geometry' } satisfies Message)
 		}

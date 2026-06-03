@@ -1,15 +1,17 @@
-import { type Frame, createFrame } from '$lib/frame'
-import { createPoseFromFrame } from '$lib/transform'
 import type { JsonObject } from '@bufbuild/protobuf'
-import { Struct, Pose } from '@viamrobotics/sdk'
 import type { JsonValue } from '@viamrobotics/sdk'
+
+import { Pose, Struct } from '@viamrobotics/sdk'
 import { createAppMutation, createAppQuery } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
+
+import { createFrame, type Frame } from '$lib/frame'
+import { createPoseFromFrame } from '$lib/transform'
 
 const key = Symbol('part-config-context')
 
 export interface PartConfig {
-	components: { name: string; frame?: Frame }[]
+	components: { name: string; api?: string; frame?: Frame }[]
 	fragment_mods?: {
 		fragment_id: string
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,22 +19,31 @@ export interface PartConfig {
 	}[]
 }
 
+export type FragmentInfo = {
+	id: string
+	variables: Record<string, string>
+}
+
 interface LocalPartConfig {
 	isDirty: boolean
+	hasPendingSave: boolean
 	hasEditPermissions: boolean
 	current: Struct
-	componentNameToFragmentId: Record<string, string>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	set: (config: PartConfig) => void
 	save?: () => void
 	discardChanges?: () => void
+	clearPendingSave: () => void
+	setPendingSave: () => void
 }
 
 interface PartConfigContext {
 	current: PartConfig
 	isDirty: boolean
+	hasPendingSave: boolean
 	hasEditPermissions: boolean
-	componentNameToFragmentId: Record<string, string>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	updateFrame: (
 		componentName: string,
@@ -44,6 +55,8 @@ interface PartConfigContext {
 	createFrame: (componentName: string) => void
 	save: () => void
 	discardChanges: () => void
+	clearPendingSave: () => void
+	setPendingSave: () => void
 }
 
 export const providePartConfig = (
@@ -54,7 +67,7 @@ export const providePartConfig = (
 	const config = $derived(props ? useEmbeddedPartConfig(props) : useStandalonePartConfig(partID))
 
 	const getCurrent = () => {
-		return (config.current.toJson?.() ?? { components: [] }) as unknown as PartConfig
+		return (config.current?.toJson?.() ?? { components: [] }) as unknown as PartConfig
 	}
 
 	const current = $derived(getCurrent())
@@ -145,14 +158,14 @@ export const providePartConfig = (
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(mod: any) => mod?.['$set']?.[modSetPath] !== undefined
 		)
-		if (existingFrameIndex !== -1) {
+		if (existingFrameIndex === -1) {
+			fragmentMod.mods.push(frame)
+		} else {
 			const existingGeometry = fragmentMod.mods[existingFrameIndex]['$set']?.[modSetPath].geometry
 			if (existingGeometry && !frameGeometry) {
 				frame['$set'][modSetPath].geometry = existingGeometry
 			}
 			fragmentMod.mods[existingFrameIndex] = frame
-		} else {
-			fragmentMod.mods.push(frame)
 		}
 
 		config.set(newConfig)
@@ -167,7 +180,6 @@ export const providePartConfig = (
 		const newConfig = getCurrent()
 		const component = newConfig.components?.find(({ name }) => name === componentName)
 
-		console.log('hi', newConfig, componentName)
 		if (!component) {
 			return
 		}
@@ -203,11 +215,11 @@ export const providePartConfig = (
 	const deletePartFrame = (componentName: string) => {
 		const newConfig = getCurrent()
 		const component = newConfig?.components?.find(({ name }) => name === componentName)
-		if (!component) {
-			return
+
+		if (component) {
+			delete component.frame
+			config.set(newConfig)
 		}
-		delete component.frame
-		config.set(newConfig)
 	}
 
 	const deleteFragmentFrame = (fragmentId: string, componentName: string) => {
@@ -237,11 +249,14 @@ export const providePartConfig = (
 		get current() {
 			return current
 		},
-		get componentNameToFragmentId() {
-			return config.componentNameToFragmentId
+		get componentNameToFragmentInfo() {
+			return config.componentNameToFragmentInfo
 		},
 		get isDirty() {
 			return config.isDirty
+		},
+		get hasPendingSave() {
+			return config.hasPendingSave
 		},
 		get hasEditPermissions() {
 			return config.hasEditPermissions
@@ -253,31 +268,34 @@ export const providePartConfig = (
 			framePosition: Pose,
 			frameGeometry?: Frame['geometry']
 		) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
-			if (fragmentId !== undefined) {
-				updateFragmentFrame(fragmentId, componentName, referenceFrame, framePosition, frameGeometry)
-			} else {
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			if (fragmentId === undefined) {
 				updatePartFrame(componentName, referenceFrame, framePosition, frameGeometry)
+			} else {
+				updateFragmentFrame(fragmentId, componentName, referenceFrame, framePosition, frameGeometry)
 			}
 		},
+
 		deleteFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
-			if (fragmentId !== undefined) {
-				deleteFragmentFrame(fragmentId, componentName)
-			} else {
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			if (fragmentId === undefined) {
 				deletePartFrame(componentName)
+			} else {
+				deleteFragmentFrame(fragmentId, componentName)
 			}
 		},
 		createFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentId[componentName]
-			if (fragmentId !== undefined) {
-				createFragmentFrame(fragmentId, componentName)
-			} else {
+			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			if (fragmentId === undefined) {
 				createPartFrame(componentName)
+			} else {
+				createFragmentFrame(fragmentId, componentName)
 			}
 		},
 		save: () => config.save?.(),
 		discardChanges: () => config.discardChanges?.(),
+		clearPendingSave: () => config.clearPendingSave(),
+		setPendingSave: () => config.setPendingSave(),
 	})
 }
 
@@ -288,14 +306,50 @@ export const usePartConfig = (): PartConfigContext => {
 interface AppEmbeddedPartConfigProps {
 	current: Struct
 	isDirty: boolean
-	componentToFragId: Record<string, string>
+	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	setLocalPartConfig: (config: Struct) => void
 }
 
 const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConfig => {
+	let hasPendingSave = $state(false)
+	let prevIsDirty = false
+	let cleanSnapshot: string | undefined
+
+	const snapshot = (current: Struct | undefined): string | undefined => {
+		const json = current?.toJson?.()
+		return json === undefined ? undefined : JSON.stringify(json)
+	}
+
+	/**
+	 * The host app owns saving, and we aren't notified directly. Set hasPendingSave
+	 * to watch isDirty: true -> false transitions, representing a save.
+	 *
+	 * `useFrames` clears the flag on the next `revision` change
+	 * once the server reports the new framesystem.
+	 */
+	$effect.pre(() => {
+		const dirty = props.isDirty
+		const current = props.current
+
+		if (prevIsDirty && !dirty) {
+			const next = snapshot(current)
+			if (next !== undefined && cleanSnapshot !== undefined && next !== cleanSnapshot) {
+				hasPendingSave = true
+			}
+			cleanSnapshot = next
+		} else if (!prevIsDirty && !dirty) {
+			cleanSnapshot = snapshot(current)
+		}
+
+		prevIsDirty = dirty
+	})
+
 	return {
 		hasEditPermissions: true,
+		get hasPendingSave() {
+			return hasPendingSave
+		},
 		get isDirty() {
 			return props.isDirty
 		},
@@ -304,13 +358,20 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 			return props.current ?? new Struct()
 		},
 
-		get componentNameToFragmentId() {
-			return props.componentToFragId
+		get componentNameToFragmentInfo() {
+			return props.componentNameToFragmentInfo
 		},
 
 		set(config: PartConfig): void {
 			const struct = Struct.fromJson(config as unknown as JsonValue)
 			return props.setLocalPartConfig(struct)
+		},
+
+		clearPendingSave() {
+			hasPendingSave = false
+		},
+		setPendingSave() {
+			hasPendingSave = true
 		},
 	}
 }
@@ -321,23 +382,26 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	})
 	const partName = $derived(partQuery.data?.part?.name)
 
+	// Use part.robotConfig (the stored Struct config) as the authoritative source.
+	// configJson is the compiled running config from the robot daemon and may be empty
+	// even when the stored config exists and the API key has edit permissions.
+	let networkPartConfig = $derived(partQuery.data?.part?.robotConfig)
+	let current = $state.raw<Struct>()
+	let isDirty = $state(false)
+	let hasPendingSave = $state(false)
+
+	const hasEditPermissions = $derived(networkPartConfig !== undefined)
+
 	const configJSON = $derived.by(() => {
-		if (!partQuery.data?.configJson) {
+		if (!networkPartConfig) {
 			return undefined
 		}
-
 		try {
-			return JSON.parse(partQuery.data.configJson) as JsonObject
+			return networkPartConfig.toJson() as JsonObject
 		} catch {
 			return undefined
 		}
 	})
-
-	let networkPartConfig = $derived(configJSON ? Struct.fromJson(configJSON) : undefined)
-	let current = $state.raw<Struct>()
-	let isDirty = $state(false)
-
-	const hasEditPermissions = $derived(networkPartConfig !== undefined)
 
 	const fragmentQueries = $derived(
 		((configJSON?.fragments ?? []) as (string | { id: string })[]).map((fragmentId) => {
@@ -346,8 +410,21 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		})
 	)
 
-	const componentNameToFragmentId = $derived.by(() => {
-		const results: Record<string, string> = {}
+	const fragmentIdToVariables = $derived.by(() => {
+		const results: Record<string, Record<string, string>> = {}
+		for (const fragment of (configJSON?.fragments as (
+			| string
+			| { id: string; variables: Record<string, string> }
+		)[]) ?? []) {
+			const id = typeof fragment === 'string' ? fragment : fragment.id
+			const variables = typeof fragment === 'string' ? {} : fragment.variables
+			results[id] = variables
+		}
+		return results
+	})
+
+	const componentNameToFragmentInfo = $derived.by(() => {
+		const results: Record<string, FragmentInfo> = {}
 		for (const query of fragmentQueries) {
 			if (!query.data) {
 				continue
@@ -361,7 +438,10 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 					if (component.kind.case === 'structValue') {
 						const componentName = component.kind.value.fields['name']?.kind
 						if (componentName.case === 'stringValue') {
-							results[componentName.value] = fragmentId
+							results[componentName.value] = {
+								id: fragmentId,
+								variables: fragmentIdToVariables[fragmentId] ?? {},
+							}
 						}
 					}
 				}
@@ -371,9 +451,21 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		return results
 	})
 
+	let lastPartID: string | undefined
 	$effect.pre(() => {
-		if (!networkPartConfig) {
-			// no config returned here indicates this api key has no permission to update config
+		const id = partID()
+		if (lastPartID !== undefined && lastPartID !== id) {
+			// Part changed: drop any in-memory edits/pending-save state from the
+			// previous part, and clear `current` so consumers don't keep
+			// rendering the old config's frames while the new part loads
+			// (offline parts may never load, leaving the old frames forever).
+			isDirty = false
+			hasPendingSave = false
+			current = undefined
+		}
+		lastPartID = id
+
+		if (!networkPartConfig || isDirty) {
 			return
 		}
 
@@ -389,11 +481,14 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		get isDirty() {
 			return isDirty
 		},
+		get hasPendingSave() {
+			return hasPendingSave
+		},
 		get hasEditPermissions() {
 			return hasEditPermissions
 		},
-		get componentNameToFragmentId() {
-			return componentNameToFragmentId
+		get componentNameToFragmentInfo() {
+			return componentNameToFragmentInfo
 		},
 
 		set(config: PartConfig): void {
@@ -409,11 +504,20 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 			networkPartConfig = current
 			await updateRobotPartMutation.mutateAsync([partID(), partName, current])
 			isDirty = false
+			hasPendingSave = true
 		},
 
 		discardChanges() {
 			current = networkPartConfig
 			isDirty = false
+		},
+
+		clearPendingSave() {
+			hasPendingSave = false
+		},
+
+		setPendingSave() {
+			hasPendingSave = true
 		},
 	}
 }

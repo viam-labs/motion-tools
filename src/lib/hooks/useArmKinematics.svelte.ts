@@ -39,14 +39,18 @@ export const provideArmKinematics = (partID: () => string) => {
 
 	const kinematics = $derived(
 		Object.fromEntries(
-			kinematicsQueries.map(([name, query]) => [
-				name,
-				query.data?.joints.map((j) => ({
-					id: j.id,
-					min: j.min,
-					max: j.max,
-				})),
-			])
+			kinematicsQueries.map(([name, query]) => {
+				const data = query.data
+				const joints = data && ('joints' in data ? data.joints : data.kinematicsData.joints)
+				return [
+					name,
+					joints?.map((j) => ({
+						id: j.id,
+						min: j.min,
+						max: j.max,
+					})),
+				]
+			})
 		)
 	)
 

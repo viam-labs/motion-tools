@@ -1,63 +1,29 @@
-import { describe, expect, it } from 'vitest'
-import { createWorld } from 'koota'
+import { createWorld, type World } from 'koota'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('$lib/loaders/pcd', () => ({
+	parsePcdInWorker: vi.fn(() =>
+		Promise.resolve({ id: 0, positions: new Float32Array(), colors: null })
+	),
+}))
+
+import { Pose, PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
+import { Arrows, Drawing, Line, Shape } from '$lib/buf/draw/v1/drawing_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
-import {
-	Drawing,
-	Shape,
-	Arrows,
-	Line,
-	Points,
-	Model,
-	ModelAsset,
-} from '$lib/buf/draw/v1/drawing_pb'
-import { Transform, Geometry } from '$lib/buf/common/v1/common_pb'
-import { Metadata } from '$lib/buf/draw/v1/metadata_pb'
-import { spawnSnapshotEntities } from '../snapshot'
 import { traits } from '$lib/ecs'
-import { createPose } from '$lib/transform'
-import { asFloat32Array } from '$lib/buffer'
-import { rgbaBytesToFloat32 } from '$lib/color'
+
+import { uuidStringToBytes } from '../draw'
+import { reconcileSnapshotEntities, type SnapshotEntity, spawnSnapshotEntities } from '../snapshot'
+
+const UUID_A = '11111111-1111-1111-1111-111111111111'
+const UUID_B = '22222222-2222-2222-2222-222222222222'
 
 describe('spawnSnapshotEntities', () => {
-	it('spawns entities for transforms', () => {
-		const world = createWorld()
-		const transform = new Transform({
-			referenceFrame: 'arm',
-			poseInObserverFrame: {
-				referenceFrame: 'world',
-				pose: createPose({ x: 100, y: 200, z: 300 }),
-			},
-		})
-		const snapshot = new Snapshot({ transforms: [transform] })
-
-		const entities = spawnSnapshotEntities(world, snapshot)
-
-		expect(entities).toHaveLength(1)
-		expect(world.query()).toHaveLength(1)
-	})
-
-	it('spawns entities for drawings', () => {
-		const world = createWorld()
-		const drawing = new Drawing({
-			referenceFrame: 'drawing1',
-			poseInObserverFrame: {
-				referenceFrame: 'world',
-				pose: createPose({ x: 10, y: 20, z: 30 }),
-			},
-			physicalObject: new Shape({
-				geometryType: { case: 'points', value: new Points({ positions: new Uint8Array(12) }) },
-			}),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		const entities = spawnSnapshotEntities(world, snapshot)
-
-		expect(entities).toHaveLength(1)
-		expect(world.query()).toHaveLength(1)
-	})
+	let world: World
+	afterEach(() => world?.destroy())
 
 	it('spawns entities for both transforms and drawings', () => {
-		const world = createWorld()
+		world = createWorld()
 		const transform = new Transform({ referenceFrame: 'frame1' })
 		const drawing = new Drawing({
 			referenceFrame: 'drawing1',
@@ -73,250 +39,139 @@ describe('spawnSnapshotEntities', () => {
 		expect(entities).toHaveLength(2)
 		expect(world.query()).toHaveLength(2)
 	})
-
-	it('returns empty array for empty snapshot', () => {
-		const world = createWorld()
-		const snapshot = new Snapshot({})
-
-		const entities = spawnSnapshotEntities(world, snapshot)
-
-		expect(entities).toHaveLength(0)
-		expect(world.query()).toHaveLength(0)
-	})
 })
 
-describe('spawnTransformEntity (via spawnSnapshotEntities)', () => {
-	it('spawns with name and pose traits', async () => {
-		const world = createWorld()
-		const name = 'gripper'
-		const parent = 'arm'
-		const pose = createPose({ x: 1, y: 2, z: 3, oX: 0, oY: 0, oZ: 1, theta: 45 })
-		const transform = new Transform({
-			referenceFrame: name,
-			poseInObserverFrame: {
-				referenceFrame: parent,
-				pose,
-			},
+describe('reconcileSnapshotEntities', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	const transformWith = (uuid: string, pose: Partial<Pose> = {}) =>
+		new Transform({
+			referenceFrame: `frame-${uuid.slice(0, 4)}`,
+			uuid: uuidStringToBytes(uuid),
+			poseInObserverFrame: new PoseInFrame({ pose: new Pose(pose) }),
 		})
-		const snapshot = new Snapshot({ transforms: [transform] })
 
-		spawnSnapshotEntities(world, snapshot)
+	it('updates an existing entity in place when its UUID is reused', () => {
+		world = createWorld()
+		const first = new Snapshot({ transforms: [transformWith(UUID_A, { x: 1 })] })
+		const initial = reconcileSnapshotEntities(world, first, new Map())
+		const initialEntity = initial.current.get(UUID_A)?.entity
+		expect(initialEntity).toBeDefined()
+		// Pose translation is in mm; matrix translation is in m (× 0.001).
+		expect(initialEntity?.get(traits.Matrix)?.elements[12]).toBeCloseTo(0.001)
 
-		const result = world.queryFirst()
-		expect(result?.get(traits.Name)).toBe(name)
-		expect(result?.get(traits.Pose)).toStrictEqual(pose)
-		expect(result?.get(traits.Parent)).toBe(parent)
+		const second = new Snapshot({ transforms: [transformWith(UUID_A, { x: 5 })] })
+		const next = reconcileSnapshotEntities(world, second, initial.current)
+
+		expect(next.current.get(UUID_A)?.entity).toBe(initialEntity)
+		expect(next.spawned).toHaveLength(0)
+		expect(next.updated).toHaveLength(1)
+		expect(initialEntity?.get(traits.Matrix)?.elements[12]).toBeCloseTo(0.005)
 	})
 
-	it('spawns with geometry trait', async () => {
-		const world = createWorld()
-		const box = { x: 100, y: 200, z: 300 }
-		const geometry = new Geometry({
-			geometryType: { case: 'box', value: { dimsMm: box } },
-		})
-		const transform = new Transform({
-			referenceFrame: 'box1',
-			physicalObject: geometry,
-		})
-		const snapshot = new Snapshot({ transforms: [transform] })
+	it('spawns entities for UUIDs not present in the previous map', () => {
+		world = createWorld()
+		const first = new Snapshot({ transforms: [transformWith(UUID_A)] })
+		const initial = reconcileSnapshotEntities(world, first, new Map())
 
-		const [entity] = spawnSnapshotEntities(world, snapshot)
+		const second = new Snapshot({
+			transforms: [transformWith(UUID_A), transformWith(UUID_B)],
+		})
+		const next = reconcileSnapshotEntities(world, second, initial.current)
 
-		expect(entity.get(traits.Box)).toStrictEqual(box)
+		expect(next.current.has(UUID_A)).toBe(true)
+		expect(next.current.has(UUID_B)).toBe(true)
+		expect(next.spawned).toHaveLength(1)
+		expect(next.spawned[0]?.entity).toBe(next.current.get(UUID_B)?.entity)
 	})
-})
 
-describe('spawnDrawingEntity shapes (via spawnSnapshotEntities)', () => {
-	it('spawns arrows shape with Arrow trait', async () => {
-		const world = createWorld()
-		const posesData = new Uint8Array(24) // 1 arrow pose
+	it('destroys entities whose UUIDs are absent from the new snapshot', () => {
+		world = createWorld()
+		const first = new Snapshot({
+			transforms: [transformWith(UUID_A), transformWith(UUID_B)],
+		})
+		const initial = reconcileSnapshotEntities(world, first, new Map())
+		const removed = initial.current.get(UUID_B)?.entity
+
+		const second = new Snapshot({ transforms: [transformWith(UUID_A)] })
+		const next = reconcileSnapshotEntities(world, second, initial.current)
+
+		expect(next.current.has(UUID_A)).toBe(true)
+		expect(next.current.has(UUID_B)).toBe(false)
+		expect(removed && world.has(removed)).toBe(false)
+	})
+
+	it('updates a non-model drawing in place', () => {
+		world = createWorld()
+		const drawingWith = (size: number) =>
+			new Drawing({
+				referenceFrame: 'drawing',
+				uuid: uuidStringToBytes(UUID_A),
+				physicalObject: new Shape({
+					geometryType: {
+						case: 'arrows',
+						value: new Arrows({ poses: new Uint8Array(new ArrayBuffer(size)) }),
+					},
+				}),
+			})
+
+		const first = new Snapshot({ drawings: [drawingWith(24)] })
+		const initial = reconcileSnapshotEntities(world, first, new Map())
+		const entity = initial.current.get(UUID_A)?.entity
+		expect(entity).toBeDefined()
+
+		const second = new Snapshot({ drawings: [drawingWith(48)] })
+		const next = reconcileSnapshotEntities(world, second, initial.current)
+
+		expect(next.current.get(UUID_A)?.entity).toBe(entity)
+		expect(next.spawned).toHaveLength(0)
+		expect(next.updated).toHaveLength(1)
+	})
+
+	it('returns drawings without a UUID in the unkeyed list', () => {
+		world = createWorld()
 		const drawing = new Drawing({
-			referenceFrame: 'arrows1',
-			physicalObject: new Shape({
-				geometryType: { case: 'arrows', value: new Arrows({ poses: posesData }) },
-			}),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		spawnSnapshotEntities(world, snapshot)
-
-		expect(world.query(traits.Arrows)).toHaveLength(1)
-	})
-
-	it('spawns line shape with Positions, LineWidth, PointSize traits', async () => {
-		const world = createWorld()
-		const positionsData = new Uint8Array(24) // 2 points
-		const drawing = new Drawing({
-			referenceFrame: 'line1',
+			referenceFrame: 'no-uuid',
 			physicalObject: new Shape({
 				geometryType: {
 					case: 'line',
-					value: new Line({ positions: positionsData, lineWidth: 3, pointSize: 5 }),
+					value: new Line({ positions: new Uint8Array(new ArrayBuffer(36)) }),
 				},
 			}),
 		})
 		const snapshot = new Snapshot({ drawings: [drawing] })
 
-		const [entity] = spawnSnapshotEntities(world, snapshot)
+		const result = reconcileSnapshotEntities(world, snapshot, new Map())
 
-		expect(entity.has(traits.LinePositions)).toBeTruthy()
-		expect(entity.has(traits.LineWidth)).toBeTruthy()
-		expect(entity.has(traits.PointSize)).toBeTruthy()
+		expect(result.current.size).toBe(0)
+		expect(result.unkeyed).toHaveLength(1)
+		expect(result.spawned).toHaveLength(1)
 	})
 
-	it('spawns points shape with BufferGeometry, PointSize traits', async () => {
-		const world = createWorld()
-		const positionsData = new Uint8Array(36) // 3 points
-		const floats = asFloat32Array(positionsData)
-		const pointSize = 8
-		const drawing = new Drawing({
-			referenceFrame: 'points1',
-			physicalObject: new Shape({
-				geometryType: {
-					case: 'points',
-					value: new Points({ positions: positionsData, pointSize }),
-				},
-			}),
+	it('handles a mix of update, add, and remove in one pass', () => {
+		world = createWorld()
+		const first = new Snapshot({
+			transforms: [transformWith(UUID_A, { x: 1 }), transformWith(UUID_B, { x: 2 })],
 		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
+		const initial = reconcileSnapshotEntities(world, first, new Map())
+		const keptEntity = initial.current.get(UUID_A)?.entity
+		const removedEntity = initial.current.get(UUID_B)?.entity
 
-		const [entity] = spawnSnapshotEntities(world, snapshot)
-
-		expect(entity.get(traits.BufferGeometry)?.getAttribute('position')?.array).toStrictEqual(floats)
-		expect(entity.get(traits.PointSize)).toBe(pointSize * 0.001)
-	})
-
-	it('spawns with center pose if shape has center', async () => {
-		const world = createWorld()
-		const centerPose = createPose({ x: 10, y: 20, z: 30 })
-		const drawing = new Drawing({
-			referenceFrame: 'centered',
-			physicalObject: new Shape({
-				center: centerPose,
-				geometryType: { case: 'points', value: new Points({ positions: new Uint8Array(12) }) },
-			}),
+		const UUID_C = '33333333-3333-3333-3333-333333333333'
+		const second = new Snapshot({
+			transforms: [transformWith(UUID_A, { x: 9 }), transformWith(UUID_C, { x: 7 })],
 		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
+		const next: { current: Map<string, SnapshotEntity> } = reconcileSnapshotEntities(
+			world,
+			second,
+			initial.current
+		)
 
-		const [entity] = spawnSnapshotEntities(world, snapshot)
-
-		expect(entity.get(traits.Center)).toStrictEqual(centerPose)
-	})
-
-	it('spawns with VertexColors from metadata', async () => {
-		const world = createWorld()
-		const colors = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255])
-		const colorsFloat = rgbaBytesToFloat32(colors)
-		const drawing = new Drawing({
-			referenceFrame: 'colored',
-			physicalObject: new Shape({
-				geometryType: { case: 'points', value: new Points({ positions: new Uint8Array(12) }) },
-			}),
-			metadata: new Metadata({ colors }),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		const [entity] = spawnSnapshotEntities(world, snapshot)
-
-		expect(entity.get(traits.VertexColors)).toStrictEqual(colorsFloat)
-	})
-})
-
-describe('model shape handling', () => {
-	it('spawns model with URL content', async () => {
-		const world = createWorld()
-		const url = 'https://example.com/model.gltf'
-		const scale = { x: 1, y: 1, z: 1 }
-
-		const drawing = new Drawing({
-			referenceFrame: 'model1',
-			physicalObject: new Shape({
-				geometryType: {
-					case: 'model',
-					value: new Model({
-						assets: [
-							new ModelAsset({
-								mimeType: 'model/gltf+json',
-								sizeBytes: BigInt(1024),
-								content: { case: 'url', value: url },
-							}),
-						],
-						scale,
-						animationName: 'idle',
-					}),
-				},
-			}),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		spawnSnapshotEntities(world, snapshot)
-
-		const result = world.queryFirst(traits.GLTF)
-		expect(result?.get(traits.GLTF)).toStrictEqual({ source: { url }, animationName: 'idle' })
-		expect(result?.get(traits.Scale)).toStrictEqual(scale)
-	})
-
-	it('spawns model with data content', async () => {
-		const world = createWorld()
-		const binaryData = new Uint8Array([0x47, 0x4c, 0x54, 0x46]) // "GLTF" magic
-		const drawing = new Drawing({
-			referenceFrame: 'model2',
-			physicalObject: new Shape({
-				geometryType: {
-					case: 'model',
-					value: new Model({
-						assets: [
-							new ModelAsset({
-								mimeType: 'model/gltf-binary',
-								sizeBytes: BigInt(4),
-								content: { case: 'data', value: binaryData },
-							}),
-						],
-					}),
-				},
-			}),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		spawnSnapshotEntities(world, snapshot)
-
-		const result = world.queryFirst(traits.GLTF)
-
-		expect(result?.get(traits.GLTF)).toStrictEqual({
-			animationName: '',
-			source: { glb: binaryData },
-		})
-	})
-
-	it('spawns multiple entities for multiple model assets', async () => {
-		const world = createWorld()
-		const drawing = new Drawing({
-			referenceFrame: 'multi-model',
-			physicalObject: new Shape({
-				geometryType: {
-					case: 'model',
-					value: new Model({
-						assets: [
-							new ModelAsset({
-								mimeType: 'model/gltf+json',
-								content: { case: 'url', value: 'https://example.com/model1.gltf' },
-							}),
-							new ModelAsset({
-								mimeType: 'model/gltf-binary',
-								content: { case: 'url', value: 'https://example.com/model2.glb' },
-							}),
-						],
-					}),
-				},
-			}),
-		})
-		const snapshot = new Snapshot({ drawings: [drawing] })
-
-		spawnSnapshotEntities(world, snapshot)
-
-		const results = world.query()
-
-		// One entity for each model asset + a reference frame entity
-		expect(results).toHaveLength(3)
+		expect(next.current.get(UUID_A)?.entity).toBe(keptEntity)
+		expect(keptEntity?.get(traits.Matrix)?.elements[12]).toBeCloseTo(0.009)
+		expect(removedEntity && world.has(removedEntity)).toBe(false)
+		expect(next.current.has(UUID_C)).toBe(true)
+		expect(next.current.size).toBe(2)
 	})
 })

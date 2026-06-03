@@ -1,6 +1,7 @@
 import { getContext, setContext } from 'svelte'
-import { usePartConfig } from './usePartConfig.svelte'
+
 import { useFrames } from './useFrames.svelte'
+import { usePartConfig } from './usePartConfig.svelte'
 
 interface FramelessComponents {
 	current: string[]
@@ -18,14 +19,17 @@ export const provideFramelessComponents = () => {
 			components
 				?.filter((component) => component.frame === undefined)
 				.map((component) => component.name) ?? []
-		const fragmentComponentsWithNoFrame = []
-		for (const fragmentComponentName of Object.keys(partConfig.componentNameToFragmentId)) {
-			if (frames.current.find((frame) => frame.referenceFrame === fragmentComponentName)) {
+
+		const fragmentComponentsWithNoFrame = new Set(partComponentsWIthNoFrame)
+
+		for (const fragmentComponentName of Object.keys(partConfig.componentNameToFragmentInfo)) {
+			if (frames.current.some((frame) => frame.referenceFrame === fragmentComponentName)) {
 				continue
 			}
-			fragmentComponentsWithNoFrame.push(fragmentComponentName)
+
+			fragmentComponentsWithNoFrame.add(fragmentComponentName)
 		}
-		return [...partComponentsWIthNoFrame, ...fragmentComponentsWithNoFrame]
+		return [...fragmentComponentsWithNoFrame]
 	})
 
 	setContext<FramelessComponents>(key, {

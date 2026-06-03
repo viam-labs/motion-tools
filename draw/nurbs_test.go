@@ -26,7 +26,7 @@ func TestNewNurbs(t *testing.T) {
 		nurbs, err := NewNurbs(nurbsControlPoints, nurbsKnotsDefault)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, nurbs.Degree, test.ShouldEqual, DefaultNurbsDegree)
-		test.That(t, nurbs.Color, test.ShouldResemble, DefaultNurbsColor)
+		test.That(t, nurbs.Colors, test.ShouldResemble, []Color{DefaultNurbsColor})
 		// auto-generated uniform weights
 		test.That(t, nurbs.Weights, test.ShouldResemble, []float64{1, 1, 1})
 	})
@@ -53,17 +53,7 @@ func TestNewNurbs(t *testing.T) {
 		red := NewColor(WithName("red"))
 		nurbs, err := NewNurbs(nurbsControlPoints, nurbsKnotsDefault, WithNurbsColors(red))
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, nurbs.Color, test.ShouldResemble, red)
-	})
-
-	t.Run("WithNurbsColors_PerPoint", func(t *testing.T) {
-		red := NewColor(WithName("red"))
-		green := NewColor(WithName("green"))
-		blue := NewColor(WithName("blue"))
-		nurbs, err := NewNurbs(nurbsControlPoints, nurbsKnotsDefault, WithNurbsColors(red, green, blue))
-		test.That(t, err, test.ShouldBeNil)
-		// Color field holds the first (default) color
-		test.That(t, nurbs.Color, test.ShouldResemble, red)
+		test.That(t, nurbs.Colors, test.ShouldResemble, []Color{red})
 	})
 
 	t.Run("ErrorEmptyControlPoints", func(t *testing.T) {
@@ -137,7 +127,9 @@ func TestNurbs_Draw(t *testing.T) {
 		protoNurbs := proto.PhysicalObject.GetNurbs()
 		test.That(t, protoNurbs, test.ShouldNotBeNil)
 		test.That(t, *protoNurbs.Degree, test.ShouldEqual, int32(3))
-		// red (255, 0, 0, 255) packed as [r, g, b, a]
-		test.That(t, proto.Metadata.Colors, test.ShouldResemble, []byte{0xff, 0x00, 0x00, 0xff})
+		// red (255, 0, 0) packed as [r, g, b]
+		test.That(t, proto.Metadata.Colors, test.ShouldResemble, []byte{0xff, 0x00, 0x00})
+		// default alpha (255) — single uniform byte
+		test.That(t, proto.Metadata.Opacities, test.ShouldResemble, []byte{0xff})
 	})
 }

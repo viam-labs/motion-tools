@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { BackSide, Mesh, Vector3 } from 'three'
 	import { T, useThrelte } from '@threlte/core'
 	import { MeshDiscardMaterial } from '@threlte/extras'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { BackSide, Mesh, Vector3 } from 'three'
+
+	import { traits, useQuery } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	const { camera } = useThrelte()
 	const settings = useSettings()
-	const selectedEntity = useSelectedEntity()
 	const transformControls = useTransformControls()
+	const selected = useQuery(traits.Selected)
+
 	const cameraDown = new Vector3()
 
 	const enabled = $derived(settings.current.interactionMode === 'navigate')
@@ -22,7 +24,7 @@
 	onpointerdown={() => {
 		cameraDown.copy(camera.current.position)
 	}}
-	onpointerup={() => {
+	onclick={() => {
 		if (transformControls.active) {
 			return
 		}
@@ -31,7 +33,9 @@
 			return
 		}
 
-		selectedEntity.set()
+		for (const entity of selected.current) {
+			entity.remove(traits.Selected)
+		}
 	}}
 >
 	<T.BoxGeometry args={[size, size, size]} />

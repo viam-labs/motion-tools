@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, Icon } from '@viamrobotics/prime-core'
+
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 	const partConfig = usePartConfig()
@@ -12,13 +13,11 @@
 </script>
 
 <svelte:window
-	onkeydown={(event) => {
-		if (event.metaKey) {
-			if (event.key.toLowerCase() === 's') {
-				event.preventDefault()
-				event.stopImmediatePropagation()
-				partConfig.save()
-			}
+	onkeydowncapture={(event) => {
+		if (event.metaKey && event.key.toLowerCase() === 's') {
+			event.preventDefault()
+			event.stopImmediatePropagation()
+			partConfig.save()
 		}
 	}}
 />

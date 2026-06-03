@@ -1,9 +1,10 @@
-import { useEnvironment } from './useEnvironment.svelte'
-import { usePartConfig } from './usePartConfig.svelte'
-import { createTransformFromFrame, type Frame } from '$lib/frame'
-
 import { Transform } from '@viamrobotics/sdk'
 import { getContext, setContext } from 'svelte'
+
+import { createTransformFromFrame, type Frame } from '$lib/frame'
+
+import { useEnvironment } from './useEnvironment.svelte'
+import { usePartConfig } from './usePartConfig.svelte'
 
 const key = Symbol('config-frames-context')
 
@@ -18,11 +19,7 @@ export const provideConfigFrames = () => {
 	const partConfig = usePartConfig()
 
 	$effect(() => {
-		if (partConfig.isDirty) {
-			environment.current.viewerMode = 'edit'
-		} else {
-			environment.current.viewerMode = 'monitor'
-		}
+		environment.current.viewerMode = partConfig.isDirty ? 'edit' : 'monitor'
 	})
 
 	const [configFrames, configUnsetFrameNames] = $derived.by(() => {
@@ -45,14 +42,14 @@ export const provideConfigFrames = () => {
 
 	const [fragmentFrames, fragmentUnsetFrameNames] = $derived.by(() => {
 		const { fragment_mods: fragmentMods = [] } = partConfig.current
-		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentId)
+		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentInfo ?? {})
 
 		const results: Record<string, Transform> = {}
 		const unsetResults: string[] = []
 
 		// deal with fragment defined components
 		for (const fragmentComponentName of fragmentDefinedComponents || []) {
-			const fragmentId = partConfig.componentNameToFragmentId[fragmentComponentName]
+			const fragmentId = partConfig.componentNameToFragmentInfo[fragmentComponentName].id
 			const fragmentMod = fragmentMods?.find((mod) => mod.fragment_id === fragmentId)
 
 			if (!fragmentMod) {
@@ -91,6 +88,20 @@ export const provideConfigFrames = () => {
 
 	const getParentFrameOptions = (componentName: string) => {
 		const validFrames = new Set(frameValues.map((frame) => frame.referenceFrame))
+
+		/**
+		 * Fragment components without a mod don't appear in frameValues (we only
+		 * track frames with explicit $set mods), but the fragment itself supplies
+		 * their frame so they render in the scene and are valid parents. Exclude
+		 * any whose frame the user has $unset.
+		 */
+		const unsetFragmentNames = new Set(fragmentUnsetFrameNames)
+		for (const name of Object.keys(partConfig.componentNameToFragmentInfo)) {
+			if (!unsetFragmentNames.has(name)) {
+				validFrames.add(name)
+			}
+		}
+
 		validFrames.add('world')
 
 		const frameNameQueue = [componentName]
@@ -107,7 +118,7 @@ export const provideConfigFrames = () => {
 			}
 		}
 
-		return Array.from(validFrames)
+		return [...validFrames]
 	}
 
 	const unsetFrames = $derived([...new Set([...configUnsetFrameNames, ...fragmentUnsetFrameNames])])

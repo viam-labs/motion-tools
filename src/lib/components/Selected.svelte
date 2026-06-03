@@ -1,77 +1,48 @@
 <script lang="ts">
-	import { isInstanceOf, T, useTask, useThrelte } from '@threlte/core'
-	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
-	import { OBBHelper } from '$lib/three/OBBHelper'
-	import { OBB } from 'three/addons/math/OBB.js'
+	import { T, useTask, useThrelte } from '@threlte/core'
 	import { BatchedMesh, Box3 } from 'three'
-	import type { InstancedArrows } from '$lib/three/InstancedArrows/InstancedArrows'
+	import { OBB } from 'three/addons/math/OBB.js'
+
+	import { traits, useQuery } from '$lib/ecs'
+	import { OBBHelper } from '$lib/three/OBBHelper'
 
 	const box3 = new Box3()
 	const obb = new OBB()
-	const obbHelper = new OBBHelper()
 
-	const { invalidate } = useThrelte()
-	const selectedEntity = useSelectedEntity()
-	const selectedObject3d = useSelectedObject3d()
+	const { scene, invalidate } = useThrelte()
+	const selected = useQuery(traits.Selected)
 
-	const object = $derived.by(() => {
-		if (!selectedObject3d.current) {
-			return
-		}
+	const obbHelpers = $derived(selected.current.map((entity) => [entity, new OBBHelper()] as const))
 
-		// Create a clone in the case of meshes, which could be frames with geometries,
-		// so that our bounding box doesn't include children
-		if (isInstanceOf(selectedObject3d.current, 'Mesh')) {
-			return selectedObject3d.current?.clone(false)
-		}
-
-		return selectedObject3d.current
-	})
-
-	const { start, stop } = useTask(
+	useTask(
 		() => {
-			if (object === undefined) {
-				return
-			}
+			for (const [entity, obbHelper] of obbHelpers) {
+				const object = scene.getObjectByName(entity as unknown as string)
+				if (!object) continue
 
-			if (
-				selectedEntity.instance &&
-				(isInstanceOf(object, 'BatchedMesh') || (object as InstancedArrows).isInstancedArrows)
-			) {
-				const mesh = object as BatchedMesh | InstancedArrows
-				mesh.getBoundingBoxAt(selectedEntity.instance, box3)
-				obb.fromBox3(box3)
-				obbHelper.setFromOBB(obb)
-			} else if (isInstanceOf(selectedObject3d.current, 'Mesh')) {
-				selectedObject3d.current?.getWorldPosition(object.position)
-				selectedObject3d.current?.getWorldQuaternion(object.quaternion)
-				obbHelper.setFromObject(object)
+				const instance = entity.get(traits.InstanceId)
+				if (instance !== undefined && instance >= 0) {
+					;(object as BatchedMesh).getBoundingBoxAt(instance, box3)
+					obb.fromBox3(box3)
+					obbHelper.setFromOBB(obb)
+				} else {
+					obbHelper.setFromObject(object)
+				}
 			}
 
 			invalidate()
 		},
 		{
-			autoStart: false,
+			running: () => selected.current.length > 0,
 			autoInvalidate: false,
 		}
 	)
-
-	$effect.pre(() => {
-		if (selectedEntity.current) {
-			start()
-		} else {
-			stop()
-		}
-
-		invalidate()
-	})
 </script>
 
-{#if selectedEntity.current}
+{#each obbHelpers as [entity, obbHelper] (entity)}
 	<T
 		is={obbHelper}
-		dispose={false}
 		raycast={() => null}
 		bvh={{ enabled: false }}
 	/>
-{/if}
+{/each}

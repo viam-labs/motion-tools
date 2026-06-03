@@ -41,15 +41,11 @@ const (
 	// DrawServiceRemoveEntityProcedure is the fully-qualified name of the DrawService's RemoveEntity
 	// RPC.
 	DrawServiceRemoveEntityProcedure = "/draw.v1.DrawService/RemoveEntity"
-	// DrawServiceSetSceneMetadataProcedure is the fully-qualified name of the DrawService's
-	// SetSceneMetadata RPC.
-	DrawServiceSetSceneMetadataProcedure = "/draw.v1.DrawService/SetSceneMetadata"
-	// DrawServiceStreamTransformChangesProcedure is the fully-qualified name of the DrawService's
-	// StreamTransformChanges RPC.
-	DrawServiceStreamTransformChangesProcedure = "/draw.v1.DrawService/StreamTransformChanges"
-	// DrawServiceStreamDrawingChangesProcedure is the fully-qualified name of the DrawService's
-	// StreamDrawingChanges RPC.
-	DrawServiceStreamDrawingChangesProcedure = "/draw.v1.DrawService/StreamDrawingChanges"
+	// DrawServiceStreamEntityChangesProcedure is the fully-qualified name of the DrawService's
+	// StreamEntityChanges RPC.
+	DrawServiceStreamEntityChangesProcedure = "/draw.v1.DrawService/StreamEntityChanges"
+	// DrawServiceSetSceneProcedure is the fully-qualified name of the DrawService's SetScene RPC.
+	DrawServiceSetSceneProcedure = "/draw.v1.DrawService/SetScene"
 	// DrawServiceStreamSceneChangesProcedure is the fully-qualified name of the DrawService's
 	// StreamSceneChanges RPC.
 	DrawServiceStreamSceneChangesProcedure = "/draw.v1.DrawService/StreamSceneChanges"
@@ -61,6 +57,15 @@ const (
 	DrawServiceRemoveAllDrawingsProcedure = "/draw.v1.DrawService/RemoveAllDrawings"
 	// DrawServiceRemoveAllProcedure is the fully-qualified name of the DrawService's RemoveAll RPC.
 	DrawServiceRemoveAllProcedure = "/draw.v1.DrawService/RemoveAll"
+	// DrawServiceCreateRelationshipProcedure is the fully-qualified name of the DrawService's
+	// CreateRelationship RPC.
+	DrawServiceCreateRelationshipProcedure = "/draw.v1.DrawService/CreateRelationship"
+	// DrawServiceDeleteRelationshipProcedure is the fully-qualified name of the DrawService's
+	// DeleteRelationship RPC.
+	DrawServiceDeleteRelationshipProcedure = "/draw.v1.DrawService/DeleteRelationship"
+	// DrawServiceGetEntityChunkProcedure is the fully-qualified name of the DrawService's
+	// GetEntityChunk RPC.
+	DrawServiceGetEntityChunkProcedure = "/draw.v1.DrawService/GetEntityChunk"
 )
 
 // DrawServiceClient is a client for the draw.v1.DrawService service.
@@ -71,12 +76,10 @@ type DrawServiceClient interface {
 	UpdateEntity(context.Context, *connect.Request[v1.UpdateEntityRequest]) (*connect.Response[v1.UpdateEntityResponse], error)
 	// Remove an entity from the scene.
 	RemoveEntity(context.Context, *connect.Request[v1.RemoveEntityRequest]) (*connect.Response[v1.RemoveEntityResponse], error)
+	// Stream changes to entities in the scene.
+	StreamEntityChanges(context.Context, *connect.Request[v1.StreamEntityChangesRequest]) (*connect.ServerStreamForClient[v1.StreamEntityChangesResponse], error)
 	// Set the camera and/or metadata for the scene.
-	SetSceneMetadata(context.Context, *connect.Request[v1.SetSceneMetadataRequest]) (*connect.Response[v1.SetSceneMetadataResponse], error)
-	// Stream changes to the transforms in the scene.
-	StreamTransformChanges(context.Context, *connect.Request[v1.StreamTransformChangesRequest]) (*connect.ServerStreamForClient[v1.StreamTransformChangesResponse], error)
-	// Stream changes to the drawings in the scene.
-	StreamDrawingChanges(context.Context, *connect.Request[v1.StreamDrawingChangesRequest]) (*connect.ServerStreamForClient[v1.StreamDrawingChangesResponse], error)
+	SetScene(context.Context, *connect.Request[v1.SetSceneRequest]) (*connect.Response[v1.SetSceneResponse], error)
 	// Stream changes to the camera and/or metadata for the scene.
 	StreamSceneChanges(context.Context, *connect.Request[v1.StreamSceneChangesRequest]) (*connect.ServerStreamForClient[v1.StreamSceneChangesResponse], error)
 	// Remove all transforms from the scene.
@@ -85,6 +88,12 @@ type DrawServiceClient interface {
 	RemoveAllDrawings(context.Context, *connect.Request[v1.RemoveAllDrawingsRequest]) (*connect.Response[v1.RemoveAllDrawingsResponse], error)
 	// Remove all entities from the scene.
 	RemoveAll(context.Context, *connect.Request[v1.RemoveAllRequest]) (*connect.Response[v1.RemoveAllResponse], error)
+	// Create or replace a relationship from a source entity to a target entity.
+	CreateRelationship(context.Context, *connect.Request[v1.CreateRelationshipRequest]) (*connect.Response[v1.CreateRelationshipResponse], error)
+	// Delete a relationship from a source entity to a target entity.
+	DeleteRelationship(context.Context, *connect.Request[v1.DeleteRelationshipRequest]) (*connect.Response[v1.DeleteRelationshipResponse], error)
+	// Get a chunk of a chunked entity's data by element offset.
+	GetEntityChunk(context.Context, *connect.Request[v1.GetEntityChunkRequest]) (*connect.Response[v1.GetEntityChunkResponse], error)
 }
 
 // NewDrawServiceClient constructs a client for the draw.v1.DrawService service. By default, it uses
@@ -116,22 +125,16 @@ func NewDrawServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(drawServiceMethods.ByName("RemoveEntity")),
 			connect.WithClientOptions(opts...),
 		),
-		setSceneMetadata: connect.NewClient[v1.SetSceneMetadataRequest, v1.SetSceneMetadataResponse](
+		streamEntityChanges: connect.NewClient[v1.StreamEntityChangesRequest, v1.StreamEntityChangesResponse](
 			httpClient,
-			baseURL+DrawServiceSetSceneMetadataProcedure,
-			connect.WithSchema(drawServiceMethods.ByName("SetSceneMetadata")),
+			baseURL+DrawServiceStreamEntityChangesProcedure,
+			connect.WithSchema(drawServiceMethods.ByName("StreamEntityChanges")),
 			connect.WithClientOptions(opts...),
 		),
-		streamTransformChanges: connect.NewClient[v1.StreamTransformChangesRequest, v1.StreamTransformChangesResponse](
+		setScene: connect.NewClient[v1.SetSceneRequest, v1.SetSceneResponse](
 			httpClient,
-			baseURL+DrawServiceStreamTransformChangesProcedure,
-			connect.WithSchema(drawServiceMethods.ByName("StreamTransformChanges")),
-			connect.WithClientOptions(opts...),
-		),
-		streamDrawingChanges: connect.NewClient[v1.StreamDrawingChangesRequest, v1.StreamDrawingChangesResponse](
-			httpClient,
-			baseURL+DrawServiceStreamDrawingChangesProcedure,
-			connect.WithSchema(drawServiceMethods.ByName("StreamDrawingChanges")),
+			baseURL+DrawServiceSetSceneProcedure,
+			connect.WithSchema(drawServiceMethods.ByName("SetScene")),
 			connect.WithClientOptions(opts...),
 		),
 		streamSceneChanges: connect.NewClient[v1.StreamSceneChangesRequest, v1.StreamSceneChangesResponse](
@@ -158,21 +161,41 @@ func NewDrawServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(drawServiceMethods.ByName("RemoveAll")),
 			connect.WithClientOptions(opts...),
 		),
+		createRelationship: connect.NewClient[v1.CreateRelationshipRequest, v1.CreateRelationshipResponse](
+			httpClient,
+			baseURL+DrawServiceCreateRelationshipProcedure,
+			connect.WithSchema(drawServiceMethods.ByName("CreateRelationship")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteRelationship: connect.NewClient[v1.DeleteRelationshipRequest, v1.DeleteRelationshipResponse](
+			httpClient,
+			baseURL+DrawServiceDeleteRelationshipProcedure,
+			connect.WithSchema(drawServiceMethods.ByName("DeleteRelationship")),
+			connect.WithClientOptions(opts...),
+		),
+		getEntityChunk: connect.NewClient[v1.GetEntityChunkRequest, v1.GetEntityChunkResponse](
+			httpClient,
+			baseURL+DrawServiceGetEntityChunkProcedure,
+			connect.WithSchema(drawServiceMethods.ByName("GetEntityChunk")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // drawServiceClient implements DrawServiceClient.
 type drawServiceClient struct {
-	addEntity              *connect.Client[v1.AddEntityRequest, v1.AddEntityResponse]
-	updateEntity           *connect.Client[v1.UpdateEntityRequest, v1.UpdateEntityResponse]
-	removeEntity           *connect.Client[v1.RemoveEntityRequest, v1.RemoveEntityResponse]
-	setSceneMetadata       *connect.Client[v1.SetSceneMetadataRequest, v1.SetSceneMetadataResponse]
-	streamTransformChanges *connect.Client[v1.StreamTransformChangesRequest, v1.StreamTransformChangesResponse]
-	streamDrawingChanges   *connect.Client[v1.StreamDrawingChangesRequest, v1.StreamDrawingChangesResponse]
-	streamSceneChanges     *connect.Client[v1.StreamSceneChangesRequest, v1.StreamSceneChangesResponse]
-	removeAllTransforms    *connect.Client[v1.RemoveAllTransformsRequest, v1.RemoveAllTransformsResponse]
-	removeAllDrawings      *connect.Client[v1.RemoveAllDrawingsRequest, v1.RemoveAllDrawingsResponse]
-	removeAll              *connect.Client[v1.RemoveAllRequest, v1.RemoveAllResponse]
+	addEntity           *connect.Client[v1.AddEntityRequest, v1.AddEntityResponse]
+	updateEntity        *connect.Client[v1.UpdateEntityRequest, v1.UpdateEntityResponse]
+	removeEntity        *connect.Client[v1.RemoveEntityRequest, v1.RemoveEntityResponse]
+	streamEntityChanges *connect.Client[v1.StreamEntityChangesRequest, v1.StreamEntityChangesResponse]
+	setScene            *connect.Client[v1.SetSceneRequest, v1.SetSceneResponse]
+	streamSceneChanges  *connect.Client[v1.StreamSceneChangesRequest, v1.StreamSceneChangesResponse]
+	removeAllTransforms *connect.Client[v1.RemoveAllTransformsRequest, v1.RemoveAllTransformsResponse]
+	removeAllDrawings   *connect.Client[v1.RemoveAllDrawingsRequest, v1.RemoveAllDrawingsResponse]
+	removeAll           *connect.Client[v1.RemoveAllRequest, v1.RemoveAllResponse]
+	createRelationship  *connect.Client[v1.CreateRelationshipRequest, v1.CreateRelationshipResponse]
+	deleteRelationship  *connect.Client[v1.DeleteRelationshipRequest, v1.DeleteRelationshipResponse]
+	getEntityChunk      *connect.Client[v1.GetEntityChunkRequest, v1.GetEntityChunkResponse]
 }
 
 // AddEntity calls draw.v1.DrawService.AddEntity.
@@ -190,19 +213,14 @@ func (c *drawServiceClient) RemoveEntity(ctx context.Context, req *connect.Reque
 	return c.removeEntity.CallUnary(ctx, req)
 }
 
-// SetSceneMetadata calls draw.v1.DrawService.SetSceneMetadata.
-func (c *drawServiceClient) SetSceneMetadata(ctx context.Context, req *connect.Request[v1.SetSceneMetadataRequest]) (*connect.Response[v1.SetSceneMetadataResponse], error) {
-	return c.setSceneMetadata.CallUnary(ctx, req)
+// StreamEntityChanges calls draw.v1.DrawService.StreamEntityChanges.
+func (c *drawServiceClient) StreamEntityChanges(ctx context.Context, req *connect.Request[v1.StreamEntityChangesRequest]) (*connect.ServerStreamForClient[v1.StreamEntityChangesResponse], error) {
+	return c.streamEntityChanges.CallServerStream(ctx, req)
 }
 
-// StreamTransformChanges calls draw.v1.DrawService.StreamTransformChanges.
-func (c *drawServiceClient) StreamTransformChanges(ctx context.Context, req *connect.Request[v1.StreamTransformChangesRequest]) (*connect.ServerStreamForClient[v1.StreamTransformChangesResponse], error) {
-	return c.streamTransformChanges.CallServerStream(ctx, req)
-}
-
-// StreamDrawingChanges calls draw.v1.DrawService.StreamDrawingChanges.
-func (c *drawServiceClient) StreamDrawingChanges(ctx context.Context, req *connect.Request[v1.StreamDrawingChangesRequest]) (*connect.ServerStreamForClient[v1.StreamDrawingChangesResponse], error) {
-	return c.streamDrawingChanges.CallServerStream(ctx, req)
+// SetScene calls draw.v1.DrawService.SetScene.
+func (c *drawServiceClient) SetScene(ctx context.Context, req *connect.Request[v1.SetSceneRequest]) (*connect.Response[v1.SetSceneResponse], error) {
+	return c.setScene.CallUnary(ctx, req)
 }
 
 // StreamSceneChanges calls draw.v1.DrawService.StreamSceneChanges.
@@ -225,6 +243,21 @@ func (c *drawServiceClient) RemoveAll(ctx context.Context, req *connect.Request[
 	return c.removeAll.CallUnary(ctx, req)
 }
 
+// CreateRelationship calls draw.v1.DrawService.CreateRelationship.
+func (c *drawServiceClient) CreateRelationship(ctx context.Context, req *connect.Request[v1.CreateRelationshipRequest]) (*connect.Response[v1.CreateRelationshipResponse], error) {
+	return c.createRelationship.CallUnary(ctx, req)
+}
+
+// DeleteRelationship calls draw.v1.DrawService.DeleteRelationship.
+func (c *drawServiceClient) DeleteRelationship(ctx context.Context, req *connect.Request[v1.DeleteRelationshipRequest]) (*connect.Response[v1.DeleteRelationshipResponse], error) {
+	return c.deleteRelationship.CallUnary(ctx, req)
+}
+
+// GetEntityChunk calls draw.v1.DrawService.GetEntityChunk.
+func (c *drawServiceClient) GetEntityChunk(ctx context.Context, req *connect.Request[v1.GetEntityChunkRequest]) (*connect.Response[v1.GetEntityChunkResponse], error) {
+	return c.getEntityChunk.CallUnary(ctx, req)
+}
+
 // DrawServiceHandler is an implementation of the draw.v1.DrawService service.
 type DrawServiceHandler interface {
 	// Add an entity to the scene.
@@ -233,12 +266,10 @@ type DrawServiceHandler interface {
 	UpdateEntity(context.Context, *connect.Request[v1.UpdateEntityRequest]) (*connect.Response[v1.UpdateEntityResponse], error)
 	// Remove an entity from the scene.
 	RemoveEntity(context.Context, *connect.Request[v1.RemoveEntityRequest]) (*connect.Response[v1.RemoveEntityResponse], error)
+	// Stream changes to entities in the scene.
+	StreamEntityChanges(context.Context, *connect.Request[v1.StreamEntityChangesRequest], *connect.ServerStream[v1.StreamEntityChangesResponse]) error
 	// Set the camera and/or metadata for the scene.
-	SetSceneMetadata(context.Context, *connect.Request[v1.SetSceneMetadataRequest]) (*connect.Response[v1.SetSceneMetadataResponse], error)
-	// Stream changes to the transforms in the scene.
-	StreamTransformChanges(context.Context, *connect.Request[v1.StreamTransformChangesRequest], *connect.ServerStream[v1.StreamTransformChangesResponse]) error
-	// Stream changes to the drawings in the scene.
-	StreamDrawingChanges(context.Context, *connect.Request[v1.StreamDrawingChangesRequest], *connect.ServerStream[v1.StreamDrawingChangesResponse]) error
+	SetScene(context.Context, *connect.Request[v1.SetSceneRequest]) (*connect.Response[v1.SetSceneResponse], error)
 	// Stream changes to the camera and/or metadata for the scene.
 	StreamSceneChanges(context.Context, *connect.Request[v1.StreamSceneChangesRequest], *connect.ServerStream[v1.StreamSceneChangesResponse]) error
 	// Remove all transforms from the scene.
@@ -247,6 +278,12 @@ type DrawServiceHandler interface {
 	RemoveAllDrawings(context.Context, *connect.Request[v1.RemoveAllDrawingsRequest]) (*connect.Response[v1.RemoveAllDrawingsResponse], error)
 	// Remove all entities from the scene.
 	RemoveAll(context.Context, *connect.Request[v1.RemoveAllRequest]) (*connect.Response[v1.RemoveAllResponse], error)
+	// Create or replace a relationship from a source entity to a target entity.
+	CreateRelationship(context.Context, *connect.Request[v1.CreateRelationshipRequest]) (*connect.Response[v1.CreateRelationshipResponse], error)
+	// Delete a relationship from a source entity to a target entity.
+	DeleteRelationship(context.Context, *connect.Request[v1.DeleteRelationshipRequest]) (*connect.Response[v1.DeleteRelationshipResponse], error)
+	// Get a chunk of a chunked entity's data by element offset.
+	GetEntityChunk(context.Context, *connect.Request[v1.GetEntityChunkRequest]) (*connect.Response[v1.GetEntityChunkResponse], error)
 }
 
 // NewDrawServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -274,22 +311,16 @@ func NewDrawServiceHandler(svc DrawServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(drawServiceMethods.ByName("RemoveEntity")),
 		connect.WithHandlerOptions(opts...),
 	)
-	drawServiceSetSceneMetadataHandler := connect.NewUnaryHandler(
-		DrawServiceSetSceneMetadataProcedure,
-		svc.SetSceneMetadata,
-		connect.WithSchema(drawServiceMethods.ByName("SetSceneMetadata")),
+	drawServiceStreamEntityChangesHandler := connect.NewServerStreamHandler(
+		DrawServiceStreamEntityChangesProcedure,
+		svc.StreamEntityChanges,
+		connect.WithSchema(drawServiceMethods.ByName("StreamEntityChanges")),
 		connect.WithHandlerOptions(opts...),
 	)
-	drawServiceStreamTransformChangesHandler := connect.NewServerStreamHandler(
-		DrawServiceStreamTransformChangesProcedure,
-		svc.StreamTransformChanges,
-		connect.WithSchema(drawServiceMethods.ByName("StreamTransformChanges")),
-		connect.WithHandlerOptions(opts...),
-	)
-	drawServiceStreamDrawingChangesHandler := connect.NewServerStreamHandler(
-		DrawServiceStreamDrawingChangesProcedure,
-		svc.StreamDrawingChanges,
-		connect.WithSchema(drawServiceMethods.ByName("StreamDrawingChanges")),
+	drawServiceSetSceneHandler := connect.NewUnaryHandler(
+		DrawServiceSetSceneProcedure,
+		svc.SetScene,
+		connect.WithSchema(drawServiceMethods.ByName("SetScene")),
 		connect.WithHandlerOptions(opts...),
 	)
 	drawServiceStreamSceneChangesHandler := connect.NewServerStreamHandler(
@@ -316,6 +347,24 @@ func NewDrawServiceHandler(svc DrawServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(drawServiceMethods.ByName("RemoveAll")),
 		connect.WithHandlerOptions(opts...),
 	)
+	drawServiceCreateRelationshipHandler := connect.NewUnaryHandler(
+		DrawServiceCreateRelationshipProcedure,
+		svc.CreateRelationship,
+		connect.WithSchema(drawServiceMethods.ByName("CreateRelationship")),
+		connect.WithHandlerOptions(opts...),
+	)
+	drawServiceDeleteRelationshipHandler := connect.NewUnaryHandler(
+		DrawServiceDeleteRelationshipProcedure,
+		svc.DeleteRelationship,
+		connect.WithSchema(drawServiceMethods.ByName("DeleteRelationship")),
+		connect.WithHandlerOptions(opts...),
+	)
+	drawServiceGetEntityChunkHandler := connect.NewUnaryHandler(
+		DrawServiceGetEntityChunkProcedure,
+		svc.GetEntityChunk,
+		connect.WithSchema(drawServiceMethods.ByName("GetEntityChunk")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/draw.v1.DrawService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DrawServiceAddEntityProcedure:
@@ -324,12 +373,10 @@ func NewDrawServiceHandler(svc DrawServiceHandler, opts ...connect.HandlerOption
 			drawServiceUpdateEntityHandler.ServeHTTP(w, r)
 		case DrawServiceRemoveEntityProcedure:
 			drawServiceRemoveEntityHandler.ServeHTTP(w, r)
-		case DrawServiceSetSceneMetadataProcedure:
-			drawServiceSetSceneMetadataHandler.ServeHTTP(w, r)
-		case DrawServiceStreamTransformChangesProcedure:
-			drawServiceStreamTransformChangesHandler.ServeHTTP(w, r)
-		case DrawServiceStreamDrawingChangesProcedure:
-			drawServiceStreamDrawingChangesHandler.ServeHTTP(w, r)
+		case DrawServiceStreamEntityChangesProcedure:
+			drawServiceStreamEntityChangesHandler.ServeHTTP(w, r)
+		case DrawServiceSetSceneProcedure:
+			drawServiceSetSceneHandler.ServeHTTP(w, r)
 		case DrawServiceStreamSceneChangesProcedure:
 			drawServiceStreamSceneChangesHandler.ServeHTTP(w, r)
 		case DrawServiceRemoveAllTransformsProcedure:
@@ -338,6 +385,12 @@ func NewDrawServiceHandler(svc DrawServiceHandler, opts ...connect.HandlerOption
 			drawServiceRemoveAllDrawingsHandler.ServeHTTP(w, r)
 		case DrawServiceRemoveAllProcedure:
 			drawServiceRemoveAllHandler.ServeHTTP(w, r)
+		case DrawServiceCreateRelationshipProcedure:
+			drawServiceCreateRelationshipHandler.ServeHTTP(w, r)
+		case DrawServiceDeleteRelationshipProcedure:
+			drawServiceDeleteRelationshipHandler.ServeHTTP(w, r)
+		case DrawServiceGetEntityChunkProcedure:
+			drawServiceGetEntityChunkHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -359,16 +412,12 @@ func (UnimplementedDrawServiceHandler) RemoveEntity(context.Context, *connect.Re
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.RemoveEntity is not implemented"))
 }
 
-func (UnimplementedDrawServiceHandler) SetSceneMetadata(context.Context, *connect.Request[v1.SetSceneMetadataRequest]) (*connect.Response[v1.SetSceneMetadataResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.SetSceneMetadata is not implemented"))
+func (UnimplementedDrawServiceHandler) StreamEntityChanges(context.Context, *connect.Request[v1.StreamEntityChangesRequest], *connect.ServerStream[v1.StreamEntityChangesResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.StreamEntityChanges is not implemented"))
 }
 
-func (UnimplementedDrawServiceHandler) StreamTransformChanges(context.Context, *connect.Request[v1.StreamTransformChangesRequest], *connect.ServerStream[v1.StreamTransformChangesResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.StreamTransformChanges is not implemented"))
-}
-
-func (UnimplementedDrawServiceHandler) StreamDrawingChanges(context.Context, *connect.Request[v1.StreamDrawingChangesRequest], *connect.ServerStream[v1.StreamDrawingChangesResponse]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.StreamDrawingChanges is not implemented"))
+func (UnimplementedDrawServiceHandler) SetScene(context.Context, *connect.Request[v1.SetSceneRequest]) (*connect.Response[v1.SetSceneResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.SetScene is not implemented"))
 }
 
 func (UnimplementedDrawServiceHandler) StreamSceneChanges(context.Context, *connect.Request[v1.StreamSceneChangesRequest], *connect.ServerStream[v1.StreamSceneChangesResponse]) error {
@@ -385,4 +434,16 @@ func (UnimplementedDrawServiceHandler) RemoveAllDrawings(context.Context, *conne
 
 func (UnimplementedDrawServiceHandler) RemoveAll(context.Context, *connect.Request[v1.RemoveAllRequest]) (*connect.Response[v1.RemoveAllResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.RemoveAll is not implemented"))
+}
+
+func (UnimplementedDrawServiceHandler) CreateRelationship(context.Context, *connect.Request[v1.CreateRelationshipRequest]) (*connect.Response[v1.CreateRelationshipResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.CreateRelationship is not implemented"))
+}
+
+func (UnimplementedDrawServiceHandler) DeleteRelationship(context.Context, *connect.Request[v1.DeleteRelationshipRequest]) (*connect.Response[v1.DeleteRelationshipResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.DeleteRelationship is not implemented"))
+}
+
+func (UnimplementedDrawServiceHandler) GetEntityChunk(context.Context, *connect.Request[v1.GetEntityChunkRequest]) (*connect.Response[v1.GetEntityChunkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("draw.v1.DrawService.GetEntityChunk is not implemented"))
 }

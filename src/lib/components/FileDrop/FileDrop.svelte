@@ -1,25 +1,37 @@
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements'
-	import { useToast, ToastVariant } from '@viamrobotics/prime-core'
-	import { useFileDrop } from './useFileDrop.svelte'
-	import { useWorld } from '$lib/ecs/useWorld'
-	import type { FileDropperSuccess } from './file-dropper'
-	import { traits } from '$lib/ecs'
-	import { spawnSnapshotEntities } from '$lib/snapshot'
-	import { useCameraControls } from '$lib/hooks/useControls.svelte'
+
+	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
+
 	import { createBufferGeometry } from '$lib/attribute'
+	import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
+	import { traits } from '$lib/ecs'
+	import { useWorld } from '$lib/ecs/useWorld'
+	import { useCameraControls } from '$lib/hooks/useControls.svelte'
+	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
+	import { spawnSnapshotEntities } from '$lib/snapshot'
+
+	import type { FileDropperSuccess } from './file-dropper'
+
+	import { useFileDrop } from './useFileDrop.svelte'
 
 	const props: HTMLAttributes<HTMLDivElement> = $props()
 
 	const world = useWorld()
 	const toast = useToast()
 	const cameraControls = useCameraControls()
+	const relationships = useRelationships()
 
 	const fileDrop = useFileDrop(
 		(result: FileDropperSuccess) => {
 			switch (result.type) {
 				case 'snapshot': {
-					spawnSnapshotEntities(world, result.snapshot)
+					const spawned = spawnSnapshotEntities(world, result.snapshot)
+					for (const entity of spawned) {
+						relationships.apply(entity.entity, entity.relationships)
+						const uuid = entity.entity.get(traits.UUID)
+						if (uuid) relationships.flush(uuid)
+					}
 
 					const { sceneCamera } = result.snapshot.sceneMetadata ?? {}
 
@@ -36,7 +48,10 @@
 					break
 				}
 				case 'pcd': {
-					const geometry = createBufferGeometry(result.pcd.positions, result.pcd.colors)
+					const geometry = createBufferGeometry(result.pcd.positions, {
+						colors: result.pcd.colors,
+						colorFormat: ColorFormat.RGB,
+					})
 
 					world.spawn(
 						traits.Name(result.name),
