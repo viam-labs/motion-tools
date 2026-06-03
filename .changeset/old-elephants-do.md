@@ -2,4 +2,4 @@
 "@viamrobotics/motion-tools": minor
 ---
 
-Add WebXR frame editing
+Migrate WebXR features to a plugin
