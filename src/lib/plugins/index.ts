@@ -21,3 +21,6 @@ export { default as Skybox } from './Skybox/Skybox.svelte'
 export { default as Debug } from './Debug/Debug.svelte'
 
 export { default as Focus } from './Focus/Focus.svelte'
+
+export { default as XR } from './XR/XR.svelte'
+export { default as XRSettings } from './XR/XRSettings.svelte'

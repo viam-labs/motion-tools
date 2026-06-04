@@ -41,7 +41,7 @@
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
-	import { hierarchy, relations, traits, useParentName, useTrait, useWorld } from '$lib/ecs'
+	import { hierarchy, relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
@@ -61,7 +61,7 @@
 	const { entity, details, ...rest }: Props = $props()
 
 	const world = useWorld()
-	const { scene, invalidate } = useThrelte()
+	const { scene } = useThrelte()
 	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
@@ -87,8 +87,7 @@
 	const arrows = useTrait(() => entity, traits.Arrows)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
-	const customDetails = useTrait(() => entity, traits.CustomDetails)
-	const hasCustomDetails = $derived(customDetails.current === true)
+	const customDetails = useTag(() => entity, traits.CustomDetails)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -128,14 +127,9 @@
 	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
 
 	$effect(() => {
-		if (!entity || !isFrameNode) return
-
-		const next = geometryTypes[geometryTabIndex]
-		if (next === undefined || next === geometryType) return
-
 		// setGeometryType guards against no-ops, so this is safe to fire on every
 		// tab-index change (whether user-initiated or trait-derived).
-		detailConfigUpdater.setGeometryType(entity, next)
+		detailConfigUpdater.setGeometryType(entity, geometryTypes[geometryTabIndex])
 	})
 
 	let copied = $state(false)
@@ -154,19 +148,6 @@
 
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
-	// Mutate the entity's local Matrix in place: read current pose, overwrite
-	// position or orientation, write back. Used for non-frame entities (gizmos,
-	// custom static geometries) that don't round-trip through the robot config.
-	// Matrix4 instances are shared by `useTrait`, so we must call
-	// `entity.changed(Matrix)` to notify the world-matrix system and any
-	// other listeners.
-	const applyLocal = (patch: Partial<Pose>) => {
-		if (!entity) return
-
-		traits.writeMatrix(entity, patch)
-		invalidate()
-	}
-
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
 	}
@@ -174,22 +155,18 @@
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalPosition(entity, next)
-		} else {
-			applyLocal({ x: next.x, y: next.y, z: next.z })
-		}
+		detailConfigUpdater.updateLocalPosition(entity, next)
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue4dObject
-		const ovValue = { oX: next.x, oY: next.y, oZ: next.z, theta: next.w }
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
-		} else {
-			applyLocal(ovValue)
-		}
+		detailConfigUpdater.updateLocalOrientation(entity, {
+			oX: next.x,
+			oY: next.y,
+			oZ: next.z,
+			theta: next.w,
+		})
 	}
 
 	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
@@ -203,17 +180,12 @@
 		)
 		quaternion.setFromEuler(euler)
 		ov.setFromQuaternion(quaternion)
-		const ovValue = {
+		detailConfigUpdater.updateLocalOrientation(entity, {
 			oX: ov.x,
 			oY: ov.y,
 			oZ: ov.z,
 			theta: MathUtils.radToDeg(ov.th),
-		}
-		if (isFrameNode) {
-			detailConfigUpdater.updateLocalOrientation(entity, ovValue)
-		} else {
-			applyLocal(ovValue)
-		}
+		})
 	}
 
 	const handleBoxChange = (event: PointChangeEvent) => {
@@ -247,12 +219,7 @@
 		const value = event.detail.value as string
 		if (value === parent.current) return
 		hierarchy.setParent(entity, value)
-		invalidate()
-		// Non-frame entities (gizmos, custom geometries) aren't backed by the
-		// robot config, so skip the config sync.
-		if (isFrameNode) {
-			detailConfigUpdater.setFrameParent(entity, value)
-		}
+		detailConfigUpdater.setFrameParent(entity, value)
 	}
 
 	const getCopyClipboardText = () => {
@@ -461,7 +428,7 @@
 		<h3 class="text-subtle-2 pt-3 pb-2">Details</h3>
 
 		<div class="flex flex-col gap-2.5">
-			{#if !hasCustomDetails}
+			{#if !customDetails.current}
 				<div>
 					<strong class="font-semibold">world position</strong>
 					<span class="text-subtle-2">(mm)</span>
@@ -749,7 +716,7 @@
 
 			<PortalTarget id="details-extensions" />
 
-			{#if !hasCustomDetails}
+			{#if !customDetails.current}
 				<OpacityDetails {entity} />
 				<AxesHelperDetails {entity} />
 			{/if}
