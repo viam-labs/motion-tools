@@ -21,8 +21,6 @@
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
 
-	import { provideOrigin } from './xr/useOrigin.svelte'
-
 	interface Props {
 		children: Snippet
 	}
@@ -37,7 +35,6 @@
 	provideHierarchy()
 	provideWorldMatrix()
 	provideInheritedInvisible()
-	provideOrigin()
 
 	provideRelationships()
 

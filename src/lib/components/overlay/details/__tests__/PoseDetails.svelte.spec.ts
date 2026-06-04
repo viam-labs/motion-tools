@@ -1,23 +1,23 @@
 import { render, screen } from '@testing-library/svelte'
 import { createWorld } from 'koota'
 import { Matrix4 } from 'three'
-import '@testing-library/jest-dom/vitest'
 import { describe, expect, it } from 'vitest'
+import '@testing-library/jest-dom/vitest'
 
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
 import { createPose, poseToMatrix } from '$lib/transform'
 
-import MatrixDetails from '../MatrixDetails.svelte'
+import PoseDetails from '../PoseDetails.svelte'
 
-describe('MatrixDetails', () => {
+describe('PoseDetails', () => {
 	const world = createWorld()
 	const parentOptions = [{ value: 'world', text: 'world' }]
 	const noop = () => {}
 
 	it('always renders parent, world position, and world orientation sections', () => {
 		const entity = world.spawn()
-		render(MatrixDetails, {
+		render(PoseDetails, {
 			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
@@ -32,7 +32,7 @@ describe('MatrixDetails', () => {
 			new Matrix4()
 		)
 		const entity = world.spawn(traits.Matrix(matrix))
-		render(MatrixDetails, {
+		render(PoseDetails, {
 			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
@@ -42,7 +42,7 @@ describe('MatrixDetails', () => {
 
 	it('does not render local position/orientation when entity has no matrix or center', () => {
 		const entity = world.spawn()
-		render(MatrixDetails, {
+		render(PoseDetails, {
 			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})

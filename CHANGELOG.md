@@ -1,5 +1,24 @@
 # motion-tools
 
+## 1.33.0
+
+### Minor Changes
+
+- 617679e: Migrate WebXR features to a plugin
+
+## 1.32.0
+
+### Minor Changes
+
+- bca0cd6: Add multiselect / multifocus
+
+### Patch Changes
+
+- 652e924: Add `writeMatrix` and `CustomDetails` ECS traits, and a `'gizmo'` interaction mode
+- 4f1840b: Add plugin docs and make plugin dependencies optional
+- 78579a2: Make <MeasureTool> a plugin
+- cab2479: Stop keyboard events from propagating out of the Details panel so they don't rotate the 3D scene
+
 ## 1.31.0
 
 ### Minor Changes

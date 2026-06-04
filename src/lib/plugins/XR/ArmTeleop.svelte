@@ -6,13 +6,11 @@
 	import { createResourceClient } from '@viamrobotics/svelte-sdk'
 	import { Quaternion, Vector3 } from 'three'
 
-	import {
-		calculatePositionTarget,
-		getFrameTransformationQuaternion,
-	} from '$lib/components/xr/math'
-	import { xrToast } from '$lib/components/xr/toasts.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { OrientationVector } from '$lib/three/OrientationVector'
+
+	import { calculatePositionTarget, getFrameTransformationQuaternion } from './math'
+	import { xrToast } from './toasts.svelte'
 
 	interface Props {
 		armName: string
