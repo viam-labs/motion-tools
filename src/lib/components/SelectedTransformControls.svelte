@@ -11,14 +11,7 @@
 	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import {
-		createPose,
-		matrixToPose,
-		poseToMatrix,
-		quaternionToPose,
-		solveEditedMatrix,
-		vector3ToPose,
-	} from '$lib/transform'
+	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
 
 	const { scene } = useThrelte()
 	const settings = useSettings()
@@ -127,33 +120,7 @@
 			if (isFrameEntity) {
 				stageFrameTransform()
 			} else {
-				const matrix = entity.get(traits.Matrix)
-				if (matrix) {
-					matrixToPose(matrix, tempPose)
-					// Frame-style renderers (Frame.svelte, GizmoPlane, GizmoArrow,
-					// etc.) set `group.matrixAutoUpdate = false` and re-compose the
-					// matrix from `worldMatrix` on every flush. Under that flag,
-					// `getWorldQuaternion`/`getWorldPosition` skip updating the
-					// local matrix and return the stale pre-drag transform — so
-					// the gizmo handles move visually but the entity never
-					// actually rotates/translates. Read what TransformControls
-					// wrote into the local fields directly.
-					//
-					// NOTE: this branch is only reached for non-`FramesAPI` entities
-					// (frame entities go through `stageFrameTransform` above). It
-					// assumes non-frame entity renderers mount directly under the
-					// scene root so local ≈ world. If a future plugin mounts a
-					// gizmo entity under a non-identity parent, switch back to
-					// `getWorldPosition`/`getWorldQuaternion` with a
-					// parent-inverse step (see `stageFrameTransform`).
-					if (activeMode === 'translate') {
-						vector3ToPose(ref.position, tempPose)
-					} else {
-						quaternionToPose(ref.quaternion, tempPose)
-					}
-					poseToMatrix(tempPose, matrix)
-					entity.changed(traits.Matrix)
-				}
+				stageLocalTransform()
 			}
 		} else {
 			// scale → bake the gizmo's scale factor into the geometry trait,
@@ -207,40 +174,46 @@
 	}
 
 	/**
-	 * Frame.svelte renders frame entities by writing the entity's WorldMatrix
-	 * into group.matrix and decomposing it into position/quaternion. The gizmo's
-	 * Three.js parent has identity world, so `ref.position` / `ref.quaternion`
-	 * are world-space values. Matrix and EditedMatrix store local-to-parent
-	 * transforms, so we left-multiply by the parent's inverted WorldMatrix
-	 * before staging — otherwise WorldMatrix recomposition (parent × edited)
-	 * re-applies the parent's rotation/translation and the frame ends up at
-	 * parent × where-the-user-pulled-it.
+	 * Build the entity's parent-relative drag target from the gizmo's world-space
+	 * `ref` transform into `out`.
 	 *
-	 * With a kinematic offset (LiveMatrix + Matrix both present), the local
-	 * target M(local) feeds solveEditedMatrix to back out the EditedMatrix
-	 * that satisfies live × baseline⁻¹ × edited = local.
+	 * Entity renderers mount at the scene root with `matrixAutoUpdate = false`
+	 * and recompose `group.matrix` from the `WorldMatrix` trait, so
+	 * `ref.position` / `ref.quaternion` are world-space. Matrix-shaped traits
+	 * store local-to-parent, so we left-multiply by the parent's inverted
+	 * WorldMatrix — otherwise recomposition (parentWorld × local) re-applies the
+	 * parent transform and the entity lands at parentWorld × where-it-was-dragged.
+	 */
+	const computeLocalDragTarget = (out: Matrix4) => {
+		if (!ref || !entity) return
+
+		out.makeRotationFromQuaternion(ref.quaternion)
+		out.setPosition(ref.position)
+
+		const parentWorld = entity.targetFor(relations.ChildOf)?.get(traits.WorldMatrix)
+		if (parentWorld) {
+			tempParentInverse.copy(parentWorld).invert()
+			out.premultiply(tempParentInverse)
+		}
+	}
+
+	/**
+	 * Stages a translate/rotate drag for a frame system entity into the edit
+	 * session. With a kinematic offset (LiveMatrix + Matrix both present), the
+	 * parent-relative target feeds solveEditedMatrix to back out the EditedMatrix
+	 * satisfying live × baseline⁻¹ × edited = local. Without one, Frame.svelte's
+	 * blend short-circuits to EditedMatrix, so we stage the target pose directly.
 	 */
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
-		tempRefMatrix.makeRotationFromQuaternion(ref.quaternion)
-		tempRefMatrix.setPosition(ref.position)
-
-		const parentEntity = entity.targetFor(relations.ChildOf)
-		const parentWorld = parentEntity?.get(traits.WorldMatrix)
-		if (parentWorld) {
-			tempParentInverse.copy(parentWorld).invert()
-			tempRefMatrix.premultiply(tempParentInverse)
-		}
-
+		computeLocalDragTarget(tempRefMatrix)
 		matrixToPose(tempRefMatrix, refPose)
 
 		const live = liveMatrix.current
 		const config = configMatrix.current
 
 		if (!live || !config) {
-			// No live matrix available — Frame.svelte's blend short-circuits to
-			// editedMatrix, so the parent-relative target is what we stage.
 			if (activeMode === 'translate') {
 				session?.stagePose(entity, {
 					x: refPose.x,
@@ -261,6 +234,37 @@
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
 		matrixToPose(tempEditedMatrix, tempPose)
 		session?.stagePose(entity, { ...tempPose })
+	}
+
+	/**
+	 * Stages a translate/rotate drag for a non-frame-system entity (e.g. a gizmo)
+	 * by writing the dragged component into the Matrix trait. Gizmos carry no
+	 * LiveMatrix, so there's no live-pose blend to invert — the parent-relative
+	 * target is the new local transform.
+	 */
+	const stageLocalTransform = () => {
+		if (!ref || !entity) return
+
+		const matrix = entity.get(traits.Matrix)
+		if (!matrix) return
+
+		computeLocalDragTarget(tempRefMatrix)
+
+		// Update only the dragged component; keep the rest of the local transform.
+		matrixToPose(matrix, tempPose)
+		matrixToPose(tempRefMatrix, refPose)
+		if (activeMode === 'translate') {
+			tempPose.x = refPose.x
+			tempPose.y = refPose.y
+			tempPose.z = refPose.z
+		} else {
+			tempPose.oX = refPose.oX
+			tempPose.oY = refPose.oY
+			tempPose.oZ = refPose.oZ
+			tempPose.theta = refPose.theta
+		}
+		poseToMatrix(tempPose, matrix)
+		entity.changed(traits.Matrix)
 	}
 </script>
 
