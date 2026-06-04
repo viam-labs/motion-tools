@@ -57,6 +57,9 @@
 	})
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
 	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
+	const transforming = $derived(
+		ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current
+	)
 
 	const refPose = createPose()
 	const tempRefMatrix = new Matrix4()
@@ -110,12 +113,9 @@
 	}
 
 	const onChange = () => {
-		if (!ref || !entity || !activeMode) {
-			return
-		}
+		if (!ref || !entity || !activeMode) return
 
 		const isFrameEntity = entity.has(traits.FramesAPI)
-
 		if (activeMode === 'translate' || activeMode === 'rotate') {
 			if (isFrameEntity) {
 				stageFrameTransform()
@@ -181,7 +181,7 @@
 	 * and recompose `group.matrix` from the `WorldMatrix` trait, so
 	 * `ref.position` / `ref.quaternion` are world-space. Matrix-shaped traits
 	 * store local-to-parent, so we left-multiply by the parent's inverted
-	 * WorldMatrix — otherwise recomposition (parentWorld × local) re-applies the
+	 * WorldMatrix. Otherwise recomposition (parentWorld × local) re-applies the
 	 * parent transform and the entity lands at parentWorld × where-it-was-dragged.
 	 */
 	const computeLocalDragTarget = (out: Matrix4) => {
@@ -250,7 +250,7 @@
 
 		computeLocalDragTarget(tempRefMatrix)
 
-		// Update only the dragged component; keep the rest of the local transform.
+		// update only the dragged component
 		matrixToPose(matrix, tempPose)
 		matrixToPose(tempRefMatrix, refPose)
 		if (activeMode === 'translate') {
@@ -263,12 +263,13 @@
 			tempPose.oZ = refPose.oZ
 			tempPose.theta = refPose.theta
 		}
+
 		poseToMatrix(tempPose, matrix)
 		entity.changed(traits.Matrix)
 	}
 </script>
 
-{#if ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current}
+{#if transforming}
 	{#key entity}
 		<TransformControls
 			object={ref}
