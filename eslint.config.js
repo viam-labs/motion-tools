@@ -123,6 +123,7 @@ export default defineConfig(
 			'unicorn/prefer-add-event-listener': 'off',
 			'unicorn/prefer-blob-reading-methods': 'off',
 			'unicorn/prefer-code-point': 'off',
+			'unicorn/prefer-modern-math-apis': 'off',
 			'unicorn/prefer-string-replace-all': 'error',
 			'unicorn/prefer-switch': 'off',
 			'unicorn/prefer-top-level-await': 'off',

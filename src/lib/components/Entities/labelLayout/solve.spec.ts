@@ -18,6 +18,8 @@ function makeNode(id: string, ax: number, ay: number, w = 30, h = 14, dotR = 3):
 		h,
 		scale: 1,
 		cssDotW: 8,
+		dotLocalX: 0,
+		dotLocalY: 0,
 		slots: [],
 		geomKey: '',
 		crowded: false,
@@ -89,6 +91,29 @@ describe('solve', () => {
 
 	it('produces no leader-under-box crossings for a feasible row of labels', () => {
 		const nodes = [makeNode('a', 0, 0), makeNode('b', 70, 0), makeNode('c', 140, 0)]
+		link(nodes)
+		solve(nodes, config, new Int16Array(nodes.length))
+
+		for (const a of nodes) {
+			for (const b of nodes) {
+				if (a === b) continue
+				expect(segmentRectPenetration(leader(a), paddedBox(b))).toBe(0)
+			}
+		}
+	})
+
+	it('drives leader-under-box crossings to zero for a feasible cluster', () => {
+		// A 2D cluster with room to fan outward — the hard #1 requirement must hold,
+		// and (post objective-alignment fix) resolvable crossings must not be left
+		// locked in favour of a tidier-but-conflicting slot.
+		const nodes = [
+			makeNode('a', 0, 0),
+			makeNode('b', 130, 0),
+			makeNode('c', 0, 120),
+			makeNode('d', 130, 120),
+			makeNode('e', 65, 60),
+			makeNode('f', 240, 60),
+		]
 		link(nodes)
 		solve(nodes, config, new Int16Array(nodes.length))
 

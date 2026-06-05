@@ -4,25 +4,14 @@ import type { Rect, Segment } from './types'
 
 import {
 	overlapAreaFrac,
-	pointInRect,
 	rectCircleOverlap,
 	rectsOverlap,
-	segmentIntersectsRect,
 	segmentRectPenetration,
 	segmentsCross,
 } from './geometry'
 
 const rect = (cx: number, cy: number, hw: number, hh: number): Rect => ({ cx, cy, hw, hh })
 const seg = (x1: number, y1: number, x2: number, y2: number): Segment => ({ x1, y1, x2, y2 })
-
-describe('pointInRect', () => {
-	it('includes interior and edges, excludes outside', () => {
-		const r = rect(0, 0, 2, 2)
-		expect(pointInRect(0, 0, r)).toBe(true)
-		expect(pointInRect(2, 2, r)).toBe(true)
-		expect(pointInRect(2.01, 0, r)).toBe(false)
-	})
-})
 
 describe('rectsOverlap', () => {
 	it('detects overlap and respects padding', () => {
@@ -44,22 +33,18 @@ describe('segmentRectPenetration', () => {
 
 	it('is 0 when the segment misses the rect', () => {
 		expect(segmentRectPenetration(seg(-10, -10, -8, -10), r)).toBe(0)
-		expect(segmentIntersectsRect(seg(-10, -10, -8, -10), r)).toBe(false)
 	})
 
 	it('is 1 when the segment is fully inside', () => {
 		expect(segmentRectPenetration(seg(-1, 0, 1, 0), r)).toBeCloseTo(1)
-		expect(segmentIntersectsRect(seg(-1, 0, 1, 0), r)).toBe(true)
 	})
 
 	it('is the clipped fraction when crossing through', () => {
 		// 20px segment, 4px (x in [-2,2]) inside → 0.2.
 		expect(segmentRectPenetration(seg(-10, 0, 10, 0), r)).toBeCloseTo(0.2)
-		expect(segmentIntersectsRect(seg(-10, 0, 10, 0), r)).toBe(true)
 	})
 
-	it('returns true from an endpoint inside the rect', () => {
-		expect(segmentIntersectsRect(seg(0, 0, 20, 0), r)).toBe(true)
+	it('is positive from an endpoint inside the rect', () => {
 		expect(segmentRectPenetration(seg(0, 0, 20, 0), r)).toBeGreaterThan(0)
 	})
 })

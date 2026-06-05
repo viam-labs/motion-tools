@@ -1,8 +1,8 @@
 /**
  * Shared types for the label layout engine.
  *
- * All spatial fields are in VIEWPORT pixels (one shared screen-space for every
- * label) except where noted. Slots store DOT-RELATIVE offsets so a camera pan
+ * All spatial fields are in viewport pixels (one shared screen-space for every
+ * label) except where noted. Slots store dot-relative offsets so a camera pan
  * never invalidates them.
  */
 
@@ -22,7 +22,7 @@ export interface Segment {
 	y2: number
 }
 
-/** A candidate placement for a label box, expressed as the box-CENTER offset from the dot. */
+/** A candidate placement for a label box, expressed as the box-center offset from the dot. */
 export interface Slot {
 	/** Box-center offset from the dot, viewport px. */
 	dx: number
@@ -56,6 +56,9 @@ export interface LabelNode {
 	scale: number
 	/** Cached computed CSS width of the dot (local px); read once. */
 	cssDotW: number
+	/** Dot center relative to the island origin, island-local px. Fixed CSS offset, measured once (NaN until then). */
+	dotLocalX: number
+	dotLocalY: number
 
 	slots: Slot[]
 	/** Hash of the box/dot geometry; slots regenerate only when this or `crowded` changes. */

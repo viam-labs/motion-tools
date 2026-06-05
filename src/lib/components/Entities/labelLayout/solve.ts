@@ -7,37 +7,44 @@
  * conflict or the move budget is spent. A best-total snapshot is restored at the
  * end so a re-solve can never regress below where it started.
  */
-
 import type { LabelNode, SolverConfig } from './types'
 
-import { evalCost, W } from './cost'
+import { evalConflict, placementBias, W } from './cost'
 
 /** Conflicts below this are treated as resolved (floating-point slack). */
 const RESOLVED = 0.5
 
-function bestSlot(node: LabelNode, config: SolverConfig): { index: number; conflict: number } {
+/**
+ * The slot that minimizes conflict (crossings/overlaps), breaking ties by the
+ * tidiness bias. Selection and the caller's acceptance gate share the conflict
+ * objective, so a node is never locked at a placement another slot would
+ * improve. The baseCost early-out applies only once conflict is already
+ * resolved — while a node still conflicts, every slot is considered.
+ */
+const bestSlot = (node: LabelNode, config: SolverConfig): { index: number; conflict: number } => {
 	const neighbors = node.neighbors
 	let index = node.slotIndex
-	let full = evalCost(node, node.slotIndex, neighbors, config, false)
-	let conflict = evalCost(node, node.slotIndex, neighbors, config, true)
+	let conflict = evalConflict(node, node.slotIndex, neighbors, config)
+	let bias = placementBias(node, node.slotIndex)
 
 	for (let s = 0; s < node.slots.length; s++) {
 		if (s === node.slotIndex) continue
-		// Slots are sorted ascending by baseCost; once even the best-case length
-		// cost can't beat the incumbent, no later slot can either.
-		if (node.slots[s].baseCost - W.stick >= full) break
-		const f = evalCost(node, s, neighbors, config, false)
-		if (f < full) {
-			full = f
+		// Slots are sorted ascending by baseCost; once conflict is resolved only
+		// tidiness remains, so no farther slot can beat the incumbent's bias.
+		if (conflict <= RESOLVED && node.slots[s].baseCost - W.stick >= bias) break
+		const c = evalConflict(node, s, neighbors, config)
+		const b = placementBias(node, s)
+		if (c < conflict - 1e-6 || (c <= conflict + 1e-6 && b < bias)) {
 			index = s
-			conflict = evalCost(node, s, neighbors, config, true)
+			conflict = c
+			bias = b
 		}
 	}
 
 	return { index, conflict }
 }
 
-export function solve(nodes: LabelNode[], config: SolverConfig, bestSnap: Int16Array): void {
+export const solve = (nodes: LabelNode[], config: SolverConfig, bestSnap: Int16Array): void => {
 	const n = nodes.length
 	if (n === 0) return
 
@@ -50,7 +57,7 @@ export function solve(nodes: LabelNode[], config: SolverConfig, bestSnap: Int16A
 	let total = 0
 	for (let i = 0; i < n; i++) {
 		const node = nodes[i]
-		node.conflict = evalCost(node, node.slotIndex, node.neighbors, config, true)
+		node.conflict = evalConflict(node, node.slotIndex, node.neighbors, config)
 		node.locked = false
 		total += node.conflict
 	}
@@ -81,7 +88,7 @@ export function solve(nodes: LabelNode[], config: SolverConfig, bestSnap: Int16A
 			// Moving `worst` changes the pairwise cost of its neighbors only.
 			for (const m of worst.neighbors) {
 				const before = m.conflict
-				m.conflict = evalCost(m, m.slotIndex, m.neighbors, config, true)
+				m.conflict = evalConflict(m, m.slotIndex, m.neighbors, config)
 				total += m.conflict - before
 				m.locked = false
 			}

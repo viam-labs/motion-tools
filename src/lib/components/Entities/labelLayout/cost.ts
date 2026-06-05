@@ -40,7 +40,7 @@ export const W = {
 /** Slot angles closer than this (radians, ~18deg) are penalised for an even fan. */
 const SPREAD_ANGLE = 0.314
 
-// Reused scratch — the solver is single-threaded and never re-enters evalCost.
+// Reused scratch — the solver is single-threaded and never re-enters evalConflict.
 const boxA: Rect = { cx: 0, cy: 0, hw: 0, hh: 0 }
 const boxB: Rect = { cx: 0, cy: 0, hw: 0, hh: 0 }
 const boxPad: Rect = { cx: 0, cy: 0, hw: 0, hh: 0 }
@@ -48,19 +48,18 @@ const segA: Segment = { x1: 0, y1: 0, x2: 0, y2: 0 }
 const segB: Segment = { x1: 0, y1: 0, x2: 0, y2: 0 }
 
 /**
- * Evaluate the cost of placing `node` at slot `si` against its committed neighbors.
- *
- * With `conflictOnly`, returns just the geometric "bad" terms (the local-search
- * loop key) — exactly 0 when the node has no crossings/overlaps, so termination
- * is well-defined. Otherwise adds the always-positive length/radial terms and
- * the stickiness bonus to break ties toward tidy, stable placements.
+ * The geometric "bad" terms only (leader-under-box, box-over-dot, box-box,
+ * leader-leader, angular spread) for placing `node` at slot `si` against its
+ * committed neighbors. This is the local-search objective AND its termination
+ * guard — exactly 0 when the node has no crossings/overlaps. The solver both
+ * selects and accepts moves on this value so it can never lock a node at a
+ * placement whose conflict another available slot would reduce.
  */
-export function evalCost(
+export function evalConflict(
 	node: LabelNode,
 	si: number,
 	neighbors: LabelNode[],
-	config: SolverConfig,
-	conflictOnly: boolean
+	config: SolverConfig
 ): number {
 	const s = node.slots[si]
 	const cx = node.ax + s.dx
@@ -128,14 +127,22 @@ export function evalCost(
 		if (dd < SPREAD_ANGLE) cost += W.spread
 	}
 
-	if (conflictOnly) return cost
+	return cost
+}
 
-	cost += W.len * s.radius
+/**
+ * Conflict-independent "tidiness" of a slot: short leaders, pointing away from
+ * the local cluster centroid (radial fan-out), with a bonus for staying put.
+ * Used only as a tie-break among slots of equal conflict, never to override a
+ * conflict reduction.
+ */
+export function placementBias(node: LabelNode, si: number): number {
+	const s = node.slots[si]
+	let cost = W.len * s.radius
 
-	// Prefer pointing away from the local cluster centroid (radial fan-out).
 	const cax = node.centroidX - node.ax
 	const cay = node.centroidY - node.ay
-	const cl = Math.hypot(cax, cay) || 1
+	const cl = Math.sqrt(cax * cax + cay * cay) || 1
 	const align = (Math.cos(s.angle) * -cax + Math.sin(s.angle) * -cay) / cl
 	cost += W.radial * (1 - align) * s.radius
 

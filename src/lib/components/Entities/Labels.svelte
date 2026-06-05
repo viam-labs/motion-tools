@@ -10,12 +10,18 @@
 
 	// Wake the on-demand render loop when labels are added/removed or their text
 	// changes, so the engine re-solves even while the camera is still. Reading
-	// `rev` registers the reactive dependency.
+	// `version` registers the reactive dependency.
 	$effect(() => {
-		if (labels.rev >= 0) invalidate()
+		if (labels.version >= 0) invalidate()
 	})
 
-	useTask((delta) => {
-		layout.frame(delta)
-	})
+	// `autoInvalidate: false` — the engine drives its own invalidation (camera
+	// motion, the version effect above, and while animating), so the task can run
+	// without pinning the on-demand Canvas to render every frame.
+	useTask(
+		(delta) => {
+			layout.frame(delta)
+		},
+		{ autoInvalidate: false }
+	)
 </script>

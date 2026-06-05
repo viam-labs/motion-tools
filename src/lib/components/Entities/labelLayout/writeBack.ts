@@ -35,18 +35,24 @@ export function lerpStep(node: LabelNode, delta: number, settleEps: number): boo
  * Write the eased position to the DOM. The label island is positioned at the dot
  * by Threlte's <HTML>, so we work in island-local px: convert the viewport-space
  * offset by the island's CSS scale, place the text box, and draw the leader from
- * the dot (0,0) to the box center.
+ * the dot's island-local position to the box center.
  */
-export function writeBack(node: LabelNode): void {
+export const writeBack = (node: LabelNode): void => {
 	const inv = 1 / node.scale
+	// Box-center offset from the dot, in island-local px.
 	const dx = (node.cx - node.ax) * inv
 	const dy = (node.cy - node.ay) * inv
 	const wL = node.w * inv
 	const hL = node.h * inv
 
-	node.textEl.style.transform = `translate(${dx - wL / 2}px, ${dy - hL / 2}px)`
-	node.lineEl.setAttribute('x1', '0')
-	node.lineEl.setAttribute('y1', '0')
-	node.lineEl.setAttribute('x2', `${dx}`)
-	node.lineEl.setAttribute('y2', `${dy}`)
+	// The dot may not sit at the island origin, so anchor everything at the dot's
+	// measured local position rather than assuming (0, 0).
+	const ox = node.dotLocalX
+	const oy = node.dotLocalY
+
+	node.textEl.style.transform = `translate(${ox + dx - wL / 2}px, ${oy + dy - hL / 2}px)`
+	node.lineEl.setAttribute('x1', `${ox}`)
+	node.lineEl.setAttribute('y1', `${oy}`)
+	node.lineEl.setAttribute('x2', `${ox + dx}`)
+	node.lineEl.setAttribute('y2', `${oy + dy}`)
 }
