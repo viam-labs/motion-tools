@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { rectCircleOverlap } from './geometry'
-import { generateSlots, hashString } from './slots'
-import { defaultSolverConfig, type LabelNode } from './types'
+import { rectCircleOverlap } from '../geometry'
+import { generateSlots, hashString } from '../slots'
+import { defaultSolverConfig, type LabelNode } from '../types'
 
 function node(w: number, h: number, dotR: number, id = 'label'): LabelNode {
 	return { w, h, dotR, idHash: hashString(id) } as unknown as LabelNode

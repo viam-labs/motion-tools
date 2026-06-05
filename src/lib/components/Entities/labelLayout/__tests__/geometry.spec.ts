@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Rect, Segment } from './types'
+import type { Rect, Segment } from '../types'
 
 import {
 	overlapAreaFrac,
@@ -8,7 +8,7 @@ import {
 	rectsOverlap,
 	segmentRectPenetration,
 	segmentsCross,
-} from './geometry'
+} from '../geometry'
 
 const rect = (cx: number, cy: number, hw: number, hh: number): Rect => ({ cx, cy, hw, hh })
 const seg = (x1: number, y1: number, x2: number, y2: number): Segment => ({ x1, y1, x2, y2 })

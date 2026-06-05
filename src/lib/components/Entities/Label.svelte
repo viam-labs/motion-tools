@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
+	import { useThrelte } from '@threlte/core'
 	import { HTML } from '@threlte/extras'
 	import { untrack } from 'svelte'
 	import { Group } from 'three'
@@ -8,7 +9,6 @@
 	import { traits, useTag, useTrait } from '$lib/ecs'
 
 	import { labels } from './labelLayout/labelStore.svelte'
-	import { useThrelte } from '@threlte/core'
 
 	interface Props {
 		entity: Entity
@@ -54,40 +54,38 @@
 	})
 </script>
 
-{#if matrix.current}
-	<HTML
-		center
-		zIndexRange={[3, 0]}
-		matrixAutoUpdate={false}
-		bind:ref
+<HTML
+	center
+	zIndexRange={[3, 0]}
+	matrixAutoUpdate={false}
+	bind:ref
+>
+	<div
+		class="label relative h-0 w-0"
+		bind:this={element}
 	>
+		<svg class="link pointer-events-none absolute top-0 left-0 overflow-visible">
+			<line class="stroke-gray-9 stroke-1" />
+		</svg>
 		<div
-			class="label relative h-0 w-0"
-			bind:this={element}
+			class="dot border-gray-9 pointer-events-none absolute -top-1 -left-0 z-1 h-2 w-2 -translate-1/2 rounded-full border"
+		></div>
+		<button
+			class={[
+				'border-gray-9 text absolute z-2 border px-2 py-1 text-xs text-nowrap',
+				{
+					'bg-gray-9 text-white': selected.current,
+					'bg-white': !selected.current,
+				},
+			]}
+			style={color.current
+				? `border-color-left: rgb(${color.current.r}, ${color.current.g}, ${color.current.b})`
+				: undefined}
+			onclick={() => {
+				entity.add(traits.Selected)
+			}}
 		>
-			<svg class="link pointer-events-none absolute top-0 left-0 overflow-visible">
-				<line class="stroke-gray-9 stroke-1" />
-			</svg>
-			<div
-				class="dot border-gray-9 pointer-events-none absolute -top-1 -left-0 z-1 h-2 w-2 -translate-1/2 rounded-full border"
-			></div>
-			<button
-				class={[
-					'border-gray-9 text absolute z-2 border px-2 py-1 text-xs text-nowrap',
-					{
-						'bg-gray-9 text-white': selected.current,
-						'bg-white': !selected.current,
-					},
-				]}
-				style={color.current
-					? `border-color-left: rgb(${color.current.r}, ${color.current.g}, ${color.current.b})`
-					: undefined}
-				onclick={() => {
-					entity.add(traits.Selected)
-				}}
-			>
-				{name.current}
-			</button>
-		</div>
-	</HTML>
-{/if}
+			{name.current}
+		</button>
+	</div>
+</HTML>

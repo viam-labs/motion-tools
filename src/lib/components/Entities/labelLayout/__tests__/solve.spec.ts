@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { rectsOverlap, segmentRectPenetration } from './geometry'
-import { generateSlots, hashString } from './slots'
-import { solve } from './solve'
-import { defaultSolverConfig, type LabelNode, type Rect, type Segment } from './types'
+import { rectsOverlap, segmentRectPenetration } from '../geometry'
+import { generateSlots, hashString } from '../slots'
+import { solve } from '../solve'
+import { defaultSolverConfig, type LabelNode, type Rect, type Segment } from '../types'
 
 const config = defaultSolverConfig
 

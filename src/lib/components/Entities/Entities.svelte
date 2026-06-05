@@ -64,7 +64,7 @@
 
 	const settings = useSettings()
 
-	const enabled = $derived(settings.current.enableLabels)
+	const enableLabels = $derived(settings.current.enableLabels)
 </script>
 
 {#each machineFramesEntities.current as entity (entity)}
@@ -103,6 +103,6 @@
 
 <Arrows />
 
-{#if enabled}
+{#if enableLabels}
 	<Labels />
 {/if}
