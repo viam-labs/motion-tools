@@ -3,11 +3,12 @@
 
 	import { HTML } from '@threlte/extras'
 	import { untrack } from 'svelte'
+	import { Group } from 'three'
 
 	import { traits, useTag, useTrait } from '$lib/ecs'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import { labels } from './labelLayout/labelStore.svelte'
+	import { useThrelte } from '@threlte/core'
 
 	interface Props {
 		entity: Entity
@@ -15,13 +16,12 @@
 
 	let { entity }: Props = $props()
 
+	const { invalidate } = useThrelte()
+
+	const matrix = useTrait(() => entity, traits.WorldMatrix)
 	const name = useTrait(() => entity, traits.Name)
 	const color = useTrait(() => entity, traits.Color)
 	const selected = useTag(() => entity, traits.Selected)
-
-	const settings = useSettings()
-
-	const enabled = $derived(settings.current.enableLabels)
 
 	let element = $state.raw<HTMLElement>()
 
@@ -42,12 +42,24 @@
 			untrack(() => labels.touch())
 		}
 	})
+
+	let ref = $state<Group>()
+
+	$effect(() => {
+		if (matrix.current && ref) {
+			ref.matrix.copy(matrix.current)
+			ref.updateMatrixWorld()
+			invalidate()
+		}
+	})
 </script>
 
-{#if enabled}
+{#if matrix.current}
 	<HTML
 		center
 		zIndexRange={[3, 0]}
+		matrixAutoUpdate={false}
+		bind:ref
 	>
 		<div
 			class="label relative h-0 w-0"

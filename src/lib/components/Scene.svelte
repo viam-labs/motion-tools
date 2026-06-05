@@ -105,5 +105,3 @@
 
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.AmbientLight />
-
-<Labels />

@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { useTask, useThrelte } from '@threlte/core'
 
+	import { traits, useQuery } from '$lib/ecs'
+
+	import Label from './Label.svelte'
 	import { createLabelLayout } from './labelLayout/createLabelLayout'
 	import { labels } from './labelLayout/labelStore.svelte'
 
 	const { camera, invalidate, size } = useThrelte()
+
+	const entities = useQuery(traits.Name)
 
 	const layout = createLabelLayout({ camera, size, invalidate, labels })
 
@@ -25,3 +30,7 @@
 		{ autoInvalidate: false }
 	)
 </script>
+
+{#each entities.current as entity (entity)}
+	<Label {entity} />
+{/each}
