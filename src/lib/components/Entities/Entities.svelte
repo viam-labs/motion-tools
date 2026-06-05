@@ -65,50 +65,50 @@
 {#each machineFramesEntities.current as entity (entity)}
 	<Pose {entity}>
 		<Frame {entity}>
-			<Label text={entity.get(traits.Name)} />
+			<Label {entity} />
 		</Frame>
 	</Pose>
 {/each}
 
 {#each resourceGeometriesEntities.current as entity (entity)}
 	<Geometry {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Geometry>
 {/each}
 
 {#each worldStateEntities.current as entity (entity)}
 	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Frame>
 {/each}
 
 {#each drawServiceEntities.current as entity (entity)}
 	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Frame>
 {/each}
 
 {#each meshEntities.current as entity (entity)}
 	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Frame>
 {/each}
 
 {#each points.current as entity (entity)}
 	<Points {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Points>
 {/each}
 
 {#each lines.current as entity (entity)}
 	<Line {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</Line>
 {/each}
 
 {#each gltfs.current as entity (entity)}
 	<GLTF {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</GLTF>
 {/each}
 
