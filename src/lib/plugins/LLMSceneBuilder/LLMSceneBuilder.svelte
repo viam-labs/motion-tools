@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { provideSceneBuilder, type InferCallback } from './useSceneBuilder.svelte'
 	import SceneBuilder from './SceneBuilder.svelte'
+	import { type InferCallback, provideSceneBuilder } from './useSceneBuilder.svelte'
 
 	interface Props {
 		onInfer: InferCallback
