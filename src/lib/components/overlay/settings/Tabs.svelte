@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
+	import type { Component } from 'svelte'
 
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 	import * as tabs from '@zag-js/tabs'
@@ -9,7 +9,7 @@
 		onValueChange: (value: string) => void
 		items: {
 			label: string
-			content: Snippet
+			component: Component
 		}[]
 	}
 
@@ -45,11 +45,13 @@
 	</div>
 
 	{#each items as item (item.label)}
+		{@const Component = item.component}
+
 		<div
 			{...api.getContentProps({ value: item.label })}
 			class="h-full w-full overflow-y-auto p-4"
 		>
-			{@render item.content()}
+			<Component />
 		</div>
 	{/each}
 </div>

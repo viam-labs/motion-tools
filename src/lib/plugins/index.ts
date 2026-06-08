@@ -21,3 +21,6 @@ export { default as Focus } from './Focus/Focus.svelte'
 export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
 export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'
 export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'
+
+export { default as XR } from './XR/XR.svelte'
+export { default as XRSettings } from './XR/XRSettings.svelte'
