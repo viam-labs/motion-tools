@@ -9,6 +9,7 @@
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { GRID_SNAP_STEP, quantize } from '$lib/quantize'
 
 	import MeasurePoint from './MeasurePoint.svelte'
 
@@ -31,11 +32,14 @@
 
 	onmove((event) => {
 		intersection = event.intersections[0]
+		if (!intersection) return
 
-		// Only handle axis restrictions if a first point has been placed
-		if (!p1 || !intersection) {
-			return
+		// quantize first so a locked axis stays pinned to p1's value even when snap is on.
+		if (settings.current.snapping) {
+			intersection.point.copy(quantize(intersection.point, GRID_SNAP_STEP))
 		}
+
+		if (!p1) return
 
 		if (settings.current.enableMeasureAxisX === false) {
 			intersection.point.x = p1.x

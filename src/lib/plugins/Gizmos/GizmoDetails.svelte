@@ -11,6 +11,7 @@
 	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
 
 	import PlaneDetails from './PlaneDetails.svelte'
+	import PolylineMeasureDetails from './PolylineMeasureDetails.svelte'
 	import { Gizmo, GizmoArrow, ReferencePlane } from './traits'
 
 	const selected = useQuery(traits.Selected)
@@ -83,6 +84,7 @@
 			{#if isLine}
 				<LineDetails {entity} />
 				<OpacityDetails {entity} />
+				<PolylineMeasureDetails {entity} />
 			{/if}
 			{#if isArrow}
 				<ColorDetails {entity} />

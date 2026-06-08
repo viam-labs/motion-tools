@@ -21,4 +21,4 @@ export const VertexNormals = trait({ length: 100 })
 export const SurfaceNormals = trait({ length: 100 })
 
 /** Renders distance labels along a polyline gizmo. */
-export const PolylineMeasure = trait(() => ({ mode: 'segment' as PolylineMeasureMode }))
+export const PolylineMeasure = trait({ mode: 'segment' as PolylineMeasureMode })

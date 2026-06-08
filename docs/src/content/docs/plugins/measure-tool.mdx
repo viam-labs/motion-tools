@@ -3,6 +3,8 @@ title: <MeasureTool />
 description: Measure straight-line distance between two points inside a motion-tools visualizer.
 ---
 
+import { Aside } from '@astrojs/starlight/components'
+
 `<MeasureTool />` adds a ruler button to the visualizer dashboard. When active, clicking two points in the scene draws a line between them and displays the distance in meters. A settings popover lets you constrain measurement to any combination of the X, Y, and Z axes — useful for measuring along a single axis without snapping perfectly to it.
 
 ## Usage
@@ -34,3 +36,17 @@ Measurement state also clears whenever the focused entity changes or the tool is
 ## Axis constraints
 
 Open the filter popover next to the ruler button to lock the second point to a subset of axes. Disabling an axis pins that coordinate to the first point's value, so you can measure pure horizontal distance, pure vertical distance, or any combination.
+
+## Increment snap
+
+With the visualizer's global snap toggle on, each hit quantizes to a 0.1m grid before any axis lock is applied — so locked axes still pin to the first point's exact value, while unlocked axes snap to the grid.
+
+<Aside
+	type="tip"
+	title="Persistent measurements"
+>
+	`<MeasureTool />` is intentionally ephemeral: it clears whenever you toggle it off or focus a
+	different entity. For measurements that need to persist in the scene, use the [Gizmos plugin's
+	polyline gizmo](/plugins/gizmos/#polyline) with the measurement option set to `'segment'` or
+	`'total'`.
+</Aside>
