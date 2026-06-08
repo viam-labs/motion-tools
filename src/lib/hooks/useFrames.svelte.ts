@@ -83,18 +83,11 @@ export const provideFrames = (partID: () => string) => {
 			}
 		}
 
-		// Let config frames take priority if the user has made edits, has a
-		// pending save, or we don't have a live robot connection. The latter
-		// covers DISCONNECTED, CONNECTING, and the undefined case where the
-		// embedder never provided a dial config (e.g. the Viam app's
-		// dialConfigsForParts filters to live parts only, so offline parts
-		// never transition through DISCONNECTED).
-		//
-		// isDirty is included alongside didRecentlyEdit because didRecentlyEdit
-		// is set by a plain $effect (runs after DOM) and lags by one flush on
-		// the first edit from monitor mode. isDirty is $state and flips
-		// synchronously in updateFrame(), so configFrames becomes a tracked
-		// dependency of this derivation the moment the user makes any edit.
+		// Prefer config frames when the user has touched anything, has a pending
+		// save, or has no live connection. isDirty covers the first edit
+		// synchronously before didRecentlyEdit (set in a plain $effect) flips.
+		// The undefined connection case covers offline parts whose embedder never
+		// provides a dial config.
 		if (
 			didRecentlyEdit ||
 			partConfig.isDirty ||
@@ -106,10 +99,7 @@ export const provideFrames = (partID: () => string) => {
 				...configFrames.current,
 			}
 
-			/**
-			 * Remove frames that have just been deleted locally for optimistic updates,
-			 * or frames that have been removed by fragment overrides
-			 */
+			// Optimistic deletions and fragment overrides
 			for (const name of configFrames.unsetFrames) {
 				delete mergedFrames[name]
 			}
@@ -117,10 +107,6 @@ export const provideFrames = (partID: () => string) => {
 			return mergedFrames
 		}
 
-		/**
-		 * If we haven't edited and we have a robot connection,
-		 * we only use frames reported by the machine
-		 */
 		return frames
 	})
 
@@ -165,6 +151,24 @@ export const provideFrames = (partID: () => string) => {
 		if (partConfig.hasPendingSave && revision) {
 			sessionStorage.setItem(pendingSaveKey, revision)
 		}
+	})
+
+	// Pose.svelte updates LiveMatrix in its own flush, independent of the ECS
+	// baseline update. While edits or a save are pending the two can race:
+	// the robot moves to apply the new config (live shifts) before the baseline
+	// has caught up, causing WorldMatrix = live × baseline⁻¹ × edited to
+	// double-apply the delta. Keeping baseline equal to live during these states
+	// collapses the formula to just edited — the correct preview.
+	$effect(() => {
+		return world.onChange(traits.LiveMatrix, (entity) => {
+			if (!partConfig.isDirty && !partConfig.hasPendingSave) return
+			const baseline = entity.get(traits.Matrix)
+			const live = entity.get(traits.LiveMatrix)
+			if (baseline && live) {
+				baseline.copy(live)
+				entity.changed(traits.Matrix)
+			}
+		})
 	})
 
 	const componentSubtypeByName = $derived.by(() => {
@@ -217,10 +221,9 @@ export const provideFrames = (partID: () => string) => {
 				const existing = entities.get(entityKey)
 
 				if (existing) {
-					// Active edit session owns the entity's traits for the duration of
-					// the user's gesture. Skip the entire re-sync — re-setting Parent
-					// would re-evaluate the <Portal> id and re-mount the group,
-					// detaching the gizmo's drag target mid-stroke.
+					// Re-syncing Parent mid-drag re-mounts the gizmo's portal and
+					// detaches the drag target — skip the entire update while the
+					// session owns this entity.
 					if (editSession.current?.owns(existing)) {
 						continue
 					}
@@ -240,21 +243,12 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					// Matrix is the "baseline" — the robot's configured position while
-					// no edits are pending. The world matrix formula is:
-					//   WorldMatrix = live × baseline⁻¹ × edited
-					// When live ≈ baseline (robot at rest), this simplifies to `edited`,
-					// the user's intended position. The baseline stays frozen while
-					// unsaved edits exist so the preview reflects the user's config
-					// rather than the robot's live position.
-					//
-					// isDirty gates this rather than isEditMode: isDirty is $state and
-					// updates synchronously, while isEditMode derives from viewerMode
-					// via a plain $effect that runs after $effect.pre.
-					//
-					// On save, isDirty clears synchronously alongside hasPendingSave,
-					// so the baseline unlocks to the saved config immediately. If the
-					// user edits again before the robot confirms, isDirty re-freezes it.
+					// Freeze the baseline while the user has unsaved edits so the
+					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
+					// edited position rather than amplifying any robot movement.
+					// isDirty is used rather than isEditMode because isDirty is $state
+					// and updates synchronously; isEditMode derives from viewerMode via
+					// a plain $effect and lags by one flush.
 					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
@@ -267,13 +261,8 @@ export const provideFrames = (partID: () => string) => {
 						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
-					// EditedMatrix tracks the user's desired local pose and stays in
-					// sync with the config so the 3D view reflects the latest saved
-					// values.
-					//
-					// Exception: while a drag gesture is active, the session owns the
-					// entity and writes EditedMatrix directly via stagePose().
-					// Overwriting it here mid-drag would fight the gizmo.
+					// Don't overwrite EditedMatrix while a drag is active — the session
+					// writes it directly via stagePose() and this would fight it.
 					if (!isEditMode || !editSession.current) {
 						const edited = existing.get(traits.EditedMatrix)
 						if (edited) {
