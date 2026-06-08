@@ -19,7 +19,6 @@
 	import CameraControls from './CameraControls.svelte'
 	import KeyboardBindings from './KeyboardBindings.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
-	import { useOrigin } from './xr/useOrigin.svelte'
 
 	interface Props {
 		children?: Snippet
@@ -29,7 +28,6 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
-	const origin = useOrigin()
 
 	// @ts-expect-error This is for debugging
 	globalThis.__threlte__ = threlte
@@ -67,48 +65,43 @@
 <KeyboardBindings />
 <Environment url={hdrImage} />
 
-<T.Group
-	position={origin.position}
-	rotation.z={origin.rotation}
->
-	<PointerMissBox />
-	<SelectedTransformControls />
+<PointerMissBox />
+<SelectedTransformControls />
 
-	{#if !$isPresenting && settings.current.grid}
-		<Grid
-			oncreate={(ref) => {
-				const material = ref.material as ShaderMaterial
-				material.depthWrite = false
-			}}
-			raycast={() => null}
-			bvh={{ enabled: false }}
-			plane="xy"
-			sectionColor="#333"
-			infiniteGrid
-			renderOrder={999}
-			cellSize={settings.current.gridCellSize}
-			sectionSize={settings.current.gridSectionSize}
-			fadeOrigin={[0, 0, 0]}
-			fadeDistance={settings.current.gridFadeDistance}
-		/>
-	{/if}
+{#if !$isPresenting && settings.current.grid}
+	<Grid
+		oncreate={(ref) => {
+			const material = ref.material as ShaderMaterial
+			material.depthWrite = false
+		}}
+		raycast={() => null}
+		bvh={{ enabled: false }}
+		plane="xy"
+		sectionColor="#333"
+		infiniteGrid
+		renderOrder={999}
+		cellSize={settings.current.gridCellSize}
+		sectionSize={settings.current.gridSectionSize}
+		fadeOrigin={[0, 0, 0]}
+		fadeDistance={settings.current.gridFadeDistance}
+	/>
+{/if}
 
-	{#if !$isPresenting}
-		<Camera position={[3, 3, 3]}>
-			<CameraControls />
-		</Camera>
-	{/if}
+{#if !$isPresenting}
+	<Camera position={[3, 3, 3]}>
+		<CameraControls />
+	</Camera>
+{/if}
 
-	<StaticGeometries />
-	<Selected />
+<StaticGeometries />
+<Selected />
 
-	<PortalTarget />
+<PortalTarget />
 
-	<Entities />
-	<BatchedArrows />
+<Entities />
+<BatchedArrows />
 
-	{@render children?.()}
+{@render children?.()}
 
-	<T.DirectionalLight position={[3, 3, 3]} />
-	<T.AmbientLight />
-</T.Group>
+<T.DirectionalLight position={[3, 3, 3]} />
+<T.AmbientLight />

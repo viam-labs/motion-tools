@@ -7,7 +7,7 @@
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
-	import { onMount, type Snippet } from 'svelte'
+	import { type Component, onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
@@ -17,7 +17,6 @@
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
-	import XR from '$lib/components/xr/XR.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
@@ -51,7 +50,20 @@
 		localConfigProps?: LocalConfigProps
 
 		/**
-		 * Snippet for THREE objects
+		 * Allows adding additional tabs to the settings panel
+		 */
+		settingsTabs?: {
+			label: string
+			component: Component
+		}[]
+
+		/**
+		 * Allows setting the initial camera pose
+		 */
+		cameraPose?: CameraPose
+
+		/**
+		 * Snippet for Three.js objects
 		 */
 		children?: Snippet
 
@@ -64,11 +76,6 @@
 		 * Snippet to inject items into the details panel
 		 */
 		details?: Snippet<[{ entity: Entity }]>
-
-		/**
-		 * Allows setting the initial camera pose
-		 */
-		cameraPose?: CameraPose
 	}
 
 	let {
@@ -76,6 +83,7 @@
 		inputBindingsEnabled = true,
 		localConfigProps,
 		cameraPose,
+		settingsTabs,
 		children: appChildren,
 		dashboard,
 		details,
@@ -124,8 +132,6 @@
 				{@render appChildren?.()}
 			</Scene>
 
-			<XR {@attach domPortal(root)} />
-
 			{#if settings.current.renderSubEntityHoverDetail}
 				<HoveredEntities />
 			{/if}
@@ -166,7 +172,7 @@
 
 				<PortalTarget id="dom" />
 
-				<Settings />
+				<Settings {settingsTabs} />
 				<Logs />
 				<AddFrames />
 			</div>

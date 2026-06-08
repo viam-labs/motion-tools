@@ -1,43 +1,34 @@
 <script lang="ts">
+	import type { Component } from 'svelte'
+
 	import { useThrelte } from '@threlte/core'
 	import { Portal } from '@threlte/extras'
-	import { Input, Switch } from '@viamrobotics/prime-core'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { PersistedState } from 'runed'
-	import { onMount } from 'svelte'
-	import { Color } from 'three'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
-	import XRControllerSettings from '$lib/components/xr/XRControllerSettings.svelte'
-	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
-	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
-	import { useRefetchPoses } from '$lib/hooks/useRefetchPoses'
-	import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
-	import { useWeblabs, WEBLABS_EXPERIMENTS } from '$lib/hooks/useWeblabs.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
-	import RefreshRate from '../RefreshRate.svelte'
-	import ToggleGroup from '../ToggleGroup.svelte'
+	import ConnectionSettings from './ConnectionSettings.svelte'
+	import DebugSettings from './DebugSettings.svelte'
+	import PointcloudSettings from './PointcloudSettings.svelte'
+	import SceneSettings from './SceneSettings.svelte'
 	import Tabs from './Tabs.svelte'
+	import VisionSettings from './VisionSettings.svelte'
+	import WeblabSettings from './WeblabSettings.svelte'
+	import WidgetSettings from './WidgetSettings.svelte'
+
+	interface Props {
+		settingsTabs?: {
+			label: string
+			component: Component
+		}[]
+	}
+
+	let { settingsTabs = [] }: Props = $props()
 
 	const { invalidate } = useThrelte()
-	const partID = usePartID()
-	const cameras = useResourceNames(() => partID.current, 'camera')
-	const visionServices = useResourceNames(() => partID.current, 'vision')
 	const settings = useSettings()
-	const { disabledCameras, disabledVisionServices } = $derived(settings.current)
-	const geometries = useGeometries()
-	const pointclouds = usePointClouds()
-	const pointcloudObjects = usePointcloudObjects()
-	const { refetchPoses } = useRefetchPoses()
-	const weblabs = useWeblabs()
-	const knownWeblabs = Object.keys(WEBLABS_EXPERIMENTS)
-
-	onMount(() => {
-		weblabs.load(knownWeblabs)
-	})
 
 	// Invalidate the renderer for any settings change
 	$effect(() => {
@@ -49,14 +40,8 @@
 		invalidate()
 	})
 
-	const currentRobotCameraWidgets = $derived(
-		settings.current.openCameraWidgets[partID.current] || []
-	)
-
 	const isOpen = new PersistedState('settings-is-open', false)
 	const activeTab = new PersistedState('settings-active-tab', 'Connection')
-
-	const colorHex = $derived(`#${new Color(settings.current.pointColor).getHexString()}`)
 </script>
 
 <Portal id="dashboard">
@@ -72,276 +57,6 @@
 	</fieldset>
 </Portal>
 
-{#snippet SectionTitle(title: string)}
-	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>{title}</strong></h3>
-{/snippet}
-
-{#snippet Connection()}
-	<div class="flex flex-col gap-2.5 text-xs">
-		{@render SectionTitle('Polling rates')}
-
-		<RefreshRate
-			id={RefreshRates.poses}
-			label="Poses"
-			allowLive
-			onManualRefetch={() => {
-				refetchPoses()
-				geometries.refetch()
-			}}
-		/>
-		<RefreshRate
-			id={RefreshRates.pointclouds}
-			label="Pointclouds from cameras"
-			onManualRefetch={() => {
-				pointclouds.refetch()
-			}}
-		/>
-		<RefreshRate
-			id={RefreshRates.vision}
-			label="Vision service pointcloud segments and objects"
-			onManualRefetch={() => {
-				pointcloudObjects.refetch()
-			}}
-		/>
-	</div>
-{/snippet}
-
-{#snippet Pointclouds()}
-	<div class="flex flex-col gap-1 text-xs">
-		<label class="flex items-center justify-between gap-2">
-			Default point size
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.pointSize}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Default point color
-
-			<div class="w-20">
-				<Input
-					type="color"
-					value={colorHex}
-					on:change={(event) => {
-						const value = (event.target as HTMLInputElement).value
-						settings.current.pointColor = value
-					}}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		{@render SectionTitle('Enabled cameras')}
-
-		{#each cameras.current as camera (camera)}
-			<div class="flex items-center justify-between py-0.5 text-xs">
-				{camera.name}
-				<Switch
-					on={disabledCameras[camera.name] !== true}
-					on:change={(event) => {
-						disabledCameras[camera.name] = !event.detail
-					}}
-				/>
-			</div>
-		{:else}
-			No cameras detected
-		{/each}
-	</div>
-{/snippet}
-
-{#snippet Vision()}
-	<div class="text-gray-9 flex flex-col gap-1 text-xs">
-		{@render SectionTitle('Enabled vision services')}
-
-		{#each visionServices.current as visionService (visionService)}
-			<div class="flex items-center justify-between py-0.5">
-				{visionService.name}
-				<Switch
-					on={disabledVisionServices[visionService.name] !== true}
-					on:change={(event) => {
-						disabledVisionServices[visionService.name] = !event.detail
-					}}
-				/>
-			</div>
-		{:else}
-			No vision services detected
-		{/each}
-	</div>
-{/snippet}
-
-{#snippet Scene()}
-	<div class="text-gray-9 flex flex-col gap-1 text-xs">
-		<label class="flex items-center justify-between gap-2 py-1">
-			Arm Models
-
-			<ToggleGroup
-				multiple
-				options={[
-					{
-						label: 'Colliders',
-						value: 'colliders',
-						selected: settings.current.renderArmModels.includes('colliders'),
-					},
-					{
-						label: 'Model',
-						value: 'model',
-						selected: settings.current.renderArmModels.includes('model'),
-					},
-				]}
-				onSelect={(value) => {
-					settings.current.renderArmModels = (value.join('+') || 'colliders') as
-						| 'colliders'
-						| 'model'
-						| 'colliders+model'
-
-					console.log(settings.current.renderArmModels)
-				}}
-			/>
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Single item hover details <Switch bind:on={settings.current.renderSubEntityHoverDetail} />
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Object labels <Switch bind:on={settings.current.enableLabels} />
-		</label>
-
-		{@render SectionTitle('Grid')}
-
-		<label class="flex items-center justify-between gap-2 py-1">
-			Visible <Switch bind:on={settings.current.grid} />
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Cell size (m)
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.gridCellSize}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Section size (m)
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.gridSectionSize}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Fade distance (m)
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.gridFadeDistance}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		{@render SectionTitle('Lines')}
-
-		<label class="flex items-center justify-between gap-2">
-			Thickness
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.lineWidth}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-
-		<label class="flex items-center justify-between gap-2">
-			Dot size
-
-			<div class="w-20">
-				<Input
-					bind:value={settings.current.lineDotSize}
-					on:keydown={(event) => event.stopImmediatePropagation()}
-				/>
-			</div>
-		</label>
-	</div>
-{/snippet}
-
-{#snippet Stats()}
-	<div class="flex w-full flex-col gap-2.5 text-xs">
-		<label class="flex items-center justify-between gap-2">
-			Render stats <Switch bind:on={settings.current.renderStats} />
-		</label>
-	</div>
-{/snippet}
-
-{#snippet XR()}
-	<div class="flex flex-col gap-2.5 text-xs">
-		<XRControllerSettings />
-	</div>
-{/snippet}
-
-{#snippet Weblabs()}
-	<div class="flex flex-col gap-1 text-xs">
-		{#each knownWeblabs as experiment (experiment)}
-			<label class="flex items-center justify-between gap-2 py-0.5">
-				{experiment}
-				<Switch
-					on={weblabs.isActive(experiment)}
-					on:change={() => weblabs.toggle(experiment)}
-				/>
-			</label>
-		{:else}
-			No weblabs defined
-		{/each}
-	</div>
-{/snippet}
-
-{#snippet Widgets()}
-	<div class="text-gray-9 flex flex-col gap-1 text-xs">
-		<label class="flex items-center justify-between gap-2 py-1">
-			Arm positions
-			<Switch bind:on={settings.current.enableArmPositionsWidget} />
-		</label>
-
-		{@render SectionTitle('Camera widgets')}
-
-		{#each cameras.current as camera (camera)}
-			{@const isWidgetOpen = currentRobotCameraWidgets.includes(camera.name)}
-			<div class="flex items-center justify-between gap-2 py-0.5">
-				<span class="min-w-0 truncate">{camera.name}</span>
-				<Switch
-					on={isWidgetOpen}
-					on:change={(event) => {
-						settings.current.openCameraWidgets = event.detail
-							? {
-									...settings.current.openCameraWidgets,
-									[partID.current]: [...currentRobotCameraWidgets, camera.name],
-								}
-							: {
-									...settings.current.openCameraWidgets,
-									[partID.current]: currentRobotCameraWidgets.filter(
-										(widget) => widget !== camera.name
-									),
-								}
-					}}
-				/>
-			</div>
-		{:else}
-			No cameras detected
-		{/each}
-	</div>
-{/snippet}
-
 <FloatingPanel
 	title="Settings"
 	bind:isOpen={isOpen.current}
@@ -350,14 +65,14 @@
 	<Tabs
 		defaultTab={activeTab.current}
 		items={[
-			{ label: 'Connection', content: Connection },
-			{ label: 'Scene', content: Scene },
-			{ label: 'Pointclouds', content: Pointclouds },
-			{ label: 'Vision', content: Vision },
-			{ label: 'Widgets', content: Widgets },
-			{ label: 'Stats', content: Stats },
-			{ label: 'Weblabs', content: Weblabs },
-			...('xr' in navigator ? [{ label: 'VR / AR', content: XR }] : []),
+			{ label: 'Connection', component: ConnectionSettings },
+			{ label: 'Scene', component: SceneSettings },
+			{ label: 'Pointclouds', component: PointcloudSettings },
+			{ label: 'Vision', component: VisionSettings },
+			{ label: 'Widgets', component: WidgetSettings },
+			{ label: 'Debug', component: DebugSettings },
+			{ label: 'Weblabs', component: WeblabSettings },
+			...settingsTabs,
 		]}
 		onValueChange={(value) => {
 			activeTab.current = value

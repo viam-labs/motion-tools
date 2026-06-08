@@ -82,4 +82,10 @@ describe('removeLinePosition', () => {
 		removeLinePosition(source, 1)
 		expect([...source]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
 	})
+
+	it('returns source unchanged when index is out of bounds', () => {
+		const source = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9])
+		const next = removeLinePosition(source, 5)
+		expect(next).toBe(source)
+	})
 })
