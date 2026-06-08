@@ -49,7 +49,8 @@
 	const bvhEnabled = $derived(
 		settings.current.renderSubEntityHoverDetail ||
 			settings.current.interactionMode === 'measure' ||
-			settings.current.interactionMode === 'select'
+			settings.current.interactionMode === 'select' ||
+			settings.current.interactionMode === 'gizmo'
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))

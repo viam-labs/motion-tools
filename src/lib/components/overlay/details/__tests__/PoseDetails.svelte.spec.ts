@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/svelte'
 import { createWorld } from 'koota'
 import { Matrix4 } from 'three'
-import '@testing-library/jest-dom/vitest'
 import { describe, expect, it } from 'vitest'
+import '@testing-library/jest-dom/vitest'
 
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
