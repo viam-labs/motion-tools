@@ -278,15 +278,10 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	})
 
 	/**
-	 * Consumes the `streamTransformChanges` server stream directly rather than
-	 * through `createResourceStream`. The SDK's streaming helper is backed by
-	 * TanStack's `streamedQuery`, whose default reducer appends every event to
-	 * an array that is never trimmed (`addToEnd` with `max = 0`), so a
-	 * long-lived stream accumulates every transform change for the life of the
-	 * connection — an unbounded heap leak, compounded by re-scanning the whole
-	 * array on every emission. Transform changes are write-once into the ECS
-	 * world, so we drain each event into `pendingEvents` (cleared every flush)
-	 * and never retain history. Mirrors `useDrawService`'s stream consumption.
+	 * Consumes the `streamTransformChanges` server stream directly.
+	 * Transform changes are write-once into the ECS world, so we drain
+	 * each event into `pendingEvents` (cleared every flush) and never
+	 * retain history. Mirrors `useDrawService`'s stream consumption.
 	 */
 	const consumeChanges = async (signal: AbortSignal) => {
 		const activeClient = client.current
