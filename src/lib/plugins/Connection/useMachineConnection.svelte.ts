@@ -97,7 +97,7 @@ export const provideMachineConnection = (
 	})
 
 	$effect.pre(() => {
-		partID()
+		void partID()
 		untrack(() => {
 			attempts = 0
 			clearRetry()

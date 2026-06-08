@@ -4,29 +4,25 @@
 
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
-	import {
-		useActiveConnectionConfig,
-		useConnectionConfigs,
-	} from '../hooks/useConnectionConfigs.svelte'
-	import { useMachineConnection } from '../hooks/useMachineConnection.svelte'
 	import Collapsible from './Collapsible.svelte'
-
-	interface Props {
-		isOpen: boolean
-	}
-
-	let { isOpen = $bindable(false) }: Props = $props()
+	import { useActiveConnectionConfig, useConnectionConfigs } from './useConnectionConfigs.svelte'
+	import { useConnectionPanel } from './useConnectionPanel.svelte'
+	import { useMachineConnection } from './useMachineConnection.svelte'
 
 	const connectionConfigs = useConnectionConfigs()
 	const activeConfig = useActiveConnectionConfig()
 	const machineConnection = useMachineConnection()
+	const panel = useConnectionPanel()
+
 	const connected = $derived(
 		machineConnection.connectionStatus === MachineConnectionEvent.CONNECTED
 	)
+
 	const disconnected = $derived(
 		machineConnection.connectionStatus === MachineConnectionEvent.DISCONNECTED ||
 			machineConnection.connectionStatus === MachineConnectionEvent.RECONNECTION_FAILED
 	)
+
 	const text = $derived.by(() => {
 		switch (machineConnection.connectionStatus) {
 			case MachineConnectionEvent.CONNECTING:
@@ -78,14 +74,14 @@
 					aria-label="Machine connection configs"
 					class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
 					onclick={() => {
-						isOpen = !isOpen
+						panel.isOpen = !panel.isOpen
 					}}
 				>
 					<Icon name="broadcast-off" />
 					<span class="truncate whitespace-nowrap"
 						>Retry in {machineConnection.secondsUntilRetry}s...</span
 					>
-					<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
+					<Icon name="chevron-{panel.isOpen ? 'up' : 'down'}" />
 				</button>
 				<button
 					aria-label="Reconnect now"
@@ -108,12 +104,12 @@
 						},
 					]}
 					onclick={() => {
-						isOpen = !isOpen
+						panel.isOpen = !panel.isOpen
 					}}
 				>
 					<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
 					<span class="truncate whitespace-nowrap capitalize">{text}</span>
-					<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
+					<Icon name="chevron-{panel.isOpen ? 'up' : 'down'}" />
 				</button>
 			{/if}
 		</div>
@@ -123,7 +119,7 @@
 <FloatingPanel
 	title="Connection configurations"
 	defaultSize={{ width: 480, height: 400 }}
-	bind:isOpen
+	bind:isOpen={panel.isOpen}
 >
 	<div class="flex h-full grow flex-col gap-2 overflow-y-auto p-2">
 		{#each connectionConfigs.current as config, index (config.host)}

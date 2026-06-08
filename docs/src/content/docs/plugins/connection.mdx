@@ -1,0 +1,143 @@
+---
+title: <Connection />
+description: An opt-in connection manager — let users enter, save, and switch between Viam machines, with auto-connect and retry.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+`<Connection />` adds a built-in **connection manager** to an embedded `<Visualizer />`: a panel for entering machine credentials, saving several machines, switching the active one, and an auto-reconnect loop with exponential backoff. It is what the motion-tools local app uses.
+
+<Aside
+	type="caution"
+	title="Most embedders don't want this"
+>
+	If your page already knows which machine to show (a machine-detail page, a fleet dashboard, etc.),
+	you should **bring your own connection** instead — see [Embedding → Connecting to a
+	machine](../../guides/embedding/#connecting-to-a-machine). Reach for `<Connection />` only when
+	you want the end user to pick and manage machines from _inside_ the visualizer.
+</Aside>
+
+## How it's shaped
+
+The connection providers must wrap `<Visualizer />`, but the config panel must render _inside_ it (in the dashboard overlay). So the plugin comes in two pieces:
+
+- **`<ConnectionProvider>`** — a wrapper you put **around** `<Visualizer>`. It owns the saved configs, sets up the Viam SDK providers, and runs the connect/retry loop. It hands you the active `partID` and the panel's open state through its `children` snippet.
+- **`<Connection />`** — the dashboard UI (a status pill + the config panel). You drop it into the Visualizer's `dashboard` snippet.
+
+No extra dependencies are required beyond the base package's peers.
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Connection, ConnectionProvider } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<ConnectionProvider>
+		{#snippet children({ partID, isPanelOpen })}
+			<Visualizer
+				{partID}
+				inputBindingsEnabled={!isPanelOpen}
+			>
+				{#snippet dashboard()}
+					<Connection />
+				{/snippet}
+			</Visualizer>
+		{/snippet}
+	</ConnectionProvider>
+</div>
+```
+
+Three things are happening:
+
+- **`partID`** from the snippet is the part of whichever config the user has activated — pass it straight to `<Visualizer>`.
+- **`isPanelOpen`** reflects the config panel. Wire it to `inputBindingsEnabled={!isPanelOpen}` so viewport hotkeys don't fire while the user is typing credentials into the panel.
+- **`<Connection />`** must live in the `dashboard` snippet — it renders inside the Visualizer's canvas overlay and reads context from the surrounding `<ConnectionProvider>`.
+
+## Seeding machines
+
+Pass `initialConfigs` to `<ConnectionProvider>` to pin read-only machines to the top of the list (users can't delete these). Useful for shipping a default machine or feeding in build-time credentials:
+
+```svelte
+<script lang="ts">
+	import type { ConnectionConfig } from '@viamrobotics/motion-tools/plugins'
+
+	const initialConfigs: ConnectionConfig[] = [
+		{
+			host: 'my-robot-main.abcd1234.viam.cloud',
+			partId: 'd1e8…e3',
+			apiKeyId: '…',
+			apiKeyValue: '…',
+			signalingAddress: 'https://app.viam.com:443',
+		},
+	]
+</script>
+
+<ConnectionProvider {initialConfigs}>
+	<!-- … -->
+</ConnectionProvider>
+```
+
+<Aside type="note">
+	In the motion-tools local app these come from the `VITE_CONFIGS` environment variable (see
+	[Running locally → Connecting to a Viam
+	machine](../../guides/local-usage/#connecting-to-a-viam-machine)). Reading env is the _app's_ job,
+	not the plugin's — the app parses `VITE_CONFIGS` and passes the result as `initialConfigs`.
+</Aside>
+
+## Persistence
+
+User-added configs persist to **IndexedDB** (key `connection-configs`); the active selection persists to **localStorage** (key `active-connection-config`). Both are scoped to the page origin — keep that in mind if several apps share one origin.
+
+## What it sets up for you
+
+`<ConnectionProvider>` renders the Viam SDK providers so you don't have to:
+
+- **`ViamProvider`** — establishes and holds the robot client for the active part.
+- **`ViamAppProvider`** (`app.viam.com`) — lets the visualizer load the part's stored config (its frame system) through the Viam app API.
+- **connect + retry** — dials the active machine and retries with exponential backoff (1s → 60s), reconnecting on network-regain and tab-refocus.
+
+<Aside
+	type="danger"
+	title="Don't double-wrap the providers"
+>
+	Because `<ConnectionProvider>` already provides `ViamProvider` and `ViamAppProvider`, do **not**
+	also wrap it in your own. That's the entire difference from the
+	[bring-your-own-connection](../../guides/embedding/#connecting-to-a-machine) path — pick one.
+</Aside>
+
+## Props
+
+### `<ConnectionProvider>`
+
+| Prop             | Type                                                               | Description                                                                                             |
+| ---------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `initialConfigs` | `ConnectionConfig[]`                                               | Optional. Read-only machines pinned to the top of the list and not user-deletable. Default `[]`.        |
+| `children`       | `Snippet<[{ partID: string \| undefined; isPanelOpen: boolean }]>` | Required. Render `<Visualizer>` here; use the snippet args to wire `partID` and `inputBindingsEnabled`. |
+
+### `<Connection />`
+
+No props. It reads context from the `<ConnectionProvider>` wrapper, so it must be rendered as a descendant — putting it in the Visualizer's `dashboard` snippet satisfies that.
+
+### `ConnectionConfig`
+
+| Field              | Type     | Description                                       |
+| ------------------ | -------- | ------------------------------------------------- |
+| `host`             | `string` | Machine address, e.g. `my-robot-main.…viam.cloud` |
+| `partId`           | `string` | The part to render.                               |
+| `apiKeyId`         | `string` | API key ID.                                       |
+| `apiKeyValue`      | `string` | API key value.                                    |
+| `signalingAddress` | `string` | Usually `https://app.viam.com:443`.               |
+
+## Advanced: build your own UI
+
+If you want the connection lifecycle but not the bundled panel, the contexts are exported and can be consumed from any descendant of `<ConnectionProvider>`:
+
+| Export                        | Use                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `useConnectionConfigs()`      | Read / add / remove the saved configs.                                                  |
+| `useActiveConnectionConfig()` | Read or set the active config.                                                          |
+| `useMachineConnection()`      | Current status, last error, retry countdown, and `retryNow()`.                          |
+| `provideConnectionConfigs()`  | The store provider, if you assemble your own wrapper instead of `<ConnectionProvider>`. |

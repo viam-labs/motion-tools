@@ -61,7 +61,7 @@ export const ssr = false
 
 That's enough to get an empty scene with the camera, grid, and overlay UI. From there, you can:
 
-- **Pass `partID`** to bind it to a specific Viam machine part.
+- **Pass `partID`** to choose which machine part to render — see [Connecting to a machine](#connecting-to-a-machine) to wire up the connection itself.
 - **Pass `cameraPose`** to set an initial camera position and look-at target.
 - **Provide a `children` snippet** to render your own Threlte primitives or the `<Snapshot />` component inside the scene.
 
@@ -81,6 +81,59 @@ That's enough to get an empty scene with the camera, grid, and overlay UI. From 
 	</Visualizer>
 </div>
 ```
+
+## Connecting to a machine
+
+`partID` only tells the visualizer _which_ part to render — it doesn't open a connection on its own. The robot client comes from a `<ViamProvider>` ancestor (from `@viamrobotics/svelte-sdk`). You have two options.
+
+### Option A — Bring your own connection
+
+Best when the page already knows which machine to show. Provide the connection yourself and pass the matching `partID`:
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import type { DialConf } from '@viamrobotics/sdk'
+	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
+
+	const partID = 'd1e8…e3'
+	const apiKeyId = '…'
+	const apiKeyValue = '…'
+
+	const dialConf: DialConf = {
+		host: 'my-robot-main.abcd1234.viam.cloud',
+		credentials: { type: 'api-key', authEntity: apiKeyId, payload: apiKeyValue },
+		signalingAddress: 'https://app.viam.com:443',
+	}
+</script>
+
+<div class="h-screen w-screen">
+	<ViamProvider dialConfigs={{ [partID]: dialConf }}>
+		<ViamAppProvider
+			serviceHost="https://app.viam.com"
+			credentials={{ type: 'api-key', authEntity: apiKeyId, payload: apiKeyValue }}
+		>
+			<Visualizer {partID} />
+		</ViamAppProvider>
+	</ViamProvider>
+</div>
+```
+
+`<ViamProvider>` connects automatically: hand it a `dialConfigs` map (`partID → DialConf`) and it dials each part, reconnecting whenever an entry changes.
+
+<Aside
+	type="note"
+	title="Why ViamAppProvider?"
+>
+	Without `localConfigProps`, the visualizer loads the part's stored config (its frame system) from
+	the Viam app, which needs the app client — so `<ViamAppProvider>` is required. If you'd rather
+	**supply the config yourself** and drop `<ViamAppProvider>`, pass the `localConfigProps` prop
+	instead.
+</Aside>
+
+### Option B — Let users pick a machine
+
+If you instead want a connection manager — a panel where users enter credentials, save several machines, and switch between them — use the [`<Connection />` plugin](../../plugins/connection/). Its `<ConnectionProvider>` wrapper sets up the providers above for you, so in this case you do **not** add your own `<ViamProvider>`.
 
 ## Rendering snapshots
 

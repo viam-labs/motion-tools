@@ -2,7 +2,7 @@
 	import type { DialConf } from '@viamrobotics/sdk'
 	import type { Snippet } from 'svelte'
 
-	import { provideMachineConnection } from '../hooks/useMachineConnection.svelte'
+	import { provideMachineConnection } from './useMachineConnection.svelte'
 
 	interface Props {
 		partID: string | undefined
@@ -10,7 +10,7 @@
 		children: Snippet
 	}
 
-	let { partID, dialConfig, children }: Props = $props()
+	const { partID, dialConfig, children }: Props = $props()
 
 	provideMachineConnection(
 		() => partID ?? '',

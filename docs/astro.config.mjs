@@ -42,6 +42,7 @@ export default defineConfig({
 				{
 					label: 'Plugins',
 					items: [
+						{ label: '<Connection />', link: '/plugins/connection/' },
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },

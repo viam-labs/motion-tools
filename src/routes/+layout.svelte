@@ -1,85 +1,40 @@
 <script lang="ts">
 	import '../app.css'
 
-	import type { DialConf } from '@viamrobotics/sdk'
-
-	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
-
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
-
-	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
-	import Machines from './lib/components/Machines.svelte'
 	import {
-		provideConnectionConfigs,
-		useActiveConnectionConfig,
-	} from './lib/hooks/useConnectionConfigs.svelte'
-	import { getDialConfs } from './lib/robots'
+		Connection,
+		ConnectionProvider,
+		DrawService,
+		Focus,
+		MeasureTool,
+		XR,
+		XRSettings,
+	} from '$lib/plugins'
 
-	provideConnectionConfigs()
+	import { envConfigs } from './lib/configs'
 
-	const connectionConfig = useActiveConnectionConfig()
-
-	let { children } = $props()
-
-	let dialConfigs = $derived.by<Record<string, DialConf>>(() => {
-		if (connectionConfig.current) {
-			const robot = {
-				...$state.snapshot(connectionConfig.current),
-				disableSessions: true,
-			}
-
-			return { ...getDialConfs({ robot }) }
-		}
-
-		return {}
-	})
-
-	const partID = $derived(connectionConfig.current?.partId)
-	const dialConfig = $derived(partID ? dialConfigs[partID] : undefined)
-
-	let isMachinesPageOpen = $state(false)
+	let { children: pageChildren } = $props()
 </script>
 
-<ViamProvider
-	config={{
-		defaultOptions: {
-			queries: {
-				staleTime: Infinity,
-			},
-		},
-	}}
-	{dialConfigs}
->
-	<ViamAppProvider
-		serviceHost="https://app.viam.com"
-		credentials={{
-			type: 'api-key',
-			payload: connectionConfig.current?.apiKeyValue ?? '',
-			authEntity: connectionConfig.current?.apiKeyId ?? '',
-		}}
-	>
-		<MachineConnectionProvider
+<ConnectionProvider initialConfigs={envConfigs}>
+	{#snippet children({ partID, isPanelOpen })}
+		<Visualizer
 			{partID}
-			{dialConfig}
+			inputBindingsEnabled={!isPanelOpen}
+			settingsTabs={[{ label: 'AR', component: XRSettings }]}
 		>
-			<Visualizer
-				{partID}
-				inputBindingsEnabled={!isMachinesPageOpen}
-				settingsTabs={[{ label: 'AR', component: XRSettings }]}
-			>
-				{@render children()}
+			{@render pageChildren()}
 
-				{#snippet dashboard()}
-					<Machines bind:isOpen={isMachinesPageOpen} />
-				{/snippet}
+			{#snippet dashboard()}
+				<Connection />
+			{/snippet}
 
-				<DrawService config={{ backendIP, websocketPort }} />
-				<Focus />
-				<MeasureTool />
-				<XR />
-			</Visualizer>
-		</MachineConnectionProvider>
-	</ViamAppProvider>
-</ViamProvider>
+			<DrawService config={{ backendIP, websocketPort }} />
+			<Focus />
+			<MeasureTool />
+			<XR />
+		</Visualizer>
+	{/snippet}
+</ConnectionProvider>

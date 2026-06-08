@@ -19,3 +19,14 @@ export { default as Focus } from './Focus/Focus.svelte'
 
 export { default as XR } from './XR/XR.svelte'
 export { default as XRSettings } from './XR/XRSettings.svelte'
+
+// Robot connection
+export { default as Connection } from './Connection/Connection.svelte'
+export { default as ConnectionProvider } from './Connection/ConnectionProvider.svelte'
+export {
+	provideConnectionConfigs,
+	useConnectionConfigs,
+	useActiveConnectionConfig,
+} from './Connection/useConnectionConfigs.svelte'
+export { useMachineConnection } from './Connection/useMachineConnection.svelte'
+export type { ConnectionConfig } from './Connection/config'

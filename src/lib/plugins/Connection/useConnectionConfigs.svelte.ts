@@ -3,15 +3,7 @@ import { isEqual } from 'lodash-es'
 import { PersistedState } from 'runed'
 import { getContext, setContext } from 'svelte'
 
-import { envConfigs } from '../configs'
-
-interface ConnectionConfig {
-	host: string
-	partId: string
-	apiKeyId: string
-	apiKeyValue: string
-	signalingAddress: string
-}
+import type { ConnectionConfig } from './config'
 
 const key = Symbol('connection-config-context')
 const activeConfig = new PersistedState<number>('active-connection-config', 0)
@@ -23,7 +15,14 @@ interface Context {
 	isEnvConfig: (config: ConnectionConfig) => boolean
 }
 
-export const provideConnectionConfigs = () => {
+/**
+ * @param getInitialConfigs Read-only seed configs supplied by the host app (e.g. from
+ * its build env). They are pinned to the front of the merged list and cannot be deleted.
+ * User-created configs are appended and persisted to IndexedDB.
+ */
+export const provideConnectionConfigs = (
+	getInitialConfigs: () => ConnectionConfig[] = () => []
+) => {
 	let connectionConfigs: ConnectionConfig[] = $state([])
 
 	get('connection-configs').then((response) => {
@@ -35,6 +34,8 @@ export const provideConnectionConfigs = () => {
 	$effect(() => {
 		set('connection-configs', $state.snapshot(connectionConfigs))
 	})
+
+	const initialConfigs = $derived(getInitialConfigs())
 
 	const add = (config?: ConnectionConfig) => {
 		connectionConfigs.push(
@@ -49,14 +50,14 @@ export const provideConnectionConfigs = () => {
 	}
 
 	const remove = (index: number) => {
-		connectionConfigs.splice(index - envConfigs.length, 1)
+		connectionConfigs.splice(index - initialConfigs.length, 1)
 	}
 
 	const isEnvConfig = (config: ConnectionConfig) => {
-		return envConfigs.some((value) => isEqual(config, value))
+		return initialConfigs.some((value) => isEqual(config, value))
 	}
 
-	const mergedConfigs = $derived([...envConfigs, ...connectionConfigs])
+	const mergedConfigs = $derived([...initialConfigs, ...connectionConfigs])
 
 	setContext<Context>(key, {
 		get current() {

@@ -3,7 +3,7 @@
 	import * as collapsible from '@zag-js/collapsible'
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 
-	let { children } = $props()
+	const { children } = $props()
 
 	const id = $props.id()
 	const service = useMachine(collapsible.machine, { id })
