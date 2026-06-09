@@ -7,10 +7,6 @@
 
 import type { Rect, Segment } from './types'
 
-export function pointInRect(px: number, py: number, r: Rect): boolean {
-	return Math.abs(px - r.cx) <= r.hw && Math.abs(py - r.cy) <= r.hh
-}
-
 export function rectsOverlap(a: Rect, b: Rect, pad = 0): boolean {
 	return Math.abs(a.cx - b.cx) < a.hw + b.hw + pad && Math.abs(a.cy - b.cy) < a.hh + b.hh + pad
 }
@@ -39,34 +35,73 @@ function clipFraction(s: Segment, r: Rect): number {
 
 	let t0 = 0
 	let t1 = 1
+	let p: number
+	let q: number
+	let t: number
 
-	// Four clip edges: (p, q) pairs. Inside when p*t <= q is satisfied.
-	const ps = [-dx, dx, -dy, dy]
-	const qs = [s.x1 - minX, maxX - s.x1, s.y1 - minY, maxY - s.y1]
-
-	for (let i = 0; i < 4; i++) {
-		const p = ps[i]
-		const q = qs[i]
-		if (p === 0) {
-			if (q < 0) return -1
+	// Four clip edges, inlined to avoid per-call allocation in the hot loop.
+	// Each edge is a (p, q) pair; the point is inside when p*t <= q holds.
+	p = -dx
+	q = s.x1 - minX
+	if (p === 0) {
+		if (q < 0) return -1
+	} else {
+		t = q / p
+		if (p < 0) {
+			if (t > t1) return -1
+			if (t > t0) t0 = t
 		} else {
-			const t = q / p
-			if (p < 0) {
-				if (t > t1) return -1
-				if (t > t0) t0 = t
-			} else {
-				if (t < t0) return -1
-				if (t < t1) t1 = t
-			}
+			if (t < t0) return -1
+			if (t < t1) t1 = t
+		}
+	}
+
+	p = dx
+	q = maxX - s.x1
+	if (p === 0) {
+		if (q < 0) return -1
+	} else {
+		t = q / p
+		if (p < 0) {
+			if (t > t1) return -1
+			if (t > t0) t0 = t
+		} else {
+			if (t < t0) return -1
+			if (t < t1) t1 = t
+		}
+	}
+
+	p = -dy
+	q = s.y1 - minY
+	if (p === 0) {
+		if (q < 0) return -1
+	} else {
+		t = q / p
+		if (p < 0) {
+			if (t > t1) return -1
+			if (t > t0) t0 = t
+		} else {
+			if (t < t0) return -1
+			if (t < t1) t1 = t
+		}
+	}
+
+	p = dy
+	q = maxY - s.y1
+	if (p === 0) {
+		if (q < 0) return -1
+	} else {
+		t = q / p
+		if (p < 0) {
+			if (t > t1) return -1
+			if (t > t0) t0 = t
+		} else {
+			if (t < t0) return -1
+			if (t < t1) t1 = t
 		}
 	}
 
 	return t0 <= t1 ? t1 - t0 : -1
-}
-
-/** Does the segment touch or cross the rectangle? */
-export function segmentIntersectsRect(s: Segment, r: Rect): boolean {
-	return clipFraction(s, r) >= 0
 }
 
 /**
@@ -96,6 +131,6 @@ export function segmentsCross(a: Segment, b: Segment): boolean {
 export function rectCircleOverlap(r: Rect, cx: number, cy: number, rad: number): number {
 	const nx = Math.max(Math.abs(cx - r.cx) - r.hw, 0)
 	const ny = Math.max(Math.abs(cy - r.cy) - r.hh, 0)
-	const d = Math.hypot(nx, ny)
+	const d = Math.sqrt(nx * nx + ny * ny)
 	return Math.max(rad - d, 0)
 }

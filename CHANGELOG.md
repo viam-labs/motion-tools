@@ -1,5 +1,20 @@
 # motion-tools
 
+## 1.33.1
+
+### Patch Changes
+
+- ac05fed: Default `Line` and `Mesh` opacity to `1`, fix `LineDots` instance ID tracking, enable BVH raycasting in `'gizmo'` interaction mode, fix stale matrix reads in `SelectedTransformControls`, and add `isOpen` / `close` to `Popover` snippets plus a `shapes` icon and `disableTooltip` prop on dashboard `Button`
+- dc668f7: Feat: force directed graph labels
+- a0cd017: Split the Details overlay into focused subcomponents under `details/` and expose a `details-extensions` portal target for plugin-supplied editors
+- 0b7b924: Fix unbounded memory growth from the world state transform stream
+
+## 1.33.0
+
+### Minor Changes
+
+- 617679e: Migrate WebXR features to a plugin
+
 ## 1.32.0
 
 ### Minor Changes

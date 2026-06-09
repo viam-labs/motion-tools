@@ -10,7 +10,7 @@ import type { LabelNode, Slot, SolverConfig } from './types'
 
 import { W } from './cost'
 
-export function generateSlots(node: LabelNode, crowded: boolean, config: SolverConfig): Slot[] {
+export const generateSlots = (node: LabelNode, crowded: boolean, config: SolverConfig): Slot[] => {
 	const angles = crowded ? config.anglesPerRing * 2 : config.anglesPerRing
 	const rings = crowded ? config.ringRadiiCrowded : config.ringRadii
 
@@ -46,7 +46,7 @@ export function generateSlots(node: LabelNode, crowded: boolean, config: SolverC
 }
 
 /** FNV-1a hash of a string → unsigned 32-bit. */
-export function hashString(s: string): number {
+export const hashString = (s: string): number => {
 	let h = 2166136261
 	for (let i = 0; i < s.length; i++) {
 		h ^= s.charCodeAt(i)

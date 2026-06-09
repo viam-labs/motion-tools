@@ -8,6 +8,10 @@
 
 import type { Camera } from 'three'
 
+import type { LabelStore } from './labelStore.svelte'
+
+import { applyTeleports } from './applyTeleports'
+import { buildNeighborhood } from './buildNeighborhood'
 import { cameraMatrixHash } from './cameraHash'
 import { measureNode } from './measure'
 import { generateSlots, hashString } from './slots'
@@ -16,25 +20,22 @@ import { SpatialHash } from './spatialHash'
 import { defaultSolverConfig, type LabelNode, type SolverConfig } from './types'
 import { lerpStep, writeBack } from './writeBack'
 
-interface LabelStoreLike {
-	current: HTMLElement[]
-	rev: number
-}
-
 export interface LayoutDeps {
 	camera: { current: Camera }
 	size: { current: { width: number; height: number } }
 	invalidate: () => void
-	labels: LabelStoreLike
+	labels: LabelStore
 	config?: Partial<SolverConfig>
 }
 
 /** Clamp the frame delta so a long idle gap can't make the ease overshoot. */
 const MAX_DELTA = 0.05
 
+/** Frames to keep retrying a failed measure after a real change before giving up (idle). */
+const MAX_RETRY = 4
+
 export function createLabelLayout(deps: LayoutDeps) {
 	const config: SolverConfig = { ...defaultSolverConfig, ...deps.config }
-	const maxRingMult = Math.max(...config.ringRadiiCrowded)
 
 	const nodesByLabel = new WeakMap<HTMLElement, LabelNode>()
 	const grid = new SpatialHash()
@@ -43,8 +44,9 @@ export function createLabelLayout(deps: LayoutDeps) {
 	let bestSnap = new Int16Array(0)
 
 	let lastCamHash = -1
-	let lastSetRev = -1
+	let lastSetVersion = -1
 	let pendingRetry = false
+	let retryBudget = 0
 	let animating = false
 
 	function ensureNode(labelEl: HTMLElement): LabelNode | null {
@@ -69,6 +71,8 @@ export function createLabelLayout(deps: LayoutDeps) {
 			h: 0,
 			scale: 1,
 			cssDotW: 0,
+			dotLocalX: Number.NaN,
+			dotLocalY: Number.NaN,
 			slots: [],
 			geomKey: '',
 			crowded: false,
@@ -114,17 +118,16 @@ export function createLabelLayout(deps: LayoutDeps) {
 		return best
 	}
 
-	function maxSlotRadius(node: LabelNode): number {
-		const last = node.slots.at(-1)
-		return last ? last.radius : 0
-	}
-
 	function solveLayout(width: number, height: number) {
 		pendingRetry = false
 		activeNodes = []
 
 		for (const el of deps.labels.current) {
-			if (!el.isConnected) continue
+			// Skip detached or hidden islands (e.g. <HTML> sets display:none when an
+			// entity is behind the camera) without arming a retry — they have no
+			// client rects, and treating them as "not ready" would pin the
+			// on-demand loop re-solving every frame.
+			if (!el.isConnected || el.getClientRects().length === 0) continue
 			const node = ensureNode(el)
 			if (!node) {
 				pendingRetry = true
@@ -138,23 +141,7 @@ export function createLabelLayout(deps: LayoutDeps) {
 		const n = nodes.length
 		if (n === 0) return
 
-		// Cell size so any two labels whose boxes could interact share/border a cell.
-		let cell = 1
-		for (const node of nodes) {
-			const halfDiag = Math.hypot(node.w / 2, node.h / 2)
-			const support = Math.max(node.w, node.h) / 2
-			const outer = (support + node.dotR + config.dotPadding) * maxRingMult
-			cell = Math.max(cell, 2 * (halfDiag + outer))
-		}
-		grid.build(nodes, cell)
-
-		// Symmetric neighbourhoods so the solver's incremental bookkeeping stays exact.
-		for (const node of nodes) node.neighbors = grid.queryNeighbors(node, config.maxNeighbors)
-		for (const a of nodes) {
-			for (const b of a.neighbors) {
-				if (!b.neighbors.includes(a)) b.neighbors.push(a)
-			}
-		}
+		buildNeighborhood(grid, nodes, config)
 
 		// Crowding (post-symmetrisation) drives adaptive slot density.
 		for (const node of nodes) {
@@ -195,47 +182,29 @@ export function createLabelLayout(deps: LayoutDeps) {
 		if (bestSnap.length < n) bestSnap = new Int16Array(n)
 		solve(nodes, config, bestSnap)
 
-		// Teleport handling: a big camera jump (or a brand-new node) places labels
-		// in their final spot rather than gliding across the screen.
-		const diag = Math.hypot(width, height)
-		const displacements: number[] = []
-		for (const node of nodes) {
-			if (!Number.isNaN(node.prevAx)) {
-				displacements.push(Math.hypot(node.ax - node.prevAx, node.ay - node.prevAy))
-			}
-		}
-		let snapAll = displacements.length === 0
-		if (!snapAll) {
-			displacements.sort((a, b) => a - b)
-			const median = displacements[displacements.length >> 1]
-			if (median > config.teleportFrac * diag) snapAll = true
-		}
-
-		for (const node of nodes) {
-			const ownJump =
-				!Number.isNaN(node.prevAx) &&
-				Math.hypot(node.ax - node.prevAx, node.ay - node.prevAy) > maxSlotRadius(node) * 3
-			if (snapAll || ownJump) {
-				node.cx = node.tx
-				node.cy = node.ty
-				node.settled = true
-			}
-			node.prevAx = node.ax
-			node.prevAy = node.ay
-		}
+		// A big camera jump (or a brand-new node) snaps labels to their solved
+		// target; everything else eases there from its current position.
+		applyTeleports(nodes, width, height, config)
 	}
 
 	function frame(delta: number) {
 		const { width, height } = deps.size.current
 		const camHash = cameraMatrixHash(deps.camera.current, width, height)
-		const setRev = deps.labels.rev
+		const setVersion = deps.labels.version
 
-		const dirty = camHash !== lastCamHash || setRev !== lastSetRev || pendingRetry
+		// A real change (camera/label-set) re-arms the retry window; pendingRetry can
+		// then drive a few more solves for genuinely-transient unmeasurable labels
+		// (first paint) without spinning forever on a persistently-unmeasurable one.
+		const changed = camHash !== lastCamHash || setVersion !== lastSetVersion
+		if (changed) retryBudget = MAX_RETRY
+		const retrying = pendingRetry && retryBudget > 0 && !changed
+		if (retrying) retryBudget--
+		const dirty = changed || retrying
 
 		if (dirty) {
 			solveLayout(width, height)
 			lastCamHash = camHash
-			lastSetRev = setRev
+			lastSetVersion = setVersion
 		}
 
 		if (!dirty && !animating) return

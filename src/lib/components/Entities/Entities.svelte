@@ -2,12 +2,13 @@
 	import { Not, Or } from 'koota'
 
 	import { traits, useQuery } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Arrows from './Arrows/ArrowGroups.svelte'
 	import Frame from './Frame.svelte'
 	import Geometry from './Geometry.svelte'
 	import GLTF from './GLTF.svelte'
-	import Label from './Label.svelte'
+	import Labels from './Labels.svelte'
 	import Line from './Line.svelte'
 	import Points from './Points.svelte'
 	import Pose from './Pose.svelte'
@@ -60,56 +61,48 @@
 	const points = useQuery(traits.Points)
 	const lines = useQuery(traits.LinePositions)
 	const gltfs = useQuery(traits.GLTF)
+
+	const settings = useSettings()
+
+	const enableLabels = $derived(settings.current.enableLabels)
 </script>
 
 {#each machineFramesEntities.current as entity (entity)}
 	<Pose {entity}>
-		<Frame {entity}>
-			<Label {entity} />
-		</Frame>
+		<Frame {entity} />
 	</Pose>
 {/each}
 
 {#each resourceGeometriesEntities.current as entity (entity)}
-	<Geometry {entity}>
-		<Label {entity} />
-	</Geometry>
+	<Geometry {entity} />
 {/each}
 
 {#each worldStateEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label {entity} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each drawServiceEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label {entity} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each meshEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label {entity} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each points.current as entity (entity)}
-	<Points {entity}>
-		<Label {entity} />
-	</Points>
+	<Points {entity} />
 {/each}
 
 {#each lines.current as entity (entity)}
-	<Line {entity}>
-		<Label {entity} />
-	</Line>
+	<Line {entity} />
 {/each}
 
 {#each gltfs.current as entity (entity)}
-	<GLTF {entity}>
-		<Label {entity} />
-	</GLTF>
+	<GLTF {entity} />
 {/each}
 
 <Arrows />
+
+{#if enableLabels}
+	<Labels />
+{/if}

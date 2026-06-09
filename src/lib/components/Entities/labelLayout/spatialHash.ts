@@ -1,6 +1,6 @@
 /**
  * Uniform grid over label anchors, used to prune the O(n^2) cost evaluation to a
- * bounded neighbourhood. The cell size is chosen so any two labels whose boxes
+ * bounded neighborhood. The cell size is chosen so any two labels whose boxes
  * could possibly interact share or border a cell, so scanning the 3x3 block
  * around a node finds every candidate.
  */
