@@ -193,13 +193,17 @@ export const providePartConfig = (
 				y: pose.y ?? currentPose.y,
 				z: pose.z ?? currentPose.z,
 			}
-			component.frame.orientation.type = 'ov_degrees'
-			component.frame.orientation.value = {
-				x: pose.oX ?? currentPose.oX,
-				y: pose.oY ?? currentPose.oY,
-				z: pose.oZ ?? currentPose.oZ,
-				th: pose.theta ?? currentPose.theta,
+
+			component.frame.orientation = {
+				type: 'ov_degrees',
+				value: {
+					x: pose.oX ?? currentPose.oX,
+					y: pose.oY ?? currentPose.oY,
+					z: pose.oZ ?? currentPose.oZ,
+					th: pose.theta ?? currentPose.theta,
+				},
 			}
+
 			if (geometry) {
 				if (geometry.type === 'none') {
 					delete component.frame.geometry
