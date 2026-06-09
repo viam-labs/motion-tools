@@ -1,6 +1,6 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.33.0",
+	"version": "1.33.1",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
@@ -119,7 +119,7 @@
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
 		"vite-plugin-mkcert": "1.17.9",
-		"vitest": "3.2.4"
+		"vitest": "3.2.6"
 	},
 	"peerDependencies": {
 		"@ag-grid-community/client-side-row-model": ">=32.3.0",
