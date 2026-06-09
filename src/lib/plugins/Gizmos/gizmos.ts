@@ -19,6 +19,8 @@ export type PlanePlacement = 'free' | 'offset'
 export type GeometryShape = 'box' | 'sphere' | 'capsule'
 export type GeometryPlacement = 'at-origin' | 'free'
 
+export type ReferenceShape = GeometryShape | 'plane'
+
 export type LineSpace = 'world' | 'screen'
 export type LineMeasure = 'none' | 'segment' | 'total'
 

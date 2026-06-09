@@ -49,7 +49,10 @@
 			{/snippet}
 
 			{#snippet children({ close })}
-				<GizmoMenu {close} />
+				<GizmoMenu
+					{close}
+					{gizmos}
+				/>
 			{/snippet}
 		</Popover>
 	</div>
@@ -75,6 +78,4 @@
 
 <GizmoEntities />
 
-{#if isGizmoMode}
-	<GizmoDetails />
-{/if}
+<GizmoDetails />

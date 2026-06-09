@@ -6,12 +6,12 @@ import { traits } from '$lib/ecs'
 import type {
 	ArrowAxis,
 	GeometryPlacement,
-	GeometryShape,
 	GizmoMode,
 	LineMeasure,
 	LineSpace,
 	PlaneAxis,
 	PlanePlacement,
+	ReferenceShape,
 } from './gizmos'
 
 const key = Symbol('gizmos-plugin-context')
@@ -35,9 +35,9 @@ export const provideGizmos = (exit: () => void) => {
 	let planeConstruction = $state<PlanePlacement>('offset')
 	let planeOffset = $state(0)
 
-	let geometryShape = $state<GeometryShape>('box')
+	let referenceShape = $state<ReferenceShape>('box')
 	let geometryConstruction = $state<GeometryPlacement>('at-origin')
-	let isGeometryWireframe = $state(false)
+	let isWireframe = $state(false)
 
 	let lineSpace = $state<LineSpace>('world')
 	let lineMeasure = $state<LineMeasure>('none')
@@ -80,11 +80,11 @@ export const provideGizmos = (exit: () => void) => {
 			return planeNormalForAxis[planeAxis].clone()
 		},
 
-		get geometryShape() {
-			return geometryShape
+		get referenceShape() {
+			return referenceShape
 		},
-		set geometryShape(value) {
-			geometryShape = value
+		set referenceShape(value) {
+			referenceShape = value
 		},
 
 		get geometryConstruction() {
@@ -94,15 +94,16 @@ export const provideGizmos = (exit: () => void) => {
 			geometryConstruction = value
 		},
 
+		/** The geometry trait for the selected solid, or undefined when a plane is selected. */
 		get geometryTrait() {
-			return geometryTraits[geometryShape]
+			return referenceShape === 'plane' ? undefined : geometryTraits[referenceShape]
 		},
 
-		get isGeometryWireframe() {
-			return isGeometryWireframe
+		get isWireframe() {
+			return isWireframe
 		},
-		set isGeometryWireframe(value) {
-			isGeometryWireframe = value
+		set isWireframe(value) {
+			isWireframe = value
 		},
 
 		get lineSpace() {

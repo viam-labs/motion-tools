@@ -2,7 +2,7 @@
 	import type { Entity } from 'koota'
 
 	import { useThrelte } from '@threlte/core'
-	import { Point, type PointChangeEvent, type PointValue2dObject } from 'svelte-tweakpane-ui'
+	import { Slider, type SliderChangeEvent } from 'svelte-tweakpane-ui'
 
 	import { useTrait } from '$lib/ecs'
 
@@ -17,10 +17,19 @@
 	const { invalidate } = useThrelte()
 	const plane = useTrait(() => entity, Plane)
 
-	const handleChange = (event: PointChangeEvent) => {
+	const handleWidthChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
-		const next = event.detail.value as PointValue2dObject
-		entity.set(Plane, { width: next.x, height: next.y })
+		const current = plane.current
+		if (!current) return
+		entity.set(Plane, { width: event.detail.value, height: current.height })
+		invalidate()
+	}
+
+	const handleHeightChange = (event: SliderChangeEvent) => {
+		if (event.detail.origin !== 'internal') return
+		const current = plane.current
+		if (!current) return
+		entity.set(Plane, { width: current.width, height: event.detail.value })
 		invalidate()
 	}
 </script>
@@ -30,10 +39,17 @@
 		<strong class="font-semibold">dimensions</strong>
 		<span class="text-subtle-2">(plane) (mm)</span>
 		<div aria-label="mutable plane dimensions">
-			<Point
-				value={{ x: plane.current.width, y: plane.current.height }}
+			<Slider
+				label="w"
+				value={plane.current.width}
 				min={0}
-				on:change={handleChange}
+				on:change={handleWidthChange}
+			/>
+			<Slider
+				label="h"
+				value={plane.current.height}
+				min={0}
+				on:change={handleHeightChange}
 			/>
 		</div>
 	</div>

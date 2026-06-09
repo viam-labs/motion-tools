@@ -19,13 +19,16 @@
 	const place = usePlace(() => ({
 		findHit: cursorPoint,
 		onPlace: (position) => {
+			const shapeTrait = gizmos.geometryTrait
+			if (!shapeTrait) return
+
 			const entity = spawnPending(world, {
-				kind: `reference ${gizmos.geometryShape}`,
+				kind: `reference ${gizmos.referenceShape}`,
 				position,
 				traits: [
-					gizmos.geometryTrait,
+					shapeTrait,
 					traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
-					traits.Opacity(gizmos.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY),
+					traits.Opacity(gizmos.isWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY),
 				],
 			})
 			confirmPending(entity)

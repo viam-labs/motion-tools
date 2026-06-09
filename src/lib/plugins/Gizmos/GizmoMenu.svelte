@@ -2,7 +2,7 @@
 	lang="ts"
 	module
 >
-	type FolderName = 'plane' | 'geometry' | 'line' | 'arrow' | 'vertex-normals' | 'surface-normals'
+	type FolderName = 'reference' | 'line' | 'arrow' | 'vertex-normals' | 'surface-normals'
 
 	const axisOptions = [
 		{ value: 'yz', text: 'YZ plane' },
@@ -43,11 +43,12 @@
 		{ value: 'free', text: 'Free (click to place)' },
 	] satisfies { value: GeometryPlacement; text: string }[]
 
-	const geometryShapeOptions = [
+	const referenceShapeOptions = [
 		{ value: 'box', text: 'Box' },
 		{ value: 'sphere', text: 'Sphere' },
 		{ value: 'capsule', text: 'Capsule' },
-	] satisfies { value: GeometryShape; text: string }[]
+		{ value: 'plane', text: 'Plane' },
+	] satisfies { value: ReferenceShape; text: string }[]
 </script>
 
 <script lang="ts">
@@ -69,13 +70,13 @@
 	import {
 		type ArrowAxis,
 		type GeometryPlacement,
-		type GeometryShape,
 		type GizmoMode,
 		GizmoModes,
 		type LineMeasure,
 		type LineSpace,
 		type PlaneAxis,
 		type PlanePlacement,
+		type ReferenceShape,
 	} from './gizmos'
 	import { planeMatrix } from './matrix'
 	import { selectOnly } from './selection'
@@ -85,13 +86,13 @@
 
 	interface Props {
 		close: () => void
+		gizmos: ReturnType<typeof useGizmos>
 	}
 
-	const { close }: Props = $props()
+	const { close, gizmos }: Props = $props()
 
 	const settings = useSettings()
 	const world = useWorld()
-	const gizmos = useGizmos()
 
 	let openFolder = $state<FolderName>()
 
@@ -112,7 +113,12 @@
 		const position = gizmos.planeAxisVector.multiplyScalar(offsetMeters)
 		const entity = spawnGizmo(world, {
 			kind: 'reference plane',
-			traits: [Plane, traits.Opacity(0.7)],
+			traits: [
+				Plane,
+				traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
+				traits.Opacity(gizmos.isWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY),
+				traits.ShowAxesHelper,
+			],
 			matrix: planeMatrix(gizmos.planeAxis, position),
 		})
 
@@ -120,17 +126,32 @@
 	}
 
 	const placeGeometryAtOrigin = () => {
-		const surfaceOpacity = gizmos.isGeometryWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY
+		const shapeTrait = gizmos.geometryTrait
+		if (!shapeTrait) return
 
 		const entity = spawnGizmo(world, {
-			kind: `reference ${gizmos.geometryShape}`,
+			kind: `reference ${gizmos.referenceShape}`,
 			traits: [
-				gizmos.geometryTrait,
+				shapeTrait,
 				traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
-				traits.Opacity(surfaceOpacity),
+				traits.Opacity(gizmos.isWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY),
 			],
 		})
+
 		selectOnly(world, entity)
+	}
+
+	const placeReference = () => {
+		if (gizmos.referenceShape === 'plane') {
+			if (gizmos.planeConstruction === 'free') pick(GizmoModes.ReferencePlane)
+			else placePlaneAtOffset()
+		} else if (gizmos.geometryConstruction === 'free') {
+			pick(GizmoModes.ReferenceGeometry)
+		} else {
+			placeGeometryAtOrigin()
+		}
+
+		close()
 	}
 </script>
 
@@ -149,82 +170,70 @@
 		/>
 
 		<Folder
-			title="Reference plane"
-			bind:expanded={() => openFolder === 'plane', (v) => setOpenFolder('plane', v)}
+			title="Reference Shape"
+			bind:expanded={() => openFolder === 'reference', (v) => setOpenFolder('reference', v)}
 		>
 			<List
-				label="Type"
-				options={planePlacements}
-				value={gizmos.planeConstruction}
+				label="Shape"
+				options={referenceShapeOptions}
+				value={gizmos.referenceShape}
 				on:change={(event: ListChangeEvent) => {
-					gizmos.planeConstruction = event.detail.value as PlanePlacement
+					gizmos.referenceShape = event.detail.value as ReferenceShape
 				}}
 			/>
-			<List
-				label="Normal"
-				options={axisOptions}
-				value={gizmos.planeAxis}
-				on:change={(event: ListChangeEvent) => {
-					gizmos.planeAxis = event.detail.value as PlaneAxis
-				}}
-			/>
-			{#if gizmos.planeConstruction === 'offset'}
-				<Slider
-					label="Offset (mm)"
-					value={gizmos.planeOffset}
-					min={-1000}
-					max={1000}
-					step={10}
-					on:change={(event: SliderChangeEvent) => {
-						gizmos.planeOffset = event.detail.value
+
+			{#if gizmos.referenceShape === 'plane'}
+				<List
+					label="Placement"
+					options={planePlacements}
+					value={gizmos.planeConstruction}
+					on:change={(event: ListChangeEvent) => {
+						gizmos.planeConstruction = event.detail.value as PlanePlacement
+					}}
+				/>
+				<List
+					label="Normal"
+					options={axisOptions}
+					value={gizmos.planeAxis}
+					on:change={(event: ListChangeEvent) => {
+						gizmos.planeAxis = event.detail.value as PlaneAxis
+					}}
+				/>
+				{#if gizmos.planeConstruction === 'offset'}
+					<Slider
+						label="Offset (mm)"
+						value={gizmos.planeOffset}
+						min={-1000}
+						max={1000}
+						step={10}
+						on:change={(event: SliderChangeEvent) => {
+							gizmos.planeOffset = event.detail.value
+						}}
+					/>
+				{/if}
+			{:else}
+				<List
+					label="Placement"
+					options={geometryPlacementOptions}
+					value={gizmos.geometryConstruction}
+					on:change={(event: ListChangeEvent) => {
+						gizmos.geometryConstruction = event.detail.value as GeometryPlacement
 					}}
 				/>
 			{/if}
-			<Button
-				title="Place reference plane"
-				on:click={() => {
-					if (gizmos.planeConstruction === 'free') pick(GizmoModes.ReferencePlane)
-					else placePlaneAtOffset()
-					close()
-				}}
-			/>
-		</Folder>
 
-		<Folder
-			title="Reference geometry"
-			bind:expanded={() => openFolder === 'geometry', (v) => setOpenFolder('geometry', v)}
-		>
-			<List
-				label="Type"
-				options={geometryPlacementOptions}
-				value={gizmos.geometryConstruction}
-				on:change={(event: ListChangeEvent) => {
-					gizmos.geometryConstruction = event.detail.value as GeometryPlacement
-				}}
-			/>
-			<List
-				label="Shape"
-				options={geometryShapeOptions}
-				value={gizmos.geometryShape}
-				on:change={(event: ListChangeEvent) => {
-					gizmos.geometryShape = event.detail.value as GeometryShape
-				}}
-			/>
 			<List
 				label="Style"
 				options={wireframeOptions}
-				value={gizmos.isGeometryWireframe}
+				value={gizmos.isWireframe}
 				on:change={(event: ListChangeEvent) => {
-					gizmos.isGeometryWireframe = event.detail.value as boolean
+					gizmos.isWireframe = event.detail.value as boolean
 				}}
 			/>
+
 			<Button
-				title="Place reference geometry"
-				on:click={() => {
-					if (gizmos.geometryConstruction === 'free') pick(GizmoModes.ReferenceGeometry)
-					else placeGeometryAtOrigin()
-					close()
-				}}
+				title={`Place reference ${gizmos.referenceShape}`}
+				on:click={placeReference}
 			/>
 		</Folder>
 

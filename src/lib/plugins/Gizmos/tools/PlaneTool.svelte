@@ -1,11 +1,17 @@
 <script lang="ts">
+	import { asRGB } from '$lib/buffer'
 	import { traits, useWorld } from '$lib/ecs'
 	import MeasurePoint from '$lib/plugins/MeasureTool/MeasurePoint.svelte'
 
 	import { cursorPoint } from '../cursor'
 	import { planeMatrix } from '../matrix'
 	import { selectOnly } from '../selection'
-	import { confirmPending, spawnPending } from '../spawn'
+	import {
+		confirmPending,
+		REFERENCE_GEOMETRY_COLOR,
+		REFERENCE_GEOMETRY_OPACITY,
+		spawnPending,
+	} from '../spawn'
 	import { Plane } from '../traits'
 	import { useGizmos } from '../useGizmos.svelte'
 	import { usePlace } from '../usePlace.svelte'
@@ -19,7 +25,12 @@
 				kind: 'reference plane',
 				position,
 				matrix: planeMatrix(gizmos.planeAxis, position),
-				traits: [Plane, traits.Opacity(0.7)],
+				traits: [
+					Plane,
+					traits.Color(asRGB(REFERENCE_GEOMETRY_COLOR, { r: 0, g: 0, b: 0 })),
+					traits.Opacity(gizmos.isWireframe ? 0 : REFERENCE_GEOMETRY_OPACITY),
+					traits.ShowAxesHelper,
+				],
 			})
 			confirmPending(entity)
 			selectOnly(world, entity)

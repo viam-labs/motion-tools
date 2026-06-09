@@ -3,9 +3,6 @@
 
 	const planeUtil = new PlaneGeometry(1, 1)
 	const edgesUtil = new EdgesGeometry(planeUtil, 0)
-
-	const SURFACE_COLOR = '#FFA726'
-	const EDGE_COLOR = '#F4A460'
 </script>
 
 <script lang="ts">
@@ -13,12 +10,15 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { DoubleSide, Group, Mesh } from 'three'
+	import { Color, DoubleSide, Group, Mesh } from 'three'
 
+	import { asColor } from '$lib/buffer'
+	import { darkenColor } from '$lib/color'
 	import AxesHelper from '$lib/components/AxesHelper.svelte'
 	import { useEntityEvents } from '$lib/components/Entities/hooks/useEntityEvents.svelte'
 	import { traits, useTrait } from '$lib/ecs'
 
+	import { REFERENCE_GEOMETRY_COLOR } from './spawn'
 	import * as gizmoTraits from './traits'
 
 	interface Props {
@@ -32,15 +32,23 @@
 	const name = useTrait(() => entity, traits.Name)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const opacity = useTrait(() => entity, traits.Opacity)
+	const entityColor = useTrait(() => entity, traits.Color)
 	const plane = useTrait(() => entity, gizmoTraits.Plane)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
+	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const events = useEntityEvents(() => entity)
 
 	const mesh = new Mesh()
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
+	const colorUtil = new Color()
 	const currentOpacity = $derived(opacity.current ?? 1)
+	const color = $derived.by(() => {
+		const rgb = entityColor.current
+		if (rgb) return colorUtil.setRGB(rgb.r, rgb.g, rgb.b)
+		return asColor(REFERENCE_GEOMETRY_COLOR, colorUtil)
+	})
 
 	$effect(() => {
 		if (!worldMatrix.current) return
@@ -73,7 +81,7 @@
 			dispose={false}
 		/>
 		<T.MeshToonMaterial
-			color={SURFACE_COLOR}
+			{color}
 			side={DoubleSide}
 			transparent={currentOpacity < 1}
 			depthWrite={currentOpacity === 1}
@@ -87,16 +95,18 @@
 				is={edgesUtil}
 				dispose={false}
 			/>
-			<T.LineBasicMaterial color={EDGE_COLOR} />
+			<T.LineBasicMaterial color={darkenColor(color, 10)} />
 		</T.LineSegments>
 	</T>
 
-	<AxesHelper
-		name={entity}
-		width={3}
-		length={0.1}
-		depthTest={false}
-	/>
+	{#if showAxesHelper.current}
+		<AxesHelper
+			name={entity}
+			width={3}
+			length={0.1}
+			depthTest={false}
+		/>
+	{/if}
 
 	{@render children?.()}
 </T>

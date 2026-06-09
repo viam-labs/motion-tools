@@ -15,8 +15,7 @@
 
 	const selected = useQuery(traits.Selected)
 	const entity = $derived(selected.current[0])
-	const gizmo = useTrait(() => entity, Gizmo)
-	const isGizmo = $derived(Boolean(gizmo.current))
+	const gizmo = useTag(() => entity, Gizmo)
 
 	const plane = useTrait(() => entity, Plane)
 	const box = useTrait(() => entity, traits.Box)
@@ -49,7 +48,7 @@
 	})
 </script>
 
-{#if isGizmo}
+{#if gizmo.current}
 	<Portal id="details-header-icon">
 		<span
 			class="text-info-dark px-1"
@@ -60,7 +59,7 @@
 	</Portal>
 {/if}
 
-{#if isGizmo && entity}
+{#if gizmo.current && entity}
 	<Portal id="details-extensions">
 		<div class="flex flex-col gap-2.5 text-xs">
 			<PoseDetails
@@ -73,6 +72,7 @@
 				<PlaneDetails {entity} />
 				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
+				<AxesHelperDetails {entity} />
 			{/if}
 			{#if isReferenceGeometry}
 				<GeometryDetails {entity} />

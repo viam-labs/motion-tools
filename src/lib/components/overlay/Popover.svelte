@@ -21,11 +21,20 @@
 
 {@render trigger(api.getTriggerProps(), { isOpen: api.open })}
 
+<!--
+	The menu is portalled to <body>, so it must out-stack scene-space entity labels and 
+	panels. zag drives the positioner's z-index from `var(--z-index)`, which it copies from 
+	the *content* element's computed z-index. So the z-index must live on the content, not 
+	the positioner. 
+-->
 <div
 	use:portal={{ disabled: !api.portalled }}
 	{...api.getPositionerProps()}
 >
-	<div {...api.getContentProps()}>
+	<div
+		class="z-max"
+		{...api.getContentProps()}
+	>
 		{@render children({ close })}
 	</div>
 </div>
