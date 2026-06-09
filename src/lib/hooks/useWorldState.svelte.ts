@@ -18,7 +18,7 @@ import { Matrix4 } from 'three'
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { drawTransform, updateMetadata } from '$lib/draw'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
 import { metadataFromStruct } from '$lib/metadata'
 import { createPose, poseToMatrix } from '$lib/transform'
@@ -57,6 +57,12 @@ export const provideWorldStates = () => {
 		}
 	})
 }
+
+// FieldMask paths are proto field names; spec-compliant backends emit
+// snake_case (`pose_in_observer_frame`) while some emit camelCase. Normalize
+// to camelCase so matching against the message's accessors is casing-agnostic.
+const snakeToCamel = (path: string): string =>
+	path.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())
 
 const decodeBase64 = (encoded: string): Uint8Array => {
 	const binary = atob(encoded)
@@ -127,6 +133,11 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	const relationships = useRelationships()
 
 	const entities = new Map<string, Entity>()
+	// UUIDs the stream has removed; guards against a stale initial snapshot or a
+	// self-heal fetch re-creating an entity the server has already deleted.
+	const removedUUIDs = new Set<string>()
+	// UUIDs with an in-flight self-heal `getTransform`, to dedupe concurrent fetches.
+	const pendingSpawns = new Set<string>()
 
 	const chunkLoader = createChunkLoader({
 		world,
@@ -150,7 +161,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	})
 
 	const spawnEntity = (transform: TransformWithUUID) => {
-		if (entities.has(transform.uuidString)) {
+		if (entities.has(transform.uuidString) || removedUUIDs.has(transform.uuidString)) {
 			return
 		}
 
@@ -166,6 +177,8 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	}
 
 	const destroyEntity = (uuid: string) => {
+		removedUUIDs.add(uuid)
+
 		const entity = entities.get(uuid)
 
 		if (!entity) return
@@ -176,32 +189,58 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		entities.delete(uuid)
 	}
 
+	// Spawn an entity whose UPDATE delta arrived before the initial snapshot
+	// created it. The delta carries only changed fields, so fetch the full
+	// transform; skip if it was removed or already spawned meanwhile.
+	const spawnFromServer = async (uuid: string) => {
+		if (entities.has(uuid) || removedUUIDs.has(uuid) || pendingSpawns.has(uuid)) return
+
+		pendingSpawns.add(uuid)
+		try {
+			const transform = await client.current?.getTransform(uuid)
+			if (transform && !removedUUIDs.has(uuid)) {
+				spawnEntity(transform)
+				invalidate()
+			}
+		} catch (error) {
+			console.error('World state self-heal failed for', uuid, error)
+		} finally {
+			pendingSpawns.delete(uuid)
+		}
+	}
+
 	const updateEntity = (transform: TransformWithUUID, changes: (string | number)[]) => {
 		const entity = entities.get(transform.uuidString)
 
-		if (!entity) return
+		if (!entity) {
+			void spawnFromServer(transform.uuidString)
+			return
+		}
 
 		let metadataDirty = false
 
-		for (const path of changes) {
-			if (typeof path === 'string') {
-				if (path.startsWith('poseInObserverFrame.pose')) {
-					const matrix = entity.get(traits.Matrix)
-					if (matrix) {
-						poseToMatrix(createPose(transform.poseInObserverFrame?.pose), matrix)
-						entity.changed(traits.Matrix)
-					} else {
-						entity.add(
-							traits.Matrix(
-								poseToMatrix(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
-							)
+		for (const rawPath of changes) {
+			if (typeof rawPath !== 'string') continue
+
+			const path = snakeToCamel(rawPath)
+
+			if (path.startsWith('poseInObserverFrame')) {
+				const matrix = entity.get(traits.Matrix)
+				if (matrix) {
+					poseToMatrix(createPose(transform.poseInObserverFrame?.pose), matrix)
+					entity.changed(traits.Matrix)
+				} else {
+					entity.add(
+						traits.Matrix(
+							poseToMatrix(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
 						)
-					}
-				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
-					traits.updateGeometryTrait(entity, transform.physicalObject)
-				} else if (path.startsWith('metadata')) {
-					metadataDirty = true
+					)
 				}
+				hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
+			} else if (path.startsWith('physicalObject') && transform.physicalObject) {
+				traits.updateGeometryTrait(entity, transform.physicalObject)
+			} else if (path.startsWith('metadata')) {
+				metadataDirty = true
 			}
 		}
 
@@ -234,6 +273,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	const applyEvents = (events: TransformEvent[]) => {
 		for (const event of events) {
 			if (event.changeType === TransformChangeType.ADDED) {
+				removedUUIDs.delete(event.transform.uuidString)
 				spawnEntity(event.transform)
 			} else if (event.changeType === TransformChangeType.REMOVED) {
 				destroyEntity(event.transform.uuidString)
