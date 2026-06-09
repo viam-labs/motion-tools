@@ -16,8 +16,6 @@
 		warn: true,
 		error: true,
 	})
-
-	$inspect(isOpen.current)
 </script>
 
 <Portal id="dashboard">
