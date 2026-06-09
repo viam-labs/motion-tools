@@ -19,7 +19,7 @@ export const provideStandaloneLLM = (): StandaloneLLMContext => {
 			body: JSON.stringify({
 				prompt,
 				components,
-				anthropicApiKey: settings.current.anthropicKey || undefined,
+				anthropicKey: settings.current.anthropicKey || undefined,
 			}),
 		})
 		if (!res.ok) {

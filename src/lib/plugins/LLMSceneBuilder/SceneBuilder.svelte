@@ -12,7 +12,6 @@
 	let prompt = $state('')
 
 	const canSubmit = $derived(prompt.trim().length > 0 && sceneBuilder.uiState === 'idle')
-	$inspect(isOpen, 'isOpen')
 </script>
 
 <Portal id="dashboard">

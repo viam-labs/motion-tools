@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 const RequestSchema = z.object({
 	prompt: z.string().min(1),
-	anthropicApiKey: z.string().optional(),
+	anthropicKey: z.string().optional(),
 	components: z.array(
 		z.object({
 			name: z.string(),
@@ -94,8 +94,8 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		})
 	}
 
-	const { prompt, components, anthropicApiKey } = parsed.data
-	const apiKey = anthropicApiKey || process.env.ANTHROPIC_API_KEY
+	const { prompt, components, anthropicKey } = parsed.data
+	const apiKey = anthropicKey || process.env.ANTHROPIC_API_KEY
 	if (!apiKey) {
 		return new Response(
 			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
