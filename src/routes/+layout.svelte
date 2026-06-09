@@ -7,13 +7,11 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { provideSettings } from '$lib/hooks/useSettings.svelte'
-	import { provideStandaloneLLM } from '$lib/hooks/useStandaloneLLM.svelte'
 	import { AISettings, DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
-	import LLMSceneBuilder from '$lib/plugins/LLMSceneBuilder/LLMSceneBuilder.svelte'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
+	import StandaloneLLMWrapper from './lib/components/StandaloneLLMWrapper.svelte'
 	import {
 		provideConnectionConfigs,
 		useActiveConnectionConfig,
@@ -21,8 +19,6 @@
 	import { getDialConfs } from './lib/robots'
 
 	provideConnectionConfigs()
-	provideSettings()
-	const standaloneLLMContext = provideStandaloneLLM()
 
 	const connectionConfig = useActiveConnectionConfig()
 
@@ -81,13 +77,13 @@
 
 				{#snippet dashboard()}
 					<Machines bind:isOpen={isMachinesPageOpen} />
-					<LLMSceneBuilder onInfer={standaloneLLMContext.current} />
 				{/snippet}
 
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
 				<XR />
+				<StandaloneLLMWrapper />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
