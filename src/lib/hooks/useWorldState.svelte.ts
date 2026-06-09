@@ -11,7 +11,6 @@ import {
 import {
 	createResourceClient,
 	createResourceQuery,
-	createResourceStream,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { Matrix4 } from 'three'
@@ -217,6 +216,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 
 	let initialized = false
 	let flushScheduled = false
+	let rafId = 0
 	let pendingEvents: TransformEvent[] = []
 
 	const listUUIDs = createResourceQuery(client, 'listUUIDs')
@@ -230,10 +230,6 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			)
 		})
 	)
-
-	const changeStream = createResourceStream(client, 'streamTransformChanges', {
-		refetchMode: 'replace',
-	})
 
 	const applyEvents = (events: TransformEvent[]) => {
 		for (const event of events) {
@@ -255,12 +251,12 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		if (flushScheduled) return
 		flushScheduled = true
 
-		requestAnimationFrame(() => {
-			const toApply = pendingEvents
-
-			applyEvents(toApply)
+		rafId = requestAnimationFrame(() => {
+			rafId = 0
 			flushScheduled = false
+			const toApply = pendingEvents
 			pendingEvents = []
+			applyEvents(toApply)
 		})
 	}
 
@@ -281,65 +277,45 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		initialized = true
 	})
 
-	$effect(() => {
-		if (changeStream?.data === undefined) return
+	/**
+	 * Consumes the `streamTransformChanges` server stream directly.
+	 * Transform changes are write-once into the ECS world, so we drain
+	 * each event into `pendingEvents` (cleared every flush) and never
+	 * retain history. Mirrors `useDrawService`'s stream consumption.
+	 */
+	const consumeChanges = async (signal: AbortSignal) => {
+		const activeClient = client.current
+		if (!activeClient) return
 
-		const eventsByUUID = new Map<string, TransformEvent>()
+		try {
+			for await (const event of activeClient.streamTransformChanges(undefined, { signal })) {
+				if (signal.aborted) break
+				if (!event.transform) continue
 
-		for (const event of changeStream.data) {
-			if (!event.transform) {
-				continue
+				pendingEvents.push(event as TransformEvent)
+				scheduleFlush()
 			}
-
-			const uuid = event.transform.uuidString
-			const existing = eventsByUUID.get(uuid)
-			if (!existing) {
-				eventsByUUID.set(uuid, event as TransformEvent)
-				continue
-			}
-
-			switch (event.changeType) {
-				case TransformChangeType.REMOVED: {
-					eventsByUUID.set(uuid, event as TransformEvent)
-					break
-				}
-
-				case TransformChangeType.ADDED: {
-					if (existing.changeType !== TransformChangeType.REMOVED) {
-						eventsByUUID.set(uuid, event as TransformEvent)
-					}
-					break
-				}
-
-				case TransformChangeType.UPDATED: {
-					// merge with existing updated event
-					if (existing.changeType === TransformChangeType.UPDATED) {
-						existing.updatedFields ??= { paths: [] }
-
-						const paths = event.updatedFields?.paths ?? []
-
-						for (const path of paths) {
-							if (existing.updatedFields.paths.includes(path)) {
-								continue
-							}
-
-							existing.updatedFields.paths.push(path)
-						}
-
-						existing.transform = event.transform
-					} else {
-						eventsByUUID.set(uuid, event as TransformEvent)
-					}
-					break
-				}
+		} catch (error) {
+			if (!signal.aborted) {
+				console.error('World state transform stream error:', error)
 			}
 		}
+	}
 
-		pendingEvents.push(...eventsByUUID.values())
-		scheduleFlush()
+	$effect(() => {
+		if (!client.current) return
+
+		const controller = new AbortController()
+		void consumeChanges(controller.signal)
+
+		return () => {
+			controller.abort()
+		}
 	})
 
 	return () => {
+		if (rafId) cancelAnimationFrame(rafId)
+		pendingEvents = []
 		chunkLoader.dispose()
 		for (const [, entity] of entities) {
 			if (world.has(entity)) {
