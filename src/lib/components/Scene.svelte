@@ -17,7 +17,6 @@
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
 	import CameraControls from './CameraControls.svelte'
-	import Labels from './Entities/Labels.svelte'
 	import KeyboardBindings from './KeyboardBindings.svelte'
 	import PointerMissBox from './PointerMissBox.svelte'
 
@@ -106,5 +105,3 @@
 
 <T.DirectionalLight position={[3, 3, 3]} />
 <T.AmbientLight />
-
-<Labels />
