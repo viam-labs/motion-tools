@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Input } from '@viamrobotics/prime-core'
 
-	import { useAnthropicKey } from '$lib/hooks/useAnthropicKey.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	const anthropicKey = useAnthropicKey()
+	const settings = useSettings()
 </script>
 
 <div class="flex flex-col gap-2.5 text-xs">
@@ -12,12 +12,8 @@
 		API key
 		<Input
 			type="password"
-			value={anthropicKey.current}
+			bind:value={settings.current.anthropicKey}
 			placeholder="sk-ant-..."
-			on:change={(event) => {
-				anthropicKey.save((event.target as HTMLInputElement).value.trim())
-			}}
-			on:keydown={(event) => event.stopImmediatePropagation()}
 		/>
 	</label>
 	<p class="text-gray-5">Used by the Scene Builder AI feature. Stored locally in your browser.</p>

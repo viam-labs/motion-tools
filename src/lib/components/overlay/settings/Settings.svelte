@@ -9,7 +9,6 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
-	import AISettings from './AISettings.svelte'
 	import ConnectionSettings from './ConnectionSettings.svelte'
 	import DebugSettings from './DebugSettings.svelte'
 	import PointcloudSettings from './PointcloudSettings.svelte'
@@ -72,7 +71,6 @@
 			{ label: 'Vision', component: VisionSettings },
 			{ label: 'Widgets', component: WidgetSettings },
 			{ label: 'Debug', component: DebugSettings },
-			{ label: 'AI', component: AISettings },
 			{ label: 'Weblabs', component: WeblabSettings },
 			...settingsTabs,
 		]}
