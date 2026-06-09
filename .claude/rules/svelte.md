@@ -46,6 +46,8 @@ This project renders a 3D scene using [Threlte](https://threlte.xyz/llms-full.tx
 
 The right question to ask for when to use `$effect` vs `$effect.pre` is "does anything downstream in the same flush need to read this before render/DOM-commit?" If yes,`.pre`; if it's a pure side-effect with nothing observing the result inside the same flush, plain $effect is correct.
 
+**Do not reach for `.pre` to "avoid a one-frame render lag."** That reasoning applies to continuously-rendered scenes; it does **not** apply here. Because rendering is on-demand, a scene mutation is followed by `invalidate()`, which schedules a render for the _next_ `requestAnimationFrame`.
+
 **`dispose={false}`** — pass when you manage the Three.js object's lifecycle yourself (pooled or shared instances).
 
 **BVH / raycasting** — opt out objects that don't need hit-testing: `bvh={{ enabled: false }}` or `raycast={() => null}` for display-only geometry.

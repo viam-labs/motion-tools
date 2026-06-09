@@ -32,7 +32,7 @@
 	const name = useTrait(() => entity, traits.Name)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const plane = useTrait(() => entity, gizmoTraits.ReferencePlane)
+	const plane = useTrait(() => entity, gizmoTraits.Plane)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const events = useEntityEvents(() => entity)
 
@@ -42,7 +42,7 @@
 
 	const currentOpacity = $derived(opacity.current ?? 1)
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (!worldMatrix.current) return
 		group.matrix.copy(worldMatrix.current)
 		group.matrix.decompose(group.position, group.quaternion, group.scale)
@@ -50,7 +50,7 @@
 		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (plane.current) {
 			mesh.scale.set(plane.current.width * 0.001, plane.current.height * 0.001, 1)
 			invalidate()

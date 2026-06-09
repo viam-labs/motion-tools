@@ -52,7 +52,7 @@
 		(kind === 'surface' ? surfaceConfig.current?.length : vertexConfig.current?.length) ?? 100
 	)
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (!source) return
 
 		void sourceBox.current
@@ -91,7 +91,7 @@
 		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (!colorTrait.current) return
 		if (!helper) return
 
@@ -101,7 +101,7 @@
 		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (kind !== 'vertex') return
 		if (!sourceMatrix.current) return
 		if (!sourceMesh) return
@@ -113,7 +113,7 @@
 	})
 
 	let previousSource: Entity | undefined = undefined
-	$effect.pre(() => {
+	$effect(() => {
 		if (source !== undefined && source.isAlive()) {
 			previousSource = source
 			return

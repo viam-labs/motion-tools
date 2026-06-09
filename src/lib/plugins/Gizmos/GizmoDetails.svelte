@@ -6,24 +6,24 @@
 	import ColorDetails from '$lib/components/overlay/details/ColorDetails.svelte'
 	import GeometryDetails from '$lib/components/overlay/details/GeometryDetails.svelte'
 	import LineDetails from '$lib/components/overlay/details/LineDetails/LineDetails.svelte'
-	import MatrixDetails from '$lib/components/overlay/details/MatrixDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
-	import { hierarchy, traits, useQuery, useTrait } from '$lib/ecs'
+	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
+	import { hierarchy, traits, useQuery, useTag, useTrait } from '$lib/ecs'
 
 	import PlaneDetails from './PlaneDetails.svelte'
-	import { Gizmo, GizmoArrow, ReferencePlane } from './traits'
+	import { Gizmo, GizmoArrow, Plane } from './traits'
 
 	const selected = useQuery(traits.Selected)
 	const entity = $derived(selected.current[0])
 	const gizmo = useTrait(() => entity, Gizmo)
 	const isGizmo = $derived(Boolean(gizmo.current))
 
-	const plane = useTrait(() => entity, ReferencePlane)
+	const plane = useTrait(() => entity, Plane)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const linePositions = useTrait(() => entity, traits.LinePositions)
-	const gizmoArrow = useTrait(() => entity, GizmoArrow)
+	const gizmoArrow = useTag(() => entity, GizmoArrow)
 
 	const isReferencePlane = $derived(Boolean(plane.current))
 	const isReferenceGeometry = $derived(Boolean(box.current || sphere.current || capsule.current))
@@ -63,7 +63,7 @@
 {#if isGizmo && entity}
 	<Portal id="details-extensions">
 		<div class="flex flex-col gap-2.5 text-xs">
-			<MatrixDetails
+			<PoseDetails
 				{entity}
 				{parentOptions}
 				onPoseChange={(patch) => traits.writeMatrix(entity, patch)}

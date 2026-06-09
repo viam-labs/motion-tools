@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Label from '$lib/components/Entities/Label.svelte'
-	import { traits, useQuery } from '$lib/ecs'
+	import { useQuery } from '$lib/ecs'
 
 	import GizmoArrow from './GizmoArrow.svelte'
 	import GizmoNormals from './GizmoNormals.svelte'
@@ -8,7 +8,7 @@
 	import GizmoPolylineMeasure from './GizmoPolylineMeasure.svelte'
 	import * as gizmoTraits from './traits'
 
-	const planeGizmos = useQuery(gizmoTraits.ReferencePlane)
+	const planeGizmos = useQuery(gizmoTraits.Plane)
 	const arrowGizmos = useQuery(gizmoTraits.GizmoArrow)
 	const polylineMeasures = useQuery(gizmoTraits.PolylineMeasure)
 	const vertexNormals = useQuery(gizmoTraits.VertexNormals)
@@ -17,13 +17,13 @@
 
 {#each planeGizmos.current as entity (entity)}
 	<GizmoPlane {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</GizmoPlane>
 {/each}
 
 {#each arrowGizmos.current as entity (entity)}
 	<GizmoArrow {entity}>
-		<Label text={entity.get(traits.Name)} />
+		<Label {entity} />
 	</GizmoArrow>
 {/each}
 

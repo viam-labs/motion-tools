@@ -6,7 +6,7 @@
 
 	import { useTrait } from '$lib/ecs'
 
-	import { ReferencePlane } from './traits'
+	import { Plane } from './traits'
 
 	interface Props {
 		entity: Entity
@@ -15,12 +15,12 @@
 	const { entity }: Props = $props()
 
 	const { invalidate } = useThrelte()
-	const plane = useTrait(() => entity, ReferencePlane)
+	const plane = useTrait(() => entity, Plane)
 
 	const handleChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue2dObject
-		entity.set(ReferencePlane, { width: next.x, height: next.y })
+		entity.set(Plane, { width: next.x, height: next.y })
 		invalidate()
 	}
 </script>

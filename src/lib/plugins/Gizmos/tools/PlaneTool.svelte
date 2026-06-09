@@ -6,7 +6,7 @@
 	import { planeMatrix } from '../matrix'
 	import { selectOnly } from '../selection'
 	import { confirmPending, spawnPending } from '../spawn'
-	import { ReferencePlane } from '../traits'
+	import { Plane } from '../traits'
 	import { useGizmos } from '../useGizmos.svelte'
 	import { usePlace } from '../usePlace.svelte'
 
@@ -19,7 +19,7 @@
 				kind: 'reference plane',
 				position,
 				matrix: planeMatrix(gizmos.planeAxis, position),
-				traits: [ReferencePlane, traits.Opacity(0.7)],
+				traits: [Plane, traits.Opacity(0.7)],
 			})
 			confirmPending(entity)
 			selectOnly(world, entity)

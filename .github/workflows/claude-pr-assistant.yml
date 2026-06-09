@@ -46,6 +46,7 @@ jobs:
         - Do NOT run unrelated commands, they waste turns and time.
         - If a lint or test command fails more than twice on the same issue, commit what you have, push, and note the unresolved issue in a PR comment.
         - Before editing code, read 1-2 similar functions or components in the same file or package to follow existing patterns and conventions.
+        - Before reviewing OR editing a file, read the project conventions that apply to it in `.claude/rules/` (the table in `CLAUDE.md` maps file globs to rule files). These are path-scoped and may not auto-load during a diff-only review, so read them explicitly — e.g. `.claude/rules/svelte.md` for `.svelte`/`.svelte.ts`/`.svelte.js`, `.claude/rules/three.md` for `src/lib/three/`. They override generic best-practice priors.
         - This repo uses Svelte 5 runes and SvelteKit. Consult the Svelte MCP server when editing or reviewing `.svelte` / `.svelte.ts` / `.svelte.js` files.
         - NEVER use curl, python3, or WebFetch to submit GitHub reviews. Use ONLY `gh pr review` and `gh pr comment`.
       extra_system_prompt: >-
