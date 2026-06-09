@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.33.2
+
+### Patch Changes
+
+- 054deaf: Fix world state store service race conditions
+
 ## 1.33.1
 
 ### Patch Changes
