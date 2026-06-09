@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.34.0
+
+### Minor Changes
+
+- 64db2c5: added llm scene builder
+
 ## 1.33.2
 
 ### Patch Changes
