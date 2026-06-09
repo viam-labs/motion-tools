@@ -6,6 +6,7 @@ import { getContext, setContext } from 'svelte'
 const key = Symbol('dashboard-context')
 
 export interface Settings {
+	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
 	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo'
 	refreshRates: {
@@ -83,6 +84,7 @@ export const RefreshRates = {
 } as const
 
 const defaults = (): Settings => ({
+	anthropicKey: '',
 	cameraMode: 'perspective',
 
 	refreshRates: {
