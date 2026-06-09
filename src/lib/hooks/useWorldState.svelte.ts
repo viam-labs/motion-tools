@@ -62,7 +62,7 @@ export const provideWorldStates = () => {
 // snake_case (`pose_in_observer_frame`) while some emit camelCase. Normalize
 // to camelCase so matching against the message's accessors is casing-agnostic.
 const snakeToCamel = (path: string): string =>
-	path.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())
+	path.replaceAll(/_([a-z])/g, (_, char: string) => char.toUpperCase())
 
 const decodeBase64 = (encoded: string): Uint8Array => {
 	const binary = atob(encoded)
