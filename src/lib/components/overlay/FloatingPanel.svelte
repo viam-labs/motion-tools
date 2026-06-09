@@ -29,7 +29,7 @@
 		resizable = false,
 		persistRect = true,
 		isOpen = $bindable(false),
-		bodyClass = 'bg-white',
+		bodyClass = 'bg-light',
 		children,
 		...props
 	}: Props = $props()
@@ -61,7 +61,7 @@
 >
 	<div
 		{...api.getContentProps()}
-		class="border-medium border-1 dark:text-black"
+		class="border-medium border-1"
 	>
 		<div
 			{...api.getDragTriggerProps()}
@@ -69,7 +69,7 @@
 		>
 			<div
 				{...api.getHeaderProps()}
-				class="border-medium flex items-center justify-between border-b bg-white p-2"
+				class="border-medium bg-light flex items-center justify-between border-b p-2"
 			>
 				<h3
 					{...api.getTitleProps()}

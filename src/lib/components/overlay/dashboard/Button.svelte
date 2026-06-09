@@ -2,10 +2,10 @@
 	import type { ClassValue, HTMLButtonAttributes, MouseEventHandler } from 'svelte/elements'
 
 	import { Icon, type IconName, Tooltip } from '@viamrobotics/prime-core'
-	import { Focus, MousePointer2, Ruler, Shapes } from 'lucide-svelte'
+	import { Focus, Moon, MousePointer2, Ruler, Shapes, Sun, SunMoon } from 'lucide-svelte'
 
 	interface Props extends HTMLButtonAttributes {
-		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes' | 'focus'
+		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes' | 'focus' | 'sun-moon' | 'sun' | 'moon'
 		active?: boolean
 		description: string
 		hotkey?: string
@@ -36,8 +36,8 @@
 	<label
 		class={[
 			className,
-			'relative block rounded-md border active:z-4 active:border-[#666] active:bg-[#666] active:text-white',
-			active ? 'z-4 border-[#666] bg-[#666] text-white' : 'border-gray-5 text-gray-8 bg-white',
+			'active:border-gray-8 active:bg-gray-8 relative block rounded-md border active:z-4 active:text-white',
+			active ? 'border-gray-8 bg-gray-8 z-4 text-white' : 'border-gray-5 text-gray-8 bg-light',
 		]}
 		aria-describedby={tooltipID}
 	>
@@ -57,6 +57,12 @@
 				<Shapes size="16" />
 			{:else if icon === 'focus'}
 				<Focus size="16" />
+			{:else if icon === 'sun-moon'}
+				<SunMoon size="16" />
+			{:else if icon === 'sun'}
+				<Sun size="16" />
+			{:else if icon === 'moon'}
+				<Moon size="16" />
 			{:else}
 				<Icon name={icon} />
 			{/if}

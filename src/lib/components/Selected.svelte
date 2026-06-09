@@ -4,15 +4,23 @@
 	import { OBB } from 'three/addons/math/OBB.js'
 
 	import { traits, useQuery } from '$lib/ecs'
+	import { useDarkMode } from '$lib/plugins/DarkMode/useDarkMode.svelte'
 	import { OBBHelper } from '$lib/three/OBBHelper'
 
 	const box3 = new Box3()
 	const obb = new OBB()
+	const darkMode = useDarkMode()
 
 	const { scene, invalidate } = useThrelte()
 	const selected = useQuery(traits.Selected)
 
 	const obbHelpers = $derived(selected.current.map((entity) => [entity, new OBBHelper()] as const))
+	const outlineColor = $derived(darkMode.isDark ? 0xffffff : 0x000000)
+
+	$effect(() => {
+		for (const [, helper] of obbHelpers) helper.setColor(outlineColor)
+		invalidate()
+	})
 
 	useTask(
 		() => {

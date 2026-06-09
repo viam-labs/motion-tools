@@ -76,7 +76,7 @@
 			{#if machineConnection.isAwaitingRetry}
 				<button
 					aria-label="Machine connection configs"
-					class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+					class="border-danger-medium bg-danger-light text-danger-dark hover:bg-danger-medium-light focus:bg-danger-medium-light active:bg-danger-medium flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs"
 					onclick={() => {
 						isOpen = !isOpen
 					}}
@@ -89,7 +89,7 @@
 				</button>
 				<button
 					aria-label="Reconnect now"
-					class="border-danger-medium bg-danger-light text-danger-dark flex items-center rounded-r border px-2 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+					class="border-danger-medium bg-danger-light text-danger-dark hover:bg-danger-medium-light focus:bg-danger-medium-light active:bg-danger-medium flex items-center rounded-r border px-2 py-1.5 text-xs"
 					onclick={machineConnection.retryNow}
 				>
 					<Icon name="refresh" />
@@ -100,10 +100,10 @@
 					class={[
 						'flex items-center gap-2 rounded border px-2.5 py-1.5 text-xs',
 						{
-							'border-gray-5 bg-white': !connected && !disconnected,
-							'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
+							'border-gray-5 bg-light': !connected && !disconnected,
+							'border-success-medium bg-success-light text-success-dark hover:bg-success-medium-light focus:bg-success-medium-light active:bg-success-medium':
 								connected,
-							'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
+							'border-danger-medium bg-danger-light text-danger-dark hover:bg-danger-medium-light focus:bg-danger-medium-light active:bg-danger-medium':
 								disconnected,
 						},
 					]}
@@ -236,11 +236,11 @@
 				</Collapsible>
 			</form>
 
-			<div class="mt-2 mb-2 w-full border-b border-gray-300"></div>
+			<div class="border-light mt-2 mb-2 w-full border-b"></div>
 		{/each}
 	</div>
 
-	<div class="border-medium flex w-full justify-center border-t bg-white p-2">
+	<div class="border-medium bg-light flex w-full justify-center border-t p-2">
 		<Button
 			icon="plus"
 			onclick={() => connectionConfigs.add()}

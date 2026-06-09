@@ -1,0 +1,68 @@
+---
+title: <DarkMode />
+description: Cycle the motion-tools visualizer between system, dark, and light themes, defaulting to the user's system preference.
+---
+
+`<DarkMode />` adds a theme button to the visualizer dashboard that cycles between three modes — **system**, **dark**, and **light**. It shows a sun/moon icon for system, a moon for dark, and a sun for light, and the choice is persisted across reloads.
+
+In **system** mode (the default) the theme follows the user's operating-system preference (`prefers-color-scheme`) **live** — if the OS switches (for example a sunset auto-dark schedule), the visualizer follows along. **dark** and **light** pin the theme regardless of the OS. Each press of the button advances `system → dark → light → system`.
+
+The visualizer follows the system preference on its own — mounting `<DarkMode />` is only needed to give users a manual override.
+
+## Usage
+
+Mount `<DarkMode />` anywhere inside `<Visualizer />`:
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { DarkMode } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<DarkMode />
+	</Visualizer>
+</div>
+```
+
+## How it works
+
+`<Visualizer />` owns the theme, stored as a `system` / `dark` / `light` mode (persisted to local storage, default `system`):
+
+- In `system` mode it sets **no** class on the document's root element, leaving the CSS `prefers-color-scheme` media query in charge — so the theme tracks the OS live.
+- `dark` / `light` add a `.dark` / `.light` class to the root element that overrides the media query and pins the theme.
+
+Two things respond to that state:
+
+- **CSS** — the [`@viamrobotics/tailwind-config`](https://github.com/viamrobotics/prime/tree/main/packages/tailwind-config) dark theme reassigns its color tokens under the dark scope (the `prefers-color-scheme` media query in `system` mode, or the `.dark` class when pinned), so every semantic token (`text-default`, `bg-light`, `border-medium`, the status colors, …) flips with no markup changes. `color-scheme` follows the same class, so native controls and scrollbars match.
+- **WebGL / JS surfaces** that can't read CSS tokens switch off the effective theme: the Tweakpane controls (`primeTheme` ↔ `primeThemeDark`), the scene backdrop and grid, the selection outline, and the measurement line.
+
+## Reading the theme
+
+Use `useDarkMode()` to read or cycle the theme from your own components anywhere inside `<Visualizer />`. Most code wants `isDark` — the resolved boolean, which already accounts for the OS in `system` mode:
+
+```svelte
+<script lang="ts">
+	import { useDarkMode, ThemeModes } from '@viamrobotics/motion-tools/plugins'
+
+	const darkMode = useDarkMode()
+</script>
+
+<p>Mode: {darkMode.current}</p>
+<p>Currently {darkMode.isDark ? 'dark' : 'light'}</p>
+
+<button onclick={() => darkMode.toggle()}> Cycle theme </button>
+
+{#if darkMode.current === ThemeModes.System}
+	<span>Following the system preference</span>
+{/if}
+```
+
+| Member     | Type                            | Description                                                                        |
+| ---------- | ------------------------------- | ---------------------------------------------------------------------------------- |
+| `current`  | `'system' \| 'dark' \| 'light'` | The chosen mode. Compare against the exported `ThemeModes` constants.              |
+| `isDark`   | `boolean`                       | The active theme — `true` when dark is showing (resolves `system` against the OS). |
+| `toggle()` | `() => void`                    | Advance to the next mode: `system → dark → light → system`.                        |
+
+`ThemeModes` (`{ System, Dark, Light }`) is exported for comparing `current`. Outside the provided context, the hook returns a light-mode default (`current: 'light'`, `isDark: false`) with a no-op `toggle()`.

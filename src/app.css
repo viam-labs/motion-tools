@@ -1,19 +1,72 @@
 @import 'tailwindcss';
-@config "../tailwind.config.ts";
+@import '@viamrobotics/tailwind-config';
+@import '@viamrobotics/tailwind-config/dark';
 
 @plugin '@tailwindcss/forms';
 
-@source '../node_modules/@skeletonlabs/skeleton-svelte';
+/*
+ * prime-core ships its components under node_modules, which Tailwind v4 skips
+ * during automatic source detection. Register it so the utility classes those
+ * components rely on are generated against the @viamrobotics/tailwind-config
+ * theme (which is the native-v4 port of prime-core's own theme/plugins).
+ */
+@source '../node_modules/@viamrobotics/prime-core/src';
 
-@import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/cerberus';
+/*
+ * "medium-light" status steps sit between the -light and -medium tokens. They
+ * back the hover fill prime-core's outline-* button variants use (prime-core
+ * hardcodes the hex, e.g. #f5dfdc for outline-danger). The values are the
+ * midpoint of the surrounding light/medium tokens; we flip them in the dark
+ * scopes exactly like @viamrobotics/tailwind-config/dark does for the rest of
+ * the palette so they adapt to system preference (and the .dark/.light escape
+ * hatches keep working).
+ */
+@theme {
+	--color-success-medium-light: #cdebd0;
+	--color-danger-medium-light: #f5d6d5;
+}
 
-@import '@viamrobotics/prime-core/prime.css';
+@media (prefers-color-scheme: dark) {
+	:root:not(.light) {
+		--color-success-medium-light: #335037;
+		--color-danger-medium-light: #542f2d;
+	}
+}
+
+.dark {
+	--color-success-medium-light: #335037;
+	--color-danger-medium-light: #542f2d;
+}
 
 body {
 	height: 100dvh;
 	font-family: system-ui;
+	color: var(--color-default);
+}
+
+/*
+ * @viamrobotics/tailwind-config/dark sets `color-scheme: light dark` on :root, so
+ * when the OS prefers dark the browser paints unstyled text and form controls with
+ * its dark defaults. useDarkMode toggles an explicit .light/.dark class on <html>,
+ * so pin color-scheme to that class — otherwise toggling to light while the OS is in
+ * dark mode leaves default-colored text white (illegible) on the light surfaces.
+ */
+.light {
+	color-scheme: light;
+}
+.dark {
+	color-scheme: dark;
+}
+
+/*
+ * Ported from @viamrobotics/prime-core/prime.css. Form controls don't inherit
+ * font-family by default, so without this prime-core inputs/buttons fall back
+ * to the user-agent font.
+ */
+*,
+input,
+button {
+	font-family: inherit;
 }
 
 /*

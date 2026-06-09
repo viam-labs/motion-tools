@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css'
+	import '@viamrobotics/tailwind-config/fonts'
 
 	import type { DialConf } from '@viamrobotics/sdk'
 
@@ -7,7 +8,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
+	import { DarkMode, DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -79,6 +80,7 @@
 				<Focus />
 				<MeasureTool />
 				<XR />
+				<DarkMode />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

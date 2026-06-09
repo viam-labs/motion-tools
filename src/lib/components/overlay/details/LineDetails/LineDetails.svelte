@@ -129,7 +129,7 @@
 							/>
 						</div>
 						<button
-							class="text-subtle-2 px-1 py-0.5 text-[10px] hover:text-red-500"
+							class="text-subtle-2 hover:text-danger-dark px-1 py-0.5 text-[10px]"
 							type="button"
 							aria-label={`remove position ${index + 1}`}
 							disabled={linePositionList.length <= 2}

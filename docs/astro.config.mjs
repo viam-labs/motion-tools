@@ -42,6 +42,7 @@ export default defineConfig({
 				{
 					label: 'Plugins',
 					items: [
+						{ label: '<DarkMode />', link: '/plugins/dark-mode/' },
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },

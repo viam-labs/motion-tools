@@ -9,10 +9,12 @@
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { useDarkMode } from '$lib/plugins/DarkMode/useDarkMode.svelte'
 
 	import MeasurePoint from './MeasurePoint.svelte'
 
 	const settings = useSettings()
+	const darkMode = useDarkMode()
 
 	const htmlPosition = new Vector3()
 
@@ -22,6 +24,9 @@
 	let p2 = $state.raw<Vector3>()
 
 	const enabled = $derived(settings.current.interactionMode === 'measure')
+
+	// WebGL line color can't read CSS tokens, so flip it to stay visible on the dark backdrop.
+	const lineColor = $derived(darkMode.isDark ? '#ffffff' : '#000000')
 
 	const { onclick, onmove, raycaster } = useMouseRaycaster(() => ({
 		enabled,
@@ -100,7 +105,7 @@
 					/>
 				{/snippet}
 
-				<div class="border-medium m-2 border bg-white p-2 text-xs">
+				<div class="border-medium bg-light m-2 border p-2 text-xs">
 					<div class="flex items-center gap-2">
 						Enabled axes
 						<ToggleGroup
@@ -155,7 +160,7 @@
 			<MeshLineMaterial
 				width={2.5}
 				depthTest={false}
-				color="black"
+				color={lineColor}
 				opacity={p2 ? 0.5 : 0.2}
 				attenuate={false}
 				transparent
@@ -168,7 +173,7 @@
 				position={htmlPosition.lerpVectors(p1, p2, 0.5).toArray()}
 				zIndexRange={[3, 0]}
 			>
-				<div class="border border-black bg-white px-1 py-0.5 text-xs">
+				<div class="border-medium bg-light border px-1 py-0.5 text-xs">
 					{p1.distanceTo(p2).toFixed(3)}<span class="text-subtle-2">m</span>
 				</div>
 			</HTML>

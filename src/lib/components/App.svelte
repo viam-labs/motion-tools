@@ -6,8 +6,8 @@
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
-	import { primeTheme } from '@viamrobotics/tweakpane-config'
-	import { type Component, onMount, type Snippet } from 'svelte'
+	import { primeTheme, primeThemeDark } from '@viamrobotics/tweakpane-config'
+	import { type Component, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
@@ -24,6 +24,7 @@
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
+	import { provideDarkMode } from '$lib/plugins/DarkMode/useDarkMode.svelte'
 	import { domPortal } from '$lib/portal'
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
@@ -78,7 +79,7 @@
 		details?: Snippet<[{ entity: Entity }]>
 	}
 
-	let {
+	const {
 		partID = '',
 		inputBindingsEnabled = true,
 		localConfigProps,
@@ -96,6 +97,7 @@
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
+	const darkMode = provideDarkMode()
 
 	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
@@ -115,15 +117,15 @@
 		environment.current.isStandalone = !localConfigProps
 	})
 
-	onMount(() => {
-		ThemeUtils.setGlobalDefaultTheme(primeTheme)
+	$effect(() => {
+		ThemeUtils.setGlobalDefaultTheme(darkMode.isDark ? primeThemeDark : primeTheme)
 	})
 
 	const selected = useQuery(traits.Selected)
 </script>
 
 <div
-	class="relative h-full w-full overflow-hidden dark:bg-white"
+	class="bg-light relative h-full w-full overflow-hidden"
 	bind:this={root}
 >
 	<Canvas renderMode="on-demand">

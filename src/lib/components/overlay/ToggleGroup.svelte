@@ -39,7 +39,7 @@
 			class={[
 				'border-gray-8 -ml-px flex items-center justify-center border px-2 py-0.5 text-xs',
 				{
-					'bg-green-700 text-white': api.value.includes(value),
+					'bg-success-dark text-white': api.value.includes(value),
 				},
 			]}
 			{...api.getItemProps({ value })}

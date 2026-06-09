@@ -39,7 +39,7 @@
 		<div class="flex h-full flex-col items-center justify-center gap-2 overflow-auto p-3 text-xs">
 			{#if framelessComponents.current.length > 0}
 				<select
-					class="border-light hover:border-gray-6 focus:border-gray-9 h-7.5 w-full appearance-none border bg-white px-2 py-1.5 text-xs leading-tight"
+					class="border-light hover:border-gray-6 focus:border-gray-9 bg-light h-7.5 w-full appearance-none border px-2 py-1.5 text-xs leading-tight"
 					bind:value={selectedComponent}
 				>
 					{#each framelessComponents.current as component (component)}

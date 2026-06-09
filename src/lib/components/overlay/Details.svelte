@@ -293,7 +293,7 @@
 	just the inputs) raises it via `focus-within:z-5`. -->
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
+		class="border-medium bg-light absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
 		role="region"
 		aria-label="Details panel"
 		tabindex="-1"
@@ -427,7 +427,7 @@
 
 		{#if isFragmentComponentWithVariables}
 			<p
-				class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"
+				class="border-warning-dark bg-warning-light text-warning-dark mt-2 rounded border-l-4 px-2 py-1.5"
 				data-testid="fragment-variables-warning"
 				role="status"
 			>
@@ -744,7 +744,7 @@
 						<span class="text-primary">{linkedEntityName} ({linkType})</span>
 						<Icon
 							name="trash-can-outline"
-							class="h-6 cursor-pointer px-2 py-1 text-xs text-red-500"
+							class="text-danger-dark h-6 cursor-pointer px-2 py-1 text-xs"
 							onclick={() => entity.remove(relations.SubEntityLink(linkedEntity))}
 						/>
 					</div>

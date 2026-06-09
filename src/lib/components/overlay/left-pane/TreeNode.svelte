@@ -192,7 +192,7 @@
 		[data-scope='tree-view'][data-part='branch-indent-guide'] {
 			position: absolute;
 			content: '';
-			border-left: 1px solid #eee;
+			border-left: 1px solid var(--color-gray-3);
 			height: 100%;
 			translate: calc(var(--depth) * 1.25rem);
 			z-index: 1;

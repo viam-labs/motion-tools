@@ -29,18 +29,18 @@ describe('<Button> (dashboard)', () => {
 		})
 
 		const label = screen.getByRole('radio', { name: 'Translate' }).closest('label')!
-		expect(label.className).toContain('bg-[#666]')
+		expect(label.className).toContain('bg-gray-8')
 		expect(label.className).toContain('text-white')
-		expect(label.className).toContain('border-[#666]')
+		expect(label.className).toContain('border-gray-8')
 	})
 
-	it('applies white inactive styles when not active', () => {
+	it('applies light inactive styles when not active', () => {
 		render(Button, {
 			props: { icon: 'cursor-move', description: 'Translate', active: false },
 		})
 
 		const label = screen.getByRole('radio', { name: 'Translate' }).closest('label')!
-		expect(label.className).toContain('bg-white')
+		expect(label.className).toContain('bg-light')
 		expect(label.className).toContain('text-gray-8')
 		expect(label.className).toContain('border-gray-5')
 	})

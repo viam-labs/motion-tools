@@ -2,6 +2,7 @@ import {
 	Box3,
 	BoxGeometry,
 	BufferGeometry,
+	type ColorRepresentation,
 	EdgesGeometry,
 	type Matrix3,
 	Matrix4,
@@ -77,6 +78,11 @@ export class OBBHelper extends LineSegments2 {
 		this.matrixWorldAutoUpdate = false
 		this.frustumCulled = false
 		this.renderOrder = 999
+	}
+
+	setColor(color: ColorRepresentation) {
+		this.material.color.set(color)
+		return this
 	}
 
 	setFromOBB(obb: { center: Vector3; halfSize: Vector3; rotation: { elements: number[] } }) {

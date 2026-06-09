@@ -176,7 +176,7 @@
 	</fieldset>
 
 	{#if cameraMode === 'orthographic'}
-		<div class="absolute right-1 bottom-1 left-1 z-1 rounded bg-white/85 p-1">
+		<div class="bg-light/85 absolute right-1 bottom-1 left-1 z-1 rounded p-1">
 			<Slider
 				label="zoom"
 				value={orthoZoom}

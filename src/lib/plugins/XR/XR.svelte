@@ -172,7 +172,7 @@
 				'hit-test',
 			],
 		}}
-		style="color: #555; border-color: #ccc; backdrop-filter: blur(4px); background: rgba(255,255,255,0.5)"
+		style="color: var(--color-subtle-1); border-color: var(--color-gray-4); backdrop-filter: blur(4px); background: color-mix(in srgb, var(--color-gray-1) 50%, transparent)"
 		{...rest}
 	/>
 {/if}

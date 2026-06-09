@@ -30,7 +30,7 @@
 		/>
 		{#if logs.warnings.length > 0}
 			<span
-				class="absolute z-4 -mt-1.5 -ml-1.5 h-4 w-4 rounded-full bg-yellow-700 text-center text-[10px] text-white"
+				class="bg-warning-dark absolute z-4 -mt-1.5 -ml-1.5 h-4 w-4 rounded-full text-center text-[10px] text-white"
 			>
 				{logs.warnings.length}
 			</span>
@@ -38,7 +38,7 @@
 
 		{#if logs.errors.length > 0}
 			<span
-				class="absolute z-4 -mt-1.5 -ml-1.5 h-4 rounded-full bg-red-700 px-1.25 text-center text-[10px] text-white"
+				class="bg-danger-dark absolute z-4 -mt-1.5 -ml-1.5 h-4 rounded-full px-1.25 text-center text-[10px] text-white"
 			>
 				{logs.errors.length}
 			</span>
@@ -59,8 +59,7 @@
 				class={[
 					'chip border px-2',
 					{
-						'border-danger-dark bg-danger-dark text-white hover:border-red-700 hover:bg-red-700':
-							levels.current.error,
+						'border-danger-dark bg-danger-dark text-white hover:opacity-90': levels.current.error,
 						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
 							!levels.current.error,
 					},
@@ -77,8 +76,7 @@
 				class={[
 					'chip border',
 					{
-						'border-amber-400 bg-amber-400 text-white hover:border-amber-500 hover:bg-amber-500':
-							levels.current.warn,
+						'border-warning-dark bg-warning-dark text-white hover:opacity-90': levels.current.warn,
 						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
 							!levels.current.warn,
 					},
@@ -95,8 +93,7 @@
 				class={[
 					'chip border',
 					{
-						'border-blue-400 bg-blue-400 text-white hover:border-blue-500 hover:bg-blue-500':
-							levels.current.info,
+						'border-info-dark bg-info-dark text-white hover:opacity-90': levels.current.info,
 						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
 							!levels.current.info,
 					},
@@ -119,8 +116,8 @@
 									'h-2 w-2 rounded-full',
 									{
 										'bg-danger-dark': log.level === 'error',
-										'bg-amber-300': log.level === 'warn',
-										'bg-blue-400': log.level === 'info',
+										'bg-warning-bright': log.level === 'warn',
+										'bg-info-dark': log.level === 'info',
 									},
 								]}
 							></div>
@@ -128,7 +125,7 @@
 						</div>
 						<div>
 							{#if log.count > 1}
-								<span class="mr-1 rounded bg-green-700 px-1 py-0.5 text-xs text-white">
+								<span class="bg-success-dark mr-1 rounded px-1 py-0.5 text-xs text-white">
 									{log.count}
 								</span>
 							{/if}

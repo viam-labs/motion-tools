@@ -13,6 +13,7 @@
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { useDarkMode } from '$lib/plugins/DarkMode/useDarkMode.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
 	import BatchedArrows from './BatchedArrows.svelte'
@@ -28,6 +29,20 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
+	const darkMode = useDarkMode()
+
+	/*
+	 * The canvas renderer is transparent (alpha), so the viewport backdrop is the
+	 * DOM container behind it (App.svelte), which adapts to dark mode via a CSS
+	 * token. The grid is drawn in WebGL, though, so its line colors can't use
+	 * Tailwind tokens — flip them in JS to stay legible on the dark backdrop.
+	 * Light-mode values match the previous threlte <Grid> defaults exactly.
+	 */
+	const gridColors = $derived(
+		darkMode.isDark
+			? { cell: '#3a3a3d', section: '#5c5c62', background: '#1c1c1e' }
+			: { cell: '#000000', section: '#333333', background: '#dadada' }
+	)
 
 	// @ts-expect-error This is for debugging
 	globalThis.__threlte__ = threlte
@@ -77,7 +92,9 @@
 		raycast={() => null}
 		bvh={{ enabled: false }}
 		plane="xy"
-		sectionColor="#333"
+		cellColor={gridColors.cell}
+		sectionColor={gridColors.section}
+		backgroundColor={gridColors.background}
 		infiniteGrid
 		renderOrder={999}
 		cellSize={settings.current.gridCellSize}

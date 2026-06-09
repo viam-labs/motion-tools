@@ -30,9 +30,7 @@
 				type="button"
 				class={[
 					'rounded px-3 py-1 text-xs font-medium',
-					active === version
-						? 'bg-blue-600 text-white'
-						: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+					active === version ? 'bg-info-dark text-white' : 'bg-gray-3 text-gray-8 hover:bg-gray-4',
 				]}
 				onclick={() => load(version)}
 			>

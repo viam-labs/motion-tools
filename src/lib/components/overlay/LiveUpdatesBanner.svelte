@@ -28,7 +28,7 @@
 		{...rest}
 	>
 		<div
-			class="flex items-center gap-8 rounded border-l-4 border-yellow-600 bg-yellow-50 px-4 py-2 shadow-2xl"
+			class="border-warning-dark bg-warning-light flex items-center gap-8 rounded border-l-4 px-4 py-2 shadow-2xl"
 		>
 			<div class="flex flex-col">
 				<p class="text-sm">
@@ -40,7 +40,7 @@
 
 			<div class="flex gap-2">
 				<Button
-					class="cursor-pointer text-blue-600"
+					class="text-link cursor-pointer"
 					onclick={() => {
 						partConfig.discardChanges()
 					}}
@@ -51,7 +51,7 @@
 				<Button
 					variant="dark"
 					aria-label="Save"
-					class="cursor-pointer text-blue-600"
+					class="text-link cursor-pointer"
 					onclick={() => {
 						partConfig.save()
 					}}

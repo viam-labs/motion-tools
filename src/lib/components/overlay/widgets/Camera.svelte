@@ -116,7 +116,7 @@
 </script>
 
 <div
-	class="bg-extralight border-medium absolute top-0 left-0 z-4 m-2 flex resize-x flex-col overflow-hidden border text-xs dark:text-black"
+	class="bg-light border-medium absolute top-0 left-0 z-4 m-2 flex resize-x flex-col overflow-hidden border text-xs"
 	style:width="320px"
 	style:height="auto !important"
 	use:draggable={{
@@ -170,7 +170,7 @@
 		</div>
 
 		<div
-			class="relative min-h-0 w-full flex-1 overflow-hidden bg-black [&_img]:h-full [&_img]:w-full [&_img]:object-fill [&_video]:h-full [&_video]:w-full [&_video]:object-fill"
+			class="relative min-h-0 w-full flex-1 overflow-hidden bg-[#000] [&_img]:h-full [&_img]:w-full [&_img]:object-fill [&_video]:h-full [&_video]:w-full [&_video]:object-fill"
 			style:aspect-ratio={aspectRatio}
 		>
 			{#if connectionStatus.current === MachineConnectionEvent.CONNECTED}
@@ -187,7 +187,7 @@
 			<!-- FPS Pill -->
 			{#if fps > 0}
 				<div
-					class="absolute bottom-2 left-2 z-4 rounded-[3px] bg-black/30 px-1 py-0.5 text-right font-mono text-xs text-white"
+					class="absolute bottom-2 left-2 z-4 rounded-[3px] bg-[#000]/30 px-1 py-0.5 text-right font-mono text-xs text-[#fff]"
 				>
 					{fps.toFixed(1)}fps
 				</div>
@@ -196,7 +196,7 @@
 			<!-- Error display -->
 			{#if error}
 				<div
-					class="absolute inset-0 flex items-center justify-center bg-black/50 p-2 text-center text-white"
+					class="absolute inset-0 flex items-center justify-center bg-[#000]/50 p-2 text-center text-[#fff]"
 				>
 					{error}
 				</div>
