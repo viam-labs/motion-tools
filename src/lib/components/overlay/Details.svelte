@@ -127,9 +127,19 @@
 	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
 
 	$effect(() => {
-		// setGeometryType guards against no-ops, so this is safe to fire on every
-		// tab-index change (whether user-initiated or trait-derived).
-		detailConfigUpdater.setGeometryType(entity, geometryTypes[geometryTabIndex])
+		const nextType = geometryTypes[geometryTabIndex]
+
+		/**
+		 * geometryTabIndex is derived from the entity's geometry traits, so on
+		 * selection (or any trait-driven recompute) nextType already equals
+		 * geometryType — firing then would call updateFrame, dirtying the part
+		 * config and resetting the geometry to default dimensions. Only a user
+		 * tab pick sets geometryTabIndex ahead of the trait, so guard on the two
+		 * differing to fire solely for user-initiated changes.
+		 */
+		if (nextType === geometryType) return
+
+		detailConfigUpdater.setGeometryType(entity, nextType)
 	})
 
 	let copied = $state(false)
