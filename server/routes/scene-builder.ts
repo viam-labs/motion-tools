@@ -94,11 +94,11 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		})
 	}
 
-	const { prompt, components, anthropicKey } = parsed.data
-	const apiKey = anthropicKey || process.env.ANTHROPIC_API_KEY
+	const { prompt, components } = parsed.data
+	const apiKey = process.env.ANTHROPIC_API_KEY
 	if (!apiKey) {
 		return new Response(
-			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
+			'No Anthropic API key configured. Set ANTHROPIC_API_KEY in the environment variables.',
 			{ status: 401, headers: CORS_HEADERS }
 		)
 	}
