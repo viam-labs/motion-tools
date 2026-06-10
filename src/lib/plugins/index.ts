@@ -22,6 +22,12 @@ export { useLogs } from './Logs/useLogs.svelte'
 // Focus
 export { default as Focus } from './Focus/Focus.svelte'
 
+// LLMSceneBuilder
+export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
+export { default as AISettings } from './LLMSceneBuilder/AISettings.svelte'
+export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'
+export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'
+
 // XR
 export { default as XR } from './XR/XR.svelte'
 export { default as XRSettings } from './XR/XRSettings.svelte'
