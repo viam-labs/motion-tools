@@ -41,9 +41,9 @@ A robot-outline button appears in the dashboard. Clicking it opens the **Frame B
 
 ## Props
 
-| Prop       | Type             | Default | Description                                             |
-| ---------- | ---------------- | ------- | ------------------------------------------------------- |
-| `onInfer`  | `InferCallback`  | —       | **Required.** Called with the prompt and current frame state; must return proposed deltas and an explanation. |
+| Prop      | Type            | Default | Description                                                                                                   |
+| --------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `onInfer` | `InferCallback` | —       | **Required.** Called with the prompt and current frame state; must return proposed deltas and an explanation. |
 
 ## InferCallback
 
@@ -85,7 +85,8 @@ interface FrameDelta {
 ```
 
 <Aside type="caution">
-`translation` values are **absolute** — they replace the current translation field directly. `orientation` values are **deltas** added to the current Euler angles.
+	`translation` values are **absolute** — they replace the current translation field directly.
+	`orientation` values are **deltas** added to the current Euler angles.
 </Aside>
 
 The plugin validates every delta before showing the diff: unknown component names, self-referential parent assignments, and non-finite numbers are surfaced as errors without blocking the rest of the update batch.
@@ -123,4 +124,3 @@ export async function POST({ request }) {
 	return new Response(text, { headers: { 'Content-Type': 'application/json' } })
 }
 ```
-
