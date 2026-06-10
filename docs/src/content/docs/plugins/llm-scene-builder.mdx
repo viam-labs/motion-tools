@@ -93,7 +93,7 @@ The plugin validates every delta before showing the diff: unknown component name
 
 ## Example: using the Anthropic SDK
 
-The companion `<AISettings />` component (see below) stores an Anthropic API key in the browser under `settings.anthropicKey`. A minimal server-side route using the Anthropic SDK:
+Set `ANTHROPIC_API_KEY` in your environment (see `.env.example`). A minimal server-side route using the Anthropic SDK:
 
 ```ts
 // src/routes/api/infer-frames/+server.ts  (SvelteKit)
