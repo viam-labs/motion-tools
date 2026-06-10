@@ -47,6 +47,7 @@ export default defineConfig({
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },
 						{ label: '<SelectionTool />', link: '/plugins/selection/' },
 						{ label: '<Skybox />', link: '/plugins/skybox/' },
+						{ label: '<LLMSceneBuilder />', link: '/plugins/llm-scene-builder/' },
 					],
 				},
 				{
