@@ -7,7 +7,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { AISettings, DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
+	import { AISettings, DrawService, Focus, Logs, MeasureTool, XR, XRSettings } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
