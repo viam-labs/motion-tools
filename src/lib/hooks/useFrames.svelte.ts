@@ -233,7 +233,13 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					if (!isEditMode && !partConfig.hasPendingSave) {
+					// Freeze the baseline while the user has unsaved edits so the
+					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
+					// edited position rather than amplifying any robot movement.
+					// isDirty is used rather than isEditMode because isDirty is $state
+					// and updates synchronously; isEditMode derives from viewerMode via
+					// a plain $effect and lags by one flush.
+					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
 							poseToMatrix(pose, baseline)
