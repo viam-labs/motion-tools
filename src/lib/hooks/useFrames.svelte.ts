@@ -257,7 +257,7 @@ export const provideFrames = (partID: () => string) => {
 					// values would shift entities whose parents the user is portaling
 					// into — the gizmo's drag target moves underneath it. Once we're
 					// back in monitor mode, the next sync resumes the overwrite.
-					if (!isEditMode) {
+					if (!isEditMode || !editSession.current) {
 						const edited = existing.get(traits.EditedMatrix)
 						if (edited) {
 							poseToMatrix(pose, edited)
