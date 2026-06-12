@@ -5,6 +5,7 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Arrows from './Arrows/ArrowGroups.svelte'
+	import Boxes from './Boxes.svelte'
 	import Frame from './Frame.svelte'
 	import Geometry from './Geometry.svelte'
 	import GLTF from './GLTF.svelte'
@@ -101,6 +102,7 @@
 	<GLTF {entity} />
 {/each}
 
+<Boxes />
 <Arrows />
 
 {#if enableLabels}
