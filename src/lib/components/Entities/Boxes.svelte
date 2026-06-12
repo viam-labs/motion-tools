@@ -6,6 +6,10 @@ instanced draw calls (toon-shaded faces + edge lines) instead of a mesh
 per box. Trait events are coalesced into a microtask flush, mirroring
 the `WorldMatrix` system, so a burst of changes (one reconcile tick)
 becomes a single batch of instance writes and one `invalidate()`.
+
+The faces mesh is also the pointer-interaction surface: `InstancedMesh2`
+raycasts per instance (skipping invisible ones) and stamps `instanceId`
+on each hit, which `useInstancedEntityEvents` maps back to the entity.
 -->
 <script lang="ts">
 	import type { Entity } from 'koota'
@@ -20,6 +24,7 @@ becomes a single batch of instance writes and one `invalidate()`.
 		Matrix4,
 		MeshToonMaterial,
 		Quaternion,
+		Sphere,
 		Vector3,
 	} from 'three'
 
@@ -27,6 +32,9 @@ becomes a single batch of instance writes and one `invalidate()`.
 	import { colors, darkenColor, subtypeToColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
+
+	import { composeBoxMatrix } from './composeBoxMatrix'
+	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
@@ -57,6 +65,17 @@ becomes a single batch of instance writes and one `invalidate()`.
 	instancedBoxes.customSort = createRadixSort(instancedBoxes)
 	instancedBoxes.frustumCulled = false
 
+	/**
+	 * Keep raycasts on the library's linear (non-BVH) path, but neutralize
+	 * its gate: the whole-object bounding sphere is computed once on the
+	 * first raycast (usually before any boxes have streamed in) and never
+	 * invalidated, leaving instances unhittable. Pin it open and let the
+	 * per-instance early-outs do the pruning — for an always-animating
+	 * scene this beats `computeBVH()`, which would re-insert every moving
+	 * box into the tree on every kinematics tick.
+	 */
+	instancedBoxes.boundingSphere = new Sphere(new Vector3(), Infinity)
+
 	const instancedBoxEdges = new InstancedMesh2(unitBoxEdges, new LineBasicMaterial(), {
 		renderer,
 	})
@@ -72,34 +91,23 @@ becomes a single batch of instance writes and one `invalidate()`.
 	Object.assign(instancedBoxEdges, { isMesh: false, isLine: true, isLineSegments: true })
 
 	/**
-	 * Instance ids per entity. Ids are valid for both meshes: the library
-	 * recycles ids through a free list, and every add/remove below is mirrored
-	 * to faces and edges, so the two free lists stay identical.
+	 * Instance ids per entity, and the reverse for resolving raycast hits back
+	 * to entities. Ids are valid for both meshes: the library recycles ids
+	 * through a free list, and every add/remove below is mirrored to faces and
+	 * edges, so the two free lists stay identical.
 	 */
 	const instanceIdByEntity = new Map<Entity, number>()
+	const entityByInstanceId = new Map<number, Entity>()
+
+	const events = useInstancedEntityEvents((event) =>
+		event.instanceId === undefined ? undefined : entityByInstanceId.get(event.instanceId)
+	)
 
 	const position = new Vector3()
 	const quaternion = new Quaternion()
 	const scale = new Vector3()
 	const matrix = new Matrix4()
 	const colorUtil = new Color()
-
-	/**
-	 * Decompose the entity's `WorldMatrix` into the shared temps and fold the
-	 * box dimensions (mm → m) into its scale — the same composition the old
-	 * per-entity path produced by nesting a dimension-scaled mesh inside a
-	 * `WorldMatrix`-driven group.
-	 */
-	const composeInstanceMatrix = (
-		box: { x: number; y: number; z: number },
-		worldMatrix: Matrix4
-	) => {
-		worldMatrix.decompose(position, quaternion, scale)
-		scale.x *= box.x * 0.001
-		scale.y *= box.y * 0.001
-		scale.z *= box.z * 0.001
-		return matrix.compose(position, quaternion, scale)
-	}
 
 	/** Same resolution order as `Frame.svelte`. */
 	const resolveColor = (entity: Entity): Color => {
@@ -127,14 +135,20 @@ becomes a single batch of instance writes and one `invalidate()`.
 
 		instancedBoxEdges.setColorAt(id, darkenColor(color, 10))
 		instancedBoxEdges.setVisibilityAt(id, visible)
+
+		/**
+		 * Mirrors `useEntityEvents`' invisibility watcher: an instance that
+		 * vanishes under a motionless cursor gets no pointerleave until the
+		 * pointer moves, so drop its hover state here.
+		 */
+		if (!visible && entity.has(traits.Hovered)) {
+			entity.remove(traits.Hovered)
+		}
 	}
 
-	const addInstance = (
-		entity: Entity,
-		box: { x: number; y: number; z: number },
-		worldMatrix: Matrix4
-	) => {
-		composeInstanceMatrix(box, worldMatrix)
+	/** Caller composes the instance transform into `matrix` first. */
+	const addInstance = (entity: Entity) => {
+		matrix.decompose(position, quaternion, scale)
 
 		let id = -1
 		instancedBoxes.addInstances(1, (obj, index) => {
@@ -150,11 +164,13 @@ becomes a single batch of instance writes and one `invalidate()`.
 		})
 
 		instanceIdByEntity.set(entity, id)
+		entityByInstanceId.set(id, entity)
 		writeAppearance(entity, id)
 	}
 
 	const removeInstance = (entity: Entity, id: number) => {
 		instanceIdByEntity.delete(entity)
+		entityByInstanceId.delete(id)
 		instancedBoxes.removeInstances(id)
 		instancedBoxEdges.removeInstances(id)
 	}
@@ -175,14 +191,11 @@ becomes a single batch of instance writes and one `invalidate()`.
 
 		for (const entity of dirtyTransform) {
 			const id = instanceIdByEntity.get(entity)
-			const box = entity.isAlive() ? entity.get(traits.Box) : undefined
-			const worldMatrix = entity.isAlive() ? entity.get(traits.WorldMatrix) : undefined
 
-			if (box && worldMatrix) {
+			if (entity.isAlive() && composeBoxMatrix(entity, matrix)) {
 				if (id === undefined) {
-					addInstance(entity, box, worldMatrix)
+					addInstance(entity)
 				} else {
-					composeInstanceMatrix(box, worldMatrix)
 					instancedBoxes.setMatrixAt(id, matrix)
 					instancedBoxEdges.setMatrixAt(id, matrix)
 				}
@@ -240,6 +253,9 @@ becomes a single batch of instance writes and one `invalidate()`.
 			world.onAdd(traits.WorldMatrix, enqueueTransform),
 			world.onChange(traits.WorldMatrix, enqueueTransform),
 			world.onRemove(traits.WorldMatrix, enqueueTransform),
+			world.onAdd(traits.Center, enqueueTransform),
+			world.onChange(traits.Center, enqueueTransform),
+			world.onRemove(traits.Center, enqueueTransform),
 			world.onAdd(traits.Color, enqueueAppearance),
 			world.onChange(traits.Color, enqueueAppearance),
 			world.onRemove(traits.Color, enqueueAppearance),
@@ -258,7 +274,10 @@ becomes a single batch of instance writes and one `invalidate()`.
 	})
 </script>
 
-<T is={instancedBoxes} />
+<T
+	is={instancedBoxes}
+	{...events}
+/>
 <T
 	is={instancedBoxEdges}
 	raycast={() => null}
