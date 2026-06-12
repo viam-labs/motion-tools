@@ -90,7 +90,7 @@
 		"camera-controls": "3.1.0",
 		"concurrently": "^9.2.1",
 		"earcut": "^3.0.2",
-		"esbuild": "^0.27.3",
+		"esbuild": "^0.28.1",
 		"eslint": "10.0.2",
 		"eslint-config-prettier": "10.1.8",
 		"eslint-plugin-perfectionist": "^5.6.0",
