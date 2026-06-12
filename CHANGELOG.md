@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.34.1
+
+### Patch Changes
+
+- 664674b: Remove AISettings panel from settings tabs and delete AISettings.svelte component
+- 797a8a7: Fix baseline matrix and EditedMatrix update conditions in useFrames
+
 ## 1.34.0
 
 ### Minor Changes
