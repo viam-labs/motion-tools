@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
+	import { Icon } from '@viamrobotics/prime-core'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
@@ -107,11 +108,13 @@
 				{/if}
 
 				{#if sceneBuilder.updateErrors.length > 0}
-					<ul class="text-red-6 space-y-0.5">
-						{#each sceneBuilder.updateErrors as err (err.componentName)}
-							<li><span class="font-mono">{err.componentName}</span>: {err.reason}</li>
-						{/each}
-					</ul>
+					<div class="border-danger-medium bg-danger-light rounded border p-2">
+						<ul class="text-danger-dark space-y-0.5">
+							{#each sceneBuilder.updateErrors as err (err.componentName)}
+								<li><span class="font-mono">{err.componentName}</span>: {err.reason}</li>
+							{/each}
+						</ul>
+					</div>
 				{/if}
 
 				<div class="mt-auto flex gap-2">
@@ -132,13 +135,22 @@
 
 			<!-- error -->
 			{#if sceneBuilder.uiState === 'error'}
-				<p class="text-red-6">{sceneBuilder.errorMessage}</p>
-				<button
-					class="self-start rounded border border-gray-300 px-3 py-1.5 hover:bg-gray-50"
-					onclick={sceneBuilder.resetError}
-				>
-					Try again
-				</button>
+				<div class="border-danger-medium bg-danger-light flex flex-col gap-2 rounded border p-2.5">
+					<div class="text-danger-dark flex items-center gap-1.5 font-medium">
+						<Icon
+							name="alert-circle-outline"
+							aria-hidden="true"
+						/>
+						Error
+					</div>
+					<p class="text-danger-dark">{sceneBuilder.errorMessage}</p>
+					<button
+						class="border-danger-medium text-danger-dark self-start rounded border px-3 py-1.5 hover:bg-[#F8E1DF]"
+						onclick={sceneBuilder.resetError}
+					>
+						Try again
+					</button>
+				</div>
 			{/if}
 		</div>
 	</FloatingPanel>

@@ -121,6 +121,6 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		return Response.json(result, { status: 200, headers: CORS_HEADERS })
 	} catch (error) {
 		console.error('LLM error:', error)
-		return new Response('LLM call failed', { status: 502, headers: CORS_HEADERS })
+		return new Response('Something went wrong — check that ANTHROPIC_API_KEY is set correctly.', { status: 502, headers: CORS_HEADERS })
 	}
 }

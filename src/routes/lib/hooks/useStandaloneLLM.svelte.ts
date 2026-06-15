@@ -20,7 +20,7 @@ export const provideStandaloneLLM = (): StandaloneLLMContext => {
 			}),
 		})
 		if (!res.ok) {
-			throw new Error(`${res.status}: ${await res.text()}`)
+			throw new Error(await res.text())
 		}
 		return res.json()
 	}
