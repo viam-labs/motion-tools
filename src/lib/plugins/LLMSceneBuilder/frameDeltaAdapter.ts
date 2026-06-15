@@ -66,7 +66,8 @@ export function validateProposedFrameDeltas(
 							}
 						: undefined,
 				parent: delta.parent ?? existing.parent,
-				explanation: [existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
+				explanation:
+					[existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
 			})
 		} else {
 			mergedDeltas.set(delta.componentName, delta)
