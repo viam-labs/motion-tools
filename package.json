@@ -45,6 +45,7 @@
 		"@changesets/cli": "2.29.6",
 		"@connectrpc/connect": "1.7.0",
 		"@connectrpc/connect-web": "1.7.0",
+		"@langchain/anthropic": "^1.4.0",
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
@@ -115,11 +116,13 @@
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
 		"typescript-eslint": "8.56.1",
+		"uuid-tool": "^2.0.3",
 		"vite": "7.3.2",
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
 		"vite-plugin-mkcert": "1.17.9",
-		"vitest": "3.2.6"
+		"vitest": "3.2.6",
+		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
 		"@ag-grid-community/client-side-row-model": ">=32.3.0",
@@ -209,16 +212,11 @@
 	],
 	"dependencies": {
 		"@bufbuild/protobuf": "1.10.1",
-		"@connectrpc/connect": "1.7.0",
-		"@connectrpc/connect-web": "1.7.0",
-		"@langchain/anthropic": "^1.4.0",
 		"@neodrag/svelte": "^2.3.3",
 		"d3-force": "^3.0.0",
 		"filtrex": "^3.1.0",
 		"koota": "0.6.5",
 		"lodash-es": "4.18.1",
-		"three-mesh-bvh": "^0.9.8",
-		"uuid-tool": "^2.0.3",
-		"zod": "^4.4.3"
+		"three-mesh-bvh": "^0.9.8"
 	}
 }
