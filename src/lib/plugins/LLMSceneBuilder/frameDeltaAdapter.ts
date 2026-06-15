@@ -41,7 +41,39 @@ export function validateProposedFrameDeltas(
 	const prepared: PreparedUpdate[] = []
 	const knownNames = new Set(config.components.map((c) => c.name))
 
+	// Merge multiple deltas for the same component — the LLM sometimes splits
+	// translation and orientation into separate entries despite the schema saying one per component.
+	const mergedDeltas = new Map<string, FrameDelta>()
 	for (const delta of deltas) {
+		const existing = mergedDeltas.get(delta.componentName)
+		if (existing) {
+			mergedDeltas.set(delta.componentName, {
+				componentName: delta.componentName,
+				translation:
+					existing.translation || delta.translation
+						? {
+								x: delta.translation?.x ?? existing.translation?.x,
+								y: delta.translation?.y ?? existing.translation?.y,
+								z: delta.translation?.z ?? existing.translation?.z,
+							}
+						: undefined,
+				orientation:
+					existing.orientation || delta.orientation
+						? {
+								roll: delta.orientation?.roll ?? existing.orientation?.roll,
+								pitch: delta.orientation?.pitch ?? existing.orientation?.pitch,
+								yaw: delta.orientation?.yaw ?? existing.orientation?.yaw,
+							}
+						: undefined,
+				parent: delta.parent ?? existing.parent,
+				explanation: [existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
+			})
+		} else {
+			mergedDeltas.set(delta.componentName, delta)
+		}
+	}
+
+	for (const delta of mergedDeltas.values()) {
 		const component = config.components.find((c) => c.name === delta.componentName)
 
 		if (!component) {

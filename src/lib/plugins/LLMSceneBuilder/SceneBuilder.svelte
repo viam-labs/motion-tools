@@ -37,7 +37,7 @@
 			<div class="flex gap-2">
 				<textarea
 					class="flex-1 resize-none rounded border border-gray-300 p-2 text-xs focus:ring-1 focus:ring-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
-					placeholder="Describe the frame change, e.g. 'Move the arm 200mm forward along X'"
+					placeholder="Describe a frame change — translation, rotation, or parent. e.g. 'Move arm-1 200mm forward and rotate 90° left'"
 					rows={3}
 					disabled={sceneBuilder.uiState === 'loading' || sceneBuilder.uiState === 'diff'}
 					bind:value={prompt}
@@ -69,10 +69,6 @@
 
 			<!-- diff ready -->
 			{#if sceneBuilder.uiState === 'diff'}
-				{#if sceneBuilder.explanation}
-					<p class="text-gray-6 italic">{sceneBuilder.explanation}</p>
-				{/if}
-
 				{#if sceneBuilder.diffGroups.length > 0}
 					<div class="flex flex-col gap-2 overflow-auto">
 						{#each sceneBuilder.diffGroups as group (group.componentName)}
