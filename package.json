@@ -116,7 +116,7 @@
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
 		"typescript-eslint": "8.56.1",
-		"vite": "7.3.2",
+		"vite": "7.3.5",
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
 		"vite-plugin-mkcert": "1.17.9",
