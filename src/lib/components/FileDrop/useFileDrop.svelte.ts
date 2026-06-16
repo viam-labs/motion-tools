@@ -2,6 +2,7 @@ import type { FileDropperSuccess } from './file-dropper'
 
 import { Extensions, parseFileName, Prefixes, readFile } from './file-names'
 import { pcdDropper } from './pcd-dropper'
+import { planDropper } from './plan-dropper'
 import { plyDropper } from './ply-dropper'
 import { snapshotDropper } from './snapshot-dropper'
 
@@ -24,6 +25,9 @@ const createFileDropper = (extension: string, prefix: string | undefined) => {
 		}
 		case Extensions.PLY: {
 			return plyDropper
+		}
+		case Extensions.JSON: {
+			return planDropper
 		}
 	}
 

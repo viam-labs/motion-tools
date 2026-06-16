@@ -1,0 +1,23 @@
+import { PlanParseError } from '$lib/plugins/MotionPlanReplayer/parse-plan'
+import { planJsonToSnapshots } from '$lib/plugins/MotionPlanReplayer/plan-to-snapshots'
+
+import { type FileDropper, FileDropperError } from './file-dropper'
+
+// Adapted detection from POC: bov-debug-bad-plans:src/lib/loaders/plan-request-loader.ts
+export const planDropper: FileDropper = async ({ name, content }) => {
+	if (typeof content !== 'string') {
+		return { success: false, error: new FileDropperError(`${name} failed to load.`) }
+	}
+
+	if (!content.includes('"frame_system"')) {
+		return { success: false, error: new FileDropperError(`${name} is not a supported file type.`) }
+	}
+
+	try {
+		const snapshots = planJsonToSnapshots(content)
+		return { success: true, name, type: 'plan', content, snapshots, stepCount: snapshots.length }
+	} catch (error) {
+		const message = error instanceof PlanParseError ? error.message : `${name} failed to parse.`
+		return { success: false, error: new FileDropperError(message) }
+	}
+}
