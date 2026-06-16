@@ -19,24 +19,23 @@ const infoToLocalMatrix = (info: HoverInfo, out: Matrix4) => {
 }
 
 /**
- * Shared implementation behind `useEntityEvents` and
+ * Shared pointer handlers behind `useEntityEvents` and
  * `useInstancedEntityEvents`. `entityForEvent` maps an event to the entity it
- * targets; `hookEntity` is the renderer's fixed entity when it has one (used
- * to watch for the entity turning invisible), or `undefined` for instanced
- * renderers that serve many entities.
+ * targets. No invisibility handling lives here: single-entity renderers layer
+ * that on in `useEntityEvents`; instanced renderers don't need it because
+ * invisible instances are skipped by the instanced raycast.
  */
 const createEntityEvents = (
-	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined,
-	hookEntity: () => Entity | undefined
+	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined
 ) => {
 	const down = new Vector2()
 
 	const world = useWorld()
 	const cursor = useCursor()
-	const invisible = useTrait(hookEntity, traits.InheritedInvisible)
 
 	const hoverEntity = (currentEntity: Entity, event: IntersectionEvent<MouseEvent>) => {
 		const hoverInfo = updateHoverInfo(currentEntity, event)
+
 		if (hoverInfo) {
 			infoToLocalMatrix(hoverInfo, tempHoverMatrix)
 			const worldMatrix = currentEntity.get(traits.WorldMatrix)
@@ -57,8 +56,6 @@ const createEntityEvents = (
 	}
 
 	const onpointerenter = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
-
 		event.stopPropagation()
 		cursor.onPointerEnter()
 
@@ -70,8 +67,6 @@ const createEntityEvents = (
 	}
 
 	const onpointermove = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
-
 		event.stopPropagation()
 
 		const currentEntity = entityForEvent(event)
@@ -118,16 +113,10 @@ const createEntityEvents = (
 	}
 
 	const onpointerdown = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) return
-
 		down.copy(event.pointer)
 	}
 
 	const onclick = (event: IntersectionEvent<MouseEvent>) => {
-		if (invisible.current) {
-			return
-		}
-
 		event.stopPropagation()
 
 		if (down.distanceToSquared(event.pointer) >= 0.1) {
@@ -159,21 +148,6 @@ const createEntityEvents = (
 		}
 	}
 
-	$effect(() => {
-		if (invisible.current) {
-			cursor.onPointerLeave()
-
-			const currentEntity = hookEntity()
-			if (currentEntity?.has(traits.Hovered)) {
-				currentEntity.remove(traits.Hovered)
-			}
-
-			if (currentEntity?.has(traits.InstancedMatrix)) {
-				currentEntity.remove(traits.InstancedMatrix)
-			}
-		}
-	})
-
 	return {
 		onpointerenter,
 		onpointermove,
@@ -186,18 +160,59 @@ const createEntityEvents = (
 /**
  * Pointer handlers for a renderer that draws a single entity — every event
  * targets the closed-over entity.
+ *
+ * Layers invisibility on top of the shared handlers: enter/move/down/click are
+ * suppressed while the entity is invisible (raycasting still hits the visible
+ * leaf mesh of Frame/Geometry/GLTF, so the scene's visibility filter can't
+ * block them — added in #577, migrated to InheritedInvisible in #710).
+ * `onpointerleave` is intentionally left active. The effect tears down a stale
+ * Hovered/InstancedMatrix for an entity that turns invisible while hovered,
+ * since the guarded handlers can no longer fire to clean it up.
  */
-export const useEntityEvents = (entity: () => Entity | undefined) =>
-	createEntityEvents(entity, entity)
+export const useEntityEvents = (entity: () => Entity | undefined) => {
+	const cursor = useCursor()
+	const invisible = useTrait(entity, traits.InheritedInvisible)
+	const events = createEntityEvents(() => entity())
+
+	const whenVisible =
+		(handler: (event: IntersectionEvent<MouseEvent>) => void) =>
+		(event: IntersectionEvent<MouseEvent>) => {
+			if (invisible.current) return
+			handler(event)
+		}
+
+	$effect(() => {
+		if (invisible.current) {
+			cursor.onPointerLeave()
+
+			const currentEntity = entity()
+			if (currentEntity?.has(traits.Hovered)) {
+				currentEntity.remove(traits.Hovered)
+			}
+
+			if (currentEntity?.has(traits.InstancedMatrix)) {
+				currentEntity.remove(traits.InstancedMatrix)
+			}
+		}
+	})
+
+	return {
+		onpointerenter: whenVisible(events.onpointerenter),
+		onpointermove: whenVisible(events.onpointermove),
+		onpointerleave: events.onpointerleave,
+		onpointerdown: whenVisible(events.onpointerdown),
+		onclick: whenVisible(events.onclick),
+	}
+}
 
 /**
  * Pointer handlers for an instanced renderer that draws many entities through
  * one object — `entityForEvent` maps each event back to the entity it targets
  * (typically via `event.instanceId`). Threlte keys hover identity by object
  * uuid + instance id, so enter/leave fire per instance with the id on the
- * event. There is no hook-level invisibility watcher: invisible instances are
- * skipped by the instanced raycast, so they never receive events.
+ * event. No invisibility watcher: invisible instances are skipped by the
+ * instanced raycast, so they never receive events.
  */
 export const useInstancedEntityEvents = (
 	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined
-) => createEntityEvents(entityForEvent, () => undefined)
+) => createEntityEvents(entityForEvent)

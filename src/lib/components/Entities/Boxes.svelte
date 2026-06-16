@@ -256,6 +256,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 			world.onAdd(traits.Center, enqueueTransform),
 			world.onChange(traits.Center, enqueueTransform),
 			world.onRemove(traits.Center, enqueueTransform),
+
 			world.onAdd(traits.Color, enqueueAppearance),
 			world.onChange(traits.Color, enqueueAppearance),
 			world.onRemove(traits.Color, enqueueAppearance),
@@ -278,6 +279,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	is={instancedBoxes}
 	{...events}
 />
+
 <T
 	is={instancedBoxEdges}
 	raycast={() => null}
