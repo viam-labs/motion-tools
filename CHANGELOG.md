@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.34.3
+
+### Patch Changes
+
+- 7ab8838: Quick frame builder UX hits
+- affbcd5: Reorg frame builder deps
+
 ## 1.34.2
 
 ### Patch Changes
