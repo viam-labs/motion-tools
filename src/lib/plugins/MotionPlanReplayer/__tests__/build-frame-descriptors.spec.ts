@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildFrameDescriptors } from './build-frame-descriptors'
-import type { ParsedPlan } from './parse-plan'
+import { buildFrameDescriptors } from '../build-frame-descriptors'
+import type { ParsedPlan } from '../parse-plan'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
 	frames,

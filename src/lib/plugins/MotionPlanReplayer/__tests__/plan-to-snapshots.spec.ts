@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { planJsonToSnapshots } from './plan-to-snapshots'
+import { planJsonToSnapshots } from '../plan-to-snapshots'
 
 const REQUEST = {
 	frame_system: {
