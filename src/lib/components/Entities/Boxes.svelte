@@ -87,6 +87,9 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * `gl.LINES`; the library's instancing shader patch still applies because
 	 * `LineBasicMaterial` compiles from the same chunk-based `basic` program
 	 * its patched shader chunks target.
+	 *
+	 * @three.ez/instanced-mesh ^0.3.15 — patches the 'basic' shader chunks shared
+	 * by MeshBasicMaterial and LineBasicMaterial. Re-validate if upgrading the library.
 	 */
 	Object.assign(instancedBoxEdges, { isMesh: false, isLine: true, isLineSegments: true })
 
@@ -260,9 +263,12 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 			world.onAdd(traits.Color, enqueueAppearance),
 			world.onChange(traits.Color, enqueueAppearance),
 			world.onRemove(traits.Color, enqueueAppearance),
+			world.onAdd(traits.Colors, enqueueAppearance),
 			world.onChange(traits.Colors, enqueueAppearance),
+			world.onRemove(traits.Colors, enqueueAppearance),
 			world.onAdd(traits.Opacity, enqueueAppearance),
 			world.onChange(traits.Opacity, enqueueAppearance),
+			world.onRemove(traits.Opacity, enqueueAppearance),
 			world.onAdd(traits.InheritedInvisible, enqueueAppearance),
 			world.onRemove(traits.InheritedInvisible, enqueueAppearance),
 		]

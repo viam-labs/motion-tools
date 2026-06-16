@@ -26,12 +26,12 @@ const infoToLocalMatrix = (info: HoverInfo, out: Matrix4) => {
  * invisible instances are skipped by the instanced raycast.
  */
 const createEntityEvents = (
-	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined
+	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined,
+	cursor: ReturnType<typeof useCursor>
 ) => {
 	const down = new Vector2()
 
 	const world = useWorld()
-	const cursor = useCursor()
 
 	const hoverEntity = (currentEntity: Entity, event: IntersectionEvent<MouseEvent>) => {
 		const hoverInfo = updateHoverInfo(currentEntity, event)
@@ -172,7 +172,7 @@ const createEntityEvents = (
 export const useEntityEvents = (entity: () => Entity | undefined) => {
 	const cursor = useCursor()
 	const invisible = useTrait(entity, traits.InheritedInvisible)
-	const events = createEntityEvents(() => entity())
+	const events = createEntityEvents(entity, cursor)
 
 	const whenVisible =
 		(handler: (event: IntersectionEvent<MouseEvent>) => void) =>
@@ -215,4 +215,7 @@ export const useEntityEvents = (entity: () => Entity | undefined) => {
  */
 export const useInstancedEntityEvents = (
 	entityForEvent: (event: IntersectionEvent<MouseEvent>) => Entity | undefined
-) => createEntityEvents(entityForEvent)
+) => {
+	const cursor = useCursor()
+	return createEntityEvents(entityForEvent, cursor)
+}
