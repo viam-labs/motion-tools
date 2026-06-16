@@ -28,6 +28,22 @@ export interface UpdateError {
 	reason: string
 }
 
+function mergeTranslation(
+	a?: FrameDelta['translation'],
+	b?: FrameDelta['translation']
+): FrameDelta['translation'] {
+	return a || b ? { x: b?.x ?? a?.x, y: b?.y ?? a?.y, z: b?.z ?? a?.z } : undefined
+}
+
+function mergeOrientation(
+	a?: FrameDelta['orientation'],
+	b?: FrameDelta['orientation']
+): FrameDelta['orientation'] {
+	return a || b
+		? { roll: b?.roll ?? a?.roll, pitch: b?.pitch ?? a?.pitch, yaw: b?.yaw ?? a?.yaw }
+		: undefined
+}
+
 /**
  * Validates LLM-proposed frame deltas and computes the resulting changes without
  * applying them. Each PreparedUpdate carries old and new values so the caller
@@ -49,22 +65,8 @@ export function validateProposedFrameDeltas(
 		if (existing) {
 			mergedDeltas.set(delta.componentName, {
 				componentName: delta.componentName,
-				translation:
-					existing.translation || delta.translation
-						? {
-								x: delta.translation?.x ?? existing.translation?.x,
-								y: delta.translation?.y ?? existing.translation?.y,
-								z: delta.translation?.z ?? existing.translation?.z,
-							}
-						: undefined,
-				orientation:
-					existing.orientation || delta.orientation
-						? {
-								roll: delta.orientation?.roll ?? existing.orientation?.roll,
-								pitch: delta.orientation?.pitch ?? existing.orientation?.pitch,
-								yaw: delta.orientation?.yaw ?? existing.orientation?.yaw,
-							}
-						: undefined,
+				translation: mergeTranslation(existing.translation, delta.translation),
+				orientation: mergeOrientation(existing.orientation, delta.orientation),
 				parent: delta.parent ?? existing.parent,
 				explanation:
 					[existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
