@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.34.2
+
+### Patch Changes
+
+- 6f1c52e: useFrames condition to show LLM frame edit preview
+
 ## 1.34.1
 
 ### Patch Changes
