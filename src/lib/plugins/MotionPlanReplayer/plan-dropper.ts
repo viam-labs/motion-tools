@@ -1,7 +1,7 @@
-import { PlanParseError } from '$lib/plugins/MotionPlanReplayer/parse-plan'
-import { planJsonToSnapshots } from '$lib/plugins/MotionPlanReplayer/plan-to-snapshots'
+import { type FileDropper, FileDropperError } from '$lib/components/FileDrop/file-dropper'
 
-import { type FileDropper, FileDropperError } from './file-dropper'
+import { PlanParseError } from './parse-plan'
+import { planJsonToSnapshots } from './plan-to-snapshots'
 
 // Adapted detection from POC: bov-debug-bad-plans:src/lib/loaders/plan-request-loader.ts
 export const planDropper: FileDropper = async ({ name, content }) => {

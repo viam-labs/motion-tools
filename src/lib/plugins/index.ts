@@ -24,3 +24,7 @@ export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'
 
 export { default as XR } from './XR/XR.svelte'
 export { default as XRSettings } from './XR/XRSettings.svelte'
+
+// MotionPlanReplayer
+export { default as MotionPlanReplayer } from './MotionPlanReplayer/MotionPlanReplayer.svelte'
+export type { PlanEntry } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'

@@ -2,8 +2,9 @@ import { Quaternion } from 'three'
 
 import { quaternionToPose } from '$lib/transform'
 
+import type { ParsedPlan } from './parse-plan'
+
 import { planUuid } from './plan-uuid'
-import type { ParsedPlan, RawFrame } from './parse-plan'
 
 export interface GeometryDescriptor {
 	type: 'box' | 'sphere' | 'capsule'
@@ -22,7 +23,7 @@ export interface StaticFrameDescriptor {
 	parent: string
 	localPose: { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number }
 	geometry: GeometryDescriptor | null
-	uuid: Uint8Array
+	uuid: Uint8Array<ArrayBuffer>
 }
 
 export interface RotationalFrameDescriptor {
@@ -32,7 +33,7 @@ export interface RotationalFrameDescriptor {
 	axis: { X: number; Y: number; Z: number }
 	componentName: string
 	jointIndex: number
-	uuid: Uint8Array
+	uuid: Uint8Array<ArrayBuffer>
 }
 
 export type FrameDescriptor = StaticFrameDescriptor | RotationalFrameDescriptor
@@ -78,7 +79,15 @@ const parseGeometry = (geom: unknown): GeometryDescriptor | null => {
 
 	const trans = g.translation as Vec3Json
 	const orient = g.orientation as OrientJson
-	const centerPose = { x: trans?.X ?? 0, y: trans?.Y ?? 0, z: trans?.Z ?? 0, oX: 0, oY: 0, oZ: 0, theta: 0 }
+	const centerPose = {
+		x: trans?.X ?? 0,
+		y: trans?.Y ?? 0,
+		z: trans?.Z ?? 0,
+		oX: 0,
+		oY: 0,
+		oZ: 0,
+		theta: 0,
+	}
 	if (orient?.type === 'quaternion' && orient.value) {
 		quaternionToPose(quaternionFromJson(orient), centerPose)
 	}
@@ -102,10 +111,15 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	const jointMap = new Map<string, string[]>()
 	for (const [frameName, entry] of Object.entries(frames)) {
 		if (entry.frame_type !== 'model') continue
-		const model = (entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
+		const model = (entry.frame as Record<string, unknown>).model as
+			| Record<string, unknown>
+			| undefined
 		const joints = model?.joints as Array<{ id: string }> | undefined
 		if (!joints) continue
-		jointMap.set(frameName, joints.map((j) => `${frameName}:${j.id}`))
+		jointMap.set(
+			frameName,
+			joints.map((j) => `${frameName}:${j.id}`)
+		)
 	}
 
 	// Pass 2: build descriptors — skip model frames, classify named as static/rotational
@@ -115,8 +129,9 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		const parent = parents[frameName] ?? 'world'
 
 		switch (entry.frame_type) {
-			case 'model':
+			case 'model': {
 				continue
+			}
 
 			case 'named': {
 				const outer = entry.frame as Record<string, unknown>
