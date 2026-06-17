@@ -94,12 +94,13 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	Object.assign(instancedBoxEdges, { isMesh: false, isLine: true, isLineSegments: true })
 
 	/**
-	 * Instance ids per entity, and the reverse for resolving raycast hits back
-	 * to entities. Ids are valid for both meshes: the library recycles ids
-	 * through a free list, and every add/remove below is mirrored to faces and
-	 * edges, so the two free lists stay identical.
+	 * Faces and edges are separate meshes with independent free lists, so each
+	 * entity tracks its faces id and edges id separately. `entityByInstanceId`
+	 * is keyed by faces id — only the faces mesh raycasts (edges set
+	 * `raycast={() => null}`), so a hit's `instanceId` is always a faces id.
 	 */
-	const instanceIdByEntity = new Map<Entity, number>()
+	type InstanceIds = { face: number; edge: number }
+	const instanceIdByEntity = new Map<Entity, InstanceIds>()
 	const entityByInstanceId = new Map<number, Entity>()
 
 	const events = useInstancedEntityEvents((event) =>
@@ -128,16 +129,16 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		return subtypeToColor(subtype) ?? colorUtil.set(colors.default)
 	}
 
-	const writeAppearance = (entity: Entity, id: number) => {
+	const writeAppearance = (entity: Entity, ids: InstanceIds) => {
 		const color = resolveColor(entity)
 		const visible = !entity.has(traits.InheritedInvisible)
 
-		instancedBoxes.setColorAt(id, color)
-		instancedBoxes.setOpacityAt(id, entity.get(traits.Opacity) ?? 0.7)
-		instancedBoxes.setVisibilityAt(id, visible)
+		instancedBoxes.setColorAt(ids.face, color)
+		instancedBoxes.setOpacityAt(ids.face, entity.get(traits.Opacity) ?? 0.7)
+		instancedBoxes.setVisibilityAt(ids.face, visible)
 
-		instancedBoxEdges.setColorAt(id, darkenColor(color, 10))
-		instancedBoxEdges.setVisibilityAt(id, visible)
+		instancedBoxEdges.setColorAt(ids.edge, darkenColor(color, 10))
+		instancedBoxEdges.setVisibilityAt(ids.edge, visible)
 
 		/**
 		 * Mirrors `useEntityEvents`' invisibility watcher: an instance that
@@ -153,29 +154,32 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const addInstance = (entity: Entity) => {
 		matrix.decompose(position, quaternion, scale)
 
-		let id = -1
+		let face = -1
 		instancedBoxes.addInstances(1, (obj, index) => {
-			id = index
+			face = index
 			obj.position.copy(position)
 			obj.quaternion.copy(quaternion)
 			obj.scale.copy(scale)
 		})
-		instancedBoxEdges.addInstances(1, (obj) => {
+		let edge = -1
+		instancedBoxEdges.addInstances(1, (obj, index) => {
+			edge = index
 			obj.position.copy(position)
 			obj.quaternion.copy(quaternion)
 			obj.scale.copy(scale)
 		})
 
-		instanceIdByEntity.set(entity, id)
-		entityByInstanceId.set(id, entity)
-		writeAppearance(entity, id)
+		const ids = { face, edge }
+		instanceIdByEntity.set(entity, ids)
+		entityByInstanceId.set(face, entity)
+		writeAppearance(entity, ids)
 	}
 
-	const removeInstance = (entity: Entity, id: number) => {
+	const removeInstance = (entity: Entity, ids: InstanceIds) => {
 		instanceIdByEntity.delete(entity)
-		entityByInstanceId.delete(id)
-		instancedBoxes.removeInstances(id)
-		instancedBoxEdges.removeInstances(id)
+		entityByInstanceId.delete(ids.face)
+		instancedBoxes.removeInstances(ids.face)
+		instancedBoxEdges.removeInstances(ids.edge)
 	}
 
 	/**
@@ -193,24 +197,24 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		}
 
 		for (const entity of dirtyTransform) {
-			const id = instanceIdByEntity.get(entity)
+			const ids = instanceIdByEntity.get(entity)
 
 			if (entity.isAlive() && composeBoxMatrix(entity, matrix)) {
-				if (id === undefined) {
+				if (ids === undefined) {
 					addInstance(entity)
 				} else {
-					instancedBoxes.setMatrixAt(id, matrix)
-					instancedBoxEdges.setMatrixAt(id, matrix)
+					instancedBoxes.setMatrixAt(ids.face, matrix)
+					instancedBoxEdges.setMatrixAt(ids.edge, matrix)
 				}
-			} else if (id !== undefined) {
-				removeInstance(entity, id)
+			} else if (ids !== undefined) {
+				removeInstance(entity, ids)
 			}
 		}
 
 		for (const entity of dirtyAppearance) {
-			const id = instanceIdByEntity.get(entity)
-			if (id !== undefined && entity.isAlive()) {
-				writeAppearance(entity, id)
+			const ids = instanceIdByEntity.get(entity)
+			if (ids !== undefined && entity.isAlive()) {
+				writeAppearance(entity, ids)
 			}
 		}
 
