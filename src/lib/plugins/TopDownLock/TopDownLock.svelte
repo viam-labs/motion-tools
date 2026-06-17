@@ -15,7 +15,6 @@
 			currentControls.polarAngle = 0
 			currentControls.minPolarAngle = 0
 			currentControls.maxPolarAngle = 0
-			console.log('hi', controls.current)
 
 			return () => {
 				currentControls.minPolarAngle = minPolarAngle
