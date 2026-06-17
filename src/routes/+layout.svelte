@@ -7,7 +7,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
+	import { DrawService, Focus, Logs, MeasureTool, XR, XRSettings } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -76,6 +76,7 @@
 					<Machines bind:isOpen={isMachinesPageOpen} />
 				{/snippet}
 
+				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />

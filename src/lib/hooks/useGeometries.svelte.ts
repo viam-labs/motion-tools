@@ -19,10 +19,10 @@ import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
+import { useLogs } from '$lib/plugins'
 import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
