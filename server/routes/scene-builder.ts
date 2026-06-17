@@ -47,7 +47,7 @@ const ResponseSchema = z.object({
 	updates: z
 		.array(FrameDeltaSchema)
 		.describe(
-			'One entry per component that needs to change. Always populate for any requested change — empty only if truly nothing needs to change.'
+			'One entry per component that needs to change. If a component needs both translation and orientation changes, put ALL of them in the same entry — never create two entries with the same componentName. Empty only if truly nothing needs to change.'
 		),
 	explanation: z
 		.string()
@@ -61,6 +61,7 @@ const SYSTEM_PROMPT = `You are a robot spatial configuration assistant. The user
 Rules:
 - Only modify components listed in the context below. Each component has a "name" field — use that exact string as "componentName" in your response.
 - Return only components that actually need to change.
+- CRITICAL: Each component may appear at most once in the updates array. If a component needs both a translation change and an orientation change, combine them into a single entry with both fields set. Never create two separate entries for the same componentName.
 - For translation, return only the changed axes (x, y, z are each optional). All translation values are in millimeters.
 - For orientation, current values are shown as { roll, pitch, yaw } in degrees. Return only the axes that are changing with their new absolute values.
   - Coordinate system: X is forward, Y is left, Z is up (right-handed).
@@ -94,11 +95,11 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		})
 	}
 
-	const { prompt, components, anthropicKey } = parsed.data
-	const apiKey = anthropicKey || process.env.ANTHROPIC_API_KEY
+	const { prompt, components } = parsed.data
+	const apiKey = process.env.ANTHROPIC_API_KEY
 	if (!apiKey) {
 		return new Response(
-			'No Anthropic API key configured. Add one in Settings → AI or set ANTHROPIC_API_KEY before starting the server.',
+			'No Anthropic API key configured. Set ANTHROPIC_API_KEY in the environment variables.',
 			{ status: 401, headers: CORS_HEADERS }
 		)
 	}
@@ -120,6 +121,9 @@ export async function handleSceneBuilder(req: Request): Promise<Response> {
 		return Response.json(result, { status: 200, headers: CORS_HEADERS })
 	} catch (error) {
 		console.error('LLM error:', error)
-		return new Response('LLM call failed', { status: 502, headers: CORS_HEADERS })
+		return new Response('Something went wrong — check that ANTHROPIC_API_KEY is set correctly.', {
+			status: 502,
+			headers: CORS_HEADERS,
+		})
 	}
 }

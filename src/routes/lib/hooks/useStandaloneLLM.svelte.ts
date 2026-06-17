@@ -1,7 +1,6 @@
 import { getContext, setContext } from 'svelte'
 
 import { backendIP, websocketPort } from '$lib/defines'
-import { useSettings } from '$lib/hooks/useSettings.svelte'
 import { type InferCallback } from '$lib/plugins'
 
 const key = Symbol('standalone-llm-context')
@@ -11,7 +10,6 @@ interface StandaloneLLMContext {
 }
 
 export const provideStandaloneLLM = (): StandaloneLLMContext => {
-	const settings = useSettings()
 	const standaloneInfer: InferCallback = async (prompt, components) => {
 		const res = await fetch(`http://${backendIP}:${websocketPort}/scene-builder`, {
 			method: 'POST',
@@ -19,11 +17,10 @@ export const provideStandaloneLLM = (): StandaloneLLMContext => {
 			body: JSON.stringify({
 				prompt,
 				components,
-				anthropicKey: settings.current.anthropicKey || undefined,
 			}),
 		})
 		if (!res.ok) {
-			throw new Error(`${res.status}: ${await res.text()}`)
+			throw new Error(await res.text())
 		}
 		return res.json()
 	}

@@ -1,5 +1,25 @@
 # motion-tools
 
+## 1.34.3
+
+### Patch Changes
+
+- 7ab8838: Quick frame builder UX hits
+- affbcd5: Reorg frame builder deps
+
+## 1.34.2
+
+### Patch Changes
+
+- 6f1c52e: useFrames condition to show LLM frame edit preview
+
+## 1.34.1
+
+### Patch Changes
+
+- 664674b: Remove AISettings panel from settings tabs and delete AISettings.svelte component
+- 797a8a7: Fix baseline matrix and EditedMatrix update conditions in useFrames
+
 ## 1.34.0
 
 ### Minor Changes

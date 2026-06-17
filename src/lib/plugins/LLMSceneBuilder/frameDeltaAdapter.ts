@@ -28,6 +28,22 @@ export interface UpdateError {
 	reason: string
 }
 
+function mergeTranslation(
+	a?: FrameDelta['translation'],
+	b?: FrameDelta['translation']
+): FrameDelta['translation'] {
+	return a || b ? { x: b?.x ?? a?.x, y: b?.y ?? a?.y, z: b?.z ?? a?.z } : undefined
+}
+
+function mergeOrientation(
+	a?: FrameDelta['orientation'],
+	b?: FrameDelta['orientation']
+): FrameDelta['orientation'] {
+	return a || b
+		? { roll: b?.roll ?? a?.roll, pitch: b?.pitch ?? a?.pitch, yaw: b?.yaw ?? a?.yaw }
+		: undefined
+}
+
 /**
  * Validates LLM-proposed frame deltas and computes the resulting changes without
  * applying them. Each PreparedUpdate carries old and new values so the caller
@@ -41,7 +57,26 @@ export function validateProposedFrameDeltas(
 	const prepared: PreparedUpdate[] = []
 	const knownNames = new Set(config.components.map((c) => c.name))
 
+	// Merge multiple deltas for the same component — the LLM sometimes splits
+	// translation and orientation into separate entries despite the schema saying one per component.
+	const mergedDeltas = new Map<string, FrameDelta>()
 	for (const delta of deltas) {
+		const existing = mergedDeltas.get(delta.componentName)
+		if (existing) {
+			mergedDeltas.set(delta.componentName, {
+				componentName: delta.componentName,
+				translation: mergeTranslation(existing.translation, delta.translation),
+				orientation: mergeOrientation(existing.orientation, delta.orientation),
+				parent: delta.parent ?? existing.parent,
+				explanation:
+					[existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
+			})
+		} else {
+			mergedDeltas.set(delta.componentName, delta)
+		}
+	}
+
+	for (const delta of mergedDeltas.values()) {
 		const component = config.components.find((c) => c.name === delta.componentName)
 
 		if (!component) {
