@@ -23,7 +23,6 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		LineBasicMaterial,
 		Matrix4,
 		MeshToonMaterial,
-		Quaternion,
 		Sphere,
 		Vector3,
 	} from 'three'
@@ -107,9 +106,6 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		event.instanceId === undefined ? undefined : entityByInstanceId.get(event.instanceId)
 	)
 
-	const position = new Vector3()
-	const quaternion = new Quaternion()
-	const scale = new Vector3()
 	const matrix = new Matrix4()
 	const colorUtil = new Color()
 
@@ -152,22 +148,17 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 
 	/** Caller composes the instance transform into `matrix` first. */
 	const addInstance = (entity: Entity) => {
-		matrix.decompose(position, quaternion, scale)
-
 		let face = -1
-		instancedBoxes.addInstances(1, (obj, index) => {
+		instancedBoxes.addInstances(1, (_obj, index) => {
 			face = index
-			obj.position.copy(position)
-			obj.quaternion.copy(quaternion)
-			obj.scale.copy(scale)
 		})
+		instancedBoxes.setMatrixAt(face, matrix)
+
 		let edge = -1
-		instancedBoxEdges.addInstances(1, (obj, index) => {
+		instancedBoxEdges.addInstances(1, (_obj, index) => {
 			edge = index
-			obj.position.copy(position)
-			obj.quaternion.copy(quaternion)
-			obj.scale.copy(scale)
 		})
+		instancedBoxEdges.setMatrixAt(edge, matrix)
 
 		const ids = { face, edge }
 		instanceIdByEntity.set(entity, ids)
@@ -247,6 +238,9 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const enqueueAppearance = enqueue(dirtyAppearance)
 
 	$effect(() => {
+		// Initial sync: existing boxes need both an instance allocated (transform)
+		// and appearance written once. At runtime the sets diverge — motion enqueues
+		// transform alone, so appearance buffers aren't rewritten per kinematics tick.
 		for (const entity of world.query(traits.Box)) {
 			dirtyTransform.add(entity)
 			dirtyAppearance.add(entity)

@@ -8,6 +8,8 @@ import { poseToMatrix } from '$lib/transform'
 const centerMatrix = new Matrix4()
 const dimensions = new Vector3()
 
+const MM_TO_M = 0.001
+
 /**
  * Compose a box entity's full render transform into `out`:
  * `WorldMatrix × Center pose × box dimensions (mm → m)` — the same
@@ -32,7 +34,7 @@ export const composeBoxMatrix = (entity: Entity, out: Matrix4): boolean => {
 		out.multiply(poseToMatrix(center, centerMatrix))
 	}
 
-	out.scale(dimensions.set(box.x * 0.001, box.y * 0.001, box.z * 0.001))
+	out.scale(dimensions.set(box.x * MM_TO_M, box.y * MM_TO_M, box.z * MM_TO_M))
 
 	return true
 }
