@@ -98,5 +98,22 @@ export const parsePlan = (content: string): ParsedPlan => {
 
 	if (!foundFrameSystem) throw new PlanParseError('plan is missing frame_system')
 
+	const frameNames = Object.keys(frames)
+	const frameTypes = frameNames.reduce<Record<string, number>>((acc, k) => {
+		const t = frames[k]!.frame_type
+		acc[t] = (acc[t] ?? 0) + 1
+		return acc
+	}, {})
+	console.debug(
+		'[parsePlan] frames:', frameNames.length, frameTypes,
+		'| parents:', Object.keys(parents).length,
+		'| trajectory steps:', trajectory.length,
+		'| trajectory component keys:', trajectory[0] ? Object.keys(trajectory[0]) : []
+	)
+	console.debug(
+		'[parsePlan] parents map (first 15):',
+		Object.fromEntries(Object.entries(parents).slice(0, 15))
+	)
+
 	return { frames, parents, trajectory, goals }
 }

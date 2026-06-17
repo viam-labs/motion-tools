@@ -1,5 +1,3 @@
-import { Quaternion, Vector3 as ThreeVector3 } from 'three'
-
 import {
 	Capsule,
 	Geometry,
@@ -11,19 +9,15 @@ import {
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
-import { quaternionToPose } from '$lib/transform'
 
 import {
 	buildFrameDescriptors,
+	computeJointedLinkPose,
 	type FrameDescriptor,
 	type GeometryDescriptor,
 } from './build-frame-descriptors'
 import { parsePlan } from './parse-plan'
 import { planUuid } from './plan-uuid'
-
-// Scratch objects — safe in single-threaded JS
-const tmpQ = new Quaternion()
-const tmpAxis = new ThreeVector3()
 
 const buildGeometry = (geom: GeometryDescriptor): Geometry => {
 	const center = new Pose({
@@ -67,17 +61,6 @@ const buildGeometry = (geom: GeometryDescriptor): Geometry => {
 	})
 }
 
-const rotationalPose = (
-	axis: { X: number; Y: number; Z: number },
-	angleRad: number
-): { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number } => {
-	tmpAxis.set(axis.X, axis.Y, axis.Z)
-	tmpQ.setFromAxisAngle(tmpAxis, angleRad)
-	const pose = { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 0, theta: 0 }
-	quaternionToPose(tmpQ, pose)
-	return pose
-}
-
 const descriptorToTransform = (
 	descriptor: FrameDescriptor,
 	stepInputs: Record<string, number[]>
@@ -94,13 +77,17 @@ const descriptorToTransform = (
 		})
 	}
 
+	// jointed_link: bake the joint rotation into the link's local transform.
+	// computeJointedLinkPose returns R_joint × T_link — the translation is
+	// rotated by the joint quaternion, giving correct FK without a joint entity.
 	const angleRad = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
 	return new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
 			referenceFrame: descriptor.parent,
-			pose: new Pose(rotationalPose(descriptor.axis, angleRad)),
+			pose: new Pose(computeJointedLinkPose(descriptor, angleRad)),
 		}),
+		physicalObject: descriptor.geometry ? buildGeometry(descriptor.geometry) : undefined,
 		uuid: descriptor.uuid,
 	})
 }
@@ -109,13 +96,29 @@ export const planToSnapshots = (
 	descriptors: FrameDescriptor[],
 	trajectory: Array<Record<string, number[]>>
 ): Snapshot[] =>
-	trajectory.map(
-		(stepInputs) =>
-			new Snapshot({
-				transforms: descriptors.map((d) => descriptorToTransform(d, stepInputs)),
-				uuid: planUuid(),
-			})
-	)
+	trajectory.map((stepInputs, stepIdx) => {
+		const transforms = descriptors.map((d) => descriptorToTransform(d, stepInputs))
+
+		if (stepIdx === 0) {
+			console.debug('[planToSnapshots] step 0 joint values:', stepInputs)
+			console.debug('[planToSnapshots] step 0 transforms:')
+			for (const t of transforms) {
+				const pose = t.poseInObserverFrame?.pose
+				const geom = t.physicalObject?.geometryType
+				const center = t.physicalObject?.center
+				console.debug(
+					` ${t.referenceFrame} → parent:${t.poseInObserverFrame?.referenceFrame}`,
+					`| pos(${pose?.x?.toFixed(1) ?? '?'}, ${pose?.y?.toFixed(1) ?? '?'}, ${pose?.z?.toFixed(1) ?? '?'})`,
+					`| geom:${geom?.case ?? 'none'}`,
+					center
+						? `center(${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)})`
+						: ''
+				)
+			}
+		}
+
+		return new Snapshot({ transforms, uuid: planUuid() })
+	})
 
 export const planJsonToSnapshots = (content: string): Snapshot[] => {
 	const plan = parsePlan(content)

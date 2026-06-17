@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { planJsonToSnapshots } from '../plan-to-snapshots'
 
+// arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
 const REQUEST = {
 	frame_system: {
 		frames: {
@@ -54,30 +55,49 @@ describe('planJsonToSnapshots', () => {
 		expect(snapshots).toHaveLength(2)
 	})
 
-	it('each Snapshot contains a Transform per frame', () => {
+	it('joint frames produce no transform; child link appears instead', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
-		// 1 rotational (waist) + 1 static (base) = 2 frames
-		expect(snapshots[0]!.transforms).toHaveLength(2)
-		expect(snapshots[1]!.transforms).toHaveLength(2)
+		// waist (joint) is absorbed — only base (jointed_link) appears
+		expect(snapshots[0]!.transforms).toHaveLength(1)
+		const names = snapshots[0]!.transforms.map((t) => t.referenceFrame)
+		expect(names).not.toContain('arm:waist')
+		expect(names).toContain('arm:base')
 	})
 
-	it('rotational frame Transform has different pose at each step', () => {
+	it('jointed link bakes joint rotation — pose changes per step', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
-		const waist0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
-		const waist1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
+		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		// step 0: angle=0 → theta≈0; step 1: angle=π/2 → theta≈90°
-		expect(waist0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
-		expect(waist1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
+		expect(base0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
+		expect(base1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
 	})
 
-	it('static frame has the same UUID in both steps', () => {
+	it('jointed link is parented to the joint\'s parent, not the joint', () => {
+		const snapshots = planJsonToSnapshots(CONTENT)
+		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		// waist's parent is 'world', so base's ECS parent should also be 'world'
+		expect(base.poseInObserverFrame!.referenceFrame).toBe('world')
+	})
+
+	it('jointed link translation is rotated by the joint quaternion', () => {
+		const snapshots = planJsonToSnapshots(CONTENT)
+		// Z-axis rotation by π/2: translation (0, 0, 100) stays (0, 0, 100) because Z is unchanged
+		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		const pose = base1.poseInObserverFrame!.pose!
+		expect(pose.x).toBeCloseTo(0, 1)
+		expect(pose.y).toBeCloseTo(0, 1)
+		expect(pose.z).toBeCloseTo(100, 1)
+	})
+
+	it('link has same UUID across steps', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		expect(base0.uuid).toStrictEqual(base1.uuid)
 	})
 
-	it('static frame has physicalObject when geometry is present', () => {
+	it('link has physicalObject when geometry is present', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		expect(base.physicalObject).toBeDefined()

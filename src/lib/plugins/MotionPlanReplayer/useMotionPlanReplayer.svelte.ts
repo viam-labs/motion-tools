@@ -10,6 +10,9 @@ import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 import { PlanParseError } from './parse-plan'
 import { planJsonToSnapshots } from './plan-to-snapshots'
 
+const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
+const PLAN_OPACITY = 0.6
+
 export interface PlanEntry {
 	name: string
 	content: string
@@ -103,6 +106,17 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 		entityMap = result.current
 
+		for (const entry of result.current.values()) {
+			if (!entry.entity.isAlive()) continue
+			if (entry.entity.has(traits.ReferenceFrame)) continue
+			if (entry.entity.has(traits.Color)) {
+				entry.entity.set(traits.Color, PLAN_COLOR)
+			} else {
+				entry.entity.add(traits.Color(PLAN_COLOR))
+			}
+			entry.entity.set(traits.Opacity, PLAN_OPACITY)
+		}
+
 		// Debug: check orphan vs ChildOf status for a few arm entities
 		let orphaned = 0,
 			parented = 0
@@ -119,6 +133,30 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			'with ChildOf, total:',
 			result.current.size
 		)
+
+		if (step === 0) {
+			console.debug('[MotionPlanReplayer] step 0 entity inventory:')
+			for (const [uuid, entry] of result.current) {
+				const { entity } = entry
+				if (!entity.isAlive()) continue
+				const name = entity.get(traits.Name) ?? '(no name)'
+				const isRef = entity.has(traits.ReferenceFrame)
+				const isOrphan = entity.has(traits.Orphan)
+				const orphanTarget = isOrphan ? entity.get(traits.Orphan) : undefined
+				const hasChildOf = entity.targetFor(relations.ChildOf) !== undefined
+				const mat = entity.get(traits.Matrix)
+				const tx = mat?.elements[12]?.toFixed(1) ?? '?'
+				const ty = mat?.elements[13]?.toFixed(1) ?? '?'
+				const tz = mat?.elements[14]?.toFixed(1) ?? '?'
+				console.debug(
+					` ${name}`,
+					isRef ? '[ref-frame]' : '[geometry]',
+					`| pos(${tx}, ${ty}, ${tz})`,
+					hasChildOf ? '| ChildOf:✓' : `| Orphan→${orphanTarget ?? '?'}`,
+					`| uuid:${uuid.slice(0, 8)}`
+				)
+			}
+		}
 
 		currentStep = step
 	}

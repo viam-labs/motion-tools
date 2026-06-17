@@ -1,6 +1,6 @@
-import { Quaternion } from 'three'
+import { Quaternion, Vector3 } from 'three'
 
-import { quaternionToPose } from '$lib/transform'
+import { poseToQuaternion, quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
 
@@ -17,29 +17,53 @@ export interface GeometryDescriptor {
 	label: string
 }
 
+type LocalPose = { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number }
+
+/** A rigid link with a fixed local transform — no joint involved. */
 export interface StaticFrameDescriptor {
 	kind: 'static'
 	name: string
 	parent: string
-	localPose: { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number }
+	localPose: LocalPose
 	geometry: GeometryDescriptor | null
 	uuid: Uint8Array<ArrayBuffer>
 }
 
-export interface RotationalFrameDescriptor {
-	kind: 'rotational'
+/**
+ * A rigid link whose immediate parent in the model is a revolute joint.
+ * The joint's rotation is baked into this descriptor so no separate joint
+ * entity appears in the ECS parent chain. At each trajectory step,
+ * `descriptorToTransform` computes:
+ *
+ *   combined = R_joint × T_link
+ *
+ * which rotates the link's translation by the joint quaternion before
+ * composing it with the rotation, giving the correct FK result without
+ * needing an intermediate entity.
+ */
+export interface JointedLinkDescriptor {
+	kind: 'jointed_link'
 	name: string
+	/** The joint's parent — the link's kinematic grandparent in the ECS. */
 	parent: string
+	/** Link's own local offset and orientation in the joint frame (mm). */
+	linkPose: LocalPose
+	/** Rotation axis of the controlling joint. */
 	axis: { X: number; Y: number; Z: number }
+	/** Component name for trajectory lookup. */
 	componentName: string
+	/** Index into the trajectory's joint-angle array. */
 	jointIndex: number
+	geometry: GeometryDescriptor | null
 	uuid: Uint8Array<ArrayBuffer>
 }
 
-export type FrameDescriptor = StaticFrameDescriptor | RotationalFrameDescriptor
+export type FrameDescriptor = StaticFrameDescriptor | JointedLinkDescriptor
 
-// Shared scratch — safe in single-threaded JS
+// Shared scratch objects — safe in single-threaded JS
 const tmpQ = new Quaternion()
+const tmpLinkQ = new Quaternion()
+const tmpVec = new Vector3()
 
 type QuatJson = { W: number; X: number; Y: number; Z: number }
 type OrientJson = { type: string; value: QuatJson } | undefined
@@ -48,16 +72,13 @@ type Vec3Json = { X: number; Y: number; Z: number } | undefined
 const quaternionFromJson = (orientation: OrientJson): Quaternion => {
 	if (orientation?.type === 'quaternion' && orientation.value) {
 		const v = orientation.value
-		// Three.js Quaternion: (x, y, z, w) — W is LAST
+		// Three.js Quaternion order: (x, y, z, w) — W is LAST
 		return tmpQ.set(v.X, v.Y, v.Z, v.W)
 	}
 	return tmpQ.set(0, 0, 0, 1)
 }
 
-const poseFromFrame = (
-	translation: Vec3Json,
-	orientation: OrientJson
-): StaticFrameDescriptor['localPose'] => {
+const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): LocalPose => {
 	const pose = {
 		x: translation?.X ?? 0,
 		y: translation?.Y ?? 0,
@@ -71,7 +92,23 @@ const poseFromFrame = (
 	return pose
 }
 
-const parseGeometry = (geom: unknown): GeometryDescriptor | null => {
+/**
+ * Parse a geometry descriptor from raw JSON.
+ *
+ * `frameTranslation` must be supplied for link frames from `internal_fs`
+ * (i.e. `named` inner-static frames). In that format the geometry center
+ * translation is expressed in the *parent* frame — the same coordinate space
+ * as the frame's own translation — so the local center offset is:
+ *
+ *   local_center = geo_center_in_parent − frame_translation_in_parent
+ *
+ * Example: base_top frame at z=267, geo center at z=160 (both from waist)
+ *   → local_center = (0,0,−107)  (capsule center is 107mm BELOW the frame origin)
+ *
+ * For non-arm static frames (cameras, obstacles) the geometry center is already
+ * in local frame coordinates, so `frameTranslation` should be omitted.
+ */
+const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): GeometryDescriptor | null => {
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
@@ -80,9 +117,9 @@ const parseGeometry = (geom: unknown): GeometryDescriptor | null => {
 	const trans = g.translation as Vec3Json
 	const orient = g.orientation as OrientJson
 	const centerPose = {
-		x: trans?.X ?? 0,
-		y: trans?.Y ?? 0,
-		z: trans?.Z ?? 0,
+		x: (trans?.X ?? 0) - (frameTranslation?.X ?? 0),
+		y: (trans?.Y ?? 0) - (frameTranslation?.Y ?? 0),
+		z: (trans?.Z ?? 0) - (frameTranslation?.Z ?? 0),
 		oX: 0,
 		oY: 0,
 		oZ: 0,
@@ -104,10 +141,19 @@ const parseGeometry = (geom: unknown): GeometryDescriptor | null => {
 	}
 }
 
+interface JointInfo {
+	axis: { X: number; Y: number; Z: number }
+	componentName: string
+	jointIndex: number
+	/** The joint's own parent — becomes the jointed link's ECS parent. */
+	parent: string
+}
+
 export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	const { frames, parents } = plan
 
-	// Pass 1: map component name → ordered joint frame names, from "model" frames
+	// Pass 1: map component name → ordered joint frame names (from "model" frames).
+	// This gives us the index each joint occupies in the trajectory array.
 	const jointMap = new Map<string, string[]>()
 	for (const [frameName, entry] of Object.entries(frames)) {
 		if (entry.frame_type !== 'model') continue
@@ -122,8 +168,71 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
-	// Pass 2: build descriptors — skip model frames, classify named as static/rotational
+	// Pass 2: build a lookup of rotational joint frames so that links whose
+	// parent is a joint can absorb that joint's rotation directly.
+	const jointInfoMap = new Map<string, JointInfo>()
+	for (const [frameName, entry] of Object.entries(frames)) {
+		if (entry.frame_type !== 'named') continue
+		const outer = entry.frame as Record<string, unknown>
+		const inner = outer.inner_frame as Record<string, unknown>
+		if (inner.frame_type !== 'rotational') continue
+
+		const innerData = inner.frame as Record<string, unknown>
+		const parent = parents[frameName] ?? 'world'
+
+		let componentName = ''
+		let jointIndex = -1
+		for (const [comp, names] of jointMap) {
+			const idx = names.indexOf(frameName)
+			if (idx !== -1) {
+				componentName = comp
+				jointIndex = idx
+				break
+			}
+		}
+		if (!componentName) continue
+
+		jointInfoMap.set(frameName, {
+			axis: innerData.axis as { X: number; Y: number; Z: number },
+			componentName,
+			jointIndex,
+			parent,
+		})
+	}
+
+	// Pass 3: build descriptors. Rotational joint frames produce no entity —
+	// their children become JointedLinkDescriptors instead.
 	const descriptors: FrameDescriptor[] = []
+
+	const buildDescriptor = (
+		frameName: string,
+		parent: string,
+		linkPose: LocalPose,
+		geometry: GeometryDescriptor | null
+	): FrameDescriptor => {
+		const jointInfo = jointInfoMap.get(parent)
+		if (jointInfo) {
+			return {
+				kind: 'jointed_link',
+				name: frameName,
+				parent: jointInfo.parent,
+				linkPose,
+				axis: jointInfo.axis,
+				componentName: jointInfo.componentName,
+				jointIndex: jointInfo.jointIndex,
+				geometry,
+				uuid: planUuid(),
+			}
+		}
+		return {
+			kind: 'static',
+			name: frameName,
+			parent,
+			localPose: linkPose,
+			geometry,
+			uuid: planUuid(),
+		}
+	}
 
 	for (const [frameName, entry] of Object.entries(frames)) {
 		const parent = parents[frameName] ?? 'world'
@@ -136,42 +245,25 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			case 'named': {
 				const outer = entry.frame as Record<string, unknown>
 				const inner = outer.inner_frame as Record<string, unknown>
-				const innerData = inner.frame as Record<string, unknown>
+
+				if (inner.frame_type === 'rotational') {
+					// Joint frames generate no entity — absorbed by child links above.
+					continue
+				}
 
 				if (inner.frame_type === 'static') {
-					descriptors.push({
-						kind: 'static',
-						name: frameName,
-						parent,
-						localPose: poseFromFrame(
-							innerData.translation as Vec3Json,
-							innerData.orientation as OrientJson
-						),
-						geometry: parseGeometry(innerData.geometry),
-						uuid: planUuid(),
-					})
-				} else if (inner.frame_type === 'rotational') {
-					let componentName = ''
-					let jointIndex = -1
-					for (const [comp, names] of jointMap) {
-						const idx = names.indexOf(frameName)
-						if (idx !== -1) {
-							componentName = comp
-							jointIndex = idx
-							break
-						}
-					}
-					if (!componentName) continue
-
-					descriptors.push({
-						kind: 'rotational',
-						name: frameName,
-						parent,
-						axis: innerData.axis as { X: number; Y: number; Z: number },
-						componentName,
-						jointIndex,
-						uuid: planUuid(),
-					})
+					const innerData = inner.frame as Record<string, unknown>
+					const frameTrans = innerData.translation as Vec3Json
+					descriptors.push(
+						buildDescriptor(
+							frameName,
+							parent,
+							poseFromFrame(frameTrans, innerData.orientation as OrientJson),
+							// Geometry center in internal_fs is in the parent frame (same space
+							// as frameTrans) — subtract to get the offset in the link's local frame.
+							parseGeometry(innerData.geometry, frameTrans)
+						)
+					)
 				}
 				break
 			}
@@ -179,18 +271,77 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			case 'tail_geometry_static':
 			case 'static': {
 				const frame = entry.frame as Record<string, unknown>
-				descriptors.push({
-					kind: 'static',
-					name: frameName,
-					parent,
-					localPose: poseFromFrame(frame.translation as Vec3Json, frame.orientation as OrientJson),
-					geometry: parseGeometry(frame.geometry),
-					uuid: planUuid(),
-				})
+				descriptors.push(
+					buildDescriptor(
+						frameName,
+						parent,
+						poseFromFrame(frame.translation as Vec3Json, frame.orientation as OrientJson),
+						parseGeometry(frame.geometry)
+					)
+				)
 				break
 			}
 		}
 	}
 
+	console.debug('[buildFrameDescriptors] jointMap:', Object.fromEntries(jointMap))
+	console.debug('[buildFrameDescriptors]', descriptors.length, 'descriptors:')
+	for (const d of descriptors) {
+		if (d.kind === 'static') {
+			const p = d.localPose
+			console.debug(
+				`  STATIC       ${d.name} → parent:${d.parent}`,
+				`| pos(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`,
+				`| geom:${d.geometry?.type ?? 'none'}`,
+				d.geometry
+					? `center(${d.geometry.centerPose.x.toFixed(1)}, ${d.geometry.centerPose.y.toFixed(1)}, ${d.geometry.centerPose.z.toFixed(1)})`
+					: ''
+			)
+		} else {
+			const p = d.linkPose
+			console.debug(
+				`  JOINTED_LINK ${d.name} → parent:${d.parent}`,
+				`| pos(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`,
+				`| axis:${JSON.stringify(d.axis)} ${d.componentName}[${d.jointIndex}]`,
+				`| geom:${d.geometry?.type ?? 'none'}`
+			)
+		}
+	}
+
 	return descriptors
+}
+
+/**
+ * Compute the combined local transform for a jointed link at a given joint angle.
+ *
+ * The correct FK composition is R_joint × T_link:
+ *   - rotation block  = R_joint × R_link  (joint rotation, then link's own orientation)
+ *   - translation     = R_joint × t_link  (link's offset rotated into joint's frame)
+ *
+ * `poseToMatrix` produces [R | t] (translation NOT rotated), so we cannot use it
+ * directly. Instead we rotate t explicitly here, then build the pose with the
+ * rotated translation and combined quaternion.
+ */
+export const computeJointedLinkPose = (
+	descriptor: JointedLinkDescriptor,
+	angleRad: number
+): { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number } => {
+	// Joint rotation quaternion
+	tmpVec.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z)
+	tmpQ.setFromAxisAngle(tmpVec, angleRad)
+
+	// Link's own orientation (identity for most links; non-trivial for e.g. gripper_mount)
+	const p = descriptor.linkPose
+	poseToQuaternion(p, tmpLinkQ)
+
+	// Combined rotation: R_joint × R_link
+	const combinedQ = tmpQ.clone().multiply(tmpLinkQ)
+
+	// Rotate the link's translation by the joint rotation
+	tmpVec.set(p.x, p.y, p.z) // in mm — quaternion rotation preserves magnitude
+	tmpVec.applyQuaternion(tmpQ)
+
+	const pose = { x: tmpVec.x, y: tmpVec.y, z: tmpVec.z, oX: 0, oY: 0, oZ: 0, theta: 0 }
+	quaternionToPose(combinedQ, pose)
+	return pose
 }

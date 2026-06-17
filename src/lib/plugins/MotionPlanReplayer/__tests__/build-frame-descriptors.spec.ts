@@ -41,7 +41,9 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('produces a rotational descriptor and maps to correct joint index', () => {
+	it('joint frames produce no descriptors; child links become jointed_link descriptors', () => {
+		// arm chain: base (static) → waist (joint, Z) → base_top (static link)
+		//                          → shoulder (joint, Y) → upper_arm (static link)
 		const p = plan(
 			{
 				arm: {
@@ -66,21 +68,65 @@ describe('buildFrameDescriptors', () => {
 						},
 					},
 				},
+				'arm:base_top': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 267 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+							},
+						},
+					},
+				},
+				'arm:upper_arm': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 53.5, Y: 0, Z: 284.5 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+							},
+						},
+					},
+				},
 			},
-			{ 'arm:waist': 'world', 'arm:shoulder': 'arm:waist' }
+			{
+				'arm:waist': 'arm:base',
+				'arm:shoulder': 'arm:base_top',
+				'arm:base_top': 'arm:waist',
+				'arm:upper_arm': 'arm:shoulder',
+			}
 		)
 		const descriptors = buildFrameDescriptors(p)
-		const waist = descriptors.find((d) => d.name === 'arm:waist')!
-		const shoulder = descriptors.find((d) => d.name === 'arm:shoulder')!
-		expect(waist.kind).toBe('rotational')
-		expect(shoulder.kind).toBe('rotational')
-		if (waist.kind === 'rotational') {
-			expect(waist.componentName).toBe('arm')
-			expect(waist.jointIndex).toBe(0)
+
+		// Joint frames (waist, shoulder) must not appear as descriptors
+		expect(descriptors.find((d) => d.name === 'arm:waist')).toBeUndefined()
+		expect(descriptors.find((d) => d.name === 'arm:shoulder')).toBeUndefined()
+
+		// base_top: parent was waist (joint) → becomes jointed_link, ECS parent = waist's parent
+		const basTop = descriptors.find((d) => d.name === 'arm:base_top')!
+		expect(basTop.kind).toBe('jointed_link')
+		if (basTop.kind === 'jointed_link') {
+			expect(basTop.parent).toBe('arm:base') // joint's parent, not the joint itself
+			expect(basTop.componentName).toBe('arm')
+			expect(basTop.jointIndex).toBe(0) // waist is index 0
+			expect(basTop.axis).toEqual({ X: 0, Y: 0, Z: 1 })
+			expect(basTop.linkPose.z).toBeCloseTo(267)
 		}
-		if (shoulder.kind === 'rotational') {
-			expect(shoulder.componentName).toBe('arm')
-			expect(shoulder.jointIndex).toBe(1)
+
+		// upper_arm: parent was shoulder (joint) → becomes jointed_link
+		const upperArm = descriptors.find((d) => d.name === 'arm:upper_arm')!
+		expect(upperArm.kind).toBe('jointed_link')
+		if (upperArm.kind === 'jointed_link') {
+			expect(upperArm.parent).toBe('arm:base_top') // shoulder's parent
+			expect(upperArm.componentName).toBe('arm')
+			expect(upperArm.jointIndex).toBe(1) // shoulder is index 1
+			expect(upperArm.axis).toEqual({ X: 0, Y: 1, Z: 0 })
+			expect(upperArm.linkPose.x).toBeCloseTo(53.5)
+			expect(upperArm.linkPose.z).toBeCloseTo(284.5)
 		}
 	})
 
