@@ -1,6 +1,5 @@
 import { Quaternion, Vector3 as ThreeVector3 } from 'three'
 
-import { quaternionToPose } from '$lib/transform'
 import {
 	Capsule,
 	Geometry,
@@ -12,6 +11,7 @@ import {
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
+import { quaternionToPose } from '$lib/transform'
 
 import {
 	buildFrameDescriptors,
@@ -109,11 +109,12 @@ export const planToSnapshots = (
 	descriptors: FrameDescriptor[],
 	trajectory: Array<Record<string, number[]>>
 ): Snapshot[] =>
-	trajectory.map((stepInputs) =>
-		new Snapshot({
-			transforms: descriptors.map((d) => descriptorToTransform(d, stepInputs)),
-			uuid: planUuid(),
-		})
+	trajectory.map(
+		(stepInputs) =>
+			new Snapshot({
+				transforms: descriptors.map((d) => descriptorToTransform(d, stepInputs)),
+				uuid: planUuid(),
+			})
 	)
 
 export const planJsonToSnapshots = (content: string): Snapshot[] => {
