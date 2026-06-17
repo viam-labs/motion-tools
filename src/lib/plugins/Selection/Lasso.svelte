@@ -2,13 +2,13 @@
 	import type { ShapecastCallbacks } from 'three-mesh-bvh'
 
 	import { useThrelte } from '@threlte/core'
-	import { useCameraControls } from '@threlte/extras'
 	import earcut from 'earcut'
 	import { type Entity, Not } from 'koota'
 	import { Box3, Triangle, Vector3 } from 'three'
 
 	import { createBufferGeometry } from '$lib/attribute'
 	import { traits, useQuery, useWorld } from '$lib/ecs'
+	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Debug from './Debug.svelte'
 	import * as selectionRelations from './relations'
@@ -246,24 +246,6 @@
 	})
 
 	const lassos = useQuery(selectionTraits.Lasso)
-
-	$effect(() => {
-		if (!controls.current) return
-
-		const currentControls = controls.current
-
-		const { minPolarAngle, maxPolarAngle } = currentControls
-
-		// Locks the camera to top down while this component is mounted
-		currentControls.polarAngle = 0
-		currentControls.minPolarAngle = 0
-		currentControls.maxPolarAngle = 0
-
-		return () => {
-			currentControls.minPolarAngle = minPolarAngle
-			currentControls.maxPolarAngle = maxPolarAngle
-		}
-	})
 
 	// On unmount, destroy all lasso related entities
 	$effect(() => {

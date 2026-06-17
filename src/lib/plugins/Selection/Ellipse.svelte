@@ -266,26 +266,6 @@
 
 	const ellipses = useQuery(selectionTraits.Ellipse)
 
-	$effect(() => {
-		if (!controls.current) return
-
-		const currentControls = controls.current
-
-		if ('minPolarAngle' in currentControls) {
-			const { minPolarAngle, maxPolarAngle } = currentControls
-
-			// Locks the camera to top down while this component is mounted
-			currentControls.polarAngle = 0
-			currentControls.minPolarAngle = 0
-			currentControls.maxPolarAngle = 0
-
-			return () => {
-				currentControls.minPolarAngle = minPolarAngle
-				currentControls.maxPolarAngle = maxPolarAngle
-			}
-		}
-	})
-
 	// On unmount, destroy all lasso related entities
 	$effect(() => {
 		return () => {
