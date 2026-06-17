@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Portal } from '@threlte/extras'
+
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	const STEP_INTERVAL_MS = 100
@@ -56,7 +58,8 @@
 	$effect(() => () => pause())
 </script>
 
-{#if ctx.totalSteps > 0}
+<Portal id="dom">
+	{#if ctx.totalSteps > 0}
 	<div
 		class="pointer-events-auto fixed bottom-4 left-1/2 z-[10000] flex w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded bg-zinc-900/85 px-3 py-2 text-xs text-white"
 	>
@@ -125,7 +128,8 @@
 
 		<span class="tabular-nums whitespace-nowrap">{ctx.currentStep + 1} / {ctx.totalSteps}</span>
 	</div>
-{/if}
+	{/if}
+</Portal>
 
 <style>
 	.scrubber {

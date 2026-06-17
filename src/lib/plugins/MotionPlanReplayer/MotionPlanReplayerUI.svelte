@@ -1,95 +1,88 @@
 <script lang="ts">
-	import { untrack } from 'svelte'
+	import { Portal } from '@threlte/extras'
 
 	import type { PlanFileDropSuccess } from '$lib/components/FileDrop/file-dropper'
 
-	import { useFileDrop } from '$lib/components/FileDrop/useFileDrop.svelte'
+	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
-	interface Props {
-		/** When true, drag-and-drop and remove buttons are hidden (app-embedded mode). */
-		appEmbedded?: boolean
-	}
-
-	const { appEmbedded = false }: Props = $props()
-
 	const ctx = useMotionPlanReplayer()
 
-	// `appEmbedded` is a fixed initialization prop — intentionally captured once.
-	const fileDrop = untrack(() => appEmbedded)
-		? null
-		: useFileDrop(
-				(result) => {
-					if (result.type !== 'plan') return
-					const r = result as PlanFileDropSuccess
-					ctx.addPlan(r.name, r.content, r.snapshots)
-				},
-				() => {}
-			)
+	let isOpen = $state(false)
+
+	$effect(() => {
+		const handle = (e: Event) => {
+			const { name, content, snapshots } = (e as CustomEvent<PlanFileDropSuccess>).detail
+			console.debug('[MotionPlanReplayer] received plan-loaded', name, snapshots.length, 'steps')
+			ctx.addPlan(name, content, snapshots)
+			console.debug('[MotionPlanReplayer] plans after add:', ctx.plans.length)
+			isOpen = true
+		}
+		window.addEventListener('viam:plan-loaded', handle)
+		return () => window.removeEventListener('viam:plan-loaded', handle)
+	})
 </script>
 
-<!-- svelte:window must be at component top level, not inside a block -->
-<svelte:window
-	ondragenter={fileDrop?.ondragenter}
-	ondragleave={fileDrop?.ondragleave}
-	ondragover={fileDrop?.ondragover}
-/>
+<Portal id="dashboard">
+	<fieldset>
+		<DashboardButton
+			active={isOpen}
+			icon="play-circle-outline"
+			description="Motion Plan Replayer"
+			onclick={() => (isOpen = !isOpen)}
+		/>
+	</fieldset>
+</Portal>
 
-<div class="flex flex-col gap-1 p-2 text-xs">
-	<div class="font-medium text-gray-700">Motion Plans</div>
-
-	{#if ctx.plans.length === 0 && !appEmbedded}
-		<div class="py-2 text-center text-gray-400">Drop a plan JSON file to load</div>
-	{/if}
-
-	{#each ctx.plans as plan, i (plan.entry.name)}
-		{@const isActive = ctx.activePlanIndex === i}
-		<div
-			class={[
-				'flex cursor-pointer items-center gap-1 rounded px-2 py-1',
-				isActive ? 'bg-blue-100 font-medium' : 'hover:bg-gray-100',
-			]}
-			role="button"
-			tabindex="0"
-			onclick={() => void ctx.selectPlan(i)}
-			onkeydown={(e) => e.key === 'Enter' && void ctx.selectPlan(i)}
-		>
-			<span class="mr-1 text-gray-400">{isActive ? '●' : '○'}</span>
-			<span class="grow truncate">{plan.entry.name}</span>
-
-			{#if plan.status === 'loading'}
-				<span class="text-gray-400">…</span>
+<Portal id="dom">
+	<FloatingPanel
+		bind:isOpen
+		title="Motion Plan Replayer"
+		defaultSize={{ width: 320, height: 260 }}
+	>
+		<div class="flex h-full flex-col gap-1 p-2 text-xs">
+			{#if ctx.plans.length === 0}
+				<div class="flex grow items-center justify-center text-center text-gray-400">
+					Drop a plan JSON file onto the canvas
+				</div>
 			{/if}
 
-			{#if !appEmbedded}
-				<button
-					type="button"
-					class="ml-1 rounded px-1 text-gray-400 hover:text-red-500"
-					onclick={(e) => {
-						e.stopPropagation()
-						ctx.removePlan(i)
-					}}
-					aria-label="Remove plan"
-					title="Remove plan">×</button
+			{#each ctx.plans as plan, i (plan.name)}
+				{@const isActive = ctx.activePlanIndex === i}
+				<div
+					class={[
+						'flex cursor-pointer items-center gap-1 rounded px-2 py-1',
+						isActive ? 'bg-blue-100 font-medium' : 'hover:bg-gray-100',
+					]}
+					role="button"
+					tabindex="0"
+					onclick={() => (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
+					onkeydown={(e) => e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
 				>
-			{/if}
+					<span class="mr-1 text-gray-400">{isActive ? '●' : '○'}</span>
+					<span class="grow truncate">{plan.name}</span>
+
+					<button
+						type="button"
+						class="ml-1 rounded px-1 text-gray-400 hover:text-red-500"
+						onclick={(e) => {
+							e.stopPropagation()
+							ctx.removePlan(i)
+						}}
+						aria-label="Remove plan"
+						title="Remove plan">×</button
+					>
+				</div>
+
+				{#if plan.status === 'error'}
+					<div class="pl-5 text-[10px] text-red-600">{plan.error}</div>
+				{/if}
+				{#if plan.status === 'no-trajectory'}
+					<div class="pl-5 text-[10px] text-yellow-600">No trajectory — nothing to replay</div>
+				{/if}
+			{/each}
 		</div>
-
-		{#if plan.status === 'error'}
-			<div class="pl-5 text-[10px] text-red-600">{plan.error}</div>
-		{/if}
-		{#if plan.status === 'no-trajectory'}
-			<div class="pl-5 text-[10px] text-yellow-600">No trajectory — nothing to replay</div>
-		{/if}
-	{/each}
-</div>
-
-{#if fileDrop && fileDrop.dropState !== 'inactive'}
-	<div
-		class="fixed inset-0 z-[9999] bg-black/10"
-		role="region"
-		aria-label="File drop zone"
-		ondrop={fileDrop.ondrop}
-	></div>
-{/if}
+	</FloatingPanel>
+</Portal>
