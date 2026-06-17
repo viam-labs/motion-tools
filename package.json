@@ -64,7 +64,7 @@
 		"@testing-library/svelte": "5.2.8",
 		"@testing-library/user-event": "^14.6.1",
 		"@threlte/core": "8.5.14",
-		"@threlte/extras": "9.17.0",
+		"@threlte/extras": "9.21.0",
 		"@threlte/rapier": "3.4.1",
 		"@threlte/xr": "1.6.0",
 		"@types/bun": "1.2.21",

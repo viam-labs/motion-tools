@@ -2,13 +2,13 @@
 	import type { ShapecastCallbacks } from 'three-mesh-bvh'
 
 	import { useThrelte } from '@threlte/core'
+	import { useCameraControls } from '@threlte/extras'
 	import earcut from 'earcut'
 	import { type Entity, Not } from 'koota'
 	import { Box3, Triangle, Vector3 } from 'three'
 
 	import { createBufferGeometry } from '$lib/attribute'
 	import { traits, useQuery, useWorld } from '$lib/ecs'
-	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 
 	import Debug from './Debug.svelte'
 	import * as selectionRelations from './relations'
@@ -16,11 +16,12 @@
 	import { getTriangleBoxesFromIndices, getTriangleFromIndex, raycast } from './utils'
 
 	interface Props {
-		active?: boolean
+		enabled?: boolean
+		selecting?: boolean
 		debug?: boolean
 	}
 
-	let { active = false, debug = false }: Props = $props()
+	let { enabled = false, selecting = false, debug = false }: Props = $props()
 
 	const world = useWorld()
 	const controls = useCameraControls()
@@ -37,7 +38,7 @@
 	let drawing = false
 
 	const onpointerdown = (event: PointerEvent) => {
-		if (!event.shiftKey || !active) return
+		if (!selecting && !event.shiftKey) return
 
 		const { x, y } = raycast(event, camera.current)
 
@@ -60,7 +61,7 @@
 	}
 
 	const onpointermove = (event: PointerEvent) => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		let lasso = world.query(selectionTraits.Lasso).at(-1)
 
@@ -100,13 +101,13 @@
 	}
 
 	const onpointerleave = () => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		onpointerup()
 	}
 
 	const onpointerup = () => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		drawing = false
 
@@ -225,6 +226,8 @@
 	}
 
 	$effect(() => {
+		if (!enabled) return
+
 		globalThis.addEventListener('keydown', onkeydown)
 		globalThis.addEventListener('keyup', onkeyup)
 		dom.addEventListener('pointerdown', onpointerdown)
@@ -249,18 +252,16 @@
 
 		const currentControls = controls.current
 
-		if ('minPolarAngle' in currentControls) {
-			const { minPolarAngle, maxPolarAngle } = currentControls
+		const { minPolarAngle, maxPolarAngle } = currentControls
 
-			// Locks the camera to top down while this component is mounted
-			currentControls.polarAngle = 0
-			currentControls.minPolarAngle = 0
-			currentControls.maxPolarAngle = 0
+		// Locks the camera to top down while this component is mounted
+		currentControls.polarAngle = 0
+		currentControls.minPolarAngle = 0
+		currentControls.maxPolarAngle = 0
 
-			return () => {
-				currentControls.minPolarAngle = minPolarAngle
-				currentControls.maxPolarAngle = maxPolarAngle
-			}
+		return () => {
+			currentControls.minPolarAngle = minPolarAngle
+			currentControls.maxPolarAngle = maxPolarAngle
 		}
 	})
 
