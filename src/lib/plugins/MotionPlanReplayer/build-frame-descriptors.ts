@@ -168,6 +168,27 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
+	// Pass 1b: build a map from model frame name → its end-effector frame name.
+	// Any non-arm frame (camera, gripper, obstacle) whose parent is a model frame
+	// must attach to the arm's end-effector instead, because model frames themselves
+	// are never spawned as ECS entities.
+	//
+	// Try primary_output_frame first; fall back to the last entry in model.links,
+	// which is always the end-effector link in Viam's kinematic model format.
+	const modelEndEffectorMap = new Map<string, string>()
+	for (const [frameName, entry] of Object.entries(frames)) {
+		if (entry.frame_type !== 'model') continue
+		const model = (entry.frame as Record<string, unknown>).model as
+			| Record<string, unknown>
+			| undefined
+		const primaryOutput = model?.primary_output_frame as string | undefined
+		const links = model?.links as Array<{ id: string }> | undefined
+		const endEffectorId = primaryOutput ?? links?.[links.length - 1]?.id
+		if (endEffectorId) {
+			modelEndEffectorMap.set(frameName, `${frameName}:${endEffectorId}`)
+		}
+	}
+
 	// Pass 2: build a lookup of rotational joint frames so that links whose
 	// parent is a joint can absorb that joint's rotation directly.
 	const jointInfoMap = new Map<string, JointInfo>()
@@ -210,7 +231,11 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		linkPose: LocalPose,
 		geometry: GeometryDescriptor | null
 	): FrameDescriptor => {
-		const jointInfo = jointInfoMap.get(parent)
+		// If the parent is a model frame (e.g. "left-arm"), redirect to its
+		// end-effector (e.g. "left-arm:gripper_mount"). Model frames are never
+		// spawned as ECS entities, so anything parented to them would stay orphaned.
+		const resolvedParent = modelEndEffectorMap.get(parent) ?? parent
+		const jointInfo = jointInfoMap.get(resolvedParent)
 		if (jointInfo) {
 			return {
 				kind: 'jointed_link',
@@ -227,7 +252,7 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		return {
 			kind: 'static',
 			name: frameName,
-			parent,
+			parent: resolvedParent,
 			localPose: linkPose,
 			geometry,
 			uuid: planUuid(),
