@@ -1,7 +1,5 @@
-import { getContext, setContext, untrack } from 'svelte'
+import { untrack } from 'svelte'
 import { MathUtils } from 'three'
-
-const key = Symbol('logs-context')
 
 type Level = 'info' | 'warn' | 'error'
 
@@ -21,6 +19,9 @@ interface Context {
 }
 
 const MAX_LOGS = 200
+
+// Logs is a singleton. We only have one logger per app and we need to access it anywhere.
+let context: Context | undefined
 
 export const provideLogs = () => {
 	// Plain insertion-ordered Map keyed by `${level}|${timestamp}|${message}`
@@ -48,7 +49,7 @@ export const provideLogs = () => {
 	const errors = $derived(all.filter((l) => l.level === 'error'))
 	const warnings = $derived(all.filter((l) => l.level === 'warn'))
 
-	setContext<Context>(key, {
+	context = {
 		get current() {
 			return all
 		},
@@ -83,9 +84,19 @@ export const provideLogs = () => {
 				version++
 			})
 		},
-	})
+	}
+
+	return context
 }
 
-export const useLogs = () => {
-	return getContext<Context>(key)
+export const useLogs = (): Context => {
+	// return a no-op context if the plugin isn't installed
+	return (
+		context ?? {
+			current: [],
+			errors: [],
+			warnings: [],
+			add: () => undefined,
+		}
+	)
 }

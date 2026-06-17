@@ -3,10 +3,10 @@ import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobo
 import { untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { useLogs } from '$lib/plugins'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
-import { useLogs } from './useLogs.svelte'
 import { usePartID } from './usePartID.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
 import { useResourceByName } from './useResourceByName.svelte'
