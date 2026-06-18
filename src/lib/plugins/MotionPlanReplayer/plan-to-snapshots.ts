@@ -96,27 +96,8 @@ export const planToSnapshots = (
 	descriptors: FrameDescriptor[],
 	trajectory: Array<Record<string, number[]>>
 ): Snapshot[] =>
-	trajectory.map((stepInputs, stepIdx) => {
+	trajectory.map((stepInputs) => {
 		const transforms = descriptors.map((d) => descriptorToTransform(d, stepInputs))
-
-		if (stepIdx === 0) {
-			console.debug('[planToSnapshots] step 0 joint values:', stepInputs)
-			console.debug('[planToSnapshots] step 0 transforms:')
-			for (const t of transforms) {
-				const pose = t.poseInObserverFrame?.pose
-				const geom = t.physicalObject?.geometryType
-				const center = t.physicalObject?.center
-				console.debug(
-					` ${t.referenceFrame} → parent:${t.poseInObserverFrame?.referenceFrame}`,
-					`| pos(${pose?.x?.toFixed(1) ?? '?'}, ${pose?.y?.toFixed(1) ?? '?'}, ${pose?.z?.toFixed(1) ?? '?'})`,
-					`| geom:${geom?.case ?? 'none'}`,
-					center
-						? `center(${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)})`
-						: ''
-				)
-			}
-		}
-
 		return new Snapshot({ transforms, uuid: planUuid() })
 	})
 

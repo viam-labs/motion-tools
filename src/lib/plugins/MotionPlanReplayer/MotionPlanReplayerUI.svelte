@@ -7,6 +7,7 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
+	import { truncate } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	const ctx = useMotionPlanReplayer()
@@ -18,13 +19,10 @@
 		const handle = (e: Event) => {
 			const { name, content, snapshots } = (e as CustomEvent<PlanFileDropSuccess>).detail
 			if (ctx.plans.some((p) => p.name === name)) {
-				const label = name.length > 24 ? `${name.slice(0, 23)}…` : name
-				toast({ message: `"${label}" already loaded.`, variant: ToastVariant.Warning })
+				toast({ message: `"${truncate(name, 24)}" already loaded.`, variant: ToastVariant.Warning })
 				return
 			}
-			console.debug('[MotionPlanReplayer] received plan-loaded', name, snapshots.length, 'steps')
 			ctx.addPlan(name, content, snapshots)
-			console.debug('[MotionPlanReplayer] plans after add:', ctx.plans.length)
 			isOpen = true
 		}
 		window.addEventListener('viam:plan-loaded', handle)

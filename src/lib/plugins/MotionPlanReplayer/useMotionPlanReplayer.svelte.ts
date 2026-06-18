@@ -4,8 +4,7 @@ import { getContext, setContext } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { uuidBytesToString } from '$lib/draw'
-import { hierarchy, relations, traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
@@ -40,6 +39,8 @@ interface MotionPlanReplayerContext {
 	setStep: (step: number) => void
 	clearActivePlan: () => void
 }
+
+type EntityState = { opacity: number; invisible: boolean }
 
 const KEY = Symbol('motion-plan-replayer')
 
@@ -77,25 +78,12 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const applyStep = (snapshots: Snapshot[], step: number) => {
-		console.debug('[MotionPlanReplayer] applyStep', step, '/', snapshots.length)
 		const snap = snapshots[step]!
-
-		// Debug: check first transform's UUID before reconciling
-		const t0 = snap.transforms[0]
-		console.debug(
-			'[MotionPlanReplayer] first transform name:',
-			t0?.referenceFrame,
-			'uuid bytes:',
-			t0?.uuid?.length,
-			'uuid str:',
-			uuidBytesToString(t0?.uuid)
-		)
 
 		// Capture user-modified opacity and visibility before reconcile.
 		// updateTransform → updateMetadata unconditionally resets Opacity to DEFAULT (1.0)
 		// and removes Invisible — both of which erase user changes made via the legend.
 		// We restore the captured state on updated entities after reconcile.
-		type EntityState = { opacity: number; invisible: boolean }
 		const preserved = new Map<Entity, EntityState>()
 		for (const entry of entityMap.values()) {
 			if (!entry.entity.isAlive()) continue
@@ -106,14 +94,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 
 		const result = reconcileSnapshotEntities(world, snap, entityMap)
-		console.debug(
-			'[MotionPlanReplayer] reconcile — spawned:',
-			result.spawned.length,
-			'updated:',
-			result.updated.length,
-			'unkeyed:',
-			result.unkeyed.length
-		)
 
 		for (const spawned of result.spawned) {
 			relationships.apply(spawned.entity, spawned.relationships)
@@ -150,47 +130,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			}
 		}
 
-		// Debug: check orphan vs ChildOf status for a few arm entities
-		let orphaned = 0,
-			parented = 0
-		for (const entry of result.current.values()) {
-			if (!entry.entity.isAlive()) continue
-			if (entry.entity.has(traits.Orphan)) orphaned++
-			if (entry.entity.targetFor(relations.ChildOf)) parented++
-		}
-		console.debug(
-			'[MotionPlanReplayer] after step:',
-			orphaned,
-			'orphans,',
-			parented,
-			'with ChildOf, total:',
-			result.current.size
-		)
-
-		if (step === 0) {
-			console.debug('[MotionPlanReplayer] step 0 entity inventory:')
-			for (const [uuid, entry] of result.current) {
-				const { entity } = entry
-				if (!entity.isAlive()) continue
-				const name = entity.get(traits.Name) ?? '(no name)'
-				const isRef = entity.has(traits.ReferenceFrame)
-				const isOrphan = entity.has(traits.Orphan)
-				const orphanTarget = isOrphan ? entity.get(traits.Orphan) : undefined
-				const hasChildOf = entity.targetFor(relations.ChildOf) !== undefined
-				const mat = entity.get(traits.Matrix)
-				const tx = mat?.elements[12]?.toFixed(1) ?? '?'
-				const ty = mat?.elements[13]?.toFixed(1) ?? '?'
-				const tz = mat?.elements[14]?.toFixed(1) ?? '?'
-				console.debug(
-					` ${name}`,
-					isRef ? '[ref-frame]' : '[geometry]',
-					`| pos(${tx}, ${ty}, ${tz})`,
-					hasChildOf ? '| ChildOf:✓' : `| Orphan→${orphanTarget ?? '?'}`,
-					`| uuid:${uuid.slice(0, 8)}`
-				)
-			}
-		}
-
 		currentStep = step
 	}
 
@@ -203,24 +142,18 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 	const loadPlan = (index: number): void => {
 		const planState = plans[index]
-		if (!planState) {
-			console.debug('[MotionPlanReplayer] loadPlan: no planState at index', index)
-			return
-		}
+		if (!planState) return
 
 		const stored = snapshotStore.get(index)
 		if (stored) {
-			console.debug('[MotionPlanReplayer] loadPlan: using cached snapshots', stored.length)
 			activePlanIndex = index
 			currentStep = 0
 			applyStep(stored, 0)
 			return
 		}
 
-		console.debug('[MotionPlanReplayer] loadPlan: parsing on demand for', planState.name)
 		try {
 			const snapshots = planJsonToSnapshots(planState.content)
-			console.debug('[MotionPlanReplayer] loadPlan: parsed', snapshots.length, 'steps')
 			if (snapshots.length === 0) {
 				plans[index] = { ...planState, status: 'no-trajectory', stepCount: 0 }
 				activePlanIndex = index
@@ -239,25 +172,12 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const selectPlan = (index: number): void => {
-		console.debug('[MotionPlanReplayer] selectPlan', index, 'active:', activePlanIndex)
 		if (activePlanIndex !== null && activePlanIndex !== index) clearActivePlan()
 		loadPlan(index)
-		console.debug(
-			'[MotionPlanReplayer] after loadPlan — activePlanIndex:',
-			activePlanIndex,
-			'totalSteps:',
-			totalSteps
-		)
 	}
 
 	const addPlan = (name: string, content: string, precomputedSnapshots?: Snapshot[]) => {
 		const index = plans.length
-		console.debug(
-			'[MotionPlanReplayer] addPlan',
-			name,
-			'snapshots:',
-			precomputedSnapshots?.length ?? 0
-		)
 		if (precomputedSnapshots && precomputedSnapshots.length > 0) {
 			snapshotStore.set(index, precomputedSnapshots)
 		}
@@ -271,12 +191,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 				stepCount: precomputedSnapshots?.length ?? 0,
 			},
 		]
-		console.debug(
-			'[MotionPlanReplayer] plans now:',
-			plans.length,
-			'stepCount:',
-			plans[index]?.stepCount
-		)
 	}
 
 	const removePlan = (index: number) => {

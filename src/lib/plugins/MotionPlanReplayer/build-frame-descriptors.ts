@@ -6,18 +6,7 @@ import type { ParsedPlan } from './parse-plan'
 
 import { planUuid } from './plan-uuid'
 
-export interface GeometryDescriptor {
-	type: 'box' | 'sphere' | 'capsule'
-	x?: number
-	y?: number
-	z?: number
-	r?: number
-	l?: number
-	centerPose: { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number }
-	label: string
-}
-
-type LocalPose = {
+export interface LocalPose {
 	x: number
 	y: number
 	z: number
@@ -25,6 +14,17 @@ type LocalPose = {
 	oY: number
 	oZ: number
 	theta: number
+}
+
+export interface GeometryDescriptor {
+	type: 'box' | 'sphere' | 'capsule'
+	x?: number
+	y?: number
+	z?: number
+	r?: number
+	l?: number
+	centerPose: LocalPose
+	label: string
 }
 
 /** A rigid link with a fixed local transform — no joint involved. */
@@ -314,30 +314,6 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 				)
 				break
 			}
-		}
-	}
-
-	console.debug('[buildFrameDescriptors] jointMap:', Object.fromEntries(jointMap))
-	console.debug('[buildFrameDescriptors]', descriptors.length, 'descriptors:')
-	for (const d of descriptors) {
-		if (d.kind === 'static') {
-			const p = d.localPose
-			console.debug(
-				`  STATIC       ${d.name} → parent:${d.parent}`,
-				`| pos(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`,
-				`| geom:${d.geometry?.type ?? 'none'}`,
-				d.geometry
-					? `center(${d.geometry.centerPose.x.toFixed(1)}, ${d.geometry.centerPose.y.toFixed(1)}, ${d.geometry.centerPose.z.toFixed(1)})`
-					: ''
-			)
-		} else {
-			const p = d.linkPose
-			console.debug(
-				`  JOINTED_LINK ${d.name} → parent:${d.parent}`,
-				`| pos(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})`,
-				`| axis:${JSON.stringify(d.axis)} ${d.componentName}[${d.jointIndex}]`,
-				`| geom:${d.geometry?.type ?? 'none'}`
-			)
 		}
 	}
 
