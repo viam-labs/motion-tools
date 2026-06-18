@@ -1,65 +1,45 @@
-import {
-	Capsule,
-	Geometry,
-	Pose,
-	PoseInFrame,
-	RectangularPrism,
-	Sphere,
-	Transform,
-	Vector3 as ViamVector3,
-} from '$lib/buf/common/v1/common_pb'
+import { Quaternion, Vector3 } from 'three'
+
+import { Pose, PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
+import { poseToQuaternion, quaternionToPose } from '$lib/transform'
 
 import {
 	buildFrameDescriptors,
-	computeJointedLinkPose,
 	type FrameDescriptor,
-	type GeometryDescriptor,
+	type JointedLinkDescriptor,
 } from './build-frame-descriptors'
 import { interpolateTrajectory } from './interpolate-trajectory'
 import { parsePlan } from './parse-plan'
 import { planUuid } from './plan-uuid'
 
-const buildGeometry = (geom: GeometryDescriptor): Geometry => {
-	const center = new Pose({
-		x: geom.centerPose.x,
-		y: geom.centerPose.y,
-		z: geom.centerPose.z,
-		oX: geom.centerPose.oX,
-		oY: geom.centerPose.oY,
-		oZ: geom.centerPose.oZ,
-		theta: geom.centerPose.theta,
-	})
+// Shared scratch objects — safe in single-threaded JS
+const tmpQ = new Quaternion()
+const tmpLinkQ = new Quaternion()
+const tmpVec = new Vector3()
 
-	if (geom.type === 'sphere') {
-		return new Geometry({
-			center,
-			geometryType: { case: 'sphere', value: new Sphere({ radiusMm: geom.r ?? 0 }) },
-			label: geom.label,
-		})
-	}
+/**
+ * Compute the combined local transform for a jointed link at a given joint angle.
+ *
+ * The correct FK composition is R_joint × T_link:
+ *   - rotation block  = R_joint × R_link  (joint rotation, then link's own orientation)
+ *   - translation     = R_joint × t_link  (link's offset rotated into joint's frame)
+ */
+const computeJointedLinkPose = (descriptor: JointedLinkDescriptor, angleRad: number): Pose => {
+	tmpVec.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z)
+	tmpQ.setFromAxisAngle(tmpVec, angleRad)
 
-	if (geom.type === 'capsule') {
-		return new Geometry({
-			center,
-			geometryType: {
-				case: 'capsule',
-				value: new Capsule({ radiusMm: geom.r ?? 0, lengthMm: geom.l ?? 0 }),
-			},
-			label: geom.label,
-		})
-	}
+	const p = descriptor.linkPose
+	poseToQuaternion(p, tmpLinkQ)
 
-	return new Geometry({
-		center,
-		geometryType: {
-			case: 'box',
-			value: new RectangularPrism({
-				dimsMm: new ViamVector3({ x: geom.x ?? 0, y: geom.y ?? 0, z: geom.z ?? 0 }),
-			}),
-		},
-		label: geom.label,
-	})
+	const combinedQ = tmpQ.clone().multiply(tmpLinkQ)
+
+	tmpVec.set(p.x, p.y, p.z)
+	tmpVec.applyQuaternion(tmpQ)
+
+	const pose = new Pose({ x: tmpVec.x, y: tmpVec.y, z: tmpVec.z })
+	quaternionToPose(combinedQ, pose)
+	return pose
 }
 
 const descriptorToTransform = (
@@ -71,29 +51,26 @@ const descriptorToTransform = (
 			referenceFrame: descriptor.name,
 			poseInObserverFrame: new PoseInFrame({
 				referenceFrame: descriptor.parent,
-				pose: new Pose(descriptor.localPose),
+				pose: descriptor.localPose,
 			}),
-			physicalObject: descriptor.geometry ? buildGeometry(descriptor.geometry) : undefined,
+			physicalObject: descriptor.geometry ?? undefined,
 			uuid: descriptor.uuid,
 		})
 	}
 
-	// jointed_link: bake the joint rotation into the link's local transform.
-	// computeJointedLinkPose returns R_joint × T_link — the translation is
-	// rotated by the joint quaternion, giving correct FK without a joint entity.
 	const angleRad = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
 	return new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
 			referenceFrame: descriptor.parent,
-			pose: new Pose(computeJointedLinkPose(descriptor, angleRad)),
+			pose: computeJointedLinkPose(descriptor, angleRad),
 		}),
-		physicalObject: descriptor.geometry ? buildGeometry(descriptor.geometry) : undefined,
+		physicalObject: descriptor.geometry ?? undefined,
 		uuid: descriptor.uuid,
 	})
 }
 
-export const planToSnapshots = (
+const planToSnapshots = (
 	descriptors: FrameDescriptor[],
 	trajectory: Array<Record<string, number[]>>
 ): Snapshot[] =>

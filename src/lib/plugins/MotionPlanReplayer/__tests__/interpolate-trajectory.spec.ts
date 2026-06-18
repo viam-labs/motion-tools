@@ -36,7 +36,7 @@ describe('interpolateTrajectory', () => {
 	it('always includes the final keyframe exactly', () => {
 		const traj = [{ arm: [0] }, { arm: [10 * DEG] }]
 		const result = interpolateTrajectory(traj, DEG)
-		expect(result[result.length - 1]).toEqual({ arm: [10 * DEG] })
+		expect(result.at(-1)).toEqual({ arm: [10 * DEG] })
 	})
 
 	it('handles multiple components — max delta across all joints', () => {
@@ -53,6 +53,6 @@ describe('interpolateTrajectory', () => {
 		const traj = [{ arm: [0] }, { arm: [2 * DEG] }, { arm: [4 * DEG] }]
 		const result = interpolateTrajectory(traj, DEG)
 		expect(result).toHaveLength(5)
-		expect(result[result.length - 1]).toEqual({ arm: [4 * DEG] })
+		expect(result.at(-1)).toEqual({ arm: [4 * DEG] })
 	})
 })

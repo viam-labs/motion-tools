@@ -64,74 +64,74 @@
 
 <Portal id="dom">
 	{#if ctx.totalSteps > 0}
-	<div
-		class="pointer-events-auto fixed bottom-4 left-1/2 z-[10000] flex w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded bg-zinc-900/85 px-3 py-2 text-xs text-white"
-	>
-		<!-- Exit replay -->
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none"
-			onclick={ctx.clearActivePlan}
-			aria-label="Exit replay"
-			title="Exit replay"
-		>×</button>
+		<div
+			class="pointer-events-auto fixed bottom-4 left-1/2 z-[10000] flex w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded bg-zinc-900/85 px-3 py-2 text-xs text-white"
+		>
+			<!-- Exit replay -->
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none"
+				onclick={ctx.clearActivePlan}
+				aria-label="Exit replay"
+				title="Exit replay">×</button
+			>
 
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
-			onclick={togglePlay}
-			disabled={ctx.totalSteps <= 0}
-			aria-label={isPlaying ? 'Pause' : 'Play'}
-			title={isPlaying ? 'Pause' : 'Play'}
-		>{isPlaying ? '⏸' : '▶'}</button>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
+				onclick={togglePlay}
+				disabled={ctx.totalSteps <= 0}
+				aria-label={isPlaying ? 'Pause' : 'Play'}
+				title={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? '⏸' : '▶'}</button
+			>
 
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
-			onclick={() => seek(0)}
-			disabled={ctx.currentStep <= 0}
-			aria-label="Jump to start"
-			title="Jump to start"
-		>«</button>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
+				onclick={() => seek(0)}
+				disabled={ctx.currentStep <= 0}
+				aria-label="Jump to start"
+				title="Jump to start">«</button
+			>
 
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
-			onclick={() => stepOnce('prev')}
-			disabled={ctx.currentStep <= 0}
-			aria-label="Previous step"
-			title="Previous step"
-		>‹</button>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
+				onclick={() => stepOnce('prev')}
+				disabled={ctx.currentStep <= 0}
+				aria-label="Previous step"
+				title="Previous step">‹</button
+			>
 
-		<input
-			class="scrubber grow"
-			type="range"
-			min="0"
-			max={lastStepIdx}
-			value={ctx.currentStep}
-			oninput={(e) => seek(Number((e.currentTarget as HTMLInputElement).value))}
-		/>
+			<input
+				class="scrubber grow"
+				type="range"
+				min="0"
+				max={lastStepIdx}
+				value={ctx.currentStep}
+				oninput={(e) => seek(Number((e.currentTarget as HTMLInputElement).value))}
+			/>
 
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
-			onclick={() => stepOnce('next')}
-			disabled={atEnd}
-			aria-label="Next step"
-			title="Next step"
-		>›</button>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
+				onclick={() => stepOnce('next')}
+				disabled={atEnd}
+				aria-label="Next step"
+				title="Next step">›</button
+			>
 
-		<button
-			type="button"
-			class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
-			onclick={() => seek(lastStepIdx)}
-			disabled={atEnd}
-			aria-label="Jump to end"
-			title="Jump to end"
-		>»</button>
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-zinc-600 text-sm leading-none disabled:opacity-40"
+				onclick={() => seek(lastStepIdx)}
+				disabled={atEnd}
+				aria-label="Jump to end"
+				title="Jump to end">»</button
+			>
 
-		<span class="tabular-nums whitespace-nowrap">{ctx.currentStep + 1} / {ctx.totalSteps}</span>
-	</div>
+			<span class="whitespace-nowrap tabular-nums">{ctx.currentStep + 1} / {ctx.totalSteps}</span>
+		</div>
 	{/if}
 </Portal>
 

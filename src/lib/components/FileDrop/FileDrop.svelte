@@ -72,7 +72,6 @@
 					break
 				}
 				case 'plan': {
-					console.debug('[FileDrop] dispatching plan-loaded', result.name, result.stepCount, 'steps')
 					window.dispatchEvent(
 						new CustomEvent<PlanFileDropSuccess>('viam:plan-loaded', { detail: result })
 					)

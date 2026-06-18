@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildFrameDescriptors } from '../build-frame-descriptors'
 import type { ParsedPlan } from '../parse-plan'
+
+import { buildFrameDescriptors } from '../build-frame-descriptors'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
 	frames,
@@ -168,10 +169,12 @@ describe('buildFrameDescriptors', () => {
 		const d = descriptors[0]!
 		if (d.kind === 'static') {
 			expect(d.geometry).not.toBeNull()
-			expect(d.geometry!.type).toBe('capsule')
-			expect(d.geometry!.r).toBe(50)
-			expect(d.geometry!.l).toBe(320)
-			expect(d.geometry!.centerPose.z).toBeCloseTo(160)
+			expect(d.geometry!.geometryType.case).toBe('capsule')
+			if (d.geometry!.geometryType.case === 'capsule') {
+				expect(d.geometry!.geometryType.value.radiusMm).toBe(50)
+				expect(d.geometry!.geometryType.value.lengthMm).toBe(320)
+			}
+			expect(d.geometry!.center!.z).toBeCloseTo(160)
 		}
 	})
 

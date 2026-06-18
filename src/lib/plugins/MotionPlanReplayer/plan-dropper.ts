@@ -3,7 +3,8 @@ import { type FileDropper, FileDropperError } from '$lib/components/FileDrop/fil
 import { PlanParseError } from './parse-plan'
 import { planJsonToSnapshots } from './plan-to-snapshots'
 
-export const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
+export const truncate = (s: string, max = 40): string =>
+	s.length > max ? `${s.slice(0, max - 1)}…` : s
 
 // Adapted detection from POC: bov-debug-bad-plans:src/lib/loaders/plan-request-loader.ts
 export const planDropper: FileDropper = async ({ name, content }) => {

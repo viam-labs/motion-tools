@@ -1,39 +1,26 @@
-import { Quaternion, Vector3 } from 'three'
+import { Quaternion } from 'three'
 
-import { poseToQuaternion, quaternionToPose } from '$lib/transform'
+import {
+	Capsule,
+	Geometry,
+	Pose,
+	RectangularPrism,
+	Sphere,
+	Vector3 as ViamVector3,
+} from '$lib/buf/common/v1/common_pb'
+import { quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
 
 import { planUuid } from './plan-uuid'
-
-export interface LocalPose {
-	x: number
-	y: number
-	z: number
-	oX: number
-	oY: number
-	oZ: number
-	theta: number
-}
-
-export interface GeometryDescriptor {
-	type: 'box' | 'sphere' | 'capsule'
-	x?: number
-	y?: number
-	z?: number
-	r?: number
-	l?: number
-	centerPose: LocalPose
-	label: string
-}
 
 /** A rigid link with a fixed local transform — no joint involved. */
 export interface StaticFrameDescriptor {
 	kind: 'static'
 	name: string
 	parent: string
-	localPose: LocalPose
-	geometry: GeometryDescriptor | null
+	localPose: Pose
+	geometry: Geometry | null
 	uuid: Uint8Array<ArrayBuffer>
 }
 
@@ -55,23 +42,21 @@ export interface JointedLinkDescriptor {
 	/** The joint's parent — the link's kinematic grandparent in the ECS. */
 	parent: string
 	/** Link's own local offset and orientation in the joint frame (mm). */
-	linkPose: LocalPose
+	linkPose: Pose
 	/** Rotation axis of the controlling joint. */
 	axis: { X: number; Y: number; Z: number }
 	/** Component name for trajectory lookup. */
 	componentName: string
 	/** Index into the trajectory's joint-angle array. */
 	jointIndex: number
-	geometry: GeometryDescriptor | null
+	geometry: Geometry | null
 	uuid: Uint8Array<ArrayBuffer>
 }
 
 export type FrameDescriptor = StaticFrameDescriptor | JointedLinkDescriptor
 
-// Shared scratch objects — safe in single-threaded JS
+// Shared scratch object — safe in single-threaded JS
 const tmpQ = new Quaternion()
-const tmpLinkQ = new Quaternion()
-const tmpVec = new Vector3()
 
 type QuatJson = { W: number; X: number; Y: number; Z: number }
 type OrientJson = { type: string; value: QuatJson } | undefined
@@ -86,22 +71,18 @@ const quaternionFromJson = (orientation: OrientJson): Quaternion => {
 	return tmpQ.set(0, 0, 0, 1)
 }
 
-const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): LocalPose => {
-	const pose = {
+const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): Pose => {
+	const pose = new Pose({
 		x: translation?.X ?? 0,
 		y: translation?.Y ?? 0,
 		z: translation?.Z ?? 0,
-		oX: 0,
-		oY: 0,
-		oZ: 0,
-		theta: 0,
-	}
+	})
 	quaternionToPose(quaternionFromJson(orientation), pose)
 	return pose
 }
 
 /**
- * Parse a geometry descriptor from raw JSON.
+ * Parse a geometry from raw JSON, returning a proto Geometry.
  *
  * `frameTranslation` must be supplied for link frames from `internal_fs`
  * (i.e. `named` inner-static frames). In that format the geometry center
@@ -116,7 +97,7 @@ const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): LocalPos
  * For non-arm static frames (cameras, obstacles) the geometry center is already
  * in local frame coordinates, so `frameTranslation` should be omitted.
  */
-const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): GeometryDescriptor | null => {
+const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): Geometry | null => {
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
@@ -124,29 +105,48 @@ const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): GeometryDesc
 
 	const trans = g.translation as Vec3Json
 	const orient = g.orientation as OrientJson
-	const centerPose = {
+	const center = new Pose({
 		x: (trans?.X ?? 0) - (frameTranslation?.X ?? 0),
 		y: (trans?.Y ?? 0) - (frameTranslation?.Y ?? 0),
 		z: (trans?.Z ?? 0) - (frameTranslation?.Z ?? 0),
-		oX: 0,
-		oY: 0,
-		oZ: 0,
-		theta: 0,
-	}
+	})
 	if (orient?.type === 'quaternion' && orient.value) {
-		quaternionToPose(quaternionFromJson(orient), centerPose)
+		quaternionToPose(quaternionFromJson(orient), center)
 	}
 
-	return {
-		type: type as GeometryDescriptor['type'],
-		x: g.x as number | undefined,
-		y: g.y as number | undefined,
-		z: g.z as number | undefined,
-		r: g.r as number | undefined,
-		l: g.l as number | undefined,
-		centerPose,
-		label: (g.Label ?? g.label ?? '') as string,
+	const label = (g.Label ?? g.label ?? '') as string
+
+	if (type === 'sphere') {
+		return new Geometry({
+			center,
+			geometryType: { case: 'sphere', value: new Sphere({ radiusMm: (g.r as number) ?? 0 }) },
+			label,
+		})
 	}
+	if (type === 'capsule') {
+		return new Geometry({
+			center,
+			geometryType: {
+				case: 'capsule',
+				value: new Capsule({ radiusMm: (g.r as number) ?? 0, lengthMm: (g.l as number) ?? 0 }),
+			},
+			label,
+		})
+	}
+	return new Geometry({
+		center,
+		geometryType: {
+			case: 'box',
+			value: new RectangularPrism({
+				dimsMm: new ViamVector3({
+					x: (g.x as number) ?? 0,
+					y: (g.y as number) ?? 0,
+					z: (g.z as number) ?? 0,
+				}),
+			}),
+		},
+		label,
+	})
 }
 
 interface JointInfo {
@@ -236,8 +236,8 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	const buildDescriptor = (
 		frameName: string,
 		parent: string,
-		linkPose: LocalPose,
-		geometry: GeometryDescriptor | null
+		linkPose: Pose,
+		geometry: Geometry | null
 	): FrameDescriptor => {
 		// If the parent is a model frame (e.g. "left-arm"), redirect to its
 		// end-effector (e.g. "left-arm:gripper_mount"). Model frames are never
@@ -318,39 +318,4 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	}
 
 	return descriptors
-}
-
-/**
- * Compute the combined local transform for a jointed link at a given joint angle.
- *
- * The correct FK composition is R_joint × T_link:
- *   - rotation block  = R_joint × R_link  (joint rotation, then link's own orientation)
- *   - translation     = R_joint × t_link  (link's offset rotated into joint's frame)
- *
- * `poseToMatrix` produces [R | t] (translation NOT rotated), so we cannot use it
- * directly. Instead we rotate t explicitly here, then build the pose with the
- * rotated translation and combined quaternion.
- */
-export const computeJointedLinkPose = (
-	descriptor: JointedLinkDescriptor,
-	angleRad: number
-): { x: number; y: number; z: number; oX: number; oY: number; oZ: number; theta: number } => {
-	// Joint rotation quaternion
-	tmpVec.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z)
-	tmpQ.setFromAxisAngle(tmpVec, angleRad)
-
-	// Link's own orientation (identity for most links; non-trivial for e.g. gripper_mount)
-	const p = descriptor.linkPose
-	poseToQuaternion(p, tmpLinkQ)
-
-	// Combined rotation: R_joint × R_link
-	const combinedQ = tmpQ.clone().multiply(tmpLinkQ)
-
-	// Rotate the link's translation by the joint rotation
-	tmpVec.set(p.x, p.y, p.z) // in mm — quaternion rotation preserves magnitude
-	tmpVec.applyQuaternion(tmpQ)
-
-	const pose = { x: tmpVec.x, y: tmpVec.y, z: tmpVec.z, oX: 0, oY: 0, oZ: 0, theta: 0 }
-	quaternionToPose(combinedQ, pose)
-	return pose
 }

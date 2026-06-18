@@ -46,7 +46,7 @@ const REQUEST = {
 	start_state: {},
 }
 
-const RESULT = { trajectory: [{ arm: [0.0] }, { arm: [1.5708] }] }
+const RESULT = { trajectory: [{ arm: [0] }, { arm: [1.5708] }] }
 const CONTENT = JSON.stringify(REQUEST) + JSON.stringify(RESULT)
 
 describe('planJsonToSnapshots', () => {
@@ -68,13 +68,15 @@ describe('planJsonToSnapshots', () => {
 	it('jointed link bakes joint rotation — pose changes per step', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		const baseLast = snapshots[snapshots.length - 1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		const baseLast = snapshots.at(-1)!.transforms.find(
+			(t) => t.referenceFrame === 'arm:base'
+		)!
 		// first sub-step: angle=0 → theta≈0; final keyframe: angle=π/2 → theta≈90°
 		expect(base0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
 		expect(baseLast.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
 	})
 
-	it('jointed link is parented to the joint\'s parent, not the joint', () => {
+	it("jointed link is parented to the joint's parent, not the joint", () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		// waist's parent is 'world', so base's ECS parent should also be 'world'
@@ -84,7 +86,9 @@ describe('planJsonToSnapshots', () => {
 	it('jointed link translation is rotated by the joint quaternion', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		// Z-axis rotation by π/2: translation (0, 0, 100) stays (0, 0, 100) because Z is unchanged
-		const baseLast = snapshots[snapshots.length - 1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		const baseLast = snapshots.at(-1)!.transforms.find(
+			(t) => t.referenceFrame === 'arm:base'
+		)!
 		const pose = baseLast.poseInObserverFrame!.pose!
 		expect(pose.x).toBeCloseTo(0, 1)
 		expect(pose.y).toBeCloseTo(0, 1)

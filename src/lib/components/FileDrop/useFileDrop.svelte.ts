@@ -1,8 +1,9 @@
+import { planDropper } from '$lib/plugins/MotionPlanReplayer/plan-dropper'
+
 import type { FileDropperSuccess } from './file-dropper'
 
 import { Extensions, parseFileName, Prefixes, readFile } from './file-names'
 import { pcdDropper } from './pcd-dropper'
-import { planDropper } from '$lib/plugins/MotionPlanReplayer/plan-dropper'
 import { plyDropper } from './ply-dropper'
 import { snapshotDropper } from './snapshot-dropper'
 

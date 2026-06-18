@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { parsePlan, PlanParseError } from '../parse-plan'
 
 const MINIMAL_FRAME_SYSTEM = {
