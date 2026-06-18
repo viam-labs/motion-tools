@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
+	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 
 	import type { PlanFileDropSuccess } from '$lib/components/FileDrop/file-dropper'
 
@@ -9,12 +10,18 @@
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	const ctx = useMotionPlanReplayer()
+	const toast = useToast()
 
 	let isOpen = $state(false)
 
 	$effect(() => {
 		const handle = (e: Event) => {
 			const { name, content, snapshots } = (e as CustomEvent<PlanFileDropSuccess>).detail
+			if (ctx.plans.some((p) => p.name === name)) {
+				const label = name.length > 24 ? `${name.slice(0, 23)}…` : name
+				toast({ message: `"${label}" already loaded.`, variant: ToastVariant.Warning })
+				return
+			}
 			console.debug('[MotionPlanReplayer] received plan-loaded', name, snapshots.length, 'steps')
 			ctx.addPlan(name, content, snapshots)
 			console.debug('[MotionPlanReplayer] plans after add:', ctx.plans.length)
@@ -59,7 +66,8 @@
 					role="button"
 					tabindex="0"
 					onclick={() => (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
-					onkeydown={(e) => e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
+					onkeydown={(e) =>
+						e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
 				>
 					<span class="mr-1 text-gray-400">{isActive ? '●' : '○'}</span>
 					<span class="grow truncate">{plan.name}</span>
