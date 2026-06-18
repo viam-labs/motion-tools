@@ -16,6 +16,7 @@ import {
 	type FrameDescriptor,
 	type GeometryDescriptor,
 } from './build-frame-descriptors'
+import { interpolateTrajectory } from './interpolate-trajectory'
 import { parsePlan } from './parse-plan'
 import { planUuid } from './plan-uuid'
 
@@ -104,5 +105,5 @@ export const planToSnapshots = (
 export const planJsonToSnapshots = (content: string): Snapshot[] => {
 	const plan = parsePlan(content)
 	const descriptors = buildFrameDescriptors(plan)
-	return planToSnapshots(descriptors, plan.trajectory)
+	return planToSnapshots(descriptors, interpolateTrajectory(plan.trajectory))
 }
