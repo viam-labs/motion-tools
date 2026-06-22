@@ -5,8 +5,10 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
-	import { planDropper, truncate } from './plan-dropper'
+	import { planDropper } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
+
+	const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
 	const ctx = useMotionPlanReplayer()
 	const toast = useToast()
@@ -83,7 +85,7 @@
 				<div
 					class={[
 						'flex cursor-pointer items-center gap-1 rounded px-2 py-1',
-						isActive ? 'bg-blue-100 font-medium' : 'hover:bg-gray-100',
+						isActive ? 'bg-light font-medium' : 'hover:bg-ghost-light',
 					]}
 					role="button"
 					tabindex="0"

@@ -5,8 +5,7 @@ import { FileDropperError } from '$lib/components/FileDrop/file-dropper'
 import { PlanParseError } from './parse-plan'
 import { planJsonToSnapshots } from './plan-to-snapshots'
 
-export const truncate = (s: string, max = 40): string =>
-	s.length > max ? `${s.slice(0, max - 1)}…` : s
+const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
 type PlanDropResult =
 	| { success: true; name: string; content: string; snapshots: Snapshot[]; stepCount: number }
