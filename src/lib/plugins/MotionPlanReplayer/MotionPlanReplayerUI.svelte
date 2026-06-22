@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte'
+
 	import { Portal } from '@threlte/extras'
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 
@@ -7,6 +9,12 @@
 
 	import { planDropper } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
+
+	interface Props {
+		extraSource?: Snippet<[(name: string, content: string) => void]>
+	}
+
+	const { extraSource }: Props = $props()
 
 	const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
@@ -117,6 +125,9 @@
 			{/each}
 
 			<div class="mt-auto pt-1">
+				{#if extraSource}
+					{@render extraSource(ctx.addPlan)}
+				{/if}
 				<input
 					bind:this={fileInput}
 					type="file"

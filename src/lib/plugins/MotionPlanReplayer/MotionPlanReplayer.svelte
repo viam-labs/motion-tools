@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte'
+
 	import { untrack } from 'svelte'
 
 	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
@@ -6,18 +8,20 @@
 	import { type PlanEntry, provideMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	interface Props {
-		/** Pass plans to use app-embedded mode (props-driven, no drag-and-drop UI). Omit for standalone mode. */
+		/** Pass plans to seed the list on mount (e.g. from app DB fetch). */
 		plans?: PlanEntry[]
+		/**
+		 * Optional snippet rendered inside the plan panel's action area.
+		 * Receives `addPlan(name, content)` so callers can inject a DB picker
+		 * without escaping the plugin's context boundary.
+		 */
+		extraSource?: Snippet<[(name: string, content: string) => void]>
 	}
 
-	const { plans }: Props = $props()
+	const { plans, extraSource }: Props = $props()
 
-	// `plans` is intentionally read once at setup time — initial entries only.
-	// The context manages its own reactive plan list after that.
 	provideMotionPlanReplayer(untrack(() => plans))
 </script>
 
-{#if plans === undefined}
-	<MotionPlanReplayerUI />
-{/if}
+<MotionPlanReplayerUI {extraSource} />
 <MotionPlanReplayerScrubber />
