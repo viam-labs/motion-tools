@@ -17,29 +17,17 @@
 	const ctx = useMotionPlanReplayer()
 
 	let isPlaying = $state(false)
-	let intervalId: ReturnType<typeof setInterval> | undefined
 
 	const lastStepIdx = $derived(Math.max(0, ctx.totalSteps - 1))
 	const atEnd = $derived(ctx.currentStep >= lastStepIdx)
 
 	const pause = () => {
 		isPlaying = false
-		if (intervalId !== undefined) {
-			clearInterval(intervalId)
-			intervalId = undefined
-		}
 	}
 
 	const play = () => {
-		if (isPlaying || ctx.totalSteps <= 0) return
+		if (ctx.totalSteps <= 0) return
 		isPlaying = true
-		intervalId = setInterval(() => {
-			if (ctx.currentStep >= lastStepIdx) {
-				pause()
-				return
-			}
-			ctx.setStep(ctx.currentStep + 1)
-		}, STEP_INTERVAL_MS)
 	}
 
 	const togglePlay = () => {
@@ -62,9 +50,22 @@
 	}
 
 	$effect(() => {
+		if (!isPlaying) return
+
+		const intervalId = setInterval(() => {
+			if (ctx.currentStep >= lastStepIdx) {
+				pause()
+				return
+			}
+			ctx.setStep(ctx.currentStep + 1)
+		}, STEP_INTERVAL_MS)
+
+		return () => clearInterval(intervalId)
+	})
+
+	$effect(() => {
 		if (ctx.totalSteps <= 0 && isPlaying) pause()
 	})
-	$effect(() => () => pause())
 	$effect(() => {
 		document.body.classList.toggle('has-scrubber', ctx.totalSteps > 0)
 		return () => document.body.classList.remove('has-scrubber')

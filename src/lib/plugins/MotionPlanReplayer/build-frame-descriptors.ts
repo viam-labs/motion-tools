@@ -14,7 +14,6 @@ import type { ParsedPlan } from './parse-plan'
 
 import { planUuid } from './plan-uuid'
 
-
 /** A rigid link with a fixed local transform — no joint involved. */
 export interface StaticFrameDescriptor {
 	kind: 'static'
