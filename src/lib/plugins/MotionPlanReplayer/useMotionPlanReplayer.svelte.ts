@@ -1,5 +1,3 @@
-import type { Entity } from 'koota'
-
 import { getContext, setContext } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
@@ -40,8 +38,6 @@ interface MotionPlanReplayerContext {
 	clearActivePlan: () => void
 }
 
-type EntityState = { opacity: number; invisible: boolean }
-
 const KEY = Symbol('motion-plan-replayer')
 
 export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
@@ -80,19 +76,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const applyStep = (snapshots: Snapshot[], step: number) => {
 		const snap = snapshots[step]!
 
-		// Capture user-modified opacity and visibility before reconcile.
-		// updateTransform → updateMetadata unconditionally resets Opacity to DEFAULT (1.0)
-		// and removes Invisible — both of which erase user changes made via the legend.
-		// We restore the captured state on updated entities after reconcile.
-		const preserved = new Map<Entity, EntityState>()
-		for (const entry of entityMap.values()) {
-			if (!entry.entity.isAlive()) continue
-			preserved.set(entry.entity, {
-				opacity: entry.entity.get(traits.Opacity) ?? 1,
-				invisible: entry.entity.has(traits.Invisible),
-			})
-		}
-
 		const result = reconcileSnapshotEntities(world, snap, entityMap)
 
 		for (const spawned of result.spawned) {
@@ -102,32 +85,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 		entityMap = result.current
 
-		// Spawned entities (first appearance): apply plan defaults.
-		// Apply color only to geometry entities; apply opacity to all plan entities
-		// so that reference frame entities also start at the plan opacity (not 1.0).
-		for (const entry of result.spawned) {
+		for (const entry of result.current.values()) {
 			if (!entry.entity.isAlive()) continue
-			if (!entry.entity.has(traits.ReferenceFrame)) {
-				if (entry.entity.has(traits.Color)) {
-					entry.entity.set(traits.Color, PLAN_COLOR)
-				} else {
-					entry.entity.add(traits.Color(PLAN_COLOR))
-				}
+			if (entry.entity.has(traits.ReferenceFrame)) continue
+			if (entry.entity.has(traits.Color)) {
+				entry.entity.set(traits.Color, PLAN_COLOR)
+			} else {
+				entry.entity.add(traits.Color(PLAN_COLOR))
 			}
 			entry.entity.set(traits.Opacity, PLAN_OPACITY)
-		}
-
-		// Updated entities: restore the opacity and visibility the user had before
-		// this step, undoing updateMetadata's reset.
-		for (const entry of result.updated) {
-			const prev = preserved.get(entry.entity)
-			if (!prev) continue
-			entry.entity.set(traits.Opacity, prev.opacity)
-			if (prev.invisible) {
-				entry.entity.add(traits.Invisible)
-			} else {
-				entry.entity.remove(traits.Invisible)
-			}
 		}
 
 		currentStep = step

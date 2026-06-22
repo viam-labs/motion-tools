@@ -14,6 +14,7 @@ import type { ParsedPlan } from './parse-plan'
 
 import { planUuid } from './plan-uuid'
 
+
 /** A rigid link with a fixed local transform — no joint involved. */
 export interface StaticFrameDescriptor {
 	kind: 'static'
@@ -191,7 +192,7 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			| undefined
 		const primaryOutput = model?.primary_output_frame as string | undefined
 		const links = model?.links as Array<{ id: string }> | undefined
-		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
+		const endEffectorId = primaryOutput ?? links?.[links.length - 1]?.id
 		if (endEffectorId) {
 			modelEndEffectorMap.set(frameName, `${frameName}:${endEffectorId}`)
 		}
