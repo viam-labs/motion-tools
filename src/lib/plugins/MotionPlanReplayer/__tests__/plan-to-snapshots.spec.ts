@@ -50,10 +50,9 @@ const RESULT = { trajectory: [{ arm: [0] }, { arm: [1.5708] }] }
 const CONTENT = JSON.stringify(REQUEST) + JSON.stringify(RESULT)
 
 describe('planJsonToSnapshots', () => {
-	it('returns more snapshots than trajectory steps due to interpolation', () => {
+	it('returns one Snapshot per trajectory step', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
-		// trajectory has 2 keyframes; 0→π/2 ≈ 90° → 18 sub-steps at 5° + final = 19
-		expect(snapshots.length).toBeGreaterThan(2)
+		expect(snapshots).toHaveLength(2)
 	})
 
 	it('joint frames produce no transform; child link appears instead', () => {
@@ -68,10 +67,10 @@ describe('planJsonToSnapshots', () => {
 	it('jointed link bakes joint rotation — pose changes per step', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		const baseLast = snapshots.at(-1)!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		// first sub-step: angle=0 → theta≈0; final keyframe: angle=π/2 → theta≈90°
+		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		// step 0: angle=0 → theta≈0; step 1: angle=π/2 → theta≈90°
 		expect(base0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
-		expect(baseLast.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
+		expect(base1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
 	})
 
 	it("jointed link is parented to the joint's parent, not the joint", () => {
@@ -84,8 +83,8 @@ describe('planJsonToSnapshots', () => {
 	it('jointed link translation is rotated by the joint quaternion', () => {
 		const snapshots = planJsonToSnapshots(CONTENT)
 		// Z-axis rotation by π/2: translation (0, 0, 100) stays (0, 0, 100) because Z is unchanged
-		const baseLast = snapshots.at(-1)!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		const pose = baseLast.poseInObserverFrame!.pose!
+		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
+		const pose = base1.poseInObserverFrame!.pose!
 		expect(pose.x).toBeCloseTo(0, 1)
 		expect(pose.y).toBeCloseTo(0, 1)
 		expect(pose.z).toBeCloseTo(100, 1)
