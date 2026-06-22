@@ -6,8 +6,8 @@ import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
-import { PlanParseError } from './parse-plan'
-import { planJsonToSnapshots } from './plan-to-snapshots'
+import { parsePlan, PlanParseError } from './parse-plan'
+import { parsedPlanToSnapshots } from './plan-to-snapshots'
 
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
@@ -119,7 +119,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 
 		try {
-			const snapshots = planJsonToSnapshots(planState.content)
+			const plan = parsePlan(planState.content)
+			const snapshots = parsedPlanToSnapshots(plan)
 			if (snapshots.length === 0) {
 				plans[index] = { ...planState, status: 'no-trajectory', stepCount: 0 }
 				activePlanIndex = index

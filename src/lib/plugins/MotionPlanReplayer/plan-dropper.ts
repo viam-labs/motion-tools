@@ -2,8 +2,8 @@ import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
 import { FileDropperError } from '$lib/components/FileDrop/file-dropper'
 
-import { PlanParseError } from './parse-plan'
-import { planJsonToSnapshots } from './plan-to-snapshots'
+import { parsePlan, PlanParseError } from './parse-plan'
+import { parsedPlanToSnapshots } from './plan-to-snapshots'
 
 const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
@@ -24,15 +24,9 @@ export const planDropper = async ({
 		return { success: false, error: new FileDropperError(`"${label}" failed to load.`) }
 	}
 
-	if (!content.includes('"frame_system"')) {
-		return {
-			success: false,
-			error: new FileDropperError(`"${label}" is not a valid motion plan JSON.`),
-		}
-	}
-
 	try {
-		const snapshots = planJsonToSnapshots(content)
+		const plan = parsePlan(content)
+		const snapshots = parsedPlanToSnapshots(plan)
 		return { success: true, name, content, snapshots, stepCount: snapshots.length }
 	} catch (error) {
 		const message = error instanceof PlanParseError ? error.message : `"${label}" failed to parse.`

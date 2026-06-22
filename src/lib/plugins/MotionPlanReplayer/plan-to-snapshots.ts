@@ -4,12 +4,13 @@ import { Pose, PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 import { poseToQuaternion, quaternionToPose } from '$lib/transform'
 
+import type { ParsedPlan } from './parse-plan'
+
 import {
 	buildFrameDescriptors,
 	type FrameDescriptor,
 	type JointedLinkDescriptor,
 } from './build-frame-descriptors'
-import { parsePlan } from './parse-plan'
 import { planUuid } from './plan-uuid'
 
 // Shared scratch objects — safe in single-threaded JS
@@ -78,8 +79,7 @@ const planToSnapshots = (
 		return new Snapshot({ transforms, uuid: planUuid() })
 	})
 
-export const planJsonToSnapshots = (content: string): Snapshot[] => {
-	const plan = parsePlan(content)
+export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
 	const descriptors = buildFrameDescriptors(plan)
 	return planToSnapshots(descriptors, plan.trajectory)
 }

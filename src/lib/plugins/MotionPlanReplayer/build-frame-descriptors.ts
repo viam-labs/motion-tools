@@ -191,7 +191,7 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			| undefined
 		const primaryOutput = model?.primary_output_frame as string | undefined
 		const links = model?.links as Array<{ id: string }> | undefined
-		const endEffectorId = primaryOutput ?? links?.[links.length - 1]?.id
+		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
 		if (endEffectorId) {
 			modelEndEffectorMap.set(frameName, `${frameName}:${endEffectorId}`)
 		}

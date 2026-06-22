@@ -1,9 +1,24 @@
-export interface RawFrame {
-	frame_type: string
-	frame: unknown
-}
+import { z } from 'zod'
 
-export interface ParsedPlan {
+const RawFrameSchema = z.object({
+	frame_type: z.string(),
+	frame: z.unknown(),
+})
+
+const FrameSystemSchema = z.object({
+	frames: z.record(z.string(), RawFrameSchema),
+	parents: z.record(z.string(), z.string()),
+})
+
+const PlanChunkSchema = z.object({
+	frame_system: FrameSystemSchema.optional(),
+	goals: z.array(z.unknown()).optional(),
+	trajectory: z.array(z.record(z.string(), z.array(z.number()))).optional(),
+})
+
+export type RawFrame = z.infer<typeof RawFrameSchema>
+
+export type ParsedPlan = {
 	frames: Record<string, RawFrame>
 	parents: Record<string, string>
 	trajectory: Array<Record<string, number[]>>
@@ -23,7 +38,6 @@ const skipWhitespace = (text: string, start: number): number => {
 	return i
 }
 
-// Adapted from POC: bov-debug-bad-plans:src/lib/loaders/plan-request-loader.ts
 const readJSONObject = (text: string, start: number): { raw: string; end: number } | null => {
 	let i = skipWhitespace(text, start)
 	if (i >= text.length || text[i] !== '{') return null
@@ -60,40 +74,60 @@ const readJSONObject = (text: string, start: number): { raw: string; end: number
 	return null
 }
 
-export const parsePlan = (content: string): ParsedPlan => {
-	let frames: Record<string, RawFrame> = {}
-	let parents: Record<string, string> = {}
-	let trajectory: Array<Record<string, number[]>> = []
-	let goals: unknown[] = []
-	let foundFrameSystem = false
-
+const splitJsonObjects = (content: string): string[] => {
+	const chunks: string[] = []
 	let index = 0
 	for (let i = 0; i < 8; i++) {
 		index = skipWhitespace(content, index)
 		if (index >= content.length) break
 		const next = readJSONObject(content, index)
 		if (!next) break
+		chunks.push(next.raw)
+		index = next.end
+	}
+	return chunks
+}
 
-		let obj: Record<string, unknown>
-		try {
-			obj = JSON.parse(next.raw) as Record<string, unknown>
-		} catch {
-			throw new PlanParseError('plan JSON contains invalid JSON')
-		}
+const parseChunk = (raw: string): z.infer<typeof PlanChunkSchema> => {
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(raw)
+	} catch {
+		throw new PlanParseError('plan JSON contains invalid JSON')
+	}
 
-		if (obj.frame_system && typeof obj.frame_system === 'object') {
-			const fs = obj.frame_system as Record<string, unknown>
-			frames = (fs.frames ?? {}) as Record<string, RawFrame>
-			parents = (fs.parents ?? {}) as Record<string, string>
-			goals = Array.isArray(obj.goals) ? obj.goals : []
+	const result = PlanChunkSchema.safeParse(parsed)
+	if (!result.success) {
+		throw new PlanParseError('plan JSON does not match expected motion plan format')
+	}
+	return result.data
+}
+
+export const parsePlan = (content: string): ParsedPlan => {
+	const chunks = splitJsonObjects(content)
+	if (chunks.length === 0) {
+		throw new PlanParseError('plan JSON contains invalid JSON')
+	}
+
+	let frames: Record<string, RawFrame> = {}
+	let parents: Record<string, string> = {}
+	let trajectory: Array<Record<string, number[]>> = []
+	let goals: unknown[] = []
+	let foundFrameSystem = false
+
+	for (const chunk of chunks) {
+		const obj = parseChunk(chunk)
+
+		if (obj.frame_system) {
+			frames = obj.frame_system.frames
+			parents = obj.frame_system.parents
+			goals = obj.goals ?? []
 			foundFrameSystem = true
 		}
 
-		if (Array.isArray(obj.trajectory)) {
-			trajectory = obj.trajectory as Array<Record<string, number[]>>
+		if (obj.trajectory) {
+			trajectory = obj.trajectory
 		}
-
-		index = next.end
 	}
 
 	if (!foundFrameSystem) throw new PlanParseError('plan is missing frame_system')

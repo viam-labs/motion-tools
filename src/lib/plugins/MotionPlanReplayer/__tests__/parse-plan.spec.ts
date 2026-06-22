@@ -45,4 +45,10 @@ describe('parsePlan', () => {
 	it('throws PlanParseError on invalid JSON', () => {
 		expect(() => parsePlan('{ not valid json')).toThrow(PlanParseError)
 	})
+
+	it('throws PlanParseError when a chunk has wrong types', () => {
+		expect(() =>
+			parsePlan(JSON.stringify({ frame_system: MINIMAL_FRAME_SYSTEM, trajectory: 'bad' }))
+		).toThrow(PlanParseError)
+	})
 })

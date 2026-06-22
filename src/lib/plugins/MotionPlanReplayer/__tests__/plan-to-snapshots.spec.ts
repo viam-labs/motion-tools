@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { planJsonToSnapshots } from '../plan-to-snapshots'
+import { parsePlan } from '../parse-plan'
+import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 
 // arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
 const REQUEST = {
@@ -49,14 +50,16 @@ const REQUEST = {
 const RESULT = { trajectory: [{ arm: [0] }, { arm: [1.5708] }] }
 const CONTENT = JSON.stringify(REQUEST) + JSON.stringify(RESULT)
 
-describe('planJsonToSnapshots', () => {
+const snapshotsFromContent = (content: string) => parsedPlanToSnapshots(parsePlan(content))
+
+describe('parsedPlanToSnapshots', () => {
 	it('returns one Snapshot per trajectory step', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		expect(snapshots).toHaveLength(2)
 	})
 
 	it('joint frames produce no transform; child link appears instead', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		// waist (joint) is absorbed — only base (jointed_link) appears
 		expect(snapshots[0]!.transforms).toHaveLength(1)
 		const names = snapshots[0]!.transforms.map((t) => t.referenceFrame)
@@ -65,7 +68,7 @@ describe('planJsonToSnapshots', () => {
 	})
 
 	it('jointed link bakes joint rotation — pose changes per step', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		// step 0: angle=0 → theta≈0; step 1: angle=π/2 → theta≈90°
@@ -74,14 +77,14 @@ describe('planJsonToSnapshots', () => {
 	})
 
 	it("jointed link is parented to the joint's parent, not the joint", () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		// waist's parent is 'world', so base's ECS parent should also be 'world'
 		expect(base.poseInObserverFrame!.referenceFrame).toBe('world')
 	})
 
 	it('jointed link translation is rotated by the joint quaternion', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		// Z-axis rotation by π/2: translation (0, 0, 100) stays (0, 0, 100) because Z is unchanged
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const pose = base1.poseInObserverFrame!.pose!
@@ -91,20 +94,20 @@ describe('planJsonToSnapshots', () => {
 	})
 
 	it('link has same UUID across steps', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		expect(base0.uuid).toStrictEqual(base1.uuid)
 	})
 
 	it('link has physicalObject when geometry is present', () => {
-		const snapshots = planJsonToSnapshots(CONTENT)
+		const snapshots = snapshotsFromContent(CONTENT)
 		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		expect(base.physicalObject).toBeDefined()
 		expect(base.physicalObject!.geometryType.case).toBe('capsule')
 	})
 
 	it('returns empty array for plan with no trajectory', () => {
-		expect(planJsonToSnapshots(JSON.stringify(REQUEST))).toHaveLength(0)
+		expect(parsedPlanToSnapshots(parsePlan(JSON.stringify(REQUEST)))).toHaveLength(0)
 	})
 })
