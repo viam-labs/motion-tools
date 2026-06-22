@@ -1,4 +1,6 @@
-import { type FileDropper, FileDropperError } from '$lib/components/FileDrop/file-dropper'
+import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
+
+import { FileDropperError } from '$lib/components/FileDrop/file-dropper'
 
 import { PlanParseError } from './parse-plan'
 import { planJsonToSnapshots } from './plan-to-snapshots'
@@ -6,8 +8,17 @@ import { planJsonToSnapshots } from './plan-to-snapshots'
 export const truncate = (s: string, max = 40): string =>
 	s.length > max ? `${s.slice(0, max - 1)}…` : s
 
-// Adapted detection from POC: bov-debug-bad-plans:src/lib/loaders/plan-request-loader.ts
-export const planDropper: FileDropper = async ({ name, content }) => {
+type PlanDropResult =
+	| { success: true; name: string; content: string; snapshots: Snapshot[]; stepCount: number }
+	| { success: false; error: FileDropperError }
+
+export const planDropper = async ({
+	name,
+	content,
+}: {
+	name: string
+	content: string | ArrayBuffer | null | undefined
+}): Promise<PlanDropResult> => {
 	const label = truncate(name)
 
 	if (typeof content !== 'string') {
@@ -23,7 +34,7 @@ export const planDropper: FileDropper = async ({ name, content }) => {
 
 	try {
 		const snapshots = planJsonToSnapshots(content)
-		return { success: true, name, type: 'plan', content, snapshots, stepCount: snapshots.length }
+		return { success: true, name, content, snapshots, stepCount: snapshots.length }
 	} catch (error) {
 		const message = error instanceof PlanParseError ? error.message : `"${label}" failed to parse.`
 		return { success: false, error: new FileDropperError(message) }

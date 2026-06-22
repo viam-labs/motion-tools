@@ -11,7 +11,7 @@
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { spawnSnapshotEntities } from '$lib/snapshot'
 
-	import type { FileDropperSuccess, PlanFileDropSuccess } from './file-dropper'
+	import type { FileDropperSuccess } from './file-dropper'
 
 	import { useFileDrop } from './useFileDrop.svelte'
 
@@ -70,12 +70,6 @@
 						traits.Removable
 					)
 					break
-				}
-				case 'plan': {
-					window.dispatchEvent(
-						new CustomEvent<PlanFileDropSuccess>('viam:plan-loaded', { detail: result })
-					)
-					return
 				}
 			}
 

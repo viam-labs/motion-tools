@@ -1,5 +1,3 @@
-import { planDropper } from '$lib/plugins/MotionPlanReplayer/plan-dropper'
-
 import type { FileDropperSuccess } from './file-dropper'
 
 import { Extensions, parseFileName, Prefixes, readFile } from './file-names'
@@ -27,9 +25,6 @@ const createFileDropper = (extension: string, prefix: string | undefined) => {
 		case Extensions.PLY: {
 			return plyDropper
 		}
-		case Extensions.JSON: {
-			return planDropper
-		}
 	}
 
 	return undefined
@@ -40,6 +35,16 @@ export const useFileDrop = (
 	onError: (message: string) => void
 ) => {
 	let dropState = $state<DropStates>('inactive')
+
+	// Reset overlay if a drop lands on a higher z-index element (e.g. a floating panel)
+	// and the overlay's own ondrop never fires.
+	$effect(() => {
+		const reset = () => {
+			dropState = 'inactive'
+		}
+		window.addEventListener('drop', reset)
+		return () => window.removeEventListener('drop', reset)
+	})
 
 	// prevent default to allow drop
 	const ondragenter = (event: DragEvent) => {
