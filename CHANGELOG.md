@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.34.4
+
+### Patch Changes
+
+- 7dcb43b: Extract logs into a plugin
+
 ## 1.34.3
 
 ### Patch Changes
