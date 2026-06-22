@@ -57,7 +57,7 @@ withRobot('arm', async ({ robotPage }) => {
 	const { page } = robotPage
 	const testPrefix = 'ARM'
 
-	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-indicator"]')
+	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-trigger"]')
 	await frameTreeCarrot.click()
 
 	await expect(page.getByText('arm-1:base_link', { exact: true })).toBeVisible()

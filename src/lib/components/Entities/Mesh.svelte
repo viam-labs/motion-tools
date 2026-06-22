@@ -25,7 +25,6 @@
 	import { traits, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import Capsule from './Capsule.svelte'
 
 	interface Props extends Omit<ThrelteProps<Mesh>, 'ref'> {
@@ -47,7 +46,6 @@
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const materialProps = useTrait(() => entity, traits.Material)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 
@@ -184,12 +182,4 @@
 
 		{@render children?.()}
 	</T>
-{/if}
-
-{#if showAxesHelper.current}
-	<AxesHelper
-		name={entity}
-		width={3}
-		length={0.1}
-	/>
 {/if}
