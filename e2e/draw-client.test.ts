@@ -30,18 +30,32 @@ const takeScreenshot = async (page: Page, testPrefix: string): Promise<string> =
 	}
 }
 
-const cleanup = async (page: Page) => {
+const resetDrawService = () => {
 	execSync(
 		'go test -run ^TestRemoveAll$/RemoveAllHelper github.com/viam-labs/motion-tools/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
 	)
+}
+
+const cleanup = async (page: Page) => {
+	resetDrawService()
 
 	await expect(page.getByText('No objects displayed', { exact: true })).toBeVisible({
 		timeout: 15000,
 	})
 }
+
+/**
+ * The draw service is a persistent singleton that outlives each page: a fresh
+ * page resubscribes and `StreamEntityChanges` replays every entity currently
+ * in the service. So a test that fails or is interrupted before its trailing
+ * `cleanup()` strands its entities, and those then replay into unrelated
+ * tests' snapshots. Resetting before every test guarantees a clean scene
+ * regardless of what ran (or half-ran) before it.
+ */
+test.beforeEach(resetDrawService)
 
 const assertNoFailedScreenshots = (failedScreenshots: string[]) => {
 	const failures = failedScreenshots.filter((screenshot) => screenshot !== '')
@@ -1001,7 +1015,7 @@ test('relationships', async ({ browser }) => {
 		{ encoding: 'utf8' }
 	)
 
-	await page.locator('[data-part="item"]').filter({ hasText: 'rel-source' }).click()
+	await page.getByText('rel-source', { exact: true }).click()
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
 	failedScreenshots.push(await takeScreenshot(page, 'RELATIONSHIPS_CREATED'))
 
@@ -1009,7 +1023,7 @@ test('relationships', async ({ browser }) => {
 	await expect(page.getByText('World', { exact: true })).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('rel-source', { exact: true })).toBeVisible({ timeout: 15000 })
 	await expect(page.getByText('rel-target', { exact: true })).toBeVisible({ timeout: 15000 })
-	await page.locator('[data-part="item"]').filter({ hasText: 'rel-source' }).click()
+	await page.getByText('rel-source', { exact: true }).click()
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
 
 	execSync(

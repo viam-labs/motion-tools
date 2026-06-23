@@ -65,7 +65,7 @@ withRobot('arm', async ({ robotPage }) => {
 
 	await page.getByRole('button', { name: 'arm-1' }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await robotPage.screenshotCanvas(`${testPrefix}-0-loaded`)
 
