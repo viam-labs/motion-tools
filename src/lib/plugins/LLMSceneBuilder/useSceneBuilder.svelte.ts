@@ -8,8 +8,8 @@ import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
 import {
 	type FrameDelta,
-	type UpdateError,
 	resolveFragmentCurrentFrames,
+	type UpdateError,
 	validateProposedFrameDeltas,
 } from './frameDeltaAdapter'
 
