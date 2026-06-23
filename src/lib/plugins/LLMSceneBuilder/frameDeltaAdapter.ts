@@ -1,9 +1,9 @@
-import type { Pose } from '@viamrobotics/sdk'
+import type { Pose, Transform } from '@viamrobotics/sdk'
 
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyEulerDeltaToPose, createPoseFromFrame } from '$lib/transform'
+import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
 
 export interface FrameDelta {
 	componentName: string
@@ -26,6 +26,48 @@ export interface PreparedUpdate {
 export interface UpdateError {
 	componentName: string
 	reason: string
+}
+
+/** Current frame of a fragment-defined component, resolved from the live scene. */
+export interface CurrentFrame {
+	previousParent: string
+	previousPose: Pose
+	geometry?: Frame['geometry']
+}
+
+/**
+ * Resolves the current `{ parent, pose }` for fragment-defined components.
+ *
+ * Fragment components are not in `PartConfig.components`, so their current frame
+ * comes from the live framesystem (`useFrames`), with config `$set`-mod
+ * overrides (`useConfigFrames`) winning when present. A component with neither a
+ * mod nor a live frame has no editable current frame and is skipped — it won't
+ * be offered to the LLM or validated.
+ */
+export function resolveFragmentCurrentFrames(
+	fragmentNames: string[],
+	liveFrames: Transform[],
+	configFrames: Record<string, Transform>
+): Record<string, CurrentFrame> {
+	const liveByName: Record<string, Transform> = {}
+	for (const frame of liveFrames) {
+		liveByName[frame.referenceFrame] = frame
+	}
+
+	const result: Record<string, CurrentFrame> = {}
+	for (const name of fragmentNames) {
+		const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
+		if (!observed) {
+			continue
+		}
+
+		result[name] = {
+			previousParent: observed.referenceFrame,
+			previousPose: createPose(observed.pose),
+		}
+	}
+
+	return result
 }
 
 function mergeTranslation(
@@ -51,11 +93,15 @@ function mergeOrientation(
  */
 export function validateProposedFrameDeltas(
 	deltas: FrameDelta[],
-	config: PartConfig
+	config: PartConfig,
+	fragmentFrames: Record<string, CurrentFrame> = {}
 ): { errors: UpdateError[]; prepared: PreparedUpdate[] } {
 	const errors: UpdateError[] = []
 	const prepared: PreparedUpdate[] = []
-	const knownNames = new Set(config.components.map((c) => c.name))
+	const knownNames = new Set([
+		...config.components.map((c) => c.name),
+		...Object.keys(fragmentFrames),
+	])
 
 	// Merge multiple deltas for the same component — the LLM sometimes splits
 	// translation and orientation into separate entries despite the schema saying one per component.
@@ -78,13 +124,16 @@ export function validateProposedFrameDeltas(
 
 	for (const delta of mergedDeltas.values()) {
 		const component = config.components.find((c) => c.name === delta.componentName)
+		// Fragment-defined components aren't in config.components; their current
+		// frame comes from `fragmentFrames` (resolved from the live framesystem).
+		const fragment = component ? undefined : fragmentFrames[delta.componentName]
 
-		if (!component) {
+		if (!component && !fragment) {
 			errors.push({ componentName: delta.componentName, reason: 'Component not found in config' })
 			continue
 		}
 
-		if (!component.frame) {
+		if (component && !component.frame) {
 			errors.push({ componentName: delta.componentName, reason: 'Component has no frame' })
 			continue
 		}
@@ -104,8 +153,9 @@ export function validateProposedFrameDeltas(
 			continue
 		}
 
-		const previousPose = createPoseFromFrame(component.frame)
-		const previousParent = component.frame.parent
+		const previousPose = component ? createPoseFromFrame(component.frame!) : fragment!.previousPose
+		const previousParent = component ? component.frame!.parent : fragment!.previousParent
+		const geometry = component ? component.frame!.geometry : fragment!.geometry
 
 		const newParent = delta.parent ?? previousParent
 		const newPose: Pose = {
@@ -140,7 +190,7 @@ export function validateProposedFrameDeltas(
 			previousParent,
 			pose: newPose,
 			previousPose,
-			geometry: component.frame.geometry,
+			geometry,
 			explanation: delta.explanation,
 		})
 	}

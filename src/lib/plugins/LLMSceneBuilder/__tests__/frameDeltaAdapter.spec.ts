@@ -1,9 +1,17 @@
+import { Transform } from '@viamrobotics/sdk'
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { type FrameDelta, validateProposedFrameDeltas } from '../frameDeltaAdapter'
+import { createPose } from '$lib/transform'
+
+import {
+	type CurrentFrame,
+	type FrameDelta,
+	resolveFragmentCurrentFrames,
+	validateProposedFrameDeltas,
+} from '../frameDeltaAdapter'
 
 const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 	parent: 'world',
@@ -13,6 +21,16 @@ const makeFrame = (overrides: Partial<Frame> = {}): Frame => ({
 })
 
 const makeConfig = (components: PartConfig['components']): PartConfig => ({ components })
+
+const makeTransform = (
+	name: string,
+	parent: string,
+	pose: Parameters<typeof createPose>[0] = {}
+): Transform =>
+	new Transform({
+		referenceFrame: name,
+		poseInObserverFrame: { referenceFrame: parent, pose: createPose(pose) },
+	})
 
 describe('validateProposedFrameDeltas', () => {
 	it('computes a prepared update with merged pose for a valid translation delta', () => {
@@ -235,5 +253,88 @@ describe('validateProposedFrameDeltas', () => {
 		expect(prepared).toHaveLength(2)
 		expect(errors).toHaveLength(1)
 		expect(errors[0].componentName).toBe('ghost')
+	})
+})
+
+describe('resolveFragmentCurrentFrames', () => {
+	it('uses the live frame when there is no config override', () => {
+		const live = [makeTransform('gripper', 'arm', { x: 5, y: 6, z: 7 })]
+
+		const result = resolveFragmentCurrentFrames(['gripper'], live, {})
+
+		expect(result.gripper.previousParent).toBe('arm')
+		expect(result.gripper.previousPose.x).toBe(5)
+		expect(result.gripper.previousPose.z).toBe(7)
+	})
+
+	it('lets a config $set-mod override win over the live frame', () => {
+		const live = [makeTransform('gripper', 'arm', { x: 5 })]
+		const configFrames = { gripper: makeTransform('gripper', 'base', { x: 99 }) }
+
+		const result = resolveFragmentCurrentFrames(['gripper'], live, configFrames)
+
+		expect(result.gripper.previousParent).toBe('base')
+		expect(result.gripper.previousPose.x).toBe(99)
+	})
+
+	it('skips a fragment component with no live frame and no override', () => {
+		const result = resolveFragmentCurrentFrames(['gripper'], [], {})
+
+		expect(result.gripper).toBeUndefined()
+		expect(Object.keys(result)).toHaveLength(0)
+	})
+})
+
+describe('validateProposedFrameDeltas with fragment components', () => {
+	const fragmentFrames: Record<string, CurrentFrame> = {
+		gripper: { previousParent: 'arm', previousPose: createPose({ x: 10 }) },
+	}
+
+	it('prepares an update for a fragment component absent from config.components', () => {
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'gripper', translation: { x: 100 } }],
+			makeConfig([]),
+			fragmentFrames
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared).toHaveLength(1)
+		expect(prepared[0].previousParent).toBe('arm')
+		expect(prepared[0].previousPose.x).toBe(10)
+		expect(prepared[0].pose.x).toBe(100)
+	})
+
+	it('accepts a fragment component as a valid parent', () => {
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', parent: 'gripper' }],
+			makeConfig([{ name: 'arm', frame: makeFrame() }]),
+			fragmentFrames
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].parent).toBe('gripper')
+	})
+
+	it('still errors for a component in neither config nor fragments', () => {
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'ghost', translation: { x: 1 } }],
+			makeConfig([]),
+			fragmentFrames
+		)
+
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/not found/i)
+	})
+
+	it('prefers the part component frame over a same-named fragment entry', () => {
+		// Names never overlap in practice, but the part-config branch should win.
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { x: 1 } }],
+			makeConfig([{ name: 'arm', frame: makeFrame({ parent: 'world' }) }]),
+			{ arm: { previousParent: 'fragment-parent', previousPose: createPose({ x: 500 }) } }
+		)
+
+		expect(prepared[0].previousParent).toBe('world')
+		expect(prepared[0].previousPose.x).toBe(0)
 	})
 })
