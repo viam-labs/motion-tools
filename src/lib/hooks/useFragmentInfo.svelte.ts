@@ -73,7 +73,7 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 			| { id: string; variables: Record<string, string> }
 		)[]) ?? []) {
 			const id = typeof fragment === 'string' ? fragment : fragment.id
-			const variables = typeof fragment === 'string' ? {} : fragment.variables
+			const variables = typeof fragment === 'string' ? {} : (fragment.variables ?? {})
 			results[id] = variables
 		}
 		return results
@@ -93,7 +93,7 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 				for (const component of components.value.values) {
 					if (component.kind.case === 'structValue') {
 						const componentName = component.kind.value.fields['name']?.kind
-						if (componentName.case === 'stringValue') {
+						if (componentName?.case === 'stringValue') {
 							results[componentName.value] = {
 								id: fragmentId,
 								variables: fragmentIdToVariables[fragmentId] ?? {},
