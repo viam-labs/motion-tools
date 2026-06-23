@@ -147,7 +147,7 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 		async submit(prompt: string) {
 			uiState = 'loading'
 
-			const components = partConfig.current.components
+			const components = partConfig.current?.components
 				.filter((c) => c.frame !== undefined)
 				.map(({ name, frame }) => {
 					const pose = createPoseFromFrame(frame!)

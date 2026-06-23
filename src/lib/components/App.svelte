@@ -10,7 +10,8 @@
 	import { type Component, onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
+	import type { FragmentInfo } from '$lib/hooks/useComponentNameToFragmentInfo.svelte'
+	import { provideComponentNameToFragmentInfo } from '$lib/hooks/useComponentNameToFragmentInfo.svelte'
 
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
@@ -39,12 +40,12 @@
 	interface LocalConfigProps {
 		current: Struct
 		isDirty: boolean
-		componentNameToFragmentInfo: Record<string, FragmentInfo>
 		setLocalPartConfig: (config: Struct) => void
 	}
 
 	interface Props {
 		partID?: string
+		componentNameToFragmentInfoInitial?: Record<string, FragmentInfo>
 		inputBindingsEnabled?: boolean
 		localConfigProps?: LocalConfigProps
 
@@ -80,6 +81,7 @@
 	let {
 		partID = '',
 		inputBindingsEnabled = true,
+		componentNameToFragmentInfoInitial,
 		localConfigProps,
 		cameraPose,
 		settingsTabs,
@@ -92,6 +94,10 @@
 
 	const settings = provideSettings()
 	const environment = provideEnvironment()
+	const componentNameToFragmentInfo = provideComponentNameToFragmentInfo(
+		componentNameToFragmentInfoInitial ?? {}
+	)
+
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()

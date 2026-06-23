@@ -1,4 +1,3 @@
-import type { JsonObject } from '@bufbuild/protobuf'
 import type { JsonValue } from '@viamrobotics/sdk'
 
 import { Pose, Struct } from '@viamrobotics/sdk'
@@ -7,6 +6,8 @@ import { getContext, setContext } from 'svelte'
 
 import { createFrame, type Frame } from '$lib/frame'
 import { createPoseFromFrame } from '$lib/transform'
+
+import { useComponentNameToFragmentInfo } from './useComponentNameToFragmentInfo.svelte'
 
 const key = Symbol('part-config-context')
 
@@ -19,17 +20,13 @@ export interface PartConfig {
 	}[]
 }
 
-export type FragmentInfo = {
-	id: string
-	variables: Record<string, string>
-}
+
 
 interface LocalPartConfig {
 	isDirty: boolean
 	hasPendingSave: boolean
 	hasEditPermissions: boolean
 	current: Struct
-	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	set: (config: PartConfig) => void
 	save?: () => void
@@ -43,7 +40,6 @@ interface PartConfigContext {
 	isDirty: boolean
 	hasPendingSave: boolean
 	hasEditPermissions: boolean
-	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	updateFrame: (
 		componentName: string,
@@ -63,6 +59,7 @@ export const providePartConfig = (
 	partID: () => string,
 	params: () => AppEmbeddedPartConfigProps | undefined
 ) => {
+	const componentNameToFragmentInfo = useComponentNameToFragmentInfo()
 	const props = $derived(params())
 	const config = $derived(props ? useEmbeddedPartConfig(props) : useStandalonePartConfig(partID))
 
@@ -253,9 +250,6 @@ export const providePartConfig = (
 		get current() {
 			return current
 		},
-		get componentNameToFragmentInfo() {
-			return config.componentNameToFragmentInfo
-		},
 		get isDirty() {
 			return config.isDirty
 		},
@@ -272,7 +266,7 @@ export const providePartConfig = (
 			framePosition: Pose,
 			frameGeometry?: Frame['geometry']
 		) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			const fragmentId = componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				updatePartFrame(componentName, referenceFrame, framePosition, frameGeometry)
 			} else {
@@ -281,7 +275,7 @@ export const providePartConfig = (
 		},
 
 		deleteFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			const fragmentId = componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				deletePartFrame(componentName)
 			} else {
@@ -289,7 +283,7 @@ export const providePartConfig = (
 			}
 		},
 		createFrame: (componentName: string) => {
-			const fragmentId = config.componentNameToFragmentInfo[componentName]?.id
+			const fragmentId = componentNameToFragmentInfo[componentName]?.id
 			if (fragmentId === undefined) {
 				createPartFrame(componentName)
 			} else {
@@ -310,7 +304,6 @@ export const usePartConfig = (): PartConfigContext => {
 interface AppEmbeddedPartConfigProps {
 	current: Struct
 	isDirty: boolean
-	componentNameToFragmentInfo: Record<string, FragmentInfo>
 
 	setLocalPartConfig: (config: Struct) => void
 }
@@ -362,10 +355,6 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 			return props.current ?? new Struct()
 		},
 
-		get componentNameToFragmentInfo() {
-			return props.componentNameToFragmentInfo
-		},
-
 		set(config: PartConfig): void {
 			const struct = Struct.fromJson(config as unknown as JsonValue)
 			return props.setLocalPartConfig(struct)
@@ -395,65 +384,6 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	let hasPendingSave = $state(false)
 
 	const hasEditPermissions = $derived(networkPartConfig !== undefined)
-
-	const configJSON = $derived.by(() => {
-		if (!networkPartConfig) {
-			return undefined
-		}
-		try {
-			return networkPartConfig.toJson() as JsonObject
-		} catch {
-			return undefined
-		}
-	})
-
-	const fragmentQueries = $derived(
-		((configJSON?.fragments ?? []) as (string | { id: string })[]).map((fragmentId) => {
-			const id = typeof fragmentId === 'string' ? fragmentId : fragmentId.id
-			return createAppQuery('getFragment', () => [id] as const, { refetchInterval: false })
-		})
-	)
-
-	const fragmentIdToVariables = $derived.by(() => {
-		const results: Record<string, Record<string, string>> = {}
-		for (const fragment of (configJSON?.fragments as (
-			| string
-			| { id: string; variables: Record<string, string> }
-		)[]) ?? []) {
-			const id = typeof fragment === 'string' ? fragment : fragment.id
-			const variables = typeof fragment === 'string' ? {} : fragment.variables
-			results[id] = variables
-		}
-		return results
-	})
-
-	const componentNameToFragmentInfo = $derived.by(() => {
-		const results: Record<string, FragmentInfo> = {}
-		for (const query of fragmentQueries) {
-			if (!query.data) {
-				continue
-			}
-
-			const fragmentId = query.data.id
-			const components = query.data?.fragment?.fields['components']?.kind
-
-			if (components?.case === 'listValue') {
-				for (const component of components.value.values) {
-					if (component.kind.case === 'structValue') {
-						const componentName = component.kind.value.fields['name']?.kind
-						if (componentName.case === 'stringValue') {
-							results[componentName.value] = {
-								id: fragmentId,
-								variables: fragmentIdToVariables[fragmentId] ?? {},
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return results
-	})
 
 	let lastPartID: string | undefined
 	$effect.pre(() => {
@@ -490,9 +420,6 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		},
 		get hasEditPermissions() {
 			return hasEditPermissions
-		},
-		get componentNameToFragmentInfo() {
-			return componentNameToFragmentInfo
 		},
 
 		set(config: PartConfig): void {
