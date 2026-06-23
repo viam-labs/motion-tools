@@ -1,9 +1,10 @@
-import type { Pose, Transform } from '@viamrobotics/sdk'
+import type { Pose } from '@viamrobotics/sdk'
 
 import type { Frame } from '$lib/frame'
+import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
+import { applyEulerDeltaToPose, createPoseFromFrame } from '$lib/transform'
 
 export interface FrameDelta {
 	componentName: string
@@ -26,48 +27,6 @@ export interface PreparedUpdate {
 export interface UpdateError {
 	componentName: string
 	reason: string
-}
-
-/** Current frame of a fragment-defined component, resolved from the live scene. */
-export interface CurrentFrame {
-	previousParent: string
-	previousPose: Pose
-	geometry?: Frame['geometry']
-}
-
-/**
- * Resolves the current `{ parent, pose }` for fragment-defined components.
- *
- * Fragment components are not in `PartConfig.components`, so their current frame
- * comes from the live framesystem (`useFrames`), with config `$set`-mod
- * overrides (`useConfigFrames`) winning when present. A component with neither a
- * mod nor a live frame has no editable current frame and is skipped — it won't
- * be offered to the LLM or validated.
- */
-export function resolveFragmentCurrentFrames(
-	fragmentNames: string[],
-	liveFrames: Transform[],
-	configFrames: Record<string, Transform>
-): Record<string, CurrentFrame> {
-	const liveByName: Record<string, Transform> = {}
-	for (const frame of liveFrames) {
-		liveByName[frame.referenceFrame] = frame
-	}
-
-	const result: Record<string, CurrentFrame> = {}
-	for (const name of fragmentNames) {
-		const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
-		if (!observed) {
-			continue
-		}
-
-		result[name] = {
-			previousParent: observed.referenceFrame,
-			previousPose: createPose(observed.pose),
-		}
-	}
-
-	return result
 }
 
 function mergeTranslation(
@@ -94,7 +53,7 @@ function mergeOrientation(
 export function validateProposedFrameDeltas(
 	deltas: FrameDelta[],
 	config: PartConfig,
-	fragmentFrames: Record<string, CurrentFrame> = {}
+	fragmentFrames: Record<string, FragmentInfo> = {}
 ): { errors: UpdateError[]; prepared: PreparedUpdate[] } {
 	const errors: UpdateError[] = []
 	const prepared: PreparedUpdate[] = []
@@ -138,6 +97,11 @@ export function validateProposedFrameDeltas(
 			continue
 		}
 
+		if (fragment && !fragment.frame) {
+			errors.push({ componentName: delta.componentName, reason: 'Fragment has no frame' })
+			continue
+		}
+
 		if (
 			delta.parent !== undefined &&
 			delta.parent !== 'world' &&
@@ -153,9 +117,11 @@ export function validateProposedFrameDeltas(
 			continue
 		}
 
-		const previousPose = component ? createPoseFromFrame(component.frame!) : fragment!.previousPose
-		const previousParent = component ? component.frame!.parent : fragment!.previousParent
-		const geometry = component ? component.frame!.geometry : fragment!.geometry
+		const previousPose = component
+			? createPoseFromFrame(component.frame!)
+			: createPoseFromFrame(fragment!.frame!)
+		const previousParent = component ? component.frame!.parent : fragment!.frame!.parent
+		const geometry = component ? component.frame!.geometry : fragment!.frame!.geometry
 
 		const newParent = delta.parent ?? previousParent
 		const newPose: Pose = {

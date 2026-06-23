@@ -19,11 +19,6 @@ export interface PartConfig {
 	}[]
 }
 
-export type FragmentInfo = {
-	id: string
-	variables: Record<string, string>
-}
-
 interface LocalPartConfig {
 	isDirty: boolean
 	hasPendingSave: boolean

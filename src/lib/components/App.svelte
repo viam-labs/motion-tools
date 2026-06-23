@@ -10,7 +10,7 @@
 	import { type Component, onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
+	import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'

@@ -1,17 +1,14 @@
+import type { Transform } from '@viamrobotics/sdk'
+
 import { getContext, setContext } from 'svelte'
 
 import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
-import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+import { type FragmentInfo, useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { useFrames } from '$lib/hooks/useFrames.svelte'
 import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
+import { createPose, createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
-import {
-	type FrameDelta,
-	resolveFragmentCurrentFrames,
-	type UpdateError,
-	validateProposedFrameDeltas,
-} from './frameDeltaAdapter'
+import { type FrameDelta, type UpdateError, validateProposedFrameDeltas } from './frameDeltaAdapter'
 
 const key = Symbol('scene-builder-context')
 
@@ -58,24 +55,68 @@ export type InferCallback = (
 export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	const partConfig = usePartConfig()
 	const fragmentInfo = useFragmentInfo()
-	const configFrames = useConfigFrames()
 	const frames = useFrames()
+	const configFrames = useConfigFrames()
+
+	const fragmentFrames = $derived(
+		resolveFragmentCurrentFrames(
+			Object.keys(fragmentInfo.current),
+			frames.current ?? [],
+			configFrames.current ?? {}
+		)
+	)
+
+	function resolveFragmentCurrentFrames(
+		fragmentNames: string[],
+		liveFrames: Transform[],
+		configFrames: Record<string, Transform>
+	): Record<string, FragmentInfo> {
+		const liveByName: Record<string, Transform> = {}
+		for (const frame of liveFrames) {
+			liveByName[frame.referenceFrame] = frame
+		}
+
+		const result: Record<string, FragmentInfo> = {}
+		for (const name of fragmentNames) {
+			const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
+			if (!observed) {
+				continue
+			}
+
+			const pose = createPose(observed.pose)
+
+			result[name] = {
+				id: fragmentInfo.current[name].id,
+				name: fragmentInfo.current[name].name,
+				api: fragmentInfo.current[name].api,
+				variables: fragmentInfo.current[name].variables,
+				frame: {
+					parent: observed.referenceFrame,
+					translation: {
+						x: pose.x,
+						y: pose.y,
+						z: pose.z,
+					},
+					orientation: {
+						type: 'ov_degrees',
+						value: {
+							x: pose.oX,
+							y: pose.oY,
+							z: pose.oZ,
+							th: pose.theta,
+						},
+					},
+				},
+			}
+		}
+
+		return result
+	}
 
 	let uiState = $state<UIState>('idle')
 	let deltas = $state<FrameDelta[]>([])
 	let explanation = $state('')
 	let errorMessage = $state('')
-
-	// Fragment-defined components aren't in partConfig.components; resolve their
-	// current frames from the live scene so the LLM can move them and confirm()
-	// can write fragment overrides.
-	const fragmentFrames = $derived(
-		resolveFragmentCurrentFrames(
-			Object.keys(fragmentInfo.current),
-			frames.current,
-			configFrames.current
-		)
-	)
 
 	// Re-derived whenever deltas or the current config changes (e.g. from a drag).
 	// confirm() therefore always applies the LLM's intent against the latest config —
@@ -186,24 +227,25 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 
 			// Fragment components never appear in partConfig.components, so there's
 			// no name overlap with partComponents.
-			const fragmentComponents = Object.entries(fragmentFrames).map(([name, current]) => {
-				const { roll, pitch, yaw } = poseToEulerDegrees(current.previousPose)
-				return {
-					name,
-					frame: {
-						parent: current.previousParent,
-						translation: {
-							x: current.previousPose.x,
-							y: current.previousPose.y,
-							z: current.previousPose.z,
+			console.log('USING FRAGMENT FRAMES', fragmentFrames)
+			const fragmentComponents = Object.entries(fragmentFrames)
+				.filter(([, current]) => current.frame !== undefined)
+				.map(([name, current]) => {
+					const pose = createPoseFromFrame(current.frame!)
+					const { roll, pitch, yaw } = poseToEulerDegrees(pose)
+					return {
+						name,
+						frame: {
+							parent: current.frame!.parent,
+							translation: current.frame!.translation,
+							orientation: { roll, pitch, yaw },
 						},
-						orientation: { roll, pitch, yaw },
-					},
-				}
-			})
+					}
+				})
 
 			const components = [...partComponents, ...fragmentComponents]
 
+			console.log('COMPONENTS', components)
 			try {
 				const data = await onInfer(prompt.trim(), components)
 				deltas = data.updates
