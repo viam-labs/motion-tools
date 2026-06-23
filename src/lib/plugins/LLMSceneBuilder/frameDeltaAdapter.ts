@@ -1,10 +1,68 @@
-import type { Pose } from '@viamrobotics/sdk'
+import type { Pose, Transform } from '@viamrobotics/sdk'
 
 import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { applyEulerDeltaToPose, createPoseFromFrame } from '$lib/transform'
+import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
+
+/**
+ * Resolves current frames for fragment-defined components from live framesystem
+ * data and any config $set overrides. Returns a FragmentInfo map suitable for
+ * validateProposedFrameDeltas and LLM inference.
+ */
+export function resolveFragmentCurrentFrames(
+	fragmentNames: string[],
+	fragmentInfo: Record<string, FragmentInfo>,
+	liveFrames: Transform[],
+	configFrames: Record<string, Transform>
+): Record<string, FragmentInfo> {
+	const liveByName: Record<string, Transform> = {}
+	for (const frame of liveFrames) {
+		liveByName[frame.referenceFrame] = frame
+	}
+
+	const result: Record<string, FragmentInfo> = {}
+	for (const name of fragmentNames) {
+		const meta = fragmentInfo[name]
+		if (!meta) {
+			continue
+		}
+
+		const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
+		if (!observed) {
+			continue
+		}
+
+		const pose = createPose(observed.pose)
+
+		result[name] = {
+			id: meta.id,
+			name: meta.name,
+			api: meta.api,
+			variables: meta.variables,
+			frame: {
+				parent: observed.referenceFrame,
+				translation: {
+					x: pose.x,
+					y: pose.y,
+					z: pose.z,
+				},
+				orientation: {
+					type: 'ov_degrees',
+					value: {
+						x: pose.oX,
+						y: pose.oY,
+						z: pose.oZ,
+						th: pose.theta,
+					},
+				},
+			},
+		}
+	}
+
+	return result
+}
 
 export interface FrameDelta {
 	componentName: string

@@ -1,14 +1,17 @@
-import type { Transform } from '@viamrobotics/sdk'
-
 import { getContext, setContext } from 'svelte'
 
 import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
-import { type FragmentInfo, useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { useFrames } from '$lib/hooks/useFrames.svelte'
 import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-import { createPose, createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
+import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
-import { type FrameDelta, type UpdateError, validateProposedFrameDeltas } from './frameDeltaAdapter'
+import {
+	type FrameDelta,
+	type UpdateError,
+	resolveFragmentCurrentFrames,
+	validateProposedFrameDeltas,
+} from './frameDeltaAdapter'
 
 const key = Symbol('scene-builder-context')
 
@@ -61,57 +64,11 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	const fragmentFrames = $derived(
 		resolveFragmentCurrentFrames(
 			Object.keys(fragmentInfo.current),
+			fragmentInfo.current,
 			frames.current ?? [],
 			configFrames.current ?? {}
 		)
 	)
-
-	function resolveFragmentCurrentFrames(
-		fragmentNames: string[],
-		liveFrames: Transform[],
-		configFrames: Record<string, Transform>
-	): Record<string, FragmentInfo> {
-		const liveByName: Record<string, Transform> = {}
-		for (const frame of liveFrames) {
-			liveByName[frame.referenceFrame] = frame
-		}
-
-		const result: Record<string, FragmentInfo> = {}
-		for (const name of fragmentNames) {
-			const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
-			if (!observed) {
-				continue
-			}
-
-			const pose = createPose(observed.pose)
-
-			result[name] = {
-				id: fragmentInfo.current[name].id,
-				name: fragmentInfo.current[name].name,
-				api: fragmentInfo.current[name].api,
-				variables: fragmentInfo.current[name].variables,
-				frame: {
-					parent: observed.referenceFrame,
-					translation: {
-						x: pose.x,
-						y: pose.y,
-						z: pose.z,
-					},
-					orientation: {
-						type: 'ov_degrees',
-						value: {
-							x: pose.oX,
-							y: pose.oY,
-							z: pose.oZ,
-							th: pose.theta,
-						},
-					},
-				},
-			}
-		}
-
-		return result
-	}
 
 	let uiState = $state<UIState>('idle')
 	let deltas = $state<FrameDelta[]>([])
@@ -227,7 +184,6 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 
 			// Fragment components never appear in partConfig.components, so there's
 			// no name overlap with partComponents.
-			console.log('USING FRAGMENT FRAMES', fragmentFrames)
 			const fragmentComponents = Object.entries(fragmentFrames)
 				.filter(([, current]) => current.frame !== undefined)
 				.map(([name, current]) => {
@@ -245,7 +201,6 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 
 			const components = [...partComponents, ...fragmentComponents]
 
-			console.log('COMPONENTS', components)
 			try {
 				const data = await onInfer(prompt.trim(), components)
 				deltas = data.updates

@@ -2,12 +2,12 @@ import { Transform } from '@viamrobotics/sdk'
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
+import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { createPose } from '$lib/transform'
 
 import {
-	type CurrentFrame,
 	type FrameDelta,
 	resolveFragmentCurrentFrames,
 	validateProposedFrameDeltas,
@@ -31,6 +31,21 @@ const makeTransform = (
 		referenceFrame: name,
 		poseInObserverFrame: { referenceFrame: parent, pose: createPose(pose) },
 	})
+
+const makeFragmentMeta = (overrides: Partial<FragmentInfo> = {}): FragmentInfo => ({
+	id: 'fragment-id',
+	name: 'test-fragment',
+	api: 'rdk:component:arm',
+	variables: {},
+	...overrides,
+})
+
+const makeFragmentInfoMap = (
+	componentName: string,
+	frameOverrides: Partial<Frame> = {}
+): Record<string, FragmentInfo> => ({
+	[componentName]: makeFragmentMeta({ frame: makeFrame(frameOverrides) }),
+})
 
 describe('validateProposedFrameDeltas', () => {
 	it('computes a prepared update with merged pose for a valid translation delta', () => {
@@ -257,28 +272,35 @@ describe('validateProposedFrameDeltas', () => {
 })
 
 describe('resolveFragmentCurrentFrames', () => {
+	const gripperMeta = makeFragmentMeta()
+
 	it('uses the live frame when there is no config override', () => {
 		const live = [makeTransform('gripper', 'arm', { x: 5, y: 6, z: 7 })]
 
-		const result = resolveFragmentCurrentFrames(['gripper'], live, {})
+		const result = resolveFragmentCurrentFrames(['gripper'], { gripper: gripperMeta }, live, {})
 
-		expect(result.gripper.previousParent).toBe('arm')
-		expect(result.gripper.previousPose.x).toBe(5)
-		expect(result.gripper.previousPose.z).toBe(7)
+		expect(result.gripper!.frame!.parent).toBe('arm')
+		expect(result.gripper!.frame!.translation.x).toBe(5)
+		expect(result.gripper!.frame!.translation.z).toBe(7)
 	})
 
 	it('lets a config $set-mod override win over the live frame', () => {
 		const live = [makeTransform('gripper', 'arm', { x: 5 })]
 		const configFrames = { gripper: makeTransform('gripper', 'base', { x: 99 }) }
 
-		const result = resolveFragmentCurrentFrames(['gripper'], live, configFrames)
+		const result = resolveFragmentCurrentFrames(
+			['gripper'],
+			{ gripper: gripperMeta },
+			live,
+			configFrames
+		)
 
-		expect(result.gripper.previousParent).toBe('base')
-		expect(result.gripper.previousPose.x).toBe(99)
+		expect(result.gripper!.frame!.parent).toBe('base')
+		expect(result.gripper!.frame!.translation.x).toBe(99)
 	})
 
 	it('skips a fragment component with no live frame and no override', () => {
-		const result = resolveFragmentCurrentFrames(['gripper'], [], {})
+		const result = resolveFragmentCurrentFrames(['gripper'], { gripper: gripperMeta }, [], {})
 
 		expect(result.gripper).toBeUndefined()
 		expect(Object.keys(result)).toHaveLength(0)
@@ -286,9 +308,10 @@ describe('resolveFragmentCurrentFrames', () => {
 })
 
 describe('validateProposedFrameDeltas with fragment components', () => {
-	const fragmentFrames: Record<string, CurrentFrame> = {
-		gripper: { previousParent: 'arm', previousPose: createPose({ x: 10 }) },
-	}
+	const fragmentFrames = makeFragmentInfoMap('gripper', {
+		parent: 'arm',
+		translation: { x: 10, y: 0, z: 0 },
+	})
 
 	it('prepares an update for a fragment component absent from config.components', () => {
 		const { prepared, errors } = validateProposedFrameDeltas(
@@ -331,7 +354,7 @@ describe('validateProposedFrameDeltas with fragment components', () => {
 		const { prepared } = validateProposedFrameDeltas(
 			[{ componentName: 'arm', translation: { x: 1 } }],
 			makeConfig([{ name: 'arm', frame: makeFrame({ parent: 'world' }) }]),
-			{ arm: { previousParent: 'fragment-parent', previousPose: createPose({ x: 500 }) } }
+			makeFragmentInfoMap('arm', { parent: 'fragment-parent', translation: { x: 500, y: 0, z: 0 } })
 		)
 
 		expect(prepared[0].previousParent).toBe('world')
