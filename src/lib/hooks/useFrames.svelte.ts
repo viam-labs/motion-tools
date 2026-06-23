@@ -11,12 +11,12 @@ import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { useLogs } from '$lib/plugins'
 import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrameEditSession } from './useFrameEditSession.svelte'
-import { useLogs } from './useLogs.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
@@ -233,7 +233,13 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					if (!isEditMode && !partConfig.hasPendingSave) {
+					// Freeze the baseline while the user has unsaved edits so the
+					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
+					// edited position rather than amplifying any robot movement.
+					// isDirty is used rather than isEditMode because isDirty is $state
+					// and updates synchronously; isEditMode derives from viewerMode via
+					// a plain $effect and lags by one flush.
+					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
 							poseToMatrix(pose, baseline)
@@ -251,7 +257,7 @@ export const provideFrames = (partID: () => string) => {
 					// values would shift entities whose parents the user is portaling
 					// into — the gizmo's drag target moves underneath it. Once we're
 					// back in monitor mode, the next sync resumes the overwrite.
-					if (!isEditMode) {
+					if (!isEditMode || !editSession.current) {
 						const edited = existing.get(traits.EditedMatrix)
 						if (edited) {
 							poseToMatrix(pose, edited)

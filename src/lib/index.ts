@@ -2,6 +2,8 @@
 export { default as MotionTools } from './components/App.svelte'
 export { default as Visualizer } from './components/App.svelte'
 
+export { useSettings } from './hooks/useSettings.svelte'
+
 // Plugins
 export { default as PCD } from './components/PCD.svelte'
 

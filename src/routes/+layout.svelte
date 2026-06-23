@@ -7,7 +7,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { AISettings, DrawService, Focus, MeasureTool, XR, XRSettings } from '$lib/plugins'
+	import { DrawService, Focus, Logs, MeasureTool, XR, XRSettings } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -68,10 +68,7 @@
 			<Visualizer
 				{partID}
 				inputBindingsEnabled={!isMachinesPageOpen}
-				settingsTabs={[
-					{ label: 'AR', component: XRSettings },
-					{ label: 'AI', component: AISettings },
-				]}
+				settingsTabs={[{ label: 'AR', component: XRSettings }]}
 			>
 				{@render children()}
 
@@ -79,6 +76,7 @@
 					<Machines bind:isOpen={isMachinesPageOpen} />
 				{/snippet}
 
+				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
