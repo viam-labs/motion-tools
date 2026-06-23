@@ -86,7 +86,7 @@ test('draw hierarchy', async ({ browser }) => {
 	await page
 		.locator('[data-part="branch-control"]')
 		.filter({ hasText: 'zulu' })
-		.locator('[data-part="branch-indicator"]')
+		.locator('[data-part="branch-trigger"]')
 		.click()
 	await expect(page.getByText('tango', { exact: true })).toBeVisible()
 	await expect(page.getByText('delta', { exact: true })).toBeVisible()
@@ -96,7 +96,7 @@ test('draw hierarchy', async ({ browser }) => {
 	await page
 		.locator('[data-part="branch-control"]')
 		.filter({ hasText: 'tango' })
-		.locator('[data-part="branch-indicator"]')
+		.locator('[data-part="branch-trigger"]')
 		.click()
 	await expect(page.getByText('sierra', { exact: true })).toBeVisible()
 	await expect(page.getByText('foxtrot', { exact: true })).toBeVisible()
