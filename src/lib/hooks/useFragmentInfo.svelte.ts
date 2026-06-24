@@ -100,9 +100,14 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 					if (component.kind.case === 'structValue') {
 						const componentName = component.kind.value.fields['name']?.kind
 						if (componentName?.case === 'stringValue') {
-							const fragmentInfo: FragmentInfo = {id: fragmentId, variables: fragmentIdToVariables[fragmentId] ?? {}}
+							const fragmentInfo: FragmentInfo = {
+								id: fragmentId,
+								variables: fragmentIdToVariables[fragmentId] ?? {},
+							}
 							if (component.kind.value.fields['frame']?.kind.case === 'structValue') {
-								fragmentInfo.frame = component.kind.value.fields['frame'].toJson() as unknown as Frame
+								fragmentInfo.frame = component.kind.value.fields[
+									'frame'
+								].toJson() as unknown as Frame
 							}
 							results[componentName.value] = fragmentInfo
 						}
