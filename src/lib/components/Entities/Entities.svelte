@@ -5,6 +5,8 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Arrows from './Arrows/ArrowGroups.svelte'
+	import AxesHelpers from './AxesHelpers.svelte'
+	import Boxes from './Boxes.svelte'
 	import Frame from './Frame.svelte'
 	import Geometry from './Geometry.svelte'
 	import GLTF from './GLTF.svelte'
@@ -32,8 +34,8 @@
 	 */
 	const worldStateEntities = useQuery(
 		traits.WorldStateStoreAPI,
-		Not(traits.Points, traits.LinePositions, traits.GLTF),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
+		Or(traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -42,8 +44,8 @@
 	 */
 	const drawServiceEntities = useQuery(
 		traits.DrawServiceAPI,
-		Not(traits.Points, traits.LinePositions, traits.GLTF),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
+		Or(traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -55,7 +57,8 @@
 		Not(traits.WorldStateStoreAPI),
 		Not(traits.DrawServiceAPI),
 		Not(traits.Points),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Box),
+		Or(traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	const points = useQuery(traits.Points)
@@ -102,6 +105,8 @@
 {/each}
 
 <Arrows />
+<AxesHelpers />
+<Boxes />
 
 {#if enableLabels}
 	<Labels />

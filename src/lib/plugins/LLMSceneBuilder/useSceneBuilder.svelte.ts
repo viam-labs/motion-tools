@@ -1,9 +1,17 @@
 import { getContext, setContext } from 'svelte'
 
+import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
+import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+import { useFrames } from '$lib/hooks/useFrames.svelte'
 import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
-import { type FrameDelta, type UpdateError, validateProposedFrameDeltas } from './frameDeltaAdapter'
+import {
+	type FrameDelta,
+	resolveFragmentCurrentFrames,
+	type UpdateError,
+	validateProposedFrameDeltas,
+} from './frameDeltaAdapter'
 
 const key = Symbol('scene-builder-context')
 
@@ -49,6 +57,18 @@ export type InferCallback = (
 
 export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
+	const frames = useFrames()
+	const configFrames = useConfigFrames()
+
+	const fragmentFrames = $derived(
+		resolveFragmentCurrentFrames(
+			Object.keys(fragmentInfo.current),
+			fragmentInfo.current,
+			frames.current ?? [],
+			configFrames.current ?? {}
+		)
+	)
 
 	let uiState = $state<UIState>('idle')
 	let deltas = $state<FrameDelta[]>([])
@@ -60,7 +80,7 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	// drag changes to unspecified axes are preserved, not overwritten.
 	const validation = $derived.by(() =>
 		deltas.length > 0
-			? validateProposedFrameDeltas(deltas, partConfig.current)
+			? validateProposedFrameDeltas(deltas, partConfig.current, fragmentFrames)
 			: { prepared: [], errors: [] }
 	)
 
@@ -147,20 +167,39 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 		async submit(prompt: string) {
 			uiState = 'loading'
 
-			const components = partConfig.current.components
+			const partComponents = partConfig.current.components
 				.filter((c) => c.frame !== undefined)
 				.map(({ name, frame }) => {
 					const pose = createPoseFromFrame(frame!)
-					const { roll, pitch, yaw } = poseToEulerDegrees(pose)
+					const orientation = poseToEulerDegrees(pose)
 					return {
 						name,
 						frame: {
 							parent: frame!.parent,
 							translation: frame!.translation,
-							orientation: { roll, pitch, yaw },
+							orientation,
 						},
 					}
 				})
+
+			// Fragment components never appear in partConfig.components, so there's
+			// no name overlap with partComponents.
+			const fragmentComponents = Object.entries(fragmentFrames)
+				.filter(([, current]) => current.frame !== undefined)
+				.map(([name, current]) => {
+					const pose = createPoseFromFrame(current.frame!)
+					const orientation = poseToEulerDegrees(pose)
+					return {
+						name,
+						frame: {
+							parent: current.frame!.parent,
+							translation: current.frame!.translation,
+							orientation,
+						},
+					}
+				})
+
+			const components = [...partComponents, ...fragmentComponents]
 
 			try {
 				const data = await onInfer(prompt.trim(), components)

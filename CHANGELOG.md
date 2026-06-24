@@ -1,5 +1,17 @@
 # motion-tools
 
+## 1.34.5
+
+### Patch Changes
+
+- 07a0bf4: Add better touchscreen support for the select plugin
+
+## 1.34.4
+
+### Patch Changes
+
+- 7dcb43b: Extract logs into a plugin
+
 ## 1.34.3
 
 ### Patch Changes

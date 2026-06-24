@@ -73,23 +73,23 @@ withRobot('world state store geometry rendering', async ({ robotPage }) => {
 	await robotPage.screenshotCanvas('WORLD-STATE-0-transforms-loaded')
 
 	await page.getByText('test-box', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-1-box-selected')
 
 	await page.getByText('test-sphere', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-2-sphere-selected')
 
 	await page.getByText('test-capsule', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-3-capsule-selected')
 
 	await page.getByText('test-pointcloud', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-4-pointcloud-selected')
 
 	await page.getByText('test-mesh', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-5-mesh-selected')
 
 	robotPage.assertScreenshots()
