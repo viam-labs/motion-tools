@@ -2,15 +2,13 @@
 	module
 	lang="ts"
 >
-	import { BoxGeometry, EdgesGeometry, SphereGeometry } from 'three'
+	import { EdgesGeometry, SphereGeometry } from 'three'
 
 	/**
 	 * Shared unit geometries — every mesh references these and sets
 	 * dimensions through `mesh.scale`, so resizing never rebuilds GPU buffers.
 	 */
-	const unitBox = new BoxGeometry(1, 1, 1)
 	const unitSphere = new SphereGeometry(1, 16, 12)
-	const unitBoxEdges = new EdgesGeometry(unitBox, 0)
 	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
 </script>
 
@@ -27,7 +25,6 @@
 	import { traits, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import Capsule from './Capsule.svelte'
 
 	interface Props extends Omit<ThrelteProps<Mesh>, 'ref'> {
@@ -46,11 +43,9 @@
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const box = useTrait(() => entity, traits.Box)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const materialProps = useTrait(() => entity, traits.Material)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 
@@ -98,10 +93,7 @@
 	})
 
 	$effect(() => {
-		if (box.current) {
-			const { x, y, z } = box.current
-			mesh.scale.set(x * 0.001, y * 0.001, z * 0.001)
-		} else if (sphere.current) {
+		if (sphere.current) {
 			mesh.scale.setScalar((sphere.current.r ?? 0) * 0.001)
 		} else {
 			mesh.scale.set(1, 1, 1)
@@ -137,9 +129,7 @@
 		renderOrder={renderOrder.current}
 		{...rest}
 	>
-		{#if box.current || sphere.current}
-			{@const meshGeometry = box.current ? unitBox : unitSphere}
-			{@const edgesGeometry = box.current ? unitBoxEdges : unitSphereEdges}
+		{#if sphere.current}
 			<!--
 				Switch via a derived `is` on the same <T> so `useAttach`'s effect
 				cleanup runs before the new attach. Splitting these across two
@@ -148,7 +138,7 @@
 				it to the pre-attach value (null), leaving the mesh geometryless.
 			-->
 			<T
-				is={meshGeometry}
+				is={unitSphere}
 				dispose={false}
 			/>
 			<T.LineSegments
@@ -156,7 +146,7 @@
 				bvh={{ enabled: false }}
 			>
 				<T
-					is={edgesGeometry}
+					is={unitSphereEdges}
 					dispose={false}
 				/>
 				<T.LineBasicMaterial color={darkenColor(color, 10)} />
@@ -192,12 +182,4 @@
 
 		{@render children?.()}
 	</T>
-{/if}
-
-{#if showAxesHelper.current}
-	<AxesHelper
-		name={entity}
-		width={3}
-		length={0.1}
-	/>
 {/if}

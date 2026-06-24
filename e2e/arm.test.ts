@@ -57,7 +57,7 @@ withRobot('arm', async ({ robotPage }) => {
 	const { page } = robotPage
 	const testPrefix = 'ARM'
 
-	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-indicator"]')
+	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-trigger"]')
 	await frameTreeCarrot.click()
 
 	await expect(page.getByText('arm-1:base_link', { exact: true })).toBeVisible()
@@ -65,7 +65,7 @@ withRobot('arm', async ({ robotPage }) => {
 
 	await page.getByRole('button', { name: 'arm-1' }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await robotPage.screenshotCanvas(`${testPrefix}-0-loaded`)
 

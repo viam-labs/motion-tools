@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
+	import { Icon } from '@viamrobotics/prime-core'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
@@ -37,7 +38,7 @@
 			<div class="flex gap-2">
 				<textarea
 					class="flex-1 resize-none rounded border border-gray-300 p-2 text-xs focus:ring-1 focus:ring-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
-					placeholder="Describe the frame change, e.g. 'Move the arm 200mm forward along X'"
+					placeholder="Describe a frame change — translation, rotation, or parent. e.g. 'Move arm 200mm forward and rotate 90° left'"
 					rows={3}
 					disabled={sceneBuilder.uiState === 'loading' || sceneBuilder.uiState === 'diff'}
 					bind:value={prompt}
@@ -69,10 +70,6 @@
 
 			<!-- diff ready -->
 			{#if sceneBuilder.uiState === 'diff'}
-				{#if sceneBuilder.explanation}
-					<p class="text-gray-6 italic">{sceneBuilder.explanation}</p>
-				{/if}
-
 				{#if sceneBuilder.diffGroups.length > 0}
 					<div class="flex flex-col gap-2 overflow-auto">
 						{#each sceneBuilder.diffGroups as group (group.componentName)}
@@ -111,11 +108,13 @@
 				{/if}
 
 				{#if sceneBuilder.updateErrors.length > 0}
-					<ul class="text-red-6 space-y-0.5">
-						{#each sceneBuilder.updateErrors as err (err.componentName)}
-							<li><span class="font-mono">{err.componentName}</span>: {err.reason}</li>
-						{/each}
-					</ul>
+					<div class="border-danger-medium bg-danger-light rounded border p-2">
+						<ul class="text-danger-dark space-y-0.5">
+							{#each sceneBuilder.updateErrors as err (err.componentName)}
+								<li><span class="font-mono">{err.componentName}</span>: {err.reason}</li>
+							{/each}
+						</ul>
+					</div>
 				{/if}
 
 				<div class="mt-auto flex gap-2">
@@ -136,13 +135,22 @@
 
 			<!-- error -->
 			{#if sceneBuilder.uiState === 'error'}
-				<p class="text-red-6">{sceneBuilder.errorMessage}</p>
-				<button
-					class="self-start rounded border border-gray-300 px-3 py-1.5 hover:bg-gray-50"
-					onclick={sceneBuilder.resetError}
-				>
-					Try again
-				</button>
+				<div class="border-danger-medium bg-danger-light flex flex-col gap-2 rounded border p-2.5">
+					<div class="text-danger-dark flex items-center gap-1.5 font-medium">
+						<Icon
+							name="alert-circle-outline"
+							aria-hidden="true"
+						/>
+						Error
+					</div>
+					<p class="text-danger-dark">{sceneBuilder.errorMessage}</p>
+					<button
+						class="border-danger-medium text-danger-dark self-start rounded border px-3 py-1.5 hover:bg-[#F8E1DF]"
+						onclick={sceneBuilder.resetError}
+					>
+						Try again
+					</button>
+				</div>
 			{/if}
 		</div>
 	</FloatingPanel>

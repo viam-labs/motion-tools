@@ -8,6 +8,7 @@ import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
 import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
+import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
 import * as useResourceByName from '$lib/hooks/useResourceByName.svelte'
@@ -31,6 +32,9 @@ describe('Details component', () => {
 		vi.mocked(useResourceByName.useResourceByName).mockReturnValue({
 			current: {},
 		})
+		vi.mocked(useFragmentInfo.useFragmentInfo).mockReturnValue({
+			current: {},
+		})
 		vi.mocked(useConfigFrames.useConfigFrames).mockReturnValue({
 			getParentFrameOptions: vi.fn(),
 			unsetFrames: [],
@@ -38,7 +42,6 @@ describe('Details component', () => {
 		})
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: { components: [] },
-			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,
@@ -131,7 +134,6 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
-			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,
@@ -175,7 +177,6 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
-			componentNameToFragmentInfo: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
 			hasPendingSave: false,

@@ -20,9 +20,11 @@ export const provideStandaloneLLM = (): StandaloneLLMContext => {
 			}),
 		})
 		if (!res.ok) {
-			throw new Error(`${res.status}: ${await res.text()}`)
+			throw new Error(await res.text())
 		}
-		return res.json()
+
+		const response = await res.json()
+		return response
 	}
 
 	const context = setContext<StandaloneLLMContext>(key, {
