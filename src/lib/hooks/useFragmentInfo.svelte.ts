@@ -102,7 +102,7 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 						if (componentName?.case === 'stringValue') {
 							results[componentName.value] = {
 								id: fragmentId,
-								frame: component.kind.value.fields['frame']?.toJson() as unknown as Frame,
+								frame: component.kind.value.fields['frame'].toJson() as unknown as Frame,
 								variables: fragmentIdToVariables[fragmentId] ?? {},
 							}
 						}
