@@ -18,12 +18,13 @@ describe('plyDropper', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
-		vi.mocked(PLYLoader).mockImplementation(
-			() =>
-				({
-					parse: vi.fn().mockReturnValue(mockGeometry),
-				}) as unknown as PLYLoader
-		)
+		// Vitest 4 invokes a mock's implementation as the constructor for `new`,
+		// so it must be a function/class rather than an arrow that can't be `new`-ed.
+		vi.mocked(PLYLoader).mockImplementation(function () {
+			return {
+				parse: vi.fn().mockReturnValue(mockGeometry),
+			} as unknown as PLYLoader
+		})
 	})
 
 	it('successfully parses valid PLY file', async () => {
@@ -76,14 +77,13 @@ describe('plyDropper', () => {
 	})
 
 	it('returns error when parsing fails', async () => {
-		vi.mocked(PLYLoader).mockImplementation(
-			() =>
-				({
-					parse: vi.fn().mockImplementation(() => {
-						throw new Error('Invalid PLY format')
-					}),
-				}) as unknown as PLYLoader
-		)
+		vi.mocked(PLYLoader).mockImplementation(function () {
+			return {
+				parse: vi.fn().mockImplementation(() => {
+					throw new Error('Invalid PLY format')
+				}),
+			} as unknown as PLYLoader
+		})
 
 		const result = await plyDropper({
 			name: 'model.ply',

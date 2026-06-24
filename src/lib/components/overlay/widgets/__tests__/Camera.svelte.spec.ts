@@ -18,10 +18,14 @@ vi.mock('@viamrobotics/svelte-sdk', () => ({
 }))
 
 vi.mock('@viamrobotics/sdk', () => ({
-	StreamClient: vi.fn().mockImplementation(() => ({
-		getOptions: vi.fn().mockResolvedValue([{ width: 640, height: 480 }]),
-		setOptions: vi.fn().mockResolvedValue(undefined),
-	})),
+	// Vitest 4 invokes a mock's implementation as the constructor for `new`,
+	// so it must be a function/class rather than an arrow that can't be `new`-ed.
+	StreamClient: vi.fn().mockImplementation(function () {
+		return {
+			getOptions: vi.fn().mockResolvedValue([{ width: 640, height: 480 }]),
+			setOptions: vi.fn().mockResolvedValue(undefined),
+		}
+	}),
 	MachineConnectionEvent: {
 		DISCONNECTED: 'DISCONNECTED',
 		DIALING: 'DIALING',
@@ -89,14 +93,13 @@ describe('Camera widget', () => {
 
 	it('calls setOptions when a resolution is selected', async () => {
 		const mockSetOptions = vi.fn().mockResolvedValue(undefined)
-		vi.mocked(StreamClient).mockImplementation(
-			() =>
-				({
-					getOptions: vi.fn().mockResolvedValue([{ width: 640, height: 480 }]),
-					setOptions: mockSetOptions,
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				}) as any
-		)
+		vi.mocked(StreamClient).mockImplementation(function () {
+			return {
+				getOptions: vi.fn().mockResolvedValue([{ width: 640, height: 480 }]),
+				setOptions: mockSetOptions,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any
+		})
 
 		render(Camera, { name: 'test-camera' })
 

@@ -54,11 +54,11 @@
 		"@skeletonlabs/skeleton": "3.2.0",
 		"@skeletonlabs/skeleton-svelte": "1.5.1",
 		"@sveltejs/adapter-static": "3.0.9",
-		"@sveltejs/kit": "2.60.1",
-		"@sveltejs/package": "2.5.7",
-		"@sveltejs/vite-plugin-svelte": "6.1.4",
+		"@sveltejs/kit": "2.67.0",
+		"@sveltejs/package": "2.5.8",
+		"@sveltejs/vite-plugin-svelte": "7.1.2",
 		"@tailwindcss/forms": "0.5.10",
-		"@tailwindcss/vite": "4.1.13",
+		"@tailwindcss/vite": "4.3.1",
 		"@tanstack/svelte-query-devtools": "6.0.2",
 		"@testing-library/jest-dom": "6.8.0",
 		"@testing-library/svelte": "5.2.8",
@@ -80,8 +80,8 @@
 		"@viamrobotics/sdk": "0.69.0",
 		"@viamrobotics/svelte-sdk": "1.2.2",
 		"@viamrobotics/tweakpane-config": "0.1.1",
-		"@vitest/browser": "3.2.5",
-		"@vitest/coverage-v8": "^3.2.4",
+		"@vitest/browser-playwright": "4.1.9",
+		"@vitest/coverage-v8": "4.1.9",
 		"@zag-js/collapsible": "1.22.1",
 		"@zag-js/floating-panel": "1.22.1",
 		"@zag-js/popover": "1.22.1",
@@ -110,18 +110,18 @@
 		"svelte-check": "4.4.5",
 		"svelte-tweakpane-ui": "^1.5.16",
 		"svelte-virtuallists": "1.4.2",
-		"tailwindcss": "4.1.13",
+		"tailwindcss": "4.3.1",
 		"three": "0.183.2",
 		"threlte-uikit": "^2.0.0",
 		"tsx": "4.20.5",
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
 		"typescript-eslint": "8.56.1",
-		"vite": "7.3.5",
+		"vite": "8.1.0",
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
 		"vite-plugin-mkcert": "1.17.9",
-		"vitest": "3.2.6",
+		"vitest": "4.1.9",
 		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
@@ -176,6 +176,11 @@
 			"@tailwindcss/oxide",
 			"esbuild"
 		],
+		"peerDependencyRules": {
+			"allowedVersions": {
+				"vite-plugin-devtools-json>vite": "8"
+			}
+		},
 		"overrides": {
 			"js-yaml@^3": "3.14.2",
 			"uuid": ">=14.0.0"
