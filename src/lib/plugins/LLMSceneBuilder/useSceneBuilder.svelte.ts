@@ -171,13 +171,13 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 				.filter((c) => c.frame !== undefined)
 				.map(({ name, frame }) => {
 					const pose = createPoseFromFrame(frame!)
-					const { roll, pitch, yaw } = poseToEulerDegrees(pose)
+					const orientation = poseToEulerDegrees(pose)
 					return {
 						name,
 						frame: {
 							parent: frame!.parent,
 							translation: frame!.translation,
-							orientation: { roll, pitch, yaw },
+							orientation,
 						},
 					}
 				})
@@ -188,13 +188,13 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 				.filter(([, current]) => current.frame !== undefined)
 				.map(([name, current]) => {
 					const pose = createPoseFromFrame(current.frame!)
-					const { roll, pitch, yaw } = poseToEulerDegrees(pose)
+					const orientation = poseToEulerDegrees(pose)
 					return {
 						name,
 						frame: {
 							parent: current.frame!.parent,
 							translation: current.frame!.translation,
-							orientation: { roll, pitch, yaw },
+							orientation,
 						},
 					}
 				})

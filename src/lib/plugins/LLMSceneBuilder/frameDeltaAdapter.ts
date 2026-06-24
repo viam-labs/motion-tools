@@ -25,14 +25,10 @@ export function resolveFragmentCurrentFrames(
 	const result: Record<string, FragmentInfo> = {}
 	for (const name of fragmentNames) {
 		const meta = fragmentInfo[name]
-		if (!meta) {
-			continue
-		}
+		if (!meta) continue
 
 		const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
-		if (!observed) {
-			continue
-		}
+		if (!observed) continue
 
 		const pose = createPose(observed.pose)
 
