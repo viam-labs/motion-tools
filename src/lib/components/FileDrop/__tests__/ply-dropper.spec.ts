@@ -18,8 +18,6 @@ describe('plyDropper', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
-		// Vitest 4 invokes a mock's implementation as the constructor for `new`,
-		// so it must be a function/class rather than an arrow that can't be `new`-ed.
 		vi.mocked(PLYLoader).mockImplementation(function () {
 			return {
 				parse: vi.fn().mockReturnValue(mockGeometry),
