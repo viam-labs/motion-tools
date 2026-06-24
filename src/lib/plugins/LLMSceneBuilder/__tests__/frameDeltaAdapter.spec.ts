@@ -34,8 +34,6 @@ const makeTransform = (
 
 const makeFragmentMeta = (overrides: Partial<FragmentInfo> = {}): FragmentInfo => ({
 	id: 'fragment-id',
-	name: 'test-fragment',
-	api: 'rdk:component:arm',
 	variables: {},
 	...overrides,
 })
