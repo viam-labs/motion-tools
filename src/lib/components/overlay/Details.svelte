@@ -84,6 +84,7 @@
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
 	const removable = useTrait(() => entity, traits.Removable)
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
@@ -101,6 +102,15 @@
 		if (!worldMatrix.current) return
 
 		return matrixToPose(worldMatrix.current, createPose())
+	})
+
+	const triangleCount = $derived.by(() => {
+		const geometry = bufferGeometry.current
+		// Triangle count is meaningful only for meshes, not point clouds.
+		if (!geometry || points.current) return
+		const index = geometry.getIndex()
+		const vertices = index ? index.count : (geometry.getAttribute('position')?.count ?? 0)
+		return Math.floor(vertices / 3)
 	})
 
 	const isFrameNode = $derived(!!framesAPI.current)
@@ -725,6 +735,17 @@
 						value: new Intl.NumberFormat().format(
 							(object3d.geometry.getAttribute('position') as BufferAttribute).array.length / 3
 						),
+					})}
+				</div>
+			{/if}
+
+			{#if triangleCount !== undefined}
+				<div>
+					<strong class="font-semibold">triangles</strong>
+					{@render ImmutableField({
+						label: 'count',
+						ariaLabel: 'triangle count',
+						value: new Intl.NumberFormat().format(triangleCount),
 					})}
 				</div>
 			{/if}
