@@ -79,7 +79,6 @@
 		plane="xy"
 		sectionColor="#333"
 		infiniteGrid
-		renderOrder={999}
 		cellSize={settings.current.gridCellSize}
 		sectionSize={settings.current.gridSectionSize}
 		fadeOrigin={[0, 0, 0]}

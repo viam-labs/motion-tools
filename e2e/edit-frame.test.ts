@@ -90,7 +90,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible({ timeout: 15_000 })
 	await page.getByText('base-1', { exact: true }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await expect(page.getByText('Box', { exact: true })).toBeVisible()
 	await page.getByText('Box', { exact: true }).click()
@@ -144,7 +144,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	})
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible()
 	await page.getByText('base-1', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, {
 			fullPage: true,
@@ -401,7 +401,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 
 	await page.getByText('frag-base-1', { exact: true }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await expect(page.getByText('Sphere', { exact: true })).toBeVisible()
 	await page.getByText('Sphere', { exact: true }).click()
