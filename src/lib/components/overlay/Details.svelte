@@ -435,7 +435,12 @@
 			</p>
 		{/if}
 
-		<h3 class="text-subtle-2 pt-3 pb-2">Details</h3>
+		<h3
+			class="text-subtle-2 pt-3 pb-2"
+			data-testid="details-header"
+		>
+			Details
+		</h3>
 
 		<div class="flex flex-col gap-2.5">
 			{#if !customDetails.current}
