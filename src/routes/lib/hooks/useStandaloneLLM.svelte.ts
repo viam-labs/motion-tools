@@ -24,7 +24,6 @@ export const provideStandaloneLLM = (): StandaloneLLMContext => {
 		}
 
 		const response = await res.json()
-		console.log('RES', response)
 		return response
 	}
 
