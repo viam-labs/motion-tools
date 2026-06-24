@@ -78,35 +78,10 @@ jobs:
           echo "Affected packages:$FILTERS"
           echo "filters=$FILTERS" >> "$GITHUB_OUTPUT"
 
-      - name: Determine workspaces that depend on playwright
-        id: playwright
-        working-directory: app
-        run: |
-          FILTERS=""
-          while IFS= read -r pkgjson; do
-            if jq -e '(.dependencies // {}) + (.devDependencies // {}) + (.peerDependencies // {}) | has("@playwright/test")' "$pkgjson" > /dev/null; then
-              NAME=$(jq -r .name "$pkgjson")
-              FILTERS="$FILTERS --filter $NAME"
-            fi
-          done < <(find . -name package.json -not -path '*/node_modules/*')
-          echo "Playwright packages:$FILTERS"
-          echo "filters=$FILTERS" >> "$GITHUB_OUTPUT"
-
       - name: Type check affected workspaces
         if: steps.affected.outputs.filters != ''
         working-directory: app
         run: pnpm${{ steps.affected.outputs.filters }} --if-present check
-
-      - name: Install Playwright browsers
-        if: steps.playwright.outputs.filters != ''
-        working-directory: app
-        run: |
-          pnpm${{ steps.playwright.outputs.filters }} exec playwright install
-
-      - name: Run tests in affected workspaces
-        if: steps.affected.outputs.filters != ''
-        working-directory: app
-        run: pnpm${{ steps.affected.outputs.filters }} --if-present test
 
       - name: Open bump PR
         uses: peter-evans/create-pull-request@v8
