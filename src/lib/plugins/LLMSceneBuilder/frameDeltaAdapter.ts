@@ -138,22 +138,22 @@ export function validateProposedFrameDeltas(
 	}
 
 	for (const delta of mergedDeltas.values()) {
-		const component = config.components.find((c) => c.name === delta.componentName)
+		const partComponent = config.components.find((c) => c.name === delta.componentName)
 		// Fragment-defined components aren't in config.components; their current
 		// frame comes from `fragmentFrames` (resolved from the live framesystem).
-		const fragment = component ? undefined : fragmentFrames[delta.componentName]
+		const fragmentComponent = partComponent ? undefined : fragmentFrames[delta.componentName]
 
-		if (!component && !fragment) {
+		if (!partComponent && !fragmentComponent) {
 			errors.push({ componentName: delta.componentName, reason: 'Component not found in config' })
 			continue
 		}
 
-		if (component && !component.frame) {
+		if (partComponent && !partComponent.frame) {
 			errors.push({ componentName: delta.componentName, reason: 'Component has no frame' })
 			continue
 		}
 
-		if (fragment && !fragment.frame) {
+		if (fragmentComponent && !fragmentComponent.frame) {
 			errors.push({ componentName: delta.componentName, reason: 'Fragment has no frame' })
 			continue
 		}
@@ -173,11 +173,11 @@ export function validateProposedFrameDeltas(
 			continue
 		}
 
-		const previousPose = component
-			? createPoseFromFrame(component.frame!)
-			: createPoseFromFrame(fragment!.frame!)
-		const previousParent = component ? component.frame!.parent : fragment!.frame!.parent
-		const geometry = component ? component.frame!.geometry : fragment!.frame!.geometry
+		const previousPose = partComponent
+			? createPoseFromFrame(partComponent.frame!)
+			: createPoseFromFrame(fragmentComponent!.frame!)
+		const previousParent = partComponent ? partComponent.frame!.parent : fragmentComponent!.frame!.parent
+		const geometry = partComponent ? partComponent.frame!.geometry : fragmentComponent!.frame!.geometry
 
 		const newParent = delta.parent ?? previousParent
 		const newPose: Pose = {
