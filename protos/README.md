@@ -25,19 +25,22 @@ The protos use separate buf templates for different languages:
 
 ### Generate Code
 
-**Generate both Go and TypeScript:**
+**Generate both Go and TypeScript** (vendor, lint, format, then generate):
 
 ```bash
-make proto-gen
+pnpm proto
 ```
 
 ### Other Commands
 
 ```bash
-make proto-lint    # Lint proto files
-make proto-format  # Format proto files
-make proto-clean   # Remove generated code
-make proto-vendor  # Vendor dependencies
+pnpm proto:gen-go       # Generate Go only
+pnpm proto:gen-ts       # Generate TypeScript only
+pnpm proto:lint         # Lint proto files
+pnpm proto:format       # Format proto files
+pnpm proto:format-check # Check proto formatting (no writes)
+pnpm proto:clean        # Remove generated TypeScript + vendored deps
+pnpm proto:vendor       # Vendor dependencies
 ```
 
 ## Dependencies
@@ -56,7 +59,7 @@ To ensure consistent builds and enable offline development, external protobuf de
 **Update vendored dependencies:**
 
 ```bash
-make proto-vendor
+pnpm proto:vendor
 ```
 
 This command:
@@ -71,6 +74,6 @@ This command:
 - When vendored files are missing or corrupted
 - When setting up a new development environment
 
-> **Note**: The `proto-gen` target automatically runs `proto-vendor` to ensure dependencies are up-to-date before code generation.
+> **Note**: `proto:gen-go` and `proto:gen-ts` depend on `proto:vendor` (via wireit), so vendoring runs automatically before code generation when needed.
 
 The buf configuration (`buf.yaml`) handles path resolution for both local and vendored protos.

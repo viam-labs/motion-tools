@@ -38,6 +38,9 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install dependencies
         run: pnpm install
 
@@ -60,23 +63,10 @@ jobs:
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Generate protos
-        run: make proto
+        run: pnpm proto
 
       - name: Check proto formatting
-        run: make proto-format-check
-
-      - name: Upload TypeScript proto artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: protos-ts
-          path: |
-            src/lib/buf/
-
-      - name: Upload Go proto artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: protos-go
-          path: draw/v1/
+        run: pnpm proto:format-check
 
       - name: Commit generated Go protos
         if: steps.check-protos.outputs.protos == 'true'
@@ -109,6 +99,9 @@ jobs:
         with:
           node-version: 22
           cache: 'pnpm'
+
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -147,15 +140,14 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install dependencies
         run: pnpm install
 
-      - name: Download TypeScript proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-ts
-          path: src/lib/buf/
-
+      # TS protos (src/lib/buf) are restored from the wireit cache primed by the
+      # proto-gen job (this job `needs: proto-gen`), so no buf/artifact needed.
       - name: Check
         run: pnpm check
 
@@ -181,20 +173,19 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install dependencies
         run: pnpm install
 
       - name: Install Playwright browsers
         run: pnpm playwright install chromium --with-deps
 
-      - name: Download TypeScript proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-ts
-          path: src/lib/buf/
-
+      # TS protos (src/lib/buf) are restored from the wireit cache primed by the
+      # proto-gen job (this job `needs: proto-gen`), so no buf/artifact needed.
       - name: Test
-        run: npx vitest run --coverage
+        run: pnpm test:coverage
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
@@ -216,11 +207,7 @@ jobs:
           go-version: 1.23.11
           cache: true
 
-      - name: Download Go proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-go
-          path: draw/v1/
-
+      # draw/v1 (generated Go protos) is committed, so it's already in the
+      # checkout — no artifact download needed.
       - name: Test Draw
         run: go test ./draw/... -count=1

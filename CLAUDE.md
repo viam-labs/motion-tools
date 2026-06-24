@@ -19,7 +19,7 @@
 
 ```
 make up            # build if needed, start server (ports 5173 + 3000)
-make proto         # vendor, lint, format, regenerate all protobuf
+pnpm proto         # vendor, lint, format, regenerate all protobuf
 pnpm check         # svelte-check + go vet
 pnpm lint          # prettier + eslint + golangci-lint
 pnpm lint:client   # golangci-lint for client/
@@ -32,7 +32,7 @@ pnpm test:e2e      # Playwright E2E
 ## Generated code — never hand-edit
 
 - Any files included in `.gitignore` should not be edited
-- Edit `.proto` files in `protos/`, then run `make proto`.
+- Edit `.proto` files in `protos/`, then run `pnpm proto`.
 
 ## Code organization
 

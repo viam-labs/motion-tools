@@ -278,7 +278,7 @@ main() {
     install_node_dependencies
     
     # Step 9: Generate protobuf code
-    make proto
+    pnpm proto
 
     echo 
     echo -e "🎉 ${GREEN}Setup completed successfully!${NC}"
@@ -287,7 +287,7 @@ main() {
     print_shell_config
     
     echo -e "  1. Follow the shell configuration instructions above"
-    echo -e "  2. Run '${YELLOW}make up${NC}' to start the development server"
+    echo -e "  2. Run '${YELLOW}pnpm up${NC}' (or '${YELLOW}make up${NC}') to start the development server"
     echo -e "  3. Visit ${BLUE}http://localhost:5173/${NC} to view the application"
     echo
 }
