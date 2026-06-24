@@ -2,11 +2,12 @@ import { sentrySvelteKit } from '@sentry/sveltekit'
 import { sveltekit } from '@sveltejs/kit/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { svelteTesting } from '@testing-library/svelte/vite'
+import { playwright } from '@vitest/browser-playwright'
 import dns from 'node:dns'
-import { defineConfig } from 'vite'
 import devtoolsJson from 'vite-plugin-devtools-json'
 import glsl from 'vite-plugin-glsl'
 import mkcert from 'vite-plugin-mkcert'
+import { defineConfig } from 'vitest/config'
 
 dns.setDefaultResultOrder('verbatim')
 
@@ -38,6 +39,10 @@ export default defineConfig({
 		esbuildOptions: {
 			target: 'esnext',
 		},
+		// @testing-library/svelte is excluded so its Svelte components aren't
+		// pre-bundled, but its CJS grandchild aria-query (via @testing-library/dom)
+		// must still be optimized or Rolldown won't expose its named exports.
+		include: ['@testing-library/svelte > @testing-library/dom'],
 		exclude: ['@testing-library/svelte'],
 	},
 	build: {
@@ -64,7 +69,7 @@ export default defineConfig({
 		browser: {
 			enabled: true,
 			headless: true,
-			provider: 'playwright',
+			provider: playwright(),
 			instances: [{ browser: 'chromium' }],
 		},
 		clearMocks: true,
