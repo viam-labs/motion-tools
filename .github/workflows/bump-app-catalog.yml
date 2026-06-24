@@ -62,7 +62,7 @@ jobs:
 
       - name: pnpm install
         working-directory: app
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --config.strict-peer-dependencies=false
 
       - name: Determine workspaces that depend on motion-tools
         id: affected
