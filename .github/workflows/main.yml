@@ -20,8 +20,17 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.CI_GITHUB_APP_ID }}
+          private-key: ${{ secrets.CI_GITHUB_APP_PRIVATE_KEY }}
+
       - name: Checkout 🛎️
         uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -53,15 +62,7 @@ jobs:
         with:
           publish: npm run release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Trigger docs review on version PR
-        if: steps.changesets.outputs.pullRequestNumber
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run claude-version-pr-docs.yml \
-            -f pr_number=${{ steps.changesets.outputs.pullRequestNumber }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Extract version from package.json
         id: version

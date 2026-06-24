@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.34.6
+
+### Patch Changes
+
+- a61b755: fix: allow llm scene builder to resolve fragments
+- 700db52: Instanced rendering of all boxes
+
 ## 1.34.5
 
 ### Patch Changes
