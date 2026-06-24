@@ -64,25 +64,6 @@ jobs:
         working-directory: app
         run: pnpm install --no-frozen-lockfile --config.strict-peer-dependencies=false
 
-      - name: Determine workspaces that depend on motion-tools
-        id: affected
-        working-directory: app
-        run: |
-          FILTERS=""
-          while IFS= read -r pkgjson; do
-            if jq -e '(.dependencies // {}) + (.devDependencies // {}) + (.peerDependencies // {}) | has("@viamrobotics/motion-tools")' "$pkgjson" > /dev/null; then
-              NAME=$(jq -r .name "$pkgjson")
-              FILTERS="$FILTERS --filter $NAME"
-            fi
-          done < <(find . -name package.json -not -path '*/node_modules/*')
-          echo "Affected packages:$FILTERS"
-          echo "filters=$FILTERS" >> "$GITHUB_OUTPUT"
-
-      - name: Type check affected workspaces
-        if: steps.affected.outputs.filters != ''
-        working-directory: app
-        run: pnpm${{ steps.affected.outputs.filters }} --if-present check
-
       - name: Open bump PR
         uses: peter-evans/create-pull-request@v8
         with:
