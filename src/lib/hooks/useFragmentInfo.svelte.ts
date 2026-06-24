@@ -5,10 +5,8 @@ import { getContext, setContext } from 'svelte'
 
 import type { Frame } from '$lib/frame'
 
-export type FragmentInfo = {
+export interface FragmentInfo {
 	id: string
-	name: string
-	api: string
 	frame?: Frame
 	variables: Record<string, string>
 }
@@ -104,8 +102,6 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 						if (componentName?.case === 'stringValue') {
 							results[componentName.value] = {
 								id: fragmentId,
-								name: componentName.value,
-								api: component.kind.value.fields['api']?.kind?.value as string,
 								frame: component.kind.value.fields['frame'].toJson() as unknown as Frame,
 								variables: fragmentIdToVariables[fragmentId] ?? {},
 							}

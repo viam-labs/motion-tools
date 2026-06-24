@@ -38,8 +38,6 @@ export function resolveFragmentCurrentFrames(
 
 		result[name] = {
 			id: meta.id,
-			name: meta.name,
-			api: meta.api,
 			variables: meta.variables,
 			frame: {
 				parent: observed.referenceFrame,
