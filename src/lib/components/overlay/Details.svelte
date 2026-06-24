@@ -46,6 +46,7 @@
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -66,6 +67,7 @@
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
 	const partID = usePartID()
 	const settings = useSettings()
 	const environment = useEnvironment()
@@ -104,9 +106,7 @@
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
 	const isFragmentComponentWithVariables = $derived(
-		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
-				0
+		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
 	const showEditFrameOptions = $derived(
 		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
@@ -435,7 +435,12 @@
 			</p>
 		{/if}
 
-		<h3 class="text-subtle-2 pt-3 pb-2">Details</h3>
+		<h3
+			class="text-subtle-2 pt-3 pb-2"
+			data-testid="details-header"
+		>
+			Details
+		</h3>
 
 		<div class="flex flex-col gap-2.5">
 			{#if !customDetails.current}

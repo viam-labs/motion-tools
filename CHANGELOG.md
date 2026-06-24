@@ -1,5 +1,24 @@
 # motion-tools
 
+## 1.34.5
+
+### Patch Changes
+
+- 07a0bf4: Add better touchscreen support for the select plugin
+
+## 1.34.4
+
+### Patch Changes
+
+- 7dcb43b: Extract logs into a plugin
+
+## 1.34.3
+
+### Patch Changes
+
+- 7ab8838: Quick frame builder UX hits
+- affbcd5: Reorg frame builder deps
+
 ## 1.34.2
 
 ### Patch Changes

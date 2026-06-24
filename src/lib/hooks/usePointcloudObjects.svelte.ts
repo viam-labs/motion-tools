@@ -13,10 +13,10 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
+import { useLogs } from '$lib/plugins'
 import { createPose } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-object-context')

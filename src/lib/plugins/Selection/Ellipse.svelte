@@ -16,11 +16,12 @@
 	import { getTriangleBoxesFromIndices, getTriangleFromIndex, raycast } from './utils'
 
 	interface Props {
-		active?: boolean
+		enabled?: boolean
+		selecting?: boolean
 		debug?: boolean
 	}
 
-	let { active = false, debug = false }: Props = $props()
+	let { enabled = false, selecting = false, debug = false }: Props = $props()
 
 	const world = useWorld()
 	const controls = useCameraControls()
@@ -37,7 +38,7 @@
 	let drawing = false
 
 	const onpointerdown = (event: PointerEvent) => {
-		if (!event.shiftKey || !active) return
+		if (!selecting && !event.shiftKey) return
 
 		const { x, y } = raycast(event, camera.current)
 
@@ -61,7 +62,7 @@
 	}
 
 	const onpointermove = (event: PointerEvent) => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		let ellipse = world.query(selectionTraits.Ellipse).at(-1)
 
@@ -129,13 +130,13 @@
 	}
 
 	const onpointerleave = () => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		onpointerup()
 	}
 
 	const onpointerup = () => {
-		if (!drawing || !active) return
+		if (!drawing) return
 
 		drawing = false
 
@@ -244,6 +245,8 @@
 	}
 
 	$effect(() => {
+		if (!enabled) return
+
 		globalThis.addEventListener('keydown', onkeydown)
 		globalThis.addEventListener('keyup', onkeyup)
 		dom.addEventListener('pointerdown', onpointerdown)
@@ -262,26 +265,6 @@
 	})
 
 	const ellipses = useQuery(selectionTraits.Ellipse)
-
-	$effect(() => {
-		if (!controls.current) return
-
-		const currentControls = controls.current
-
-		if ('minPolarAngle' in currentControls) {
-			const { minPolarAngle, maxPolarAngle } = currentControls
-
-			// Locks the camera to top down while this component is mounted
-			currentControls.polarAngle = 0
-			currentControls.minPolarAngle = 0
-			currentControls.maxPolarAngle = 0
-
-			return () => {
-				currentControls.minPolarAngle = minPolarAngle
-				currentControls.maxPolarAngle = maxPolarAngle
-			}
-		}
-	})
 
 	// On unmount, destroy all lasso related entities
 	$effect(() => {
