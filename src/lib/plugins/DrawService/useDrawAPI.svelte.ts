@@ -14,7 +14,7 @@ import { asRGB, STRIDE } from '$lib/buffer'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
-import { useLogs } from '$lib/hooks/useLogs.svelte'
+import { useLogs } from '$lib/plugins'
 import { parsePlyInput } from '$lib/ply'
 import { createPose, createPoseFromFrame, poseToMatrix } from '$lib/transform'
 

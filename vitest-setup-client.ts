@@ -40,6 +40,9 @@ vi.mock('$lib/hooks/useConfigFrames.svelte', () => ({
 vi.mock('$lib/hooks/useResourceByName.svelte', () => ({
 	useResourceByName: vi.fn(() => ({ current: {} })),
 }))
+vi.mock('$lib/hooks/useFragmentInfo.svelte', () => ({
+	useFragmentInfo: vi.fn(() => ({ current: {} })),
+}))
 // Mock usePartConfig hook
 vi.mock('$lib/hooks/usePartConfig.svelte', () => ({
 	usePartConfig: vi.fn(() => ({
