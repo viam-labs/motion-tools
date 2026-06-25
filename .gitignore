@@ -7,6 +7,9 @@ static/test-fixtures
 # Temp files (disk-backed chunk storage)
 .tmp
 
+# wireit task cache/state
+.wireit
+
 # Output
 .output
 .vercel
