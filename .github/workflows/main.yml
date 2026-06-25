@@ -44,6 +44,9 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install buf
         uses: bufbuild/buf-setup-action@v1
         with:
@@ -53,7 +56,7 @@ jobs:
       - name: Install and Build 🔧
         run: |
           pnpm i
-          make proto-gen-ts
+          pnpm proto:gen-ts
           pnpm build
 
       - name: Create Release Pull Request or Publish to npm

@@ -52,7 +52,7 @@ You need Go, Node.js 22+, pnpm, and `bun`. The setup script below installs the m
     4. Install dependencies and generate protobufs:
        ```bash
        pnpm install
-       make proto
+       pnpm proto
        ```
 
     </Steps>
@@ -190,7 +190,7 @@ make up STATIC_PORT=5180
 
 The WebSocket port (`:3000`) cannot be remapped yet; kill the conflicting process or wait for the issue above to be resolved.
 
-### `make proto` fails with "buf: command not found"
+### `pnpm proto` fails with "buf: command not found"
 
 `buf` isn't on your `PATH`. Re-run `make setup`, or install manually following [buf's instructions](https://buf.build/docs/installation), then retry.
 

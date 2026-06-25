@@ -51,13 +51,16 @@ jobs:
           go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install root deps
         run: pnpm install
 
+      # proto:gen-ts depends on proto:vendor, so vendoring runs (and is cached)
+      # automatically. deploy-docs restores that vendor cache for proto:gen-go.
       - name: Generate protobufs
-        run: |
-          make proto-vendor
-          make proto-gen-ts
+        run: pnpm proto:gen-ts
 
       - name: Build root app
         env:
@@ -111,13 +114,16 @@ jobs:
           go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install root deps
         run: pnpm install
 
+      # proto:gen-go depends on proto:vendor; the vendor output is restored from
+      # the cache primed by build-app (this job `needs: build-app`).
       - name: Generate Go protobufs
-        run: |
-          make proto-vendor
-          make proto-gen-go
+        run: pnpm proto:gen-go
 
       - name: Install docs deps
         working-directory: docs
