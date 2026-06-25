@@ -1,5 +1,13 @@
 # motion-tools
 
+## 1.34.7
+
+### Patch Changes
+
+- 57da47d: fix: make fragment frame parse optional for standalone
+- ee5edd6: Upgrade to Vite 8 and Vitest 4
+- 800ba17: Security patches
+
 ## 1.34.6
 
 ### Patch Changes
