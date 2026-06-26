@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.34.8
+
+### Patch Changes
+
+- 9923932: Show triangle count for BufferGeometries
+- db5d3a3: Batch all AxesHelpers into a single draw call
+
 ## 1.34.7
 
 ### Patch Changes
