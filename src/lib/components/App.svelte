@@ -29,7 +29,6 @@
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
-	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
@@ -184,7 +183,6 @@
 				<PortalTarget id="dom" />
 
 				<Settings {settingsTabs} />
-				<AddFrames />
 			</div>
 		</SceneProviders>
 	</Canvas>

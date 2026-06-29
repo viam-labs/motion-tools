@@ -10,6 +10,8 @@ export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 // DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'
 
+export { default as FrameEditing } from './FrameEditing/FrameEditing.svelte'
+
 // Skybox
 export { default as Skybox } from './Skybox/Skybox.svelte'
 

@@ -38,7 +38,6 @@
 
 	provideResourceByName(() => partID.current)
 	provideConfigFrames()
-	provideFrameEditSession(() => partID.current)
 	provideFrames(() => partID.current)
 	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)

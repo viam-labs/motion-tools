@@ -3,15 +3,16 @@
 	import { TransformControls } from '@threlte/extras'
 	import { Matrix4 } from 'three'
 
-	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
-
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
+
+	import type { FrameEditSession } from './FrameEditSession'
+
+	import { useFrameEditSession } from './useFrameEditSession.svelte'
 
 	const { scene } = useThrelte()
 	const settings = useSettings()
