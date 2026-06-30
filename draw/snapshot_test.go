@@ -1054,6 +1054,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 			DotSize:   10.0,
 			Colors:    []Color{lineColors[0]},
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Path 3: Spiral path with medium smoothness
 		var path3 []r3.Vector
@@ -1067,7 +1070,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 200.0 + t*2000.0
 			path3 = append(path3, r3.Vector{X: x, Y: y, Z: z})
 		}
-		_, err = snapshot.DrawLine(DrawLineOptions{			
+		_, err = snapshot.DrawLine(DrawLineOptions{
 			Name:   "spiral-path",
 			Parent: "world",
 			Pose:   spatialmath.NewZeroPose(),
@@ -1076,6 +1079,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 			DotSize:   10.0,
 			Colors:    []Color{lineColors[1]},
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Path 4: Straight diagonal path with very few points
 		var path4 []r3.Vector
@@ -1083,7 +1089,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		path4 = append(path4, r3.Vector{X: -1000, Y: 0, Z: 800})
 		path4 = append(path4, r3.Vector{X: 1000, Y: 1500, Z: 1200})
 		path4 = append(path4, r3.Vector{X: 3500, Y: 3500, Z: 500})
-		_, err = snapshot.DrawLine(DrawLineOptions{	
+		_, err = snapshot.DrawLine(DrawLineOptions{
 			Name:   "straight-path",
 			Parent: "world",
 			Pose:   spatialmath.NewZeroPose(),
@@ -1092,6 +1098,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 			DotSize:   10.0,
 			Colors:    []Color{lineColors[2]},
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Path 5: Helix path spiraling upward
 		var path5 []r3.Vector
