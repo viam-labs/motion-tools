@@ -210,9 +210,10 @@ func (snapshot *Snapshot) DrawFrameSystemGeometries(opts DrawFrameSystemGeometri
 	if opts.ID != "" {
 		drawnFrameSystem.ID = opts.ID
 	} else {
-		var ns uuid.UUID
-		copy(ns[:], snapshot.uuid)
-		drawnFrameSystem.ID = ns.String()
+		derived := snapshot.deriveEntityUUID(opts.FrameSystem.Name())
+		var id uuid.UUID
+		copy(id[:], derived)
+		drawnFrameSystem.ID = id.String()
 	}
 
 	transforms, err := drawnFrameSystem.ToTransforms()
@@ -299,13 +300,11 @@ func (snapshot *Snapshot) DrawLine(opts DrawLineOptions) ([]byte, error) {
 	var lineOpts []DrawLineOption
 
 	nColors := len(opts.Colors)
-	if nColors == 0 {
-		// use default
-	} else if nColors == 1 {
+	if nColors == 1 {
 		lineOpts = append(lineOpts, WithSingleLineColor(opts.Colors[0]))
 	} else if nColors == posCount {
 		lineOpts = append(lineOpts, WithPerLineColors(opts.Colors...))
-	} else {
+	} else if nColors > 1 {
 		lineOpts = append(lineOpts, WithLineColorPalette(opts.Colors, posCount))
 	}
 
@@ -314,13 +313,11 @@ func (snapshot *Snapshot) DrawLine(opts DrawLineOptions) ([]byte, error) {
 		dotColors = opts.Colors
 	}
 	nDot := len(dotColors)
-	if nDot == 0 {
-		// use default
-	} else if nDot == 1 {
+	if nDot == 1 {
 		lineOpts = append(lineOpts, WithSingleDotColor(dotColors[0]))
 	} else if nDot == posCount {
 		lineOpts = append(lineOpts, WithPerDotColors(dotColors...))
-	} else {
+	} else if nDot > 1 {
 		lineOpts = append(lineOpts, WithDotColorPalette(dotColors, posCount))
 	}
 

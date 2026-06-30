@@ -52,7 +52,7 @@
 //	        Geometry: box,
 //	        Pose:     spatialmath.NewZeroPose(),
 //	        Parent:   "world",
-//	        Color:    draw.NewColor(draw.WithName("red")),
+//	        Color:    draw.ColorFromName("red"),
 //	    })
 //
 //	    // Export the scene as JSON for the visualizer.
