@@ -199,157 +199,386 @@ func (snapshot *Snapshot) Validate() error {
 	return nil
 }
 
-// DrawFrameSystemGeometries appends a transform per geometry in frameSystem to
-// the snapshot, evaluated at the given inputs. colors maps frame names to render
-// colors; frames not present in the map inherit from their parent (falling back
-// to magenta at the root). Returns an error if frame system resolution fails.
-func (snapshot *Snapshot) DrawFrameSystemGeometries(
-	frameSystem *referenceframe.FrameSystem,
-	inputs referenceframe.FrameSystemInputs,
-	colors map[string]Color,
-) error {
-	drawnFrameSystem := NewDrawnFrameSystem(frameSystem, inputs, WithFrameSystemColors(colors))
-	var ns uuid.UUID
-	copy(ns[:], snapshot.uuid)
-	drawnFrameSystem.ID = ns.String()
+// DrawFrameSystemGeometries appends a transform per geometry in the frame system,
+// evaluated at the given inputs. Returns one UUID per emitted transform.
+func (snapshot *Snapshot) DrawFrameSystemGeometries(opts DrawFrameSystemGeometriesOptions) ([][]byte, error) {
+	if opts.Colors == nil {
+		opts.Colors = make(map[string]Color)
+	}
+
+	drawnFrameSystem := NewDrawnFrameSystem(opts.FrameSystem, opts.Inputs, WithFrameSystemColors(opts.Colors))
+	if opts.ID != "" {
+		drawnFrameSystem.ID = opts.ID
+	} else {
+		var ns uuid.UUID
+		copy(ns[:], snapshot.uuid)
+		drawnFrameSystem.ID = ns.String()
+	}
+
 	transforms, err := drawnFrameSystem.ToTransforms()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	snapshot.transforms = append(snapshot.transforms, transforms...)
-	return nil
+	uuids := make([][]byte, len(transforms))
+	for i, t := range transforms {
+		uuids[i] = t.Uuid
+	}
+	return uuids, nil
 }
 
 // DrawFrame appends a single transform to the snapshot for a named frame attached
-// to parent at pose, optionally carrying an attached geometry. metadata, if
-// non-nil, is converted via MetadataOptionsFromProto and applied to the
-// transform. The transform's UUID is derived from the snapshot's UUID and
-// the entity's name/parent so that re-emitting the same scene reconciles
-// per-entity in the visualizer.
-func (snapshot *Snapshot) DrawFrame(
-	name string,
-	parent string,
-	pose spatialmath.Pose,
-	geometry spatialmath.Geometry,
-	metadata *drawv1.Metadata,
-) {
-	id := snapshot.deriveEntityUUID(entityKey(name, parent))
-	config := NewDrawConfig(name, WithUUID(id), WithParent(parent), WithPose(pose))
-	transform := NewTransform(config, geometry, MetadataOptionsFromProto(metadata)...)
+// to parent at pose, optionally carrying an attached geometry.
+// Returns the entity UUID (16 bytes).
+func (snapshot *Snapshot) DrawFrame(opts DrawFrameOptions) ([]byte, error) {
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	config := NewDrawConfig(opts.Name, drawOpts...)
+	transform := NewTransform(config, opts.Geometry)
 	snapshot.transforms = append(snapshot.transforms, transform)
+	return config.UUID, nil
 }
 
-// DrawGeometry appends a transform for the given geometry to the snapshot,
-// positioned at pose within the parent reference frame and rendered with color.
-// The transform's name is taken from the geometry's existing label. Returns an
-// error if NewDrawnGeometry or the inner Draw call fails.
-func (snapshot *Snapshot) DrawGeometry(
-	geometry spatialmath.Geometry,
-	pose spatialmath.Pose,
-	parent string,
-	color Color,
-) error {
-	drawing, err := NewDrawnGeometry(geometry, WithGeometryColor(color))
-	if err != nil {
-		return err
+// DrawGeometry appends a transform for the given geometry to the snapshot.
+// Returns the entity UUID (16 bytes).
+func (snapshot *Snapshot) DrawGeometry(opts DrawGeometryOptions) ([]byte, error) {
+	name := opts.Name
+	if name == "" {
+		name = opts.Geometry.Label()
 	}
 
-	id := snapshot.deriveEntityUUID(entityKey(geometry.Label(), parent))
-	transforms, err := drawing.Draw(geometry.Label(), WithUUID(id), WithParent(parent), WithPose(pose))
+	drawnGeometry, err := NewDrawnGeometry(opts.Geometry, WithGeometryColor(opts.Color))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	snapshot.transforms = append(snapshot.transforms, transforms)
-	return nil
+	drawOpts := snapshotDrawableOpts(name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	transform, err := drawnGeometry.Draw(name, drawOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	snapshot.transforms = append(snapshot.transforms, transform)
+	return transform.Uuid, nil
 }
 
-// DrawArrows constructs an Arrows from poses and the supplied DrawArrowsOptions
-// and appends the resulting drawing to the snapshot, positioned at pose within
-// the parent reference frame. Returns the same validation errors NewArrows would
-// return (e.g. mismatched color count).
-func (snapshot *Snapshot) DrawArrows(
-	name string,
-	parent string,
-	pose spatialmath.Pose,
-	poses []spatialmath.Pose,
-	options ...DrawArrowsOption,
-) error {
-	arrows, err := NewArrows(poses, options...)
-	if err != nil {
-		return err
+// DrawArrows constructs Arrows from opts.Poses and appends the resulting drawing
+// to the snapshot. Returns the entity UUID (16 bytes). Color slice count rules:
+// 0 = DefaultArrowColor (green), 1 = shared, len(Poses) = per-arrow, other = palette cycle.
+func (snapshot *Snapshot) DrawArrows(opts DrawArrowsOptions) ([]byte, error) {
+	var arrowOpts []DrawArrowsOption
+	nPoses := len(opts.Poses)
+	nColors := len(opts.Colors)
+	if nColors == 0 {
+		arrowOpts = append(arrowOpts, WithSingleArrowColor(DefaultArrowColor))
+	} else if nColors == 1 {
+		arrowOpts = append(arrowOpts, WithSingleArrowColor(opts.Colors[0]))
+	} else if nColors == nPoses {
+		arrowOpts = append(arrowOpts, WithPerArrowColors(opts.Colors...))
+	} else {
+		arrowOpts = append(arrowOpts, WithArrowColorPalette(opts.Colors, nPoses))
 	}
 
-	id := snapshot.deriveEntityUUID(entityKey(name, parent))
-	drawing := arrows.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
+	arrows, err := NewArrows(opts.Poses, arrowOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	drawing := arrows.Draw(opts.Name, drawOpts...)
 	snapshot.drawings = append(snapshot.drawings, drawing)
-	return nil
+	return drawing.UUID, nil
 }
 
-// DrawLine constructs a Line from points and the supplied DrawLineOptions and
-// appends the resulting drawing to the snapshot, positioned at pose within the
-// parent reference frame. Returns the same validation errors NewLine would
-// return (e.g. fewer than 2 points, mismatched color count).
-func (snapshot *Snapshot) DrawLine(
-	name string,
-	parent string,
-	pose spatialmath.Pose,
-	points []r3.Vector,
-	options ...DrawLineOption,
-) error {
-	line, err := NewLine(points, options...)
-	if err != nil {
-		return err
+// DrawLine constructs a Line from opts.Positions and appends the resulting drawing
+// to the snapshot. Returns the entity UUID (16 bytes). Color slice count rules:
+// 0 = default blue, 1 = shared, len(Positions) = per-vertex, other = palette cycle.
+// DotColors follow the same rules and fall back to Colors when empty.
+func (snapshot *Snapshot) DrawLine(opts DrawLineOptions) ([]byte, error) {
+	posCount := len(opts.Positions)
+	var lineOpts []DrawLineOption
+
+	nColors := len(opts.Colors)
+	if nColors == 0 {
+		// use default
+	} else if nColors == 1 {
+		lineOpts = append(lineOpts, WithSingleLineColor(opts.Colors[0]))
+	} else if nColors == posCount {
+		lineOpts = append(lineOpts, WithPerLineColors(opts.Colors...))
+	} else {
+		lineOpts = append(lineOpts, WithLineColorPalette(opts.Colors, posCount))
 	}
 
-	id := snapshot.deriveEntityUUID(entityKey(name, parent))
-	drawing := line.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
+	dotColors := opts.DotColors
+	if len(dotColors) == 0 {
+		dotColors = opts.Colors
+	}
+	nDot := len(dotColors)
+	if nDot == 0 {
+		// use default
+	} else if nDot == 1 {
+		lineOpts = append(lineOpts, WithSingleDotColor(dotColors[0]))
+	} else if nDot == posCount {
+		lineOpts = append(lineOpts, WithPerDotColors(dotColors...))
+	} else {
+		lineOpts = append(lineOpts, WithDotColorPalette(dotColors, posCount))
+	}
+
+	if opts.LineWidth > 0 {
+		lineOpts = append(lineOpts, WithLineWidth(opts.LineWidth))
+	}
+	if opts.DotSize > 0 {
+		lineOpts = append(lineOpts, WithDotSize(opts.DotSize))
+	}
+
+	line, err := NewLine(opts.Positions, lineOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	drawing := line.Draw(opts.Name, drawOpts...)
 	snapshot.drawings = append(snapshot.drawings, drawing)
-	return nil
+	return drawing.UUID, nil
 }
 
-// DrawModel constructs a Model from the supplied DrawModelOptions and appends
-// the resulting drawing to the snapshot, positioned at pose within the parent
-// reference frame. Returns the same validation errors NewModel would return
-// (e.g. no assets supplied, zero scale on any axis).
-func (snapshot *Snapshot) DrawModel(
-	name string,
-	parent string,
-	pose spatialmath.Pose,
-	options ...DrawModelOption,
-) error {
-	model, err := NewModel(options...)
+// DrawModel constructs a Model and appends the resulting drawing to the snapshot.
+// Returns the entity UUID (16 bytes).
+func (snapshot *Snapshot) DrawModel(opts DrawModelOptions) ([]byte, error) {
+	model, err := NewModel(opts.ModelOptions...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	id := snapshot.deriveEntityUUID(entityKey(name, parent))
-	drawing := model.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	drawing := model.Draw(opts.Name, drawOpts...)
 	snapshot.drawings = append(snapshot.drawings, drawing)
-	return nil
+	return drawing.UUID, nil
 }
 
-// DrawPoints constructs a Points from positions and the supplied DrawPointsOptions
-// and appends the resulting drawing to the snapshot, positioned at pose within
-// the parent reference frame. Returns the same validation errors NewPoints would
-// return (e.g. empty positions, mismatched color count).
-func (snapshot *Snapshot) DrawPoints(
-	name string,
-	parent string,
-	pose spatialmath.Pose,
-	positions []r3.Vector,
-	options ...DrawPointsOption,
-) error {
-	points, err := NewPoints(positions, options...)
-	if err != nil {
-		return err
+// DrawPoints constructs a Points from opts.Positions and appends the resulting
+// drawing to the snapshot. Returns the entity UUID (16 bytes). Color slice count
+// rules: 0 = DefaultPointColor (gray), 1 = shared, len(Positions) = per-point,
+// other = palette cycle.
+func (snapshot *Snapshot) DrawPoints(opts DrawPointsOptions) ([]byte, error) {
+	posCount := len(opts.Positions)
+	nColors := len(opts.Colors)
+	var pointOpts []DrawPointsOption
+
+	if nColors == 0 {
+		pointOpts = append(pointOpts, WithSinglePointColor(DefaultPointColor))
+	} else if nColors == 1 {
+		pointOpts = append(pointOpts, WithSinglePointColor(opts.Colors[0]))
+	} else if nColors == posCount {
+		pointOpts = append(pointOpts, WithPerPointColors(opts.Colors...))
+	} else {
+		pointOpts = append(pointOpts, WithPointColorPalette(opts.Colors, posCount))
 	}
 
-	id := snapshot.deriveEntityUUID(entityKey(name, parent))
-	drawing := points.Draw(name, WithUUID(id), WithParent(parent), WithPose(pose))
+	if opts.PointSize > 0 {
+		pointOpts = append(pointOpts, WithPointsSize(opts.PointSize))
+	}
+
+	points, err := NewPoints(opts.Positions, pointOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	drawing := points.Draw(opts.Name, drawOpts...)
 	snapshot.drawings = append(snapshot.drawings, drawing)
-	return nil
+	return drawing.UUID, nil
+}
+
+// snapshotDrawableOpts builds the DrawableOption slice for a single-entity
+// Snapshot method. When id is non-empty the UUID is derived from that string
+// (stable across calls); otherwise it is derived from name+parent.
+func snapshotDrawableOpts(
+	name, id, parent string,
+	pose spatialmath.Pose,
+	showAxesHelper *bool,
+	invisible *bool,
+	snapshot *Snapshot,
+) []DrawableOption {
+	var opts []DrawableOption
+	if parent != "" {
+		opts = append(opts, WithParent(parent))
+	}
+	if pose != nil {
+		opts = append(opts, WithPose(pose))
+	}
+	if id != "" {
+		opts = append(opts, WithID(id))
+	} else {
+		opts = append(opts, WithUUID(snapshot.deriveEntityUUID(entityKey(name, parent))))
+	}
+	if showAxesHelper != nil {
+		opts = append(opts, WithAxesHelper(*showAxesHelper))
+	}
+	if invisible != nil {
+		opts = append(opts, WithInvisible(*invisible))
+	}
+	return opts
+}
+
+// DrawNurbs constructs a NURBS curve and appends the resulting drawing to the snapshot.
+// Returns the entity UUID (16 bytes).
+func (snapshot *Snapshot) DrawNurbs(opts DrawNurbsOptions) ([]byte, error) {
+	nurbsOpts := []DrawNurbsOption{WithNurbsColors(opts.Color)}
+	if opts.Degree > 0 {
+		nurbsOpts = append(nurbsOpts, WithNurbsDegree(opts.Degree))
+	}
+	if len(opts.Weights) > 0 {
+		nurbsOpts = append(nurbsOpts, WithNurbsWeights(opts.Weights))
+	}
+	if opts.LineWidth > 0 {
+		nurbsOpts = append(nurbsOpts, WithNurbsLineWidth(opts.LineWidth))
+	}
+
+	nurbs, err := NewNurbs(opts.ControlPoints, opts.Knots, nurbsOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	drawing := nurbs.Draw(opts.Name, drawOpts...)
+	snapshot.drawings = append(snapshot.drawings, drawing)
+	return drawing.UUID, nil
+}
+
+// DrawPointCloud constructs a point cloud transform and appends it to the snapshot.
+// Returns the entity UUID (16 bytes). Color slice count rules: 0 = cloud's own
+// per-point data, 1 = shared override, PointCloud.Size() = per-point, other = palette cycle.
+func (snapshot *Snapshot) DrawPointCloud(opts DrawPointCloudOptions) ([]byte, error) {
+	var pcOpts []DrawPointCloudOption
+	if len(opts.Colors) == 1 {
+		pcOpts = append(pcOpts, WithSinglePointCloudColor(opts.Colors[0]))
+	} else if len(opts.Colors) == opts.PointCloud.Size() {
+		pcOpts = append(pcOpts, WithPerPointCloudColors(opts.Colors...))
+	} else if len(opts.Colors) > 0 {
+		pcOpts = append(pcOpts, WithPointCloudColorPalette(opts.Colors, opts.PointCloud.Size()))
+	}
+	if opts.DownscalingThreshold > 0 {
+		pcOpts = append(pcOpts, WithPointCloudDownscaling(opts.DownscalingThreshold))
+	}
+
+	drawnPC, err := NewDrawnPointCloud(opts.PointCloud, pcOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	drawOpts := snapshotDrawableOpts(opts.Name, opts.ID, opts.Parent, opts.Pose, opts.ShowAxesHelper, opts.Invisible, snapshot)
+	transform, err := drawnPC.Draw(opts.Name, drawOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	snapshot.transforms = append(snapshot.transforms, transform)
+	return transform.Uuid, nil
+}
+
+// DrawGeometriesInFrame appends a transform per geometry to the snapshot.
+// Returns one UUID per drawn geometry. Returns an error if Geometries is empty.
+func (snapshot *Snapshot) DrawGeometriesInFrame(opts DrawGeometriesInFrameOptions) ([][]byte, error) {
+	geometries := opts.Geometries.Geometries()
+	if len(geometries) == 0 {
+		return nil, fmt.Errorf("no geometries to draw")
+	}
+
+	colors := opts.Colors
+	if len(colors) == 0 {
+		colors = []Color{ColorFromName("red")}
+	}
+
+	var colorOption DrawGeometriesInFrameOption
+	if len(colors) == 1 {
+		colorOption = WithSingleGeometriesColor(colors[0])
+	} else if len(colors) == len(geometries) {
+		colorOption = WithPerGeometriesColors(colors...)
+	} else {
+		colorOption = WithGeometriesColorPalette(colors, len(geometries))
+	}
+
+	drawnGeometries, err := NewDrawnGeometriesInFrame(
+		opts.Geometries,
+		colorOption,
+		WithGeometriesDownscalingThreshold(opts.DownscalingThreshold),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create drawn geometries: %w", err)
+	}
+	drawnGeometries.ID = opts.ID
+
+	transforms, err := drawnGeometries.ToTransforms()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transforms: %w", err)
+	}
+
+	snapshot.transforms = append(snapshot.transforms, transforms...)
+	uuids := make([][]byte, len(transforms))
+	for i, t := range transforms {
+		uuids[i] = t.Uuid
+	}
+	return uuids, nil
+}
+
+// DrawFrames appends a transform per frame (or per-geometry for frames with geometry)
+// to the snapshot. Returns one UUID per emitted transform.
+func (snapshot *Snapshot) DrawFrames(opts DrawFramesOptions) ([][]byte, error) {
+	drawnFrames := NewDrawnFrames(opts.Frames, WithFramesColors(opts.Colors))
+	drawnFrames.ID = opts.ID
+
+	transforms, err := drawnFrames.ToTransforms()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create frame transforms: %w", err)
+	}
+
+	snapshot.transforms = append(snapshot.transforms, transforms...)
+	uuids := make([][]byte, len(transforms))
+	for i, t := range transforms {
+		uuids[i] = t.Uuid
+	}
+	return uuids, nil
+}
+
+// DrawWorldState resolves obstacles in the world state to the world frame and
+// appends a transform per obstacle. Returns one UUID per obstacle.
+func (snapshot *Snapshot) DrawWorldState(opts DrawWorldStateOptions) ([][]byte, error) {
+	geoms, err := opts.WorldState.ObstaclesInWorldFrame(opts.FrameSystem, opts.Inputs)
+	if err != nil {
+		return nil, err
+	}
+
+	geometries := geoms.Geometries()
+	var colorOption DrawGeometriesInFrameOption
+	if len(opts.Colors) == 1 {
+		colorOption = WithSingleGeometriesColor(opts.Colors[0])
+	} else if len(opts.Colors) == len(geometries) {
+		colorOption = WithPerGeometriesColors(opts.Colors...)
+	} else if len(opts.Colors) > 1 {
+		colorOption = WithGeometriesColorPalette(opts.Colors, len(geometries))
+	} else {
+		colors := ChromaticColorChooser.Get(len(geometries))
+		colorOption = WithPerGeometriesColors(colors...)
+	}
+
+	drawnGeometries, err := NewDrawnGeometriesInFrame(geoms, colorOption)
+	if err != nil {
+		return nil, err
+	}
+	drawnGeometries.ID = opts.ID
+
+	transforms, err := drawnGeometries.ToTransforms()
+	if err != nil {
+		return nil, err
+	}
+
+	snapshot.transforms = append(snapshot.transforms, transforms...)
+	uuids := make([][]byte, len(transforms))
+	for i, t := range transforms {
+		uuids[i] = t.Uuid
+	}
+	return uuids, nil
 }
 
 // DrawGeometryOptions configures a Snapshot.DrawGeometry call.
