@@ -614,3 +614,81 @@ Two preset choosers are also available:
 
 - `draw.ChromaticColorChooser` — SVG named colors with perceptible hue. This is the v2 default palette for `DrawWorldState`.
 - `draw.AchromaticColorChooser` — near-greyscale SVG names (`gray`, `silver`, `ivory`, etc.).
+
+## `draw.Snapshot`: static scene builder
+
+`draw.Snapshot` is the Go API for building offline scenes — you call `Draw*` methods to populate a snapshot, then serialize it with `MarshalJSON()`, `MarshalBinary()`, or `MarshalBinaryGzip()`. The serialized output can be rendered by the `<Snapshot />` Svelte component or loaded via drag-and-drop in the playground.
+
+The same cross-cutting changes that apply to `client/api` also apply here: options structs, `draw.Color`, and UUID return values.
+
+### Quick reference
+
+| v1 method | v2 method | Change |
+| --------- | --------- | ------ |
+| `DrawGeometry(geo, pose, parent, color)` | `DrawGeometry(DrawGeometryOptions{...})` | Signature changed, returns `([]byte, error)` |
+| `DrawFrame(name, parent, pose, geo, meta)` | `DrawFrame(DrawFrameOptions{...})` | Signature changed, returns `([]byte, error)` |
+| `DrawFrameSystemGeometries(fs, inputs, colors)` | `DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{...})` | Signature changed, returns `([][]byte, error)` |
+| `DrawLine(name, parent, pose, pts, ...opts)` | `DrawLine(DrawLineOptions{...})` | Signature changed, returns `([]byte, error)` |
+| `DrawArrows(name, parent, pose, poses, ...opts)` | `DrawArrows(DrawArrowsOptions{...})` | Signature changed, returns `([]byte, error)` |
+| `DrawPoints(name, parent, pose, pts, ...opts)` | `DrawPoints(DrawPointsOptions{...})` | Signature changed, returns `([]byte, error)` |
+| `DrawModel(name, parent, pose, ...opts)` | `DrawModel(DrawModelOptions{...})` | Signature changed, returns `([]byte, error)` |
+| — | `DrawNurbs(DrawNurbsOptions{...})` | New, returns `([]byte, error)` |
+| — | `DrawPointCloud(DrawPointCloudOptions{...})` | New, returns `([]byte, error)` |
+| — | `DrawGeometriesInFrame(DrawGeometriesInFrameOptions{...})` | New, returns `([][]byte, error)` |
+| — | `DrawFrames(DrawFramesOptions{...})` | New, returns `([][]byte, error)` |
+| — | `DrawWorldState(DrawWorldStateOptions{...})` | New, returns `([][]byte, error)` |
+
+### Before and after
+
+```go
+// v1 — positional arguments, returns only error
+err := snapshot.DrawGeometry(box, spatialmath.NewZeroPose(), "world", draw.NewColor(draw.WithName("red")))
+
+err = snapshot.DrawLine("path", "world", spatialmath.NewZeroPose(), points,
+    draw.WithSingleLineColor(draw.ColorFromName("blue")),
+    draw.WithLineWidth(5),
+)
+
+err = snapshot.DrawArrows("arrows", "world", spatialmath.NewZeroPose(), poses,
+    draw.WithSingleArrowColor(draw.ColorFromName("green")),
+)
+```
+
+```go
+// v2 — options structs, returns ([]byte, error)
+uuid, err := snapshot.DrawGeometry(draw.DrawGeometryOptions{
+    Geometry: box,
+    Pose:     spatialmath.NewZeroPose(),
+    Parent:   "world",
+    Color:    draw.ColorFromName("red"),
+})
+
+uuid, err = snapshot.DrawLine(draw.DrawLineOptions{
+    Name:      "path",
+    Parent:    "world",
+    Pose:      spatialmath.NewZeroPose(),
+    Positions: points,
+    Colors:    []draw.Color{draw.ColorFromName("blue")},
+    LineWidth: 5,
+})
+
+uuid, err = snapshot.DrawArrows(draw.DrawArrowsOptions{
+    Name:   "arrows",
+    Parent: "world",
+    Pose:   spatialmath.NewZeroPose(),
+    Poses:  poses,
+    Colors: []draw.Color{draw.ColorFromName("green")},
+})
+```
+
+### Options struct fields
+
+Every `DrawXxxOptions` struct carries the same optional placement and identity fields as `client/api`:
+
+- `ID` — stable string identifier; used to derive a deterministic UUID so re-drawing the same name always updates in place.
+- `Parent` — parent frame name (defaults to `"world"`).
+- `Pose` — pose of the entity in its parent frame.
+- `ShowAxesHelper *bool` — toggles the RGB XYZ axes gizmo.
+- `Invisible *bool` — hides the entity from rendering by default.
+
+Type-specific fields match the corresponding `client/api` options struct (same field names, same types). A full runnable example lives at [`docs/examples/snapshot/main.go`](https://github.com/viamrobotics/visualization/blob/main/docs/examples/snapshot/main.go).
