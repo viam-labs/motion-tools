@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
 	import { Button } from '@viamrobotics/prime-core'
 	import { ElementRect } from 'runed'
 

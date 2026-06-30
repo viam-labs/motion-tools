@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Portal } from '@threlte/extras'
 	import { Button } from '@viamrobotics/prime-core'
 
 	import { DashboardPortal } from '$lib'
