@@ -60,7 +60,12 @@ func TestSnapshotValidate(t *testing.T) {
 	t.Run("valid snapshot with geometry", func(t *testing.T) {
 		snapshot := NewSnapshot()
 		box, _ := spatialmath.NewBox(spatialmath.NewZeroPose(), r3.Vector{X: 100, Y: 100, Z: 100}, "box")
-		err := snapshot.DrawGeometry(box, spatialmath.NewZeroPose(), "world", NewColor(WithName("red")))
+		_, err := snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: box,
+			Pose:     spatialmath.NewZeroPose(),
+			Parent:   "world",
+			Color:    NewColor(WithName("red")),
+		})
 		test.That(t, err, test.ShouldBeNil)
 
 		err = snapshot.Validate()
@@ -80,11 +85,21 @@ func TestSnapshotToProto(t *testing.T) {
 	t.Run("converts snapshot to proto", func(t *testing.T) {
 		snapshot := NewSnapshot()
 		box, _ := spatialmath.NewBox(spatialmath.NewZeroPose(), r3.Vector{X: 100, Y: 100, Z: 100}, "box")
-		_ = snapshot.DrawGeometry(box, spatialmath.NewZeroPose(), "world", NewColor(WithName("red")))
+		_, _ = snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: box,
+			Pose:     spatialmath.NewZeroPose(),
+			Parent:   "world",
+			Color:    NewColor(WithName("red")),
+		})
 
 		positions := []r3.Vector{{X: 0, Y: 0, Z: 0}, {X: 100, Y: 0, Z: 0}}
-		_ = snapshot.DrawPoints("points", "world", spatialmath.NewZeroPose(), positions,
-			WithSinglePointColor(NewColor(WithName("blue"))))
+		_, _ = snapshot.DrawPoints(DrawPointsOptions{
+			Name:      "points",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
+			Positions: positions,
+			Colors:    []Color{NewColor(WithName("blue"))},
+		})
 
 		protoSnapshot := snapshot.ToProto()
 		test.That(t, protoSnapshot, test.ShouldNotBeNil)
@@ -141,14 +156,23 @@ func createBody(
 	y := orbitRadius * math.Sin(angleRad)
 
 	orbitFrameName := name + "-orbit"
-	snapshot.DrawFrame(orbitFrameName, parent, spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: 0}), nil, nil)
+	_, _ = snapshot.DrawFrame(DrawFrameOptions{
+		Name:   orbitFrameName,
+		Parent: parent,
+		Pose:   spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: 0}),
+	})
 
 	geometry, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), bodyRadius, name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = snapshot.DrawGeometry(geometry, spatialmath.NewZeroPose(), orbitFrameName, color)
+	_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+		Geometry: geometry,
+		Pose:     spatialmath.NewZeroPose(),
+		Parent:   orbitFrameName,
+		Color:    color,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +194,12 @@ func createRings(t *testing.T, snapshot *Snapshot, parent string, radius float64
 	}
 
 	pose := spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 0})
-	err = snapshot.DrawGeometry(box, pose, parent, color)
+	_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+		Geometry: box,
+		Pose:     pose,
+		Parent:   parent,
+		Color:    color,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -441,7 +470,11 @@ func TestGeneratingSnapshots(t *testing.T) {
 
 		// Draw the frame system
 		inputs := referenceframe.NewZeroInputs(fs)
-		err := snapshot.DrawFrameSystemGeometries(fs, inputs, frameColors)
+		_, err := snapshot.DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{
+			FrameSystem: fs,
+			Inputs:      inputs,
+			Colors:      frameColors,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -462,14 +495,23 @@ func TestGeneratingSnapshots(t *testing.T) {
 		)
 
 		sunOrbitFrame := "sun-orbit"
-		snapshot.DrawFrame(sunOrbitFrame, "world", spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 2000}), nil, nil)
+		_, _ = snapshot.DrawFrame(DrawFrameOptions{
+			Name:   sunOrbitFrame,
+			Parent: "world",
+			Pose:   spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 2000}),
+		})
 
 		sunGeometry, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 2000, "sun")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = snapshot.DrawGeometry(sunGeometry, spatialmath.NewZeroPose(), sunOrbitFrame, NewColor(WithName("orange")))
+		_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: sunGeometry,
+			Pose:     spatialmath.NewZeroPose(),
+			Parent:   sunOrbitFrame,
+			Color:    NewColor(WithName("orange")),
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -652,7 +694,11 @@ func TestGeneratingSnapshots(t *testing.T) {
 
 		// Draw the frame system
 		inputs := referenceframe.FrameSystemInputs{}
-		err := snapshot.DrawFrameSystemGeometries(fs, inputs, frameColors)
+		_, err := snapshot.DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{
+			FrameSystem: fs,
+			Inputs:      inputs,
+			Colors:      frameColors,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -683,7 +729,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawGeometry(box, boxPose, "world", NewColor(WithName("red")))
+		_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: box,
+			Pose:     boxPose,
+			Parent:   "world",
+			Color:    NewColor(WithName("red")),
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -739,13 +790,13 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		err = snapshot.DrawArrows(
-			"box-surface-arrows",
-			"world",
-			spatialmath.NewZeroPose(),
-			boxArrowPoses,
-			WithSingleArrowColor(NewColor(WithName("red"))),
-		)
+		_, err = snapshot.DrawArrows(DrawArrowsOptions{
+			Name:   "box-surface-arrows",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Poses:  boxArrowPoses,
+			Colors: []Color{NewColor(WithName("red"))},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -760,7 +811,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawGeometry(sphere, spherePose, "world", NewColor(WithName("green")))
+		_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: sphere,
+			Pose:     spherePose,
+			Parent:   "world",
+			Color:    NewColor(WithName("green")),
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -798,13 +854,13 @@ func TestGeneratingSnapshots(t *testing.T) {
 			))
 		}
 
-		err = snapshot.DrawArrows(
-			"sphere-surface-arrows",
-			"world",
-			spatialmath.NewZeroPose(),
-			sphereArrowPoses,
-			WithSingleArrowColor(NewColor(WithName("green"))),
-		)
+		_, err = snapshot.DrawArrows(DrawArrowsOptions{
+			Name:   "sphere-surface-arrows",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Poses:  sphereArrowPoses,
+			Colors: []Color{NewColor(WithName("green"))},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -820,7 +876,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawGeometry(capsule, capsulePose, "world", NewColor(WithName("blue")))
+		_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+			Geometry: capsule,
+			Pose:     capsulePose,
+			Parent:   "world",
+			Color:    NewColor(WithName("blue")),
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -867,13 +928,13 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		err = snapshot.DrawArrows(
-			"capsule-surface-arrows",
-			"world",
-			spatialmath.NewZeroPose(),
-			capsuleArrowPoses,
-			WithSingleArrowColor(NewColor(WithName("blue"))),
-		)
+		_, err = snapshot.DrawArrows(DrawArrowsOptions{	
+			Name:   "capsule-surface-arrows",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Poses:  capsuleArrowPoses,
+			Colors: []Color{NewColor(WithName("blue"))},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -921,7 +982,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				err = snapshot.DrawGeometry(box, spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: z}), "world", color)
+				_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+					Geometry: box,
+					Pose:     spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: z}),
+					Parent:   "world",
+					Color:    color,
+				})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -930,7 +996,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = snapshot.DrawGeometry(sphere, spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: z}), "world", color)
+				_, err = snapshot.DrawGeometry(DrawGeometryOptions{
+					Geometry: sphere,
+					Pose:     spatialmath.NewPoseFromPoint(r3.Vector{X: x, Y: y, Z: z}),
+					Parent:   "world",
+					Color:    color,
+				})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -954,12 +1025,12 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 500.0 + math.Sin(t*math.Pi*2)*500.0
 			path1 = append(path1, r3.Vector{X: x, Y: y, Z: z})
 		}
-		err := snapshot.DrawLine(
-			"smooth-path",
-			"world",
-			spatialmath.NewZeroPose(),
-			path1,
-		)
+		_, err := snapshot.DrawLine(DrawLineOptions{
+			Name:      "smooth-path",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
+			Positions: path1,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -974,18 +1045,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 1000.0 + float64(i%2)*800.0
 			path2 = append(path2, r3.Vector{X: x, Y: y, Z: z})
 		}
-		err = snapshot.DrawLine(
-			"zigzag-path",
-			"world",
-			spatialmath.NewZeroPose(),
-			path2,
-			WithLineWidth(20.0),
-			WithDotSize(10.0),
-			WithSingleLineColor(lineColors[0]),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
+		_, err = snapshot.DrawLine(DrawLineOptions{
+			Name:   "zigzag-path",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: path2,
+			LineWidth: 20.0,
+			DotSize:   10.0,
+			Colors:    []Color{lineColors[0]},
+		})
 
 		// Path 3: Spiral path with medium smoothness
 		var path3 []r3.Vector
@@ -999,18 +1067,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 200.0 + t*2000.0
 			path3 = append(path3, r3.Vector{X: x, Y: y, Z: z})
 		}
-		err = snapshot.DrawLine(
-			"spiral-path",
-			"world",
-			spatialmath.NewZeroPose(),
-			path3,
-			WithLineWidth(12.0),
-			WithDotSize(10.0),
-			WithSingleLineColor(lineColors[1]),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
+		_, err = snapshot.DrawLine(DrawLineOptions{			
+			Name:   "spiral-path",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: path3,
+			LineWidth: 12.0,
+			DotSize:   10.0,
+			Colors:    []Color{lineColors[1]},
+		})
 
 		// Path 4: Straight diagonal path with very few points
 		var path4 []r3.Vector
@@ -1018,18 +1083,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 		path4 = append(path4, r3.Vector{X: -1000, Y: 0, Z: 800})
 		path4 = append(path4, r3.Vector{X: 1000, Y: 1500, Z: 1200})
 		path4 = append(path4, r3.Vector{X: 3500, Y: 3500, Z: 500})
-		err = snapshot.DrawLine(
-			"straight-path",
-			"world",
-			spatialmath.NewZeroPose(),
-			path4,
-			WithLineWidth(25.0),
-			WithDotSize(10.0),
-			WithSingleLineColor(lineColors[2]),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
+		_, err = snapshot.DrawLine(DrawLineOptions{	
+			Name:   "straight-path",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: path4,
+			LineWidth: 25.0,
+			DotSize:   10.0,
+			Colors:    []Color{lineColors[2]},
+		})
 
 		// Path 5: Helix path spiraling upward
 		var path5 []r3.Vector
@@ -1045,18 +1107,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 500.0 + t*height
 			path5 = append(path5, r3.Vector{X: x, Y: y, Z: z})
 		}
-		err = snapshot.DrawLine(
-			"helix-path",
-			"world",
-			spatialmath.NewZeroPose(),
-			path5,
-			WithLineWidth(18.0),
-			WithDotSize(10.0),
-			WithSingleLineColor(lineColors[3]),
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
+		_, err = snapshot.DrawLine(DrawLineOptions{	
+			Name:   "helix-path",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: path5,
+			LineWidth: 18.0,
+			DotSize:   10.0,
+			Colors:    []Color{lineColors[3]},
+		})
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_line.json")
 	})
@@ -1085,14 +1144,14 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		err := snapshot.DrawPoints(
-			"grid-points",
-			"world",
-			spatialmath.NewZeroPose(),
-			gridPoints,
-			WithSinglePointColor(NewColor(WithName("red"))),
-			WithPointsSize(pointSize),
-		)
+		_, err := snapshot.DrawPoints(DrawPointsOptions{
+			Name:   "grid-points",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: gridPoints,
+			Colors:    []Color{NewColor(WithName("red"))},
+			PointSize: pointSize,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1117,17 +1176,17 @@ func TestGeneratingSnapshots(t *testing.T) {
 			sphereColors = append(sphereColors, NewColor(WithHSV(float32(hue), 1.0, 1.0)))
 		}
 
-		err = snapshot.DrawPoints(
-			"sphere-points",
-			"world",
-			spatialmath.NewZeroPose(),
-			spherePoints,
-			WithPerPointColors(sphereColors...),
-			WithPointsSize(pointSize),
-		)
+		_, err = snapshot.DrawPoints(DrawPointsOptions{	
+			Name:   "sphere-points",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: spherePoints,
+			Colors:    sphereColors,
+			PointSize: pointSize,
+		})
 		if err != nil {
 			t.Fatal(err)
-		}
+		}	
 
 		// 3. Parametric surface (wave) - 100mm spacing between points\
 		var wavePoints []r3.Vector
@@ -1139,17 +1198,17 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		err = snapshot.DrawPoints(
-			"wave-points",
-			"world",
-			spatialmath.NewZeroPose(),
-			wavePoints,
-			WithSinglePointColor(NewColor(WithName("blue"))),
-			WithPointsSize(pointSize),
-		)
+		_, err = snapshot.DrawPoints(DrawPointsOptions{	
+			Name:   "wave-points",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Positions: wavePoints,
+			Colors:    []Color{NewColor(WithName("blue"))},
+			PointSize: pointSize,
+		})
 		if err != nil {
 			t.Fatal(err)
-		}
+		}	
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_points.json")
 	})
@@ -1179,15 +1238,17 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"duck",
-			"world",
-			createPose(-2000, -2000, 0),
-			WithModelAssets(duckAsset),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{	
+			Name:   "duck",
+			Parent: "world",
+			Pose:   createPose(-2000, -2000, 0),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(duckAsset),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
-		}
+		}	
 
 		// 2. Avocado - Fresh avocado from URL
 		avocadoURL := "http://localhost:5173/models/Avocado.glb"
@@ -1196,13 +1257,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"avocado",
-			"world",
-			createPose(0, -2000, 0),
-			WithModelAssets(avocadoAsset),
-			WithModelScale(r3.Vector{X: 20.0, Y: 20.0, Z: 20.0}),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{	
+			Name:   "avocado",
+			Parent: "world",
+			Pose:   createPose(0, -2000, 0),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(avocadoAsset),
+				WithModelScale(r3.Vector{X: 20.0, Y: 20.0, Z: 20.0}),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1214,13 +1277,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"lantern",
-			"world",
-			createPose(2000, -2000, 0),
-			WithModelAssets(lanternAsset),
-			WithModelScale(r3.Vector{X: 0.04, Y: 0.04, Z: 0.04}),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{	
+			Name:   "lantern",
+			Parent: "world",
+			Pose:   createPose(2000, -2000, 0),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(lanternAsset),
+				WithModelScale(r3.Vector{X: 0.04, Y: 0.04, Z: 0.04}),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1234,12 +1299,14 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"box",
-			"world",
-			createPose(-2000, 2000, 600),
-			WithModelAssets(boxAsset),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{		
+			Name:   "box",
+			Parent: "world",
+			Pose:   createPose(-2000, 2000, 600),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(boxAsset),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1253,13 +1320,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"milktruck",
-			"world",
-			createPose(0, 2000, 0),
-			WithModelAssets(milkTruckAsset),
-			WithModelScale(r3.Vector{X: 0.4, Y: 0.4, Z: 0.4}),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{	
+			Name:   "milktruck",
+			Parent: "world",
+			Pose:   createPose(0, 2000, 0),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(milkTruckAsset),
+				WithModelScale(r3.Vector{X: 0.4, Y: 0.4, Z: 0.4}),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1273,13 +1342,15 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = snapshot.DrawModel(
-			"fox",
-			"world",
-			createPose(2000, 2000, 0),
-			WithModelAssets(foxAsset),
-			WithModelScale(r3.Vector{X: 0.02, Y: 0.02, Z: 0.02}),
-		)
+		_, err = snapshot.DrawModel(DrawModelOptions{	
+			Name:   "fox",
+			Parent: "world",
+			Pose:   createPose(2000, 2000, 0),
+			ModelOptions: []DrawModelOption{
+				WithModelAssets(foxAsset),
+				WithModelScale(r3.Vector{X: 0.02, Y: 0.02, Z: 0.02}),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1302,46 +1373,49 @@ func TestGeneratingSnapshots(t *testing.T) {
 		sphereRadius := 250.0
 
 		// Sphere with ShowAxesHelper=true: the RGB XYZ axes indicator is shown
-		axesOnMeta := NewMetadata(
-			WithMetadataColors(NewColor(WithName("dodgerblue"))),
-			WithMetadataAxesHelper(true),
-		).ToProto()
 		sphereAxesOn, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "axes-helper-on")
 		if err != nil {
 			t.Fatal(err)
 		}
-		snapshot.DrawFrame("axes-helper-on", "world",
-			spatialmath.NewPoseFromPoint(r3.Vector{X: -600, Y: 0, Z: 250}),
-			sphereAxesOn, axesOnMeta,
-		)
+		showAxes := true
+		_, _ = snapshot.DrawGeometry(DrawGeometryOptions{
+			Name:           "axes-helper-on",
+			Geometry:       sphereAxesOn,
+			Pose:           spatialmath.NewPoseFromPoint(r3.Vector{X: -600, Y: 0, Z: 250}),
+			Parent:         "world",
+			Color:          NewColor(WithName("dodgerblue")),
+			ShowAxesHelper: &showAxes,
+		})
 
 		// Sphere with ShowAxesHelper=false: no axes indicator rendered
-		axesOffMeta := NewMetadata(
-			WithMetadataColors(NewColor(WithName("crimson"))),
-			WithMetadataAxesHelper(false),
-		).ToProto()
 		sphereAxesOff, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "axes-helper-off")
 		if err != nil {
 			t.Fatal(err)
 		}
-		snapshot.DrawFrame("axes-helper-off", "world",
-			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
-			sphereAxesOff, axesOffMeta,
-		)
+		hideAxes := false
+		_, _ = snapshot.DrawGeometry(DrawGeometryOptions{
+			Name:           "axes-helper-off",
+			Geometry:       sphereAxesOff,
+			Pose:           spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			Parent:         "world",
+			Color:          NewColor(WithName("crimson")),
+			ShowAxesHelper: &hideAxes,
+		})
 
 		// Sphere with Invisible=true: not rendered at all
-		invisibleMeta := NewMetadata(
-			WithMetadataColors(NewColor(WithName("limegreen"))),
-			WithMetadataInvisible(true),
-		).ToProto()
 		sphereInvisible, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "invisible-sphere")
 		if err != nil {
 			t.Fatal(err)
 		}
-		snapshot.DrawFrame("invisible-sphere", "world",
-			spatialmath.NewPoseFromPoint(r3.Vector{X: 600, Y: 0, Z: 250}),
-			sphereInvisible, invisibleMeta,
-		)
+		invisible := true
+		_, _ = snapshot.DrawGeometry(DrawGeometryOptions{
+			Name:      "invisible-sphere",
+			Geometry:  sphereInvisible,
+			Pose:      spatialmath.NewPoseFromPoint(r3.Vector{X: 600, Y: 0, Z: 250}),
+			Parent:    "world",
+			Color:     NewColor(WithName("limegreen")),
+			Invisible: &invisible,
+		})
 
 		// Line drawing with WithAxesHelper(false): no axes indicator on the drawing
 		linePts := []r3.Vector{
@@ -1349,37 +1423,39 @@ func TestGeneratingSnapshots(t *testing.T) {
 			{X: 0, Y: 0, Z: 600},
 			{X: 600, Y: 0, Z: 600},
 		}
-		line, err := NewLine(linePts,
-			WithSingleLineColor(NewColor(WithName("orange"))),
-			WithLineWidth(15.0),
-		)
+		lineHideAxes := false
+		_, err = snapshot.DrawLine(DrawLineOptions{
+			Name:           "line-no-axes",
+			Parent:         "world",
+			Pose:           spatialmath.NewZeroPose(),
+			Positions:      linePts,
+			Colors:         []Color{NewColor(WithName("orange"))},
+			LineWidth:      15.0,
+			ShowAxesHelper: &lineHideAxes,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		lineDrawing := line.Draw("line-no-axes",
-			WithParent("world"),
-			WithPose(spatialmath.NewZeroPose()),
-			WithAxesHelper(false),
-		)
-		snapshot.drawings = append(snapshot.drawings, lineDrawing)
 
 		// Arrows drawing with WithInvisible(true): not rendered
-		arrowPoses := []spatialmath.Pose{
-			spatialmath.NewPose(r3.Vector{X: 600, Y: 0, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
-			spatialmath.NewPose(r3.Vector{X: 650, Y: 50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
-			spatialmath.NewPose(r3.Vector{X: 550, Y: -50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
-		}
-		arrows, err := NewArrows(arrowPoses, WithSingleArrowColor(NewColor(WithName("purple"))))
+		arrowHideAxes := false
+		arrowInvisible := true
+		_, err = snapshot.DrawArrows(DrawArrowsOptions{
+			Name:   "invisible-arrows",
+			Parent: "world",
+			Pose:   spatialmath.NewZeroPose(),
+			Poses: []spatialmath.Pose{
+				spatialmath.NewPose(r3.Vector{X: 600, Y: 0, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+				spatialmath.NewPose(r3.Vector{X: 650, Y: 50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+				spatialmath.NewPose(r3.Vector{X: 550, Y: -50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+			},
+			Colors:         []Color{NewColor(WithName("purple"))},
+			ShowAxesHelper: &arrowHideAxes,
+			Invisible:      &arrowInvisible,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		invisibleArrows := arrows.Draw("invisible-arrows",
-			WithParent("world"),
-			WithPose(spatialmath.NewZeroPose()),
-			WithInvisible(true),
-			WithAxesHelper(false),
-		)
-		snapshot.drawings = append(snapshot.drawings, invisibleArrows)
 
 		// Relationship demo: a capsule with arrows pointing outward from its surface,
 		// the arrows carry a HoverLink relationship back to the capsule.
@@ -1487,8 +1563,18 @@ func TestGeneratingSnapshots(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
-			s.DrawFrame(name, "world", pose, geo, meta)
+			hideAxes := false
+			_, err = s.DrawGeometry(DrawGeometryOptions{
+				Name:           name,
+				Geometry:       geo,
+				Pose:           pose,
+				Parent:         "world",
+				Color:          color,
+				ShowAxesHelper: &hideAxes,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		v1 := NewSnapshot(camera, WithGrid(false))
@@ -1545,8 +1631,18 @@ func TestGeneratingSnapshots(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
-			s.DrawFrame(name, "world", pose, geo, meta)
+			hideAxes := false
+			_, err = s.DrawGeometry(DrawGeometryOptions{
+				Name:           name,
+				Geometry:       geo,
+				Pose:           pose,
+				Parent:         "world",
+				Color:          color,
+				ShowAxesHelper: &hideAxes,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		vNew := NewSnapshot(camera, WithGrid(false))
