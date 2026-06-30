@@ -623,20 +623,20 @@ The same cross-cutting changes that apply to `client/api` also apply here: optio
 
 ### Quick reference
 
-| v1 method | v2 method | Change |
-| --------- | --------- | ------ |
-| `DrawGeometry(geo, pose, parent, color)` | `DrawGeometry(DrawGeometryOptions{...})` | Signature changed, returns `([]byte, error)` |
-| `DrawFrame(name, parent, pose, geo, meta)` | `DrawFrame(DrawFrameOptions{...})` | Signature changed, returns `([]byte, error)` |
-| `DrawFrameSystemGeometries(fs, inputs, colors)` | `DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{...})` | Signature changed, returns `([][]byte, error)` |
-| `DrawLine(name, parent, pose, pts, ...opts)` | `DrawLine(DrawLineOptions{...})` | Signature changed, returns `([]byte, error)` |
-| `DrawArrows(name, parent, pose, poses, ...opts)` | `DrawArrows(DrawArrowsOptions{...})` | Signature changed, returns `([]byte, error)` |
-| `DrawPoints(name, parent, pose, pts, ...opts)` | `DrawPoints(DrawPointsOptions{...})` | Signature changed, returns `([]byte, error)` |
-| `DrawModel(name, parent, pose, ...opts)` | `DrawModel(DrawModelOptions{...})` | Signature changed, returns `([]byte, error)` |
-| — | `DrawNurbs(DrawNurbsOptions{...})` | New, returns `([]byte, error)` |
-| — | `DrawPointCloud(DrawPointCloudOptions{...})` | New, returns `([]byte, error)` |
-| — | `DrawGeometriesInFrame(DrawGeometriesInFrameOptions{...})` | New, returns `([][]byte, error)` |
-| — | `DrawFrames(DrawFramesOptions{...})` | New, returns `([][]byte, error)` |
-| — | `DrawWorldState(DrawWorldStateOptions{...})` | New, returns `([][]byte, error)` |
+| v1 method                                        | v2 method                                                          | Change                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `DrawGeometry(geo, pose, parent, color)`         | `DrawGeometry(DrawGeometryOptions{...})`                           | Signature changed, returns `([]byte, error)`   |
+| `DrawFrame(name, parent, pose, geo, meta)`       | `DrawFrame(DrawFrameOptions{...})`                                 | Signature changed, returns `([]byte, error)`   |
+| `DrawFrameSystemGeometries(fs, inputs, colors)`  | `DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{...})` | Signature changed, returns `([][]byte, error)` |
+| `DrawLine(name, parent, pose, pts, ...opts)`     | `DrawLine(DrawLineOptions{...})`                                   | Signature changed, returns `([]byte, error)`   |
+| `DrawArrows(name, parent, pose, poses, ...opts)` | `DrawArrows(DrawArrowsOptions{...})`                               | Signature changed, returns `([]byte, error)`   |
+| `DrawPoints(name, parent, pose, pts, ...opts)`   | `DrawPoints(DrawPointsOptions{...})`                               | Signature changed, returns `([]byte, error)`   |
+| `DrawModel(name, parent, pose, ...opts)`         | `DrawModel(DrawModelOptions{...})`                                 | Signature changed, returns `([]byte, error)`   |
+| —                                                | `DrawNurbs(DrawNurbsOptions{...})`                                 | New, returns `([]byte, error)`                 |
+| —                                                | `DrawPointCloud(DrawPointCloudOptions{...})`                       | New, returns `([]byte, error)`                 |
+| —                                                | `DrawGeometriesInFrame(DrawGeometriesInFrameOptions{...})`         | New, returns `([][]byte, error)`               |
+| —                                                | `DrawFrames(DrawFramesOptions{...})`                               | New, returns `([][]byte, error)`               |
+| —                                                | `DrawWorldState(DrawWorldStateOptions{...})`                       | New, returns `([][]byte, error)`               |
 
 ### Before and after
 
