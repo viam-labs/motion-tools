@@ -13,7 +13,9 @@
 	const tabs = useSettingsTabs()
 
 	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		label
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		children
 
 		return untrack(() => {

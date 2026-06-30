@@ -2,13 +2,13 @@
 	import { Portal } from '@threlte/extras'
 	import { Button } from '@viamrobotics/prime-core'
 
+	import { DashboardPortal } from '$lib'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import DashboardButton from './dashboard/Button.svelte'
 	import FloatingPanel from './FloatingPanel.svelte'
-	import { DashboardPortal } from '$lib'
 
 	const partID = usePartID()
 	const framelessComponents = useFramelessComponents()
