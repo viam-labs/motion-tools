@@ -37,16 +37,14 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	} from 'three'
 
 	import { asColor } from '$lib/buffer'
-	import { colors, darkenColor, subtypeToColor } from '$lib/color'
+	import { darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
-	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 
 	import { composeCapsuleMatrices } from './composeCapsuleMatrices'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
-	const resourceByName = useResourceByName()
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
@@ -113,7 +111,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	 * raycast (edges set `raycast={() => null}`), so a hit's `instanceId` is
 	 * always a body or head faces id depending on which mesh was hit.
 	 */
-	type InstanceIds = {
+	interface InstanceIds {
 		bodyFace: number
 		bodyEdge: number
 		headTopFace: number
@@ -121,6 +119,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 		headBottomFace: number
 		headBottomEdge: number
 	}
+
 	const instanceIdByEntity = new Map<Entity, InstanceIds>()
 	const entityByBodyFaceId = new Map<number, Entity>()
 	const entityByHeadFaceId = new Map<number, Entity>()
@@ -149,8 +148,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 			return colorUtil.setRGB(color.r, color.g, color.b)
 		}
 
-		const subtype = resourceByName.current[entity.get(traits.Name) ?? '']?.subtype
-		return subtypeToColor(subtype) ?? colorUtil.set(colors.default)
+		return colorUtil.set('gray')
 	}
 
 	const writeAppearance = (entity: Entity, ids: InstanceIds) => {
