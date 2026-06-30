@@ -1116,15 +1116,18 @@ func TestGeneratingSnapshots(t *testing.T) {
 			z := 500.0 + t*height
 			path5 = append(path5, r3.Vector{X: x, Y: y, Z: z})
 		}
-		_, err = snapshot.DrawLine(DrawLineOptions{	
-			Name:   "helix-path",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+		_, err = snapshot.DrawLine(DrawLineOptions{
+			Name:      "helix-path",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: path5,
 			LineWidth: 18.0,
 			DotSize:   10.0,
 			Colors:    []Color{lineColors[3]},
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_line.json")
 	})
