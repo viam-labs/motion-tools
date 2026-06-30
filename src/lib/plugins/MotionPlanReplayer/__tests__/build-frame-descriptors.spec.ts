@@ -42,9 +42,9 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('joint frames produce no descriptors; child links become jointed_link descriptors', () => {
-		// arm chain: base (static) → waist (joint, Z) → base_top (static link)
-		//                          → shoulder (joint, Y) → upper_arm (static link)
+	it('joint frames emit joint descriptors; link frames emit static descriptors parented to their joint', () => {
+		// arm chain: arm:base (static) → arm:waist (joint, Z) → arm:base_top (static link)
+		//            arm:base_top → arm:shoulder (joint, Y) → arm:upper_arm (static link)
 		const p = plan(
 			{
 				arm: {
@@ -103,32 +103,90 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 
-		// Joint frames (waist, shoulder) must not appear as descriptors
-		expect(descriptors.find((d) => d.name === 'arm:waist')).toBeUndefined()
-		expect(descriptors.find((d) => d.name === 'arm:shoulder')).toBeUndefined()
-
-		// base_top: parent was waist (joint) → becomes jointed_link, ECS parent = waist's parent
-		const basTop = descriptors.find((d) => d.name === 'arm:base_top')!
-		expect(basTop.kind).toBe('jointed_link')
-		if (basTop.kind === 'jointed_link') {
-			expect(basTop.parent).toBe('arm:base') // joint's parent, not the joint itself
-			expect(basTop.componentName).toBe('arm')
-			expect(basTop.jointIndex).toBe(0) // waist is index 0
-			expect(basTop.axis).toEqual({ X: 0, Y: 0, Z: 1 })
-			expect(basTop.linkPose.z).toBeCloseTo(267)
+		// Joint frames appear as joint descriptors
+		const waist = descriptors.find((d) => d.name === 'arm:waist')!
+		expect(waist).toBeDefined()
+		expect(waist.kind).toBe('joint')
+		if (waist.kind === 'joint') {
+			expect(waist.parent).toBe('arm:base')
+			expect(waist.componentName).toBe('arm')
+			expect(waist.jointIndex).toBe(0)
+			expect(waist.axis).toEqual({ X: 0, Y: 0, Z: 1 })
 		}
 
-		// upper_arm: parent was shoulder (joint) → becomes jointed_link
+		const shoulder = descriptors.find((d) => d.name === 'arm:shoulder')!
+		expect(shoulder).toBeDefined()
+		expect(shoulder.kind).toBe('joint')
+		if (shoulder.kind === 'joint') {
+			expect(shoulder.parent).toBe('arm:base_top')
+			expect(shoulder.componentName).toBe('arm')
+			expect(shoulder.jointIndex).toBe(1)
+			expect(shoulder.axis).toEqual({ X: 0, Y: 1, Z: 0 })
+		}
+
+		// Link frames appear as static descriptors parented directly to their joint
+		const baseTop = descriptors.find((d) => d.name === 'arm:base_top')!
+		expect(baseTop).toBeDefined()
+		expect(baseTop.kind).toBe('static')
+		if (baseTop.kind === 'static') {
+			expect(baseTop.parent).toBe('arm:waist') // parented to the joint, not the joint's parent
+			expect(baseTop.localPose.z).toBeCloseTo(267)
+		}
+
 		const upperArm = descriptors.find((d) => d.name === 'arm:upper_arm')!
-		expect(upperArm.kind).toBe('jointed_link')
-		if (upperArm.kind === 'jointed_link') {
-			expect(upperArm.parent).toBe('arm:base_top') // shoulder's parent
-			expect(upperArm.componentName).toBe('arm')
-			expect(upperArm.jointIndex).toBe(1) // shoulder is index 1
-			expect(upperArm.axis).toEqual({ X: 0, Y: 1, Z: 0 })
-			expect(upperArm.linkPose.x).toBeCloseTo(53.5)
-			expect(upperArm.linkPose.z).toBeCloseTo(284.5)
+		expect(upperArm).toBeDefined()
+		expect(upperArm.kind).toBe('static')
+		if (upperArm.kind === 'static') {
+			expect(upperArm.parent).toBe('arm:shoulder')
+			expect(upperArm.localPose.x).toBeCloseTo(53.5)
+			expect(upperArm.localPose.z).toBeCloseTo(284.5)
 		}
+	})
+
+	it('remaps frames parented to a model frame to the terminal static frame', () => {
+		// camera is parented to the model frame 'arm' (never an ECS entity).
+		// It should be reparented to 'arm:gripper_mount' (static frame after the last joint).
+		const p = plan(
+			{
+				arm: {
+					frame_type: 'model',
+					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'gripper_rot' }] } },
+				},
+				'arm:gripper_rot': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } },
+					},
+				},
+				'arm:gripper_mount': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+							},
+						},
+					},
+				},
+				camera_origin: {
+					frame_type: 'static',
+					frame: {
+						translation: { X: 10, Y: 0, Z: 0 },
+						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+					},
+				},
+			},
+			{
+				'arm:gripper_mount': 'arm:gripper_rot',
+				camera_origin: 'arm', // model frame — should be remapped
+			}
+		)
+		const descriptors = buildFrameDescriptors(p)
+		const camera = descriptors.find((d) => d.name === 'camera_origin')!
+		expect(camera).toBeDefined()
+		expect(camera.parent).toBe('arm:gripper_mount') // remapped from 'arm'
 	})
 
 	it('skips model frames', () => {

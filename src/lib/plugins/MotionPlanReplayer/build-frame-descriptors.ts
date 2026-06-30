@@ -150,13 +150,30 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
+	// Pass 1b: for each model frame, find the static frame parented to its last joint.
+	// External components (cameras, remote grippers) have parent = model frame name in the
+	// JSON, but the model frame itself is never an ECS entity. Reparent them to the terminal
+	// static frame so they appear at the arm's end-effector instead of floating at origin.
+	const modelTerminalMap = new Map<string, string>()
+	for (const [modelName, jointNames] of jointMap) {
+		const lastJoint = jointNames[jointNames.length - 1]
+		if (!lastJoint) continue
+		for (const [frameName, parentName] of Object.entries(parents)) {
+			if (parentName === lastJoint) {
+				modelTerminalMap.set(modelName, frameName)
+				break
+			}
+		}
+	}
+
 	// Pass 2: emit one descriptor per frame. Joint frames become JointFrameDescriptors
 	// (their pose is computed from the trajectory at each step). All other frames
 	// become StaticFrameDescriptors with a fixed local pose.
 	const descriptors: FrameDescriptor[] = []
 
 	for (const [frameName, entry] of Object.entries(frames)) {
-		const parent = parents[frameName] ?? 'world'
+		const rawParent = parents[frameName] ?? 'world'
+		const parent = modelTerminalMap.get(rawParent) ?? rawParent
 
 		switch (entry.frame_type) {
 			case 'model': {
