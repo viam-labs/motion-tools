@@ -4,12 +4,13 @@
 	import { OBB } from 'three/addons/math/OBB.js'
 
 	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
+	import { composeCapsuleBoundsMatrix } from '$lib/components/Entities/composeCapsuleMatrices'
 	import { traits, useQuery } from '$lib/ecs'
 	import { OBBHelper } from '$lib/three/OBBHelper'
 
 	const box3 = new Box3()
 	const obb = new OBB()
-	const boxMatrix = new Matrix4()
+	const matrix4 = new Matrix4()
 
 	const { scene, invalidate } = useThrelte()
 	const selected = useQuery(traits.Selected)
@@ -20,11 +21,16 @@
 		() => {
 			for (const [entity, obbHelper] of obbHelpers) {
 				/**
-				 * Boxes render instanced, so the entity's named scene object
-				 * carries no geometry — derive the OBB straight from traits.
+				 * Boxes and capsules render instanced, so the entity's named scene
+				 * object carries no geometry — derive the OBB straight from traits.
 				 */
-				if (composeBoxMatrix(entity, boxMatrix)) {
-					obbHelper.setFromMatrix4(boxMatrix)
+				if (composeBoxMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
+					continue
+				}
+
+				if (composeCapsuleBoundsMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
 					continue
 				}
 
