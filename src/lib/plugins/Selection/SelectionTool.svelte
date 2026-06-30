@@ -3,9 +3,9 @@
 	import type { Snippet } from 'svelte'
 
 	import { useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
 	import { ElementRect } from 'runed'
 
+	import { DashboardPortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
@@ -80,7 +80,7 @@
 	const rect = new ElementRect(() => dom)
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset>
 		<div class="flex">
 			<DashboardButton
@@ -119,7 +119,7 @@
 			</Popover>
 		</div>
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
 {#if isSelectionMode && rect.height > 0 && rect.width > 0}
 	<Ellipse

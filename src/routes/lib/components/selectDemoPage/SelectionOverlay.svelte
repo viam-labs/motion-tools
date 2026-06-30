@@ -32,28 +32,26 @@
 	})
 </script>
 
-<Portal id="dom">
-	<FloatingPanel
-		isOpen
-		exitable={false}
-		title="Lasso"
-		defaultSize={{ width: 445, height: 100 }}
-		defaultPosition={{ x: rect.width / 2 - 200, y: rect.height - 10 - 100 }}
-	>
-		<div class="flex items-center gap-4 p-4 text-xs">
-			Shift + click and drag to make a lasso selection.
-			<Button
-				variant="success"
-				onclick={() => console.log(selectionCtx.current)}
-			>
-				Commit selection
-			</Button>
-			<Button
-				variant="danger"
-				onclick={() => selectionCtx.clearSelections()}
-			>
-				Clear selection
-			</Button>
-		</div>
-	</FloatingPanel>
-</Portal>
+<FloatingPanel
+	isOpen
+	exitable={false}
+	title="Lasso"
+	defaultSize={{ width: 445, height: 100 }}
+	defaultPosition={{ x: rect.width / 2 - 200, y: rect.height - 10 - 100 }}
+>
+	<div class="flex items-center gap-4 p-4 text-xs">
+		Shift + click and drag to make a lasso selection.
+		<Button
+			variant="success"
+			onclick={() => console.log(selectionCtx.current)}
+		>
+			Commit selection
+		</Button>
+		<Button
+			variant="danger"
+			onclick={() => selectionCtx.clearSelections()}
+		>
+			Clear selection
+		</Button>
+	</div>
+</FloatingPanel>

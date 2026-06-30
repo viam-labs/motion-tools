@@ -8,6 +8,7 @@
 
 	import DashboardButton from './dashboard/Button.svelte'
 	import FloatingPanel from './FloatingPanel.svelte'
+	import { DashboardPortal } from '$lib'
 
 	const partID = usePartID()
 	const framelessComponents = useFramelessComponents()
@@ -19,7 +20,7 @@
 </script>
 
 {#if partID.current && partConfig.hasEditPermissions}
-	<Portal id="dashboard">
+	<DashboardPortal>
 		<fieldset>
 			<DashboardButton
 				active={isOpen}
@@ -30,7 +31,7 @@
 				}}
 			/>
 		</fieldset>
-	</Portal>
+	</DashboardPortal>
 
 	<FloatingPanel
 		{isOpen}
