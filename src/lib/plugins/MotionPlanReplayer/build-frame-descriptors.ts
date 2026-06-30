@@ -24,36 +24,18 @@ export interface StaticFrameDescriptor {
 	uuid: Uint8Array<ArrayBuffer>
 }
 
-/**
- * A rigid link whose immediate parent in the model is a revolute joint.
- * The joint's rotation is baked into this descriptor so no separate joint
- * entity appears in the ECS parent chain. At each trajectory step,
- * `descriptorToTransform` computes:
- *
- *   combined = R_joint × T_link
- *
- * which rotates the link's translation by the joint quaternion before
- * composing it with the rotation, giving the correct FK result without
- * needing an intermediate entity.
- */
-export interface JointedLinkDescriptor {
-	kind: 'jointed_link'
+/** A revolute joint frame. Its pose at each step is a pure rotation around `axis` by the trajectory angle. */
+export interface JointFrameDescriptor {
+	kind: 'joint'
 	name: string
-	/** The joint's parent — the link's kinematic grandparent in the ECS. */
 	parent: string
-	/** Link's own local offset and orientation in the joint frame (mm). */
-	linkPose: Pose
-	/** Rotation axis of the controlling joint. */
 	axis: { X: number; Y: number; Z: number }
-	/** Component name for trajectory lookup. */
 	componentName: string
-	/** Index into the trajectory's joint-angle array. */
 	jointIndex: number
-	geometry: Geometry | null
 	uuid: Uint8Array<ArrayBuffer>
 }
 
-export type FrameDescriptor = StaticFrameDescriptor | JointedLinkDescriptor
+export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 
 // Shared scratch object — safe in single-threaded JS
 const tmpQ = new Quaternion()
@@ -149,14 +131,6 @@ const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): Geometry | n
 	})
 }
 
-interface JointInfo {
-	axis: { X: number; Y: number; Z: number }
-	componentName: string
-	jointIndex: number
-	/** The joint's own parent — becomes the jointed link's ECS parent. */
-	parent: string
-}
-
 export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	const { frames, parents } = plan
 
@@ -176,96 +150,10 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
-	// Pass 1b: build a map from model frame name → its end-effector frame name.
-	// Any non-arm frame (camera, gripper, obstacle) whose parent is a model frame
-	// must attach to the arm's end-effector instead, because model frames themselves
-	// are never spawned as ECS entities.
-	//
-	// Try primary_output_frame first; fall back to the last entry in model.links,
-	// which is always the end-effector link in Viam's kinematic model format.
-	const modelEndEffectorMap = new Map<string, string>()
-	for (const [frameName, entry] of Object.entries(frames)) {
-		if (entry.frame_type !== 'model') continue
-		const model = (entry.frame as Record<string, unknown>).model as
-			| Record<string, unknown>
-			| undefined
-		const primaryOutput = model?.primary_output_frame as string | undefined
-		const links = model?.links as Array<{ id: string }> | undefined
-		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
-		if (endEffectorId) {
-			modelEndEffectorMap.set(frameName, `${frameName}:${endEffectorId}`)
-		}
-	}
-
-	// Pass 2: build a lookup of rotational joint frames so that links whose
-	// parent is a joint can absorb that joint's rotation directly.
-	const jointInfoMap = new Map<string, JointInfo>()
-	for (const [frameName, entry] of Object.entries(frames)) {
-		if (entry.frame_type !== 'named') continue
-		const outer = entry.frame as Record<string, unknown>
-		const inner = outer.inner_frame as Record<string, unknown>
-		if (inner.frame_type !== 'rotational') continue
-
-		const innerData = inner.frame as Record<string, unknown>
-		const parent = parents[frameName] ?? 'world'
-
-		let componentName = ''
-		let jointIndex = -1
-		for (const [comp, names] of jointMap) {
-			const idx = names.indexOf(frameName)
-			if (idx !== -1) {
-				componentName = comp
-				jointIndex = idx
-				break
-			}
-		}
-		if (!componentName) continue
-
-		jointInfoMap.set(frameName, {
-			axis: innerData.axis as { X: number; Y: number; Z: number },
-			componentName,
-			jointIndex,
-			parent,
-		})
-	}
-
-	// Pass 3: build descriptors. Rotational joint frames produce no entity —
-	// their children become JointedLinkDescriptors instead.
+	// Pass 2: emit one descriptor per frame. Joint frames become JointFrameDescriptors
+	// (their pose is computed from the trajectory at each step). All other frames
+	// become StaticFrameDescriptors with a fixed local pose.
 	const descriptors: FrameDescriptor[] = []
-
-	const buildDescriptor = (
-		frameName: string,
-		parent: string,
-		linkPose: Pose,
-		geometry: Geometry | null
-	): FrameDescriptor => {
-		// If the parent is a model frame (e.g. "left-arm"), redirect to its
-		// end-effector (e.g. "left-arm:gripper_mount"). Model frames are never
-		// spawned as ECS entities, so anything parented to them would stay orphaned.
-		const resolvedParent = modelEndEffectorMap.get(parent) ?? parent
-		const jointInfo = jointInfoMap.get(resolvedParent)
-		if (jointInfo) {
-			return {
-				kind: 'jointed_link',
-				name: frameName,
-				parent: jointInfo.parent,
-				linkPose,
-				axis: jointInfo.axis,
-				componentName: jointInfo.componentName,
-				jointIndex: jointInfo.jointIndex,
-				geometry,
-				uuid: planUuid(),
-			}
-		}
-		return {
-			kind: 'static',
-			name: frameName,
-			parent: resolvedParent,
-			localPose: linkPose,
-			geometry,
-			uuid: planUuid(),
-		}
-	}
 
 	for (const [frameName, entry] of Object.entries(frames)) {
 		const parent = parents[frameName] ?? 'world'
@@ -280,23 +168,40 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 				const inner = outer.inner_frame as Record<string, unknown>
 
 				if (inner.frame_type === 'rotational') {
-					// Joint frames generate no entity — absorbed by child links above.
-					continue
-				}
+					const innerData = inner.frame as Record<string, unknown>
 
-				if (inner.frame_type === 'static') {
+					let componentName = ''
+					let jointIndex = -1
+					for (const [comp, names] of jointMap) {
+						const idx = names.indexOf(frameName)
+						if (idx !== -1) {
+							componentName = comp
+							jointIndex = idx
+							break
+						}
+					}
+					if (!componentName) continue
+
+					descriptors.push({
+						kind: 'joint',
+						name: frameName,
+						parent,
+						axis: innerData.axis as { X: number; Y: number; Z: number },
+						componentName,
+						jointIndex,
+						uuid: planUuid(),
+					})
+				} else if (inner.frame_type === 'static') {
 					const innerData = inner.frame as Record<string, unknown>
 					const frameTrans = innerData.translation as Vec3Json
-					descriptors.push(
-						buildDescriptor(
-							frameName,
-							parent,
-							poseFromFrame(frameTrans, innerData.orientation as OrientJson),
-							// Geometry center in internal_fs is in the parent frame (same space
-							// as frameTrans) — subtract to get the offset in the link's local frame.
-							parseGeometry(innerData.geometry, frameTrans)
-						)
-					)
+					descriptors.push({
+						kind: 'static',
+						name: frameName,
+						parent,
+						localPose: poseFromFrame(frameTrans, innerData.orientation as OrientJson),
+						geometry: parseGeometry(innerData.geometry, frameTrans),
+						uuid: planUuid(),
+					})
 				}
 				break
 			}
@@ -304,14 +209,14 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			case 'tail_geometry_static':
 			case 'static': {
 				const frame = entry.frame as Record<string, unknown>
-				descriptors.push(
-					buildDescriptor(
-						frameName,
-						parent,
-						poseFromFrame(frame.translation as Vec3Json, frame.orientation as OrientJson),
-						parseGeometry(frame.geometry)
-					)
-				)
+				descriptors.push({
+					kind: 'static',
+					name: frameName,
+					parent,
+					localPose: poseFromFrame(frame.translation as Vec3Json, frame.orientation as OrientJson),
+					geometry: parseGeometry(frame.geometry),
+					uuid: planUuid(),
+				})
 				break
 			}
 		}

@@ -58,39 +58,49 @@ describe('parsedPlanToSnapshots', () => {
 		expect(snapshots).toHaveLength(2)
 	})
 
-	it('joint frames produce no transform; child link appears instead', () => {
+	it('joint and link both appear as transforms', () => {
 		const snapshots = snapshotsFromContent(CONTENT)
-		// waist (joint) is absorbed — only base (jointed_link) appears
-		expect(snapshots[0]!.transforms).toHaveLength(1)
+		// waist (joint) and base (link) each emit a transform
+		expect(snapshots[0]!.transforms).toHaveLength(2)
 		const names = snapshots[0]!.transforms.map((t) => t.referenceFrame)
-		expect(names).not.toContain('arm:waist')
+		expect(names).toContain('arm:waist')
 		expect(names).toContain('arm:base')
 	})
 
-	it('jointed link bakes joint rotation — pose changes per step', () => {
+	it('joint pose changes per step; link local pose stays constant', () => {
 		const snapshots = snapshotsFromContent(CONTENT)
+		const waist0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
+		const waist1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		// step 0: angle=0 → theta≈0; step 1: angle=π/2 → theta≈90°
+
+		// joint theta changes: step 0 → 0°, step 1 → 90°
+		expect(waist0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
+		expect(waist1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
+
+		// link local pose is constant — WorldMatrix handles world-space composition
+		expect(base0.poseInObserverFrame!.pose!.z).toBeCloseTo(100, 1)
+		expect(base1.poseInObserverFrame!.pose!.z).toBeCloseTo(100, 1)
 		expect(base0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
-		expect(base1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
+		expect(base1.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
 	})
 
-	it("jointed link is parented to the joint's parent, not the joint", () => {
+	it('link is parented to its joint', () => {
 		const snapshots = snapshotsFromContent(CONTENT)
 		const base = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		// waist's parent is 'world', so base's ECS parent should also be 'world'
-		expect(base.poseInObserverFrame!.referenceFrame).toBe('world')
+		expect(base.poseInObserverFrame!.referenceFrame).toBe('arm:waist')
 	})
 
-	it('jointed link translation is rotated by the joint quaternion', () => {
+	it('joint is parented to its frame_system parent', () => {
 		const snapshots = snapshotsFromContent(CONTENT)
-		// Z-axis rotation by π/2: translation (0, 0, 100) stays (0, 0, 100) because Z is unchanged
-		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
-		const pose = base1.poseInObserverFrame!.pose!
-		expect(pose.x).toBeCloseTo(0, 1)
-		expect(pose.y).toBeCloseTo(0, 1)
-		expect(pose.z).toBeCloseTo(100, 1)
+		const waist = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
+		expect(waist.poseInObserverFrame!.referenceFrame).toBe('world')
+	})
+
+	it('joint has no physicalObject', () => {
+		const snapshots = snapshotsFromContent(CONTENT)
+		const waist = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:waist')!
+		expect(waist.physicalObject).toBeUndefined()
 	})
 
 	it('link has same UUID across steps', () => {
