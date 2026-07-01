@@ -13,14 +13,11 @@
 	const tabs = useSettingsTabs()
 
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		label
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		children
+		const tab = { label, children }
 
 		return untrack(() => {
 			const currentTabs = tabs.current
-			const tab = { label, children }
+
 			currentTabs.push(tab)
 			return () => {
 				const index = currentTabs.indexOf(tab)
