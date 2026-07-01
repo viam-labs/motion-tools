@@ -1,4 +1,4 @@
-import { Euler, Quaternion, Vector3 } from 'three'
+import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 
 import {
 	Capsule,
@@ -8,6 +8,7 @@ import {
 	Sphere,
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
+import { OrientationVector } from '$lib/three/OrientationVector'
 import { quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
@@ -45,14 +46,24 @@ const tmpQInv = new Quaternion()
 const tmpQLocal = new Quaternion()
 const tmpE = new Euler()
 const tmpV = new Vector3()
+const tmpOv = new OrientationVector()
 
 type QuatJson = { W: number; X: number; Y: number; Z: number }
 type EulerJson = { roll: number; pitch: number; yaw: number }
+type OvJson = { x: number; y: number; z: number; th: number }
 type OrientJson =
 	| { type: 'quaternion'; value: QuatJson }
 	| { type: 'euler_angles'; value: EulerJson }
+	| { type: 'ov_degrees'; value: OvJson }
+	| { type: 'ov_radians'; value: OvJson }
 	| undefined
 type Vec3Json = { X: number; Y: number; Z: number } | undefined
+
+const hasOrientJson = (orientation: OrientJson): orientation is NonNullable<OrientJson> =>
+	orientation?.type === 'quaternion' ||
+	orientation?.type === 'euler_angles' ||
+	orientation?.type === 'ov_degrees' ||
+	orientation?.type === 'ov_radians'
 
 /** Write orientation JSON into `out`. RDK euler_angles use Tait–Bryan Z-Y′-X″ (ZYX). */
 const quatFromJson = (orientation: OrientJson, out: Quaternion): Quaternion => {
@@ -65,6 +76,15 @@ const quatFromJson = (orientation: OrientJson, out: Quaternion): Quaternion => {
 		const v = orientation.value
 		tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX')
 		return out.setFromEuler(tmpE)
+	}
+	if (orientation?.type === 'ov_radians' && orientation.value) {
+		const v = orientation.value
+		return tmpOv.set(v.x, v.y, v.z, v.th).toQuaternion(out)
+	}
+	if (orientation?.type === 'ov_degrees' && orientation.value) {
+		const v = orientation.value
+		const th = MathUtils.degToRad(v.th ?? 0)
+		return tmpOv.set(v.x, v.y, v.z, th).toQuaternion(out)
 	}
 	return out.set(0, 0, 0, 1)
 }
@@ -107,7 +127,7 @@ const geometryCenterInFrame = (
 
 	const center = new Pose({ x: tmpV.x, y: tmpV.y, z: tmpV.z })
 
-	if (geoOrient?.type === 'quaternion' || geoOrient?.type === 'euler_angles') {
+	if (hasOrientJson(geoOrient)) {
 		quatFromJson(geoOrient, tmpQGeo)
 		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
 		quaternionToPose(tmpQLocal, center)
@@ -142,7 +162,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 					y: trans?.Y ?? 0,
 					z: trans?.Z ?? 0,
 				})
-				if (orient?.type === 'quaternion' || orient?.type === 'euler_angles') {
+				if (hasOrientJson(orient)) {
 					quaternionToPose(quatFromJson(orient, tmpQ), local)
 				}
 				return local
@@ -202,17 +222,33 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
-	// Pass 1b: for each model frame, find the static frame parented to its last joint.
+	// Pass 1b: map model frame name → its end-effector static frame name.
 	// External components (cameras, remote grippers) have parent = model frame name in the
 	// JSON, but the model frame itself is never an ECS entity. Reparent them to the terminal
 	// static frame so they appear at the arm's end-effector instead of floating at origin.
+	//
+	// Prefer primary_output_frame from model metadata; fall back to the last entry in
+	// model.links (always the end-effector in Viam's kinematic format). If neither is
+	// present, use the static frame parented to the last joint.
 	const modelTerminalMap = new Map<string, string>()
-	for (const [modelName, jointNames] of jointMap) {
-		const lastJoint = jointNames[jointNames.length - 1]
+	for (const [frameName, entry] of Object.entries(frames)) {
+		if (entry.frame_type !== 'model') continue
+		const model = (entry.frame as Record<string, unknown>).model as
+			| Record<string, unknown>
+			| undefined
+		const primaryOutput = model?.primary_output_frame as string | undefined
+		const links = model?.links as Array<{ id: string }> | undefined
+		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
+		if (endEffectorId) {
+			modelTerminalMap.set(frameName, `${frameName}:${endEffectorId}`)
+			continue
+		}
+		const jointNames = jointMap.get(frameName)
+		const lastJoint = jointNames?.at(-1)
 		if (!lastJoint) continue
-		for (const [frameName, parentName] of Object.entries(parents)) {
+		for (const [childFrame, parentName] of Object.entries(parents)) {
 			if (parentName === lastJoint) {
-				modelTerminalMap.set(modelName, frameName)
+				modelTerminalMap.set(frameName, childFrame)
 				break
 			}
 		}

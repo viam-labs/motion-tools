@@ -143,6 +143,68 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	it('prefers primary_output_frame over last-joint static child when both exist', () => {
+		const p = plan(
+			{
+				arm: {
+					frame_type: 'model',
+					frame: {
+						name: 'arm',
+						model: {
+							joints: [{ id: 'waist' }, { id: 'gripper_rot' }],
+							primary_output_frame: 'gripper_mount',
+							links: [{ id: 'extra_link' }, { id: 'gripper_mount' }],
+						},
+					},
+				},
+				'arm:gripper_rot': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } },
+					},
+				},
+				'arm:extra_link': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+							},
+						},
+					},
+				},
+				'arm:gripper_mount': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+							},
+						},
+					},
+				},
+				camera_origin: {
+					frame_type: 'static',
+					frame: {
+						translation: { X: 10, Y: 0, Z: 0 },
+						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+					},
+				},
+			},
+			{
+				'arm:extra_link': 'arm:gripper_rot',
+				'arm:gripper_mount': 'arm:extra_link',
+				camera_origin: 'arm',
+			}
+		)
+		const camera = buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')!
+		expect(camera.parent).toBe('arm:gripper_mount')
+	})
+
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
 		// camera is parented to the model frame 'arm' (never an ECS entity).
 		// It should be reparented to 'arm:gripper_mount' (static frame after the last joint).
@@ -283,10 +345,10 @@ describe('buildFrameDescriptors', () => {
 								orientation: {
 									type: 'quaternion',
 									value: {
-										W: -2.5973434669646147e-06,
+										W: -2.5973434669646147e-6,
 										X: -0.7071054825064661,
 										Y: 0.7071080798547033,
-										Z: 2.597353007557415e-06,
+										Z: 2.597353007557415e-6,
 									},
 								},
 								geometry: {
@@ -384,6 +446,31 @@ describe('buildFrameDescriptors', () => {
 			expect(d.geometry!.center!.x).toBeCloseTo(-59.25, 1)
 			expect(d.geometry!.center!.y).toBeCloseTo(0, 1)
 			expect(d.geometry!.center!.z).toBeCloseTo(-32.5667, 1)
+		}
+	})
+
+	it('parses ov_degrees orientation on a static frame', () => {
+		const p = plan(
+			{
+				'arm:link': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 90 } },
+							},
+						},
+					},
+				},
+			},
+			{ 'arm:link': 'world' }
+		)
+		const d = buildFrameDescriptors(p)[0]!
+		if (d.kind === 'static') {
+			expect(d.localPose.theta).toBeCloseTo(90)
+			expect(d.localPose.oZ).toBeCloseTo(1)
 		}
 	})
 
