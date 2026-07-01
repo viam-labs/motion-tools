@@ -10,7 +10,7 @@
 	import { type Component, onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { FragmentInfo } from '$lib/hooks/usePartConfig.svelte'
+	import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
@@ -20,6 +20,7 @@
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
@@ -39,7 +40,6 @@
 	interface LocalConfigProps {
 		current: Struct
 		isDirty: boolean
-		componentNameToFragmentInfo: Record<string, FragmentInfo>
 		setLocalPartConfig: (config: Struct) => void
 	}
 
@@ -47,6 +47,12 @@
 		partID?: string
 		inputBindingsEnabled?: boolean
 		localConfigProps?: LocalConfigProps
+
+		/**
+		 * Maps a component name to the fragment that defines it. Embedded hosts
+		 * supply this; in standalone it is computed from fragment queries (omit).
+		 */
+		componentNameToFragmentInfo?: Record<string, FragmentInfo>
 
 		/**
 		 * Allows adding additional tabs to the settings panel
@@ -81,6 +87,7 @@
 		partID = '',
 		inputBindingsEnabled = true,
 		localConfigProps,
+		componentNameToFragmentInfo,
 		cameraPose,
 		settingsTabs,
 		children: appChildren,
@@ -103,6 +110,11 @@
 	provideToast()
 
 	let root = $state.raw<HTMLElement>()
+
+	provideFragmentInfo(
+		() => partID,
+		() => componentNameToFragmentInfo
+	)
 
 	providePartConfig(
 		() => partID,

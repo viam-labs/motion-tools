@@ -8,15 +8,15 @@
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
 
 	const { scene } = useThrelte()
 	const settings = useSettings()
 	const environment = useEnvironment()
-	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
 	const transformControls = useTransformControls()
 	const sessions = useFrameEditSession()
 	const selected = useQuery(traits.Selected)
@@ -36,9 +36,7 @@
 		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
 	)
 	const isFragmentComponentWithVariables = $derived(
-		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
-				0
+		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
 
 	// Mesh sets name={entity} on its inner mesh, so getObjectByName resolves
