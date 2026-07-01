@@ -1,13 +1,16 @@
+import type { Entity } from 'koota'
+
 import { getContext, setContext } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { relations, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
 import { parsePlan, PlanParseError } from './parse-plan'
 import { parsedPlanToSnapshots } from './plan-to-snapshots'
+import * as planRelations from './relations'
 
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
@@ -59,18 +62,26 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	let activePlanIndex = $state<number | null>(null)
 	let currentStep = $state(0)
 	let entityMap = $state.raw(new Map<string, SnapshotEntity>())
+	let planEntity: Entity | undefined
 
 	const totalSteps = $derived(
 		activePlanIndex === null ? 0 : (plans[activePlanIndex]?.stepCount ?? 0)
 	)
 
 	const clearActivePlan = () => {
-		for (const entry of entityMap.values()) {
-			if (world.has(entry.entity)) hierarchy.destroyEntityTree(world, entry.entity)
-		}
+		if (planEntity && world.has(planEntity)) planEntity.destroy()
+		planEntity = undefined
 		entityMap = new Map()
 		currentStep = 0
 		activePlanIndex = null
+	}
+
+	const tagPartOfPlan = (entity: Entity): void => {
+		if (!planEntity) return
+		entity.add(planRelations.PartOfPlan(planEntity))
+		for (const child of world.query(relations.ChildOf(entity))) {
+			tagPartOfPlan(child)
+		}
 	}
 
 	const applyStep = (snapshots: Snapshot[], step: number) => {
@@ -82,18 +93,21 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			relationships.apply(spawned.entity, spawned.relationships)
 			const uuid = spawned.entity.get(traits.UUID)
 			if (uuid) relationships.flush(uuid)
+			tagPartOfPlan(spawned.entity)
 		}
 		entityMap = result.current
 
-		for (const entry of result.current.values()) {
-			if (!entry.entity.isAlive()) continue
-			if (entry.entity.has(traits.ReferenceFrame)) continue
-			if (entry.entity.has(traits.Color)) {
-				entry.entity.set(traits.Color, PLAN_COLOR)
-			} else {
-				entry.entity.add(traits.Color(PLAN_COLOR))
+		if (planEntity) {
+			for (const entity of world.query(planRelations.PartOfPlan(planEntity))) {
+				if (!entity.isAlive()) continue
+				if (entity.has(traits.ReferenceFrame)) continue
+				if (entity.has(traits.Color)) {
+					entity.set(traits.Color, PLAN_COLOR)
+				} else {
+					entity.add(traits.Color(PLAN_COLOR))
+				}
+				entity.set(traits.Opacity, PLAN_OPACITY)
 			}
-			entry.entity.set(traits.Opacity, PLAN_OPACITY)
 		}
 
 		currentStep = step
@@ -114,6 +128,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		if (stored) {
 			activePlanIndex = index
 			currentStep = 0
+			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
 			applyStep(stored, 0)
 			return
 		}
@@ -130,6 +145,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			plans[index] = { ...planState, status: 'ready', stepCount: snapshots.length, error: null }
 			activePlanIndex = index
 			currentStep = 0
+			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
 			applyStep(snapshots, 0)
 		} catch (error) {
 			const msg = error instanceof PlanParseError ? error.message : 'Failed to parse plan.'
