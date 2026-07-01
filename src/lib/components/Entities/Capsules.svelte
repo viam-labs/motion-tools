@@ -37,7 +37,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	} from 'three'
 
 	import { asColor } from '$lib/buffer'
-	import { darkenColor } from '$lib/color'
+	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
 
 	import { composeCapsuleMatrices } from './composeCapsuleMatrices'
@@ -148,7 +148,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 			return colorUtil.setRGB(color.r, color.g, color.b)
 		}
 
-		return colorUtil.set('gray')
+		return colorUtil.set(colors.default)
 	}
 
 	const writeAppearance = (entity: Entity, ids: InstanceIds) => {
