@@ -5,6 +5,7 @@ import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
+import { createGeometryFromFrame } from '$lib/geometry'
 import { createPose } from '$lib/transform'
 
 import {
@@ -25,11 +26,13 @@ const makeConfig = (components: PartConfig['components']): PartConfig => ({ comp
 const makeTransform = (
 	name: string,
 	parent: string,
-	pose: Parameters<typeof createPose>[0] = {}
+	pose: Parameters<typeof createPose>[0] = {},
+	geometry?: Frame['geometry']
 ): Transform =>
 	new Transform({
 		referenceFrame: name,
 		poseInObserverFrame: { referenceFrame: parent, pose: createPose(pose) },
+		physicalObject: geometry ? createGeometryFromFrame({ geometry }) : undefined,
 	})
 
 const makeFragmentMeta = (overrides: Partial<FragmentInfo> = {}): FragmentInfo => ({
@@ -269,6 +272,83 @@ describe('validateProposedFrameDeltas', () => {
 	})
 })
 
+describe('validateProposedFrameDeltas geometry editing', () => {
+	const boxFrame = () => makeFrame({ geometry: { type: 'box', x: 100, y: 100, z: 100 } })
+
+	it('resizes a single dimension of the current box, preserving the others', () => {
+		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { z: 250 } }],
+			config
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'box', x: 100, y: 100, z: 250 })
+		expect(prepared[0].previousGeometry).toEqual({ type: 'box', x: 100, y: 100, z: 100 })
+	})
+
+	it('changes the geometry type when type is provided', () => {
+		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { type: 'sphere', r: 40 } }],
+			config
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'sphere', r: 40 })
+	})
+
+	it('adds geometry to a component that has none when type + dims are provided', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { type: 'box', x: 10, y: 20, z: 30 } }],
+			config
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'box', x: 10, y: 20, z: 30 })
+		expect(prepared[0].previousGeometry).toBeUndefined()
+	})
+
+	it('errors when resizing but there is no type and no existing geometry', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { x: 50 } }],
+			config
+		)
+
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/type/i)
+	})
+
+	it('errors on a non-positive box dimension', () => {
+		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { type: 'box', x: -5, y: 10, z: 10 } }],
+			config
+		)
+
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/positive/i)
+	})
+
+	it('carries the current geometry unchanged when the delta has no geometry', () => {
+		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
+
+		const { prepared } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', translation: { x: 5 } }],
+			config
+		)
+
+		expect(prepared[0].geometry).toEqual({ type: 'box', x: 100, y: 100, z: 100 })
+	})
+})
+
 describe('resolveFragmentCurrentFrames', () => {
 	const gripperMeta = makeFragmentMeta()
 
@@ -303,6 +383,16 @@ describe('resolveFragmentCurrentFrames', () => {
 		expect(result.gripper).toBeUndefined()
 		expect(Object.keys(result)).toHaveLength(0)
 	})
+
+	it('surfaces the geometry from the transform physicalObject', () => {
+		const live = [
+			makeTransform('gripper', 'arm', { x: 5 }, { type: 'box', x: 100, y: 100, z: 100 }),
+		]
+
+		const result = resolveFragmentCurrentFrames(['gripper'], { gripper: gripperMeta }, live, {})
+
+		expect(result.gripper!.frame!.geometry).toEqual({ type: 'box', x: 100, y: 100, z: 100 })
+	})
 })
 
 describe('validateProposedFrameDeltas with fragment components', () => {
@@ -334,6 +424,23 @@ describe('validateProposedFrameDeltas with fragment components', () => {
 
 		expect(errors).toHaveLength(0)
 		expect(prepared[0].parent).toBe('gripper')
+	})
+
+	it('resizes an existing fragment geometry surfaced from the transform', () => {
+		const fragmentFramesWithGeom = makeFragmentInfoMap('gripper', {
+			parent: 'arm',
+			geometry: { type: 'box', x: 100, y: 100, z: 100 },
+		})
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'gripper', geometry: { z: 250 } }],
+			makeConfig([]),
+			fragmentFramesWithGeom
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'box', x: 100, y: 100, z: 250 })
+		expect(prepared[0].previousGeometry).toEqual({ type: 'box', x: 100, y: 100, z: 100 })
 	})
 
 	it('still errors for a component in neither config nor fragments', () => {

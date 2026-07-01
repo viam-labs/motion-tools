@@ -4,7 +4,29 @@ import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
+import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
+
+// Reverse of createGeometryFromFrame: read a Transform's geometry back into the
+// frame geometry shape so a fragment's current shape is visible to the LLM and to
+// resize validation. Point clouds / no geometry resolve to undefined.
+function frameGeometryFromTransform(transform: Transform): Frame['geometry'] {
+	const geometryType = transform.physicalObject?.geometryType
+	switch (geometryType?.case) {
+		case 'box': {
+			return { type: 'box', ...createBox(geometryType.value) }
+		}
+		case 'sphere': {
+			return { type: 'sphere', ...createSphere(geometryType.value) }
+		}
+		case 'capsule': {
+			return { type: 'capsule', ...createCapsule(geometryType.value) }
+		}
+		default: {
+			return undefined
+		}
+	}
+}
 
 /**
  * Resolves current frames for fragment-defined components from live framesystem
@@ -27,7 +49,8 @@ export function resolveFragmentCurrentFrames(
 		const meta = fragmentInfo[name]
 		if (!meta) continue
 
-		const observed = (configFrames[name] ?? liveByName[name])?.poseInObserverFrame
+		const transform = configFrames[name] ?? liveByName[name]
+		const observed = transform?.poseInObserverFrame
 		if (!observed) continue
 
 		const pose = createPose(observed.pose)
@@ -51,6 +74,7 @@ export function resolveFragmentCurrentFrames(
 						th: pose.theta,
 					},
 				},
+				geometry: frameGeometryFromTransform(transform),
 			},
 		}
 	}
@@ -62,6 +86,18 @@ export interface FrameDelta {
 	componentName: string
 	translation?: { x?: number; y?: number; z?: number }
 	orientation?: { roll?: number; pitch?: number; yaw?: number }
+	// Like translation/orientation, only the changed fields are sent (all in mm).
+	// Omit `type` to resize the current shape (unspecified dims fall back to the
+	// current geometry); include `type` only to change the shape, in which case
+	// send that type's dims (box → x/y/z, sphere → r, capsule → r/l).
+	geometry?: {
+		type?: 'box' | 'sphere' | 'capsule'
+		x?: number
+		y?: number
+		z?: number
+		r?: number
+		l?: number
+	}
 	parent?: string
 	explanation?: string
 }
@@ -73,6 +109,7 @@ export interface PreparedUpdate {
 	pose: Pose
 	previousPose: Pose
 	geometry?: Frame['geometry']
+	previousGeometry?: Frame['geometry']
 	explanation?: string
 }
 
@@ -95,6 +132,69 @@ function mergeOrientation(
 	return a || b
 		? { roll: b?.roll ?? a?.roll, pitch: b?.pitch ?? a?.pitch, yaw: b?.yaw ?? a?.yaw }
 		: undefined
+}
+
+function mergeGeometry(
+	a?: FrameDelta['geometry'],
+	b?: FrameDelta['geometry']
+): FrameDelta['geometry'] {
+	return a || b
+		? {
+				type: b?.type ?? a?.type,
+				x: b?.x ?? a?.x,
+				y: b?.y ?? a?.y,
+				z: b?.z ?? a?.z,
+				r: b?.r ?? a?.r,
+				l: b?.l ?? a?.l,
+			}
+		: undefined
+}
+
+const isPositive = (v: number | undefined): v is number =>
+	typeof v === 'number' && Number.isFinite(v) && v > 0
+
+/**
+ * Resolves a geometry delta against the component's current geometry. Unspecified
+ * dimensions fall back to the current geometry when the type is unchanged (mirroring
+ * how translation axes fall back to the current pose). Returns an error string when a
+ * required dimension is missing/non-positive or the type cannot be determined.
+ */
+function resolveGeometry(
+	delta: NonNullable<FrameDelta['geometry']>,
+	current: Frame['geometry']
+): { geometry?: Frame['geometry']; error?: string } {
+	const type = delta.type ?? (current && current.type !== 'none' ? current.type : undefined)
+	if (!type) {
+		return { error: 'Geometry change requires a type — the component has no existing geometry' }
+	}
+
+	if (type === 'box') {
+		const cur = current?.type === 'box' ? current : undefined
+		const x = delta.x ?? cur?.x
+		const y = delta.y ?? cur?.y
+		const z = delta.z ?? cur?.z
+		if (!isPositive(x) || !isPositive(y) || !isPositive(z)) {
+			return { error: 'Box geometry requires positive x, y, z dimensions' }
+		}
+		return { geometry: { type: 'box', x, y, z } }
+	}
+
+	if (type === 'sphere') {
+		const cur = current?.type === 'sphere' ? current : undefined
+		const r = delta.r ?? cur?.r
+		if (!isPositive(r)) {
+			return { error: 'Sphere geometry requires a positive radius r' }
+		}
+		return { geometry: { type: 'sphere', r } }
+	}
+
+	const cur = current?.type === 'capsule' ? current : undefined
+	const r = delta.r ?? cur?.r
+	const l = delta.l ?? cur?.l
+	if (!isPositive(r) || !isPositive(l)) {
+		return { error: 'Capsule geometry requires positive radius r and length l' }
+	}
+	return { geometry: { type: 'capsule', r, l } }
 }
 
 /**
@@ -124,6 +224,7 @@ export function validateProposedFrameDeltas(
 				componentName: delta.componentName,
 				translation: mergeTranslation(existing.translation, delta.translation),
 				orientation: mergeOrientation(existing.orientation, delta.orientation),
+				geometry: mergeGeometry(existing.geometry, delta.geometry),
 				parent: delta.parent ?? existing.parent,
 				explanation:
 					[existing.explanation, delta.explanation].filter(Boolean).join(', ') || undefined,
@@ -171,7 +272,17 @@ export function validateProposedFrameDeltas(
 
 		const previousPose = createPoseFromFrame(frame)
 		const previousParent = frame.parent
-		const geometry = frame.geometry
+		const previousGeometry = frame.geometry
+
+		let geometry = previousGeometry
+		if (delta.geometry) {
+			const resolved = resolveGeometry(delta.geometry, previousGeometry)
+			if (resolved.error) {
+				errors.push({ componentName: delta.componentName, reason: resolved.error })
+				continue
+			}
+			geometry = resolved.geometry
+		}
 
 		const newParent = delta.parent ?? previousParent
 		const newPose: Pose = {
@@ -207,6 +318,7 @@ export function validateProposedFrameDeltas(
 			pose: newPose,
 			previousPose,
 			geometry,
+			previousGeometry,
 			explanation: delta.explanation,
 		})
 	}

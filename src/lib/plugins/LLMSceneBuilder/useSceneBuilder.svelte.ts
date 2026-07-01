@@ -1,5 +1,7 @@
 import { getContext, setContext } from 'svelte'
 
+import type { Frame } from '$lib/frame'
+
 import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { useFrames } from '$lib/hooks/useFrames.svelte'
@@ -44,16 +46,19 @@ interface SceneBuilderContext {
 export interface ComponentFrameInfo {
 	name: string
 	frame: {
-		parent: string | undefined
-		translation: { x?: number; y?: number; z?: number } | undefined
-		orientation: { roll: number; pitch: number; yaw: number }
+		parent: Frame['parent']
+		translation: Frame['translation']
+		// The stored orientation (Frame['orientation']) is an OV/quaternion union; here we
+		// pass the converted Euler-degrees form the LLM reasons about.
+		orientation: ReturnType<typeof poseToEulerDegrees>
+		geometry?: Frame['geometry']
 	}
 }
 
 export type InferCallback = (
 	prompt: string,
 	components: ComponentFrameInfo[]
-) => Promise<{ updates: FrameDelta[]; explanation: string }>
+) => Promise<{ updates: FrameDelta[]; explanation?: string; refusal?: string }>
 
 export const provideSceneBuilder = (onInfer: InferCallback): void => {
 	const partConfig = usePartConfig()
@@ -135,6 +140,35 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 				}
 			}
 
+			const geomFields = (g?: Frame['geometry']): Record<string, string> => {
+				if (!g || g.type === 'none') return { 'geometry.type': 'none' }
+				if (g.type === 'box') {
+					return {
+						'geometry.type': 'box',
+						'geometry.x': roundMm(g.x),
+						'geometry.y': roundMm(g.y),
+						'geometry.z': roundMm(g.z),
+					}
+				}
+				if (g.type === 'sphere') {
+					return { 'geometry.type': 'sphere', 'geometry.r': roundMm(g.r) }
+				}
+				return {
+					'geometry.type': 'capsule',
+					'geometry.r': roundMm(g.r),
+					'geometry.l': roundMm(g.l),
+				}
+			}
+			const prevGeom = geomFields(u.previousGeometry)
+			const nextGeom = geomFields(u.geometry)
+			for (const field of new Set([...Object.keys(prevGeom), ...Object.keys(nextGeom)])) {
+				const oldValue = prevGeom[field] ?? '—'
+				const newValue = nextGeom[field] ?? '—'
+				if (oldValue !== newValue) {
+					changes.push({ field, oldValue, newValue })
+				}
+			}
+
 			return changes.length > 0
 				? [{ componentName: u.componentName, explanation: u.explanation, changes }]
 				: []
@@ -178,6 +212,7 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 							parent: frame!.parent,
 							translation: frame!.translation,
 							orientation,
+							geometry: frame!.geometry,
 						},
 					}
 				})
@@ -195,6 +230,7 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 							parent: current.frame!.parent,
 							translation: current.frame!.translation,
 							orientation,
+							geometry: current.frame!.geometry,
 						},
 					}
 				})
@@ -203,8 +239,15 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 
 			try {
 				const data = await onInfer(prompt.trim(), components)
+				// The LLM refuses requests it can't fulfil (e.g. adding a component);
+				// surface the message in the error state instead of an empty diff.
+				if (data.refusal) {
+					errorMessage = data.refusal
+					uiState = 'error'
+					return
+				}
 				deltas = data.updates
-				explanation = data.explanation
+				explanation = data.explanation ?? ''
 				uiState = 'diff'
 			} catch (error) {
 				errorMessage = error instanceof Error ? error.message : String(error)
