@@ -34,9 +34,7 @@
 		children?: Snippet
 	}
 
-	let { entity, color: overrideColor, center, children, ...rest }: Props = $props()
-
-	const colorUtil = new Color()
+	const { entity, color: overrideColor, center, children, ...rest }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
@@ -55,11 +53,11 @@
 		}
 
 		if (entityColors.current) {
-			return asColor(entityColors.current, colorUtil)
+			return asColor(entityColors.current, new Color())
 		}
 
 		if (entityColor.current) {
-			return colorUtil.setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
+			return new Color().setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
 		}
 
 		return colors.default

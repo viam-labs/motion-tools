@@ -54,6 +54,8 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
+	import ColorDetails from './details/ColorDetails.svelte'
+
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
 		details?: Snippet<[{ entity: Entity }]>
@@ -753,6 +755,7 @@
 			<PortalTarget id="details-extensions" />
 
 			{#if !customDetails.current}
+				<ColorDetails {entity} />
 				<OpacityDetails {entity} />
 				<AxesHelperDetails {entity} />
 			{/if}
