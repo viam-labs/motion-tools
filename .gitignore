@@ -16,6 +16,7 @@ dist
 .bin
 draw-server
 viamrobotics-motion-tools-*.tgz
+.wireit
 
 # OS
 .DS_Store
