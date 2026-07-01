@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core'
-	import { BatchedMesh, Box3 } from 'three'
+	import { BatchedMesh, Box3, Matrix4 } from 'three'
 	import { OBB } from 'three/addons/math/OBB.js'
 
+	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
 	import { traits, useQuery } from '$lib/ecs'
 	import { OBBHelper } from '$lib/three/OBBHelper'
 
 	const box3 = new Box3()
 	const obb = new OBB()
+	const boxMatrix = new Matrix4()
 
 	const { scene, invalidate } = useThrelte()
 	const selected = useQuery(traits.Selected)
@@ -17,12 +19,21 @@
 	useTask(
 		() => {
 			for (const [entity, obbHelper] of obbHelpers) {
+				/**
+				 * Boxes render instanced, so the entity's named scene object
+				 * carries no geometry — derive the OBB straight from traits.
+				 */
+				if (composeBoxMatrix(entity, boxMatrix)) {
+					obbHelper.setFromMatrix4(boxMatrix)
+					continue
+				}
+
 				const object = scene.getObjectByName(entity as unknown as string)
 				if (!object) continue
 
 				const instance = entity.get(traits.InstanceId)
-				if (instance !== undefined && instance >= 0) {
-					;(object as BatchedMesh).getBoundingBoxAt(instance, box3)
+				if (instance !== undefined && instance >= 0 && object instanceof BatchedMesh) {
+					object.getBoundingBoxAt(instance, box3)
 					obb.fromBox3(box3)
 					obbHelper.setFromOBB(obb)
 				} else {

@@ -1,10 +1,6 @@
 name: Version PR Docs Review
 
 on:
-  # pull_request fires for human follow-up pushes (e.g. after `@claude apply`).
-  # The initial creation by changesets/action uses GITHUB_TOKEN, which does NOT
-  # dispatch pull_request events — main.yml triggers us via workflow_dispatch
-  # in that case.
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [main]
@@ -76,8 +72,7 @@ jobs:
           PR_BASE_REF: ${{ steps.pr.outputs.base_ref }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Dispatched from main.yml, which runs as github-actions[bot].
-          allowed_bots: 'github-actions'
+          allowed_bots: 'viam-ci-org-reader'
           claude_args: >-
             --max-turns 60
             --allowed-tools "Read,Glob,Grep,Bash(gh pr view*),Bash(gh pr diff*),Bash(gh pr comment*),Bash(gh api *),Bash(git log*),Bash(git diff*),Bash(git show*),Bash(git fetch*),Bash(ls *),Bash(find *)"

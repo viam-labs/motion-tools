@@ -9,7 +9,6 @@
 	import { traits, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	interface Props {
@@ -29,7 +28,6 @@
 	const entityPointSize = useTrait(() => entity, traits.PointSize)
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 	const materialProps = useTrait(() => entity, traits.Material)
 
@@ -134,13 +132,7 @@
 	>
 		<T is={geometry.current} />
 		<T is={material} />
-		{#if showAxesHelper.current}
-			<AxesHelper
-				name={entity}
-				width={3}
-				length={0.1}
-			/>
-		{/if}
+
 		{@render children?.()}
 	</T>
 {/if}

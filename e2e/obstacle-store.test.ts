@@ -107,7 +107,7 @@ withRobot('obstacle store: stable UUIDs across polls', async ({ robotPage }) => 
 	await expect(obs0).toBeVisible({ timeout: 30000 })
 
 	await obs0.click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	// Wait for several poll cycles (poll = 1s). If UUIDs were re-derived on
 	// every poll, the entity would churn ADDED/REMOVED and the selection
@@ -115,6 +115,6 @@ withRobot('obstacle store: stable UUIDs across polls', async ({ robotPage }) => 
 	// selection persists.
 	await page.waitForTimeout(5000)
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await expect(obs0).toBeVisible()
 })

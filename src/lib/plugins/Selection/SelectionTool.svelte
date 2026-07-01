@@ -19,6 +19,10 @@
 	interface Props {
 		/** Whether to auto-enable lasso mode when the component mounts */
 		enabled?: boolean
+
+		/** Allow manually going into selection state */
+		selecting?: boolean
+
 		// TODO: remove once a Selected trait exists
 		autoSelectNewEntities?: boolean
 		children?: Snippet
@@ -26,7 +30,12 @@
 
 	type SelectionType = 'lasso' | 'ellipse'
 
-	let { enabled = false, autoSelectNewEntities = false, children }: Props = $props()
+	let {
+		enabled = false,
+		selecting = false,
+		autoSelectNewEntities = false,
+		children,
+	}: Props = $props()
 
 	const { dom } = useThrelte()
 	const world = useWorld()
@@ -113,7 +122,13 @@
 </Portal>
 
 {#if isSelectionMode && rect.height > 0 && rect.width > 0}
-	<Ellipse active={selectionType === 'ellipse'} />
-	<Lasso active={selectionType === 'lasso'} />
+	<Ellipse
+		enabled={selectionType === 'ellipse'}
+		{selecting}
+	/>
+	<Lasso
+		enabled={selectionType === 'lasso'}
+		{selecting}
+	/>
 	{@render children?.()}
 {/if}

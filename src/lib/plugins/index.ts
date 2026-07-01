@@ -5,6 +5,7 @@ export * as selectionRelations from './Selection/relations'
 export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 
 export { default as MeasureTool } from './MeasureTool/MeasureTool.svelte'
+export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 
 // DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'

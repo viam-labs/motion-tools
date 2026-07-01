@@ -21,7 +21,6 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	interface Props extends ThrelteProps<Object3D> {
@@ -36,7 +35,6 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const gltfTrait = useTrait(() => entity, traits.GLTF)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const events = useEntityEvents(() => entity)
 
 	const animationName = $derived(gltfTrait.current?.animationName)
@@ -83,13 +81,6 @@
 </script>
 
 <T is={group}>
-	{#if showAxesHelper.current}
-		<AxesHelper
-			name={entity}
-			width={3}
-			length={0.1}
-		/>
-	{/if}
 	{#if $gltf}
 		<T
 			is={$gltf.scene as Object3D}

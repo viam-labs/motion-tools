@@ -1,5 +1,33 @@
 # motion-tools
 
+## 1.34.8
+
+### Patch Changes
+
+- 9923932: Show triangle count for BufferGeometries
+- db5d3a3: Batch all AxesHelpers into a single draw call
+
+## 1.34.7
+
+### Patch Changes
+
+- 57da47d: fix: make fragment frame parse optional for standalone
+- ee5edd6: Upgrade to Vite 8 and Vitest 4
+- 800ba17: Security patches
+
+## 1.34.6
+
+### Patch Changes
+
+- a61b755: fix: allow llm scene builder to resolve fragments
+- 700db52: Instanced rendering of all boxes
+
+## 1.34.5
+
+### Patch Changes
+
+- 07a0bf4: Add better touchscreen support for the select plugin
+
 ## 1.34.4
 
 ### Patch Changes

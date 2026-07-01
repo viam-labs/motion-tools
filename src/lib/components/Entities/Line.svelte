@@ -9,7 +9,6 @@
 	import { isVertexColors, STRIDE } from '$lib/buffer'
 	import { traits, useTrait } from '$lib/ecs'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 	import LineDots from './LineDots.svelte'
 	import LineGeometry from './LineGeometry.svelte'
@@ -35,7 +34,6 @@
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const screenSpace = useTrait(() => entity, traits.ScreenSpace)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 
 	const events = useEntityEvents(() => entity)
 
@@ -96,13 +94,6 @@
 		linewidth={(lineWidth.current ?? 5) * (screenSpace.current ? 1 : 0.001)}
 		depthTest={materialProps.current?.depthTest ?? true}
 	/>
-	{#if showAxesHelper.current}
-		<AxesHelper
-			name={entity}
-			width={3}
-			length={0.1}
-		/>
-	{/if}
 
 	{#if linePositions.current && dotSize.current}
 		<LineDots

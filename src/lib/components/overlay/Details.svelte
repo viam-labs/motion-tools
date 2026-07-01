@@ -46,6 +46,7 @@
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -66,6 +67,7 @@
 	const resourceByName = useResourceByName()
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
 	const partID = usePartID()
 	const settings = useSettings()
 	const environment = useEnvironment()
@@ -82,6 +84,7 @@
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
 	const removable = useTrait(() => entity, traits.Removable)
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
@@ -101,12 +104,19 @@
 		return matrixToPose(worldMatrix.current, createPose())
 	})
 
+	const triangleCount = $derived.by(() => {
+		const geometry = bufferGeometry.current
+		// Triangle count is meaningful only for meshes, not point clouds.
+		if (!geometry || points.current) return
+		const index = geometry.getIndex()
+		const vertices = index ? index.count : (geometry.getAttribute('position')?.count ?? 0)
+		return Math.floor(vertices / 3)
+	})
+
 	const isFrameNode = $derived(!!framesAPI.current)
 	const isGeometry = $derived(!!geometriesAPI.current)
 	const isFragmentComponentWithVariables = $derived(
-		name.current &&
-			Object.keys(partConfig.componentNameToFragmentInfo?.[name.current]?.variables ?? {}).length >
-				0
+		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
 	const showEditFrameOptions = $derived(
 		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
@@ -435,7 +445,12 @@
 			</p>
 		{/if}
 
-		<h3 class="text-subtle-2 pt-3 pb-2">Details</h3>
+		<h3
+			class="text-subtle-2 pt-3 pb-2"
+			data-testid="details-header"
+		>
+			Details
+		</h3>
 
 		<div class="flex flex-col gap-2.5">
 			{#if !customDetails.current}
@@ -720,6 +735,17 @@
 						value: new Intl.NumberFormat().format(
 							(object3d.geometry.getAttribute('position') as BufferAttribute).array.length / 3
 						),
+					})}
+				</div>
+			{/if}
+
+			{#if triangleCount !== undefined}
+				<div>
+					<strong class="font-semibold">triangles</strong>
+					{@render ImmutableField({
+						label: 'count',
+						ariaLabel: 'triangle count',
+						value: new Intl.NumberFormat().format(triangleCount),
 					})}
 				</div>
 			{/if}
