@@ -20,7 +20,10 @@ const RequestSchema = z.object({
 						r: z.number().optional(),
 						l: z.number().optional(),
 					})
-					.optional(),
+					.optional()
+					.describe(
+						"the component's current collision geometry, if any. Absent means the component has no geometry yet."
+					),
 			}),
 		})
 	),
