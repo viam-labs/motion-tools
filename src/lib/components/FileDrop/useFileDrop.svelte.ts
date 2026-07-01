@@ -36,16 +36,6 @@ export const useFileDrop = (
 ) => {
 	let dropState = $state<DropStates>('inactive')
 
-	// Reset overlay if a drop lands on a higher z-index element (e.g. a floating panel)
-	// and the overlay's own ondrop never fires.
-	$effect(() => {
-		const reset = () => {
-			dropState = 'inactive'
-		}
-		window.addEventListener('drop', reset)
-		return () => window.removeEventListener('drop', reset)
-	})
-
 	// prevent default to allow drop
 	const ondragenter = (event: DragEvent) => {
 		if (!hasDraggedFiles(event.dataTransfer)) return
