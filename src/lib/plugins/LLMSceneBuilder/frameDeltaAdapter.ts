@@ -4,29 +4,8 @@ import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-import { createBox, createCapsule, createSphere } from '$lib/geometry'
+import { frameGeometryFromTransform } from '$lib/geometry'
 import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
-
-// Reverse of createGeometryFromFrame: read a Transform's geometry back into the
-// frame geometry shape so a fragment's current shape is visible to the LLM and to
-// resize validation. Point clouds / no geometry resolve to undefined.
-function frameGeometryFromTransform(transform: Transform): Frame['geometry'] {
-	const geometryType = transform.physicalObject?.geometryType
-	switch (geometryType?.case) {
-		case 'box': {
-			return { type: 'box', ...createBox(geometryType.value) }
-		}
-		case 'sphere': {
-			return { type: 'sphere', ...createSphere(geometryType.value) }
-		}
-		case 'capsule': {
-			return { type: 'capsule', ...createCapsule(geometryType.value) }
-		}
-		default: {
-			return undefined
-		}
-	}
-}
 
 /**
  * Resolves current frames for fragment-defined components from live framesystem
