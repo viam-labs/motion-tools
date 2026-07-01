@@ -181,7 +181,10 @@ describe('composeCapsuleBoundsMatrix', () => {
 	it('clamps the axial extent to 2r when l ≤ 2r (sphere bounds)', () => {
 		// l = 150 mm < 2r = 200 mm: the capsule renders as a sphere of radius r,
 		// so the bounds are 2r on every axis.
-		const entity = world.spawn(traits.Capsule({ r: 100, l: 150 }), traits.WorldMatrix(poseMatrix({})))
+		const entity = world.spawn(
+			traits.Capsule({ r: 100, l: 150 }),
+			traits.WorldMatrix(poseMatrix({}))
+		)
 
 		composeCapsuleBoundsMatrix(entity, bounds)
 
