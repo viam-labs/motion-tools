@@ -1,4 +1,4 @@
-import { Quaternion } from 'three'
+import { Euler, Quaternion, Vector3 } from 'three'
 
 import {
 	Capsule,
@@ -37,20 +37,36 @@ export interface JointFrameDescriptor {
 
 export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 
-// Shared scratch object — safe in single-threaded JS
+// Shared scratch objects — safe in single-threaded JS
 const tmpQ = new Quaternion()
+const tmpQFrame = new Quaternion()
+const tmpQGeo = new Quaternion()
+const tmpQInv = new Quaternion()
+const tmpQLocal = new Quaternion()
+const tmpE = new Euler()
+const tmpV = new Vector3()
 
 type QuatJson = { W: number; X: number; Y: number; Z: number }
-type OrientJson = { type: string; value: QuatJson } | undefined
+type EulerJson = { roll: number; pitch: number; yaw: number }
+type OrientJson =
+	| { type: 'quaternion'; value: QuatJson }
+	| { type: 'euler_angles'; value: EulerJson }
+	| undefined
 type Vec3Json = { X: number; Y: number; Z: number } | undefined
 
-const quaternionFromJson = (orientation: OrientJson): Quaternion => {
+/** Write orientation JSON into `out`. RDK euler_angles use Tait–Bryan Z-Y′-X″ (ZYX). */
+const quatFromJson = (orientation: OrientJson, out: Quaternion): Quaternion => {
 	if (orientation?.type === 'quaternion' && orientation.value) {
 		const v = orientation.value
 		// Three.js Quaternion order: (x, y, z, w) — W is LAST
-		return tmpQ.set(v.X, v.Y, v.Z, v.W)
+		return out.set(v.X, v.Y, v.Z, v.W)
 	}
-	return tmpQ.set(0, 0, 0, 1)
+	if (orientation?.type === 'euler_angles' && orientation.value) {
+		const v = orientation.value
+		tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX')
+		return out.setFromEuler(tmpE)
+	}
+	return out.set(0, 0, 0, 1)
 }
 
 const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): Pose => {
@@ -59,27 +75,58 @@ const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): Pose => 
 		y: translation?.Y ?? 0,
 		z: translation?.Z ?? 0,
 	})
-	quaternionToPose(quaternionFromJson(orientation), pose)
+	quaternionToPose(quatFromJson(orientation, tmpQ), pose)
 	return pose
+}
+
+type FramePoseJson = { translation?: Vec3Json; orientation?: OrientJson }
+
+/**
+ * Convert a geometry center pose from parent-frame coordinates into the link
+ * frame's local coordinates.
+ *
+ * Both the link frame and geometry center are expressed in the same parent
+ * frame. The link frame pose places the frame origin; the geometry describes
+ * the physical link body (length/shape) with its center offset in parent space.
+ */
+const geometryCenterInFrame = (
+	geoTrans: Vec3Json,
+	geoOrient: OrientJson,
+	framePose: FramePoseJson
+): Pose => {
+	quatFromJson(framePose.orientation, tmpQFrame)
+	tmpQInv.copy(tmpQFrame).invert()
+
+	tmpV
+		.set(
+			(geoTrans?.X ?? 0) - (framePose.translation?.X ?? 0),
+			(geoTrans?.Y ?? 0) - (framePose.translation?.Y ?? 0),
+			(geoTrans?.Z ?? 0) - (framePose.translation?.Z ?? 0)
+		)
+		.applyQuaternion(tmpQInv)
+
+	const center = new Pose({ x: tmpV.x, y: tmpV.y, z: tmpV.z })
+
+	if (geoOrient?.type === 'quaternion' || geoOrient?.type === 'euler_angles') {
+		quatFromJson(geoOrient, tmpQGeo)
+		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
+		quaternionToPose(tmpQLocal, center)
+	}
+
+	return center
 }
 
 /**
  * Parse a geometry from raw JSON, returning a proto Geometry.
  *
- * `frameTranslation` must be supplied for link frames from `internal_fs`
- * (i.e. `named` inner-static frames). In that format the geometry center
- * translation is expressed in the *parent* frame — the same coordinate space
- * as the frame's own translation — so the local center offset is:
+ * For named arm link frames, pass `framePose` so the geometry center (which is
+ * in parent-frame coordinates alongside the link frame) is converted to local
+ * coordinates via R_frame⁻¹.
  *
- *   local_center = geo_center_in_parent − frame_translation_in_parent
- *
- * Example: base_top frame at z=267, geo center at z=160 (both from waist)
- *   → local_center = (0,0,−107)  (capsule center is 107mm BELOW the frame origin)
- *
- * For non-arm static frames (cameras, obstacles) the geometry center is already
- * in local frame coordinates, so `frameTranslation` should be omitted.
+ * For tail_geometry_static / static frames, omit `framePose` — geometry is
+ * already in local coordinates.
  */
-const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): Geometry | null => {
+const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | null => {
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
@@ -87,14 +134,19 @@ const parseGeometry = (geom: unknown, frameTranslation?: Vec3Json): Geometry | n
 
 	const trans = g.translation as Vec3Json
 	const orient = g.orientation as OrientJson
-	const center = new Pose({
-		x: (trans?.X ?? 0) - (frameTranslation?.X ?? 0),
-		y: (trans?.Y ?? 0) - (frameTranslation?.Y ?? 0),
-		z: (trans?.Z ?? 0) - (frameTranslation?.Z ?? 0),
-	})
-	if (orient?.type === 'quaternion' && orient.value) {
-		quaternionToPose(quaternionFromJson(orient), center)
-	}
+	const center = framePose
+		? geometryCenterInFrame(trans, orient, framePose)
+		: (() => {
+				const local = new Pose({
+					x: trans?.X ?? 0,
+					y: trans?.Y ?? 0,
+					z: trans?.Z ?? 0,
+				})
+				if (orient?.type === 'quaternion' || orient?.type === 'euler_angles') {
+					quaternionToPose(quatFromJson(orient, tmpQ), local)
+				}
+				return local
+			})()
 
 	const label = (g.Label ?? g.label ?? '') as string
 
@@ -210,13 +262,16 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 					})
 				} else if (inner.frame_type === 'static') {
 					const innerData = inner.frame as Record<string, unknown>
-					const frameTrans = innerData.translation as Vec3Json
+					const framePose: FramePoseJson = {
+						translation: innerData.translation as Vec3Json,
+						orientation: innerData.orientation as OrientJson,
+					}
 					descriptors.push({
 						kind: 'static',
 						name: frameName,
 						parent,
-						localPose: poseFromFrame(frameTrans, innerData.orientation as OrientJson),
-						geometry: parseGeometry(innerData.geometry, frameTrans),
+						localPose: poseFromFrame(framePose.translation, framePose.orientation),
+						geometry: parseGeometry(innerData.geometry, framePose),
 						uuid: planUuid(),
 					})
 				}

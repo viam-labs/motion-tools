@@ -236,6 +236,157 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	it('subtracts frame translation from parent-frame geometry center (xArm6 base_top)', () => {
+		const p = plan(
+			{
+				'arm:base_top': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 267 },
+								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+								geometry: {
+									type: 'capsule',
+									r: 50,
+									l: 320,
+									translation: { X: 0, Y: 0, Z: 160 },
+									orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+									Label: 'base_top',
+								},
+							},
+						},
+					},
+				},
+			},
+			{ 'arm:base_top': 'arm:waist' }
+		)
+		const d = buildFrameDescriptors(p)[0]!
+		if (d.kind === 'static') {
+			expect(d.localPose.z).toBeCloseTo(267)
+			// geo z=160 and frame z=267 both in parent (waist) → local center 107mm below frame
+			expect(d.geometry!.center!.z).toBeCloseTo(-107)
+		}
+	})
+
+	it('rotates parent-frame geometry offset into link-local coords (xArm850 link_2)', () => {
+		const p = plan(
+			{
+				'left-arm:link_2': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 390, Y: 0, Z: 0 },
+								orientation: {
+									type: 'quaternion',
+									value: {
+										W: -2.5973434669646147e-06,
+										X: -0.7071054825064661,
+										Y: 0.7071080798547033,
+										Z: 2.597353007557415e-06,
+									},
+								},
+								geometry: {
+									type: 'box',
+									x: 500.07,
+									y: 119.987,
+									z: 161.805,
+									translation: { X: 189.857, Y: 0, Z: 31.0907 },
+									orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+									Label: 'link_2',
+								},
+							},
+						},
+					},
+				},
+			},
+			{ 'left-arm:link_2': 'left-arm:joint_2' }
+		)
+		const d = buildFrameDescriptors(p)[0]!
+		if (d.kind === 'static') {
+			expect(d.localPose.x).toBeCloseTo(390)
+			// R_frame⁻¹ * (geo − frame): not a naive component-wise subtract
+			expect(d.geometry!.center!.x).toBeCloseTo(0, 1)
+			expect(d.geometry!.center!.y).toBeCloseTo(200.143, 1)
+			expect(d.geometry!.center!.z).toBeCloseTo(-31.0907, 1)
+		}
+	})
+
+	it('parses euler_angles orientation on a static frame (not identity)', () => {
+		const p = plan(
+			{
+				'arm:link': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								// 90 degree yaw about Z
+								orientation: {
+									type: 'euler_angles',
+									value: { roll: 0, pitch: 0, yaw: Math.PI / 2 },
+								},
+							},
+						},
+					},
+				},
+			},
+			{ 'arm:link': 'world' }
+		)
+		const d = buildFrameDescriptors(p)[0]!
+		if (d.kind === 'static') {
+			// Identity would be oX:0 oY:0 oZ:1 theta:0 — assert it's not identity and
+			// specifically a 90 degree rotation about Z.
+			expect(d.localPose.theta).toBeCloseTo(90)
+			expect(d.localPose.oZ).toBeCloseTo(1)
+		}
+	})
+
+	it('parses euler_angles on link frame and rotates geometry orient into local coords', () => {
+		// link_1 from salad: 90° fixed rotation with geometry offset in parent frame
+		const p = plan(
+			{
+				'left-arm:link_1': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: {
+								translation: { X: 0, Y: 0, Z: 0 },
+								orientation: {
+									type: 'euler_angles',
+									value: { roll: 1.5708, pitch: -1.5708, yaw: 0 },
+								},
+								geometry: {
+									type: 'box',
+									x: 120.619,
+									y: 185.133,
+									z: 238.5,
+									translation: { X: 0, Y: 32.5667, Z: -59.25 },
+									orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+									Label: 'link_1',
+								},
+							},
+						},
+					},
+				},
+			},
+			{ 'left-arm:link_1': 'left-arm:joint_1' }
+		)
+		const d = buildFrameDescriptors(p)[0]!
+		if (d.kind === 'static') {
+			expect(d.localPose.theta).not.toBeCloseTo(0)
+			// geometry center offset is rotated into link-local, not left in parent Y/Z
+			expect(d.geometry!.center!.x).toBeCloseTo(-59.25, 1)
+			expect(d.geometry!.center!.y).toBeCloseTo(0, 1)
+			expect(d.geometry!.center!.z).toBeCloseTo(-32.5667, 1)
+		}
+	})
+
 	it('returns null geometry for unrecognized geometry type', () => {
 		const p = plan(
 			{
