@@ -49,7 +49,7 @@ const FrameDeltaSchema = z.object({
 		.optional(),
 	geometry: z
 		.object({
-			type: z.enum(['box', 'sphere', 'capsule']).optional(),
+			type: z.enum(['none', 'box', 'sphere', 'capsule']).optional(),
 			x: z.number().positive().optional(),
 			y: z.number().positive().optional(),
 			z: z.number().positive().optional(),
@@ -58,7 +58,7 @@ const FrameDeltaSchema = z.object({
 		})
 		.optional()
 		.describe(
-			'geometry change. Omit "type" to resize the current shape (send only changed dims); set "type" to change shape and send that type\'s dims. box → x/y/z, sphere → r, capsule → r/l. All dims in millimeters.'
+			'geometry change. Omit "type" to resize the current shape (send only changed dims); set "type" to change shape and send that type\'s dims (box → x/y/z, sphere → r, capsule → r/l); set "type" to "none" to REMOVE the geometry. All dims in millimeters. Omit this field entirely to leave geometry unchanged — never send null.'
 		),
 	parent: z.string().optional(),
 	explanation: z
@@ -115,6 +115,7 @@ Rules:
   - To resize the current shape, return only the changed dimensions and omit "type" (unspecified dims keep their current value).
   - To change the shape, set "type" to the new shape and provide that type's dimensions.
   - If a component has no geometry yet (no "geometry" field in its context), ADD one by returning "type" and that type's dimensions. Always do this when asked — never refuse it.
+  - To REMOVE a component's geometry, set "type" to "none". Do this when the user asks to delete/remove the geometry or collision shape. Never use null for geometry — omit the field to leave it unchanged, or use "none" to remove it.
 - You edit the frames of existing components only. Refuse ONLY when the user asks to add/create a brand-new component (a new part/resource) or remove/delete an existing component entirely — in that case return an empty "updates" array and set "refusal" to a short message, e.g. "I cannot add components at the moment." Editing an existing component's frame — translation, orientation, parent, or geometry (including adding geometry) — is always allowed and must never be refused.
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 

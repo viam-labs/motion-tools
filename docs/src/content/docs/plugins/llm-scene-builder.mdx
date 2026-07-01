@@ -85,9 +85,9 @@ interface FrameDelta {
 	componentName: string
 	translation?: { x?: number; y?: number; z?: number } // mm, absolute
 	orientation?: { roll?: number; pitch?: number; yaw?: number } // degrees, delta applied to current
-	// resize (omit `type`) and/or change shape (set `type`); send only changed dims
+	// resize (omit `type`), change shape (set `type`), or remove (`type: 'none'`); send only changed dims
 	geometry?: {
-		type?: 'box' | 'sphere' | 'capsule'
+		type?: 'none' | 'box' | 'sphere' | 'capsule'
 		x?: number
 		y?: number
 		z?: number
@@ -105,7 +105,7 @@ interface FrameDelta {
 	translation/orientation: send only the changed dims (in millimeters). Omit `type` to resize the
 	current shape (unspecified dims keep their value); set `type` to change shape and send that type's
 	dims (`box` → `x`/`y`/`z`, `sphere` → `r`, `capsule` → `r`/`l`). If the component has no geometry,
-	send `type` + dims to add one.
+	send `type` + dims to add one; send `type: 'none'` to remove an existing geometry.
 </Aside>
 
 The plugin validates every delta before showing the diff: unknown component names, self-referential parent assignments, non-finite numbers, and geometry with missing or non-positive dimensions are surfaced as errors without blocking the rest of the update batch.

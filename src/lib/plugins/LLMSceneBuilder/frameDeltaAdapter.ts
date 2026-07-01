@@ -68,9 +68,10 @@ export interface FrameDelta {
 	// Like translation/orientation, only the changed fields are sent (all in mm).
 	// Omit `type` to resize the current shape (unspecified dims fall back to the
 	// current geometry); include `type` only to change the shape, in which case
-	// send that type's dims (box → x/y/z, sphere → r, capsule → r/l).
+	// send that type's dims (box → x/y/z, sphere → r, capsule → r/l). `type: 'none'`
+	// removes the component's geometry.
 	geometry?: {
-		type?: 'box' | 'sphere' | 'capsule'
+		type?: 'none' | 'box' | 'sphere' | 'capsule'
 		x?: number
 		y?: number
 		z?: number
@@ -135,13 +136,18 @@ const isPositive = (v: number | undefined): v is number =>
 /**
  * Resolves a geometry delta against the component's current geometry. Unspecified
  * dimensions fall back to the current geometry when the type is unchanged (mirroring
- * how translation axes fall back to the current pose). Returns an error string when a
- * required dimension is missing/non-positive or the type cannot be determined.
+ * how translation axes fall back to the current pose). `type: 'none'` removes the
+ * geometry. Returns an error string when a required dimension is missing/non-positive
+ * or the type cannot be determined.
  */
 function resolveGeometry(
 	delta: NonNullable<FrameDelta['geometry']>,
 	current: Frame['geometry']
 ): { geometry?: Frame['geometry']; error?: string } {
+	if (delta.type === 'none') {
+		return { geometry: { type: 'none' } }
+	}
+
 	const type = delta.type ?? (current && current.type !== 'none' ? current.type : undefined)
 	if (!type) {
 		return { error: 'Geometry change requires a type — the component has no existing geometry' }
