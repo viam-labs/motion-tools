@@ -301,6 +301,19 @@ describe('validateProposedFrameDeltas geometry editing', () => {
 		expect(prepared[0].previousGeometry).toEqual({ type: 'box', x: 100, y: 100, z: 100 })
 	})
 
+	it('prepares a geometry-none update even when the component has no geometry', () => {
+		const config = makeConfig([{ name: 'arm', frame: makeFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[{ componentName: 'arm', geometry: { type: 'none' } }],
+			config
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'none' })
+		expect(prepared[0].previousGeometry).toBeUndefined()
+	})
+
 	it('changes the geometry type when type is provided', () => {
 		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
 

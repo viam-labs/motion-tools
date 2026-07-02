@@ -173,13 +173,17 @@ function resolveGeometry(
 		return { geometry: { type: 'sphere', r } }
 	}
 
-	const cur = current?.type === 'capsule' ? current : undefined
-	const r = delta.r ?? cur?.r
-	const l = delta.l ?? cur?.l
-	if (!isPositive(r) || !isPositive(l)) {
-		return { error: 'Capsule geometry requires positive radius r and length l' }
+	if (type === 'capsule') {
+		const cur = current?.type === 'capsule' ? current : undefined
+		const r = delta.r ?? cur?.r
+		const l = delta.l ?? cur?.l
+		if (!isPositive(r) || !isPositive(l)) {
+			return { error: 'Capsule geometry requires positive radius r and length l' }
+		}
+		return { geometry: { type: 'capsule', r, l } }
 	}
-	return { geometry: { type: 'capsule', r, l } }
+
+	return { error: `Unknown geometry type: ${type}` }
 }
 
 /**

@@ -141,7 +141,8 @@ export const provideSceneBuilder = (onInfer: InferCallback): void => {
 			}
 
 			const geomFields = (g?: Frame['geometry']): Record<string, string> => {
-				if (!g || g.type === 'none') return { 'geometry.type': 'none' }
+				if (!g) return {}
+				if (g.type === 'none') return { 'geometry.type': 'none' }
 				if (g.type === 'box') {
 					return {
 						'geometry.type': 'box',
