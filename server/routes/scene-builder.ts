@@ -11,6 +11,19 @@ const RequestSchema = z.object({
 				parent: z.string(),
 				translation: z.object({ x: z.number(), y: z.number(), z: z.number() }),
 				orientation: z.object({ roll: z.number(), pitch: z.number(), yaw: z.number() }),
+				geometry: z
+					.object({
+						type: z.enum(['none', 'box', 'sphere', 'capsule']),
+						x: z.number().optional(),
+						y: z.number().optional(),
+						z: z.number().optional(),
+						r: z.number().optional(),
+						l: z.number().optional(),
+					})
+					.optional()
+					.describe(
+						"the component's current collision geometry, if any. Absent means the component has no geometry yet."
+					),
 			}),
 		})
 	),
@@ -34,6 +47,19 @@ const FrameDeltaSchema = z.object({
 			yaw: z.number().min(-180).max(180).optional(),
 		})
 		.optional(),
+	geometry: z
+		.object({
+			type: z.enum(['none', 'box', 'sphere', 'capsule']).optional(),
+			x: z.number().positive().optional(),
+			y: z.number().positive().optional(),
+			z: z.number().positive().optional(),
+			r: z.number().positive().optional(),
+			l: z.number().positive().optional(),
+		})
+		.optional()
+		.describe(
+			'geometry change. Omit "type" to resize the current shape (send only changed dims); set "type" to change shape and send that type\'s dims (box → x/y/z, sphere → r, capsule → r/l); set "type" to "none" to REMOVE the geometry. All dims in millimeters. Omit this field entirely to leave geometry unchanged — never send null.'
+		),
 	parent: z.string().optional(),
 	explanation: z
 		.string()
@@ -51,7 +77,16 @@ const ResponseSchema = z.object({
 		),
 	explanation: z
 		.string()
-		.describe('One sentence summarizing the changes made, e.g. "Rotated arm-1 yaw to 90°."'),
+		.optional()
+		.describe(
+			'One sentence summarizing the changes made, e.g. "Rotated arm-1 yaw to 90°." Omit when refusing.'
+		),
+	refusal: z
+		.string()
+		.optional()
+		.describe(
+			'Set only when the request cannot be fulfilled (e.g. adding or removing a whole component). When set, "updates" must be empty.'
+		),
 })
 
 const CORS_HEADERS = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
@@ -76,7 +111,12 @@ Rules:
     - "roll the end effector 45° clockwise" → { roll: -45 }
     - "rotate arm-1 yaw by +90° more" (current yaw 45°) → { yaw: 135 }
 - For parent, return the new parent frame name as a string.
-- Do not change geometry or attributes.
+- For geometry, you may edit a component's collision geometry: resize it, change its shape, or ADD a geometry to a component that has none. Types: "box" (dims x, y, z), "sphere" (radius r), "capsule" (radius r and length l). All dimensions are in millimeters and must be positive. This is a normal frame edit — it is NOT "adding a component".
+  - To resize the current shape, return only the changed dimensions and omit "type" (unspecified dims keep their current value).
+  - To change the shape, set "type" to the new shape and provide that type's dimensions.
+  - If a component has no geometry yet (no "geometry" field in its context), ADD one by returning "type" and that type's dimensions. Always do this when asked — never refuse it.
+  - To REMOVE a component's geometry, set "type" to "none". Do this when the user asks to delete/remove the geometry or collision shape. Never use null for geometry — omit the field to leave it unchanged, or use "none" to remove it.
+- You edit the frames of existing components only. Refuse ONLY when the user asks to add/create a brand-new component (a new part/resource) or remove/delete an existing component entirely — in that case return an empty "updates" array and set "refusal" to a short message, e.g. "I cannot add components at the moment." Editing an existing component's frame — translation, orientation, parent, or geometry (including adding geometry) — is always allowed and must never be refused.
 - For complex commands — those affecting more than one component, or more than two fields on a single component (e.g. moving an arm 200mm and re-parenting its gripper) — include a short "explanation" phrase on each delta describing what that specific change does (e.g. "move 200mm forward along X", "re-parent to updated arm"). Keep each explanation to one short phrase. Omit "explanation" for simple single-field changes.`
 
 export async function handleSceneBuilder(req: Request): Promise<Response> {
