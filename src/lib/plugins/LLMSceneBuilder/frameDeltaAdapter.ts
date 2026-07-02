@@ -118,16 +118,23 @@ function mergeGeometry(
 	a?: FrameDelta['geometry'],
 	b?: FrameDelta['geometry']
 ): FrameDelta['geometry'] {
-	return a || b
-		? {
-				type: b?.type ?? a?.type,
-				x: b?.x ?? a?.x,
-				y: b?.y ?? a?.y,
-				z: b?.z ?? a?.z,
-				r: b?.r ?? a?.r,
-				l: b?.l ?? a?.l,
-			}
-		: undefined
+	if (!a || !b) {
+		return a ?? b
+	}
+
+	// If `b` explicitly changes the type, its dims fully replace `a` to prevent leaking stale dimension fields.
+	if (b.type !== undefined && b.type !== a.type) {
+		return { type: b.type, x: b.x, y: b.y, z: b.z, r: b.r, l: b.l }
+	}
+
+	return {
+		type: b.type ?? a.type,
+		x: b.x ?? a.x,
+		y: b.y ?? a.y,
+		z: b.z ?? a.z,
+		r: b.r ?? a.r,
+		l: b.l ?? a.l,
+	}
 }
 
 const isPositive = (v: number | undefined): v is number =>

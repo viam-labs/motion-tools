@@ -363,6 +363,38 @@ describe('validateProposedFrameDeltas geometry editing', () => {
 		expect(errors[0].reason).toMatch(/positive/i)
 	})
 
+	it('discards stale dims when a split-entry type change merges box into sphere', () => {
+		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[
+				{ componentName: 'arm', geometry: { type: 'box', x: 10, y: 10, z: 10 } },
+				{ componentName: 'arm', geometry: { type: 'sphere', r: 10 } },
+			],
+			config
+		)
+
+		expect(errors).toHaveLength(0)
+		expect(prepared[0].geometry).toEqual({ type: 'sphere', r: 10 })
+	})
+
+	it('does not leak a stale radius across a sphere-to-capsule split-entry type change', () => {
+		const config = makeConfig([
+			{ name: 'arm', frame: makeFrame({ geometry: { type: 'sphere', r: 40 } }) },
+		])
+
+		const { prepared, errors } = validateProposedFrameDeltas(
+			[
+				{ componentName: 'arm', geometry: { type: 'sphere', r: 5 } },
+				{ componentName: 'arm', geometry: { type: 'capsule', l: 20 } },
+			],
+			config
+		)
+
+		expect(prepared).toHaveLength(0)
+		expect(errors[0].reason).toMatch(/positive radius/i)
+	})
+
 	it('carries the current geometry unchanged when the delta has no geometry', () => {
 		const config = makeConfig([{ name: 'arm', frame: boxFrame() }])
 
