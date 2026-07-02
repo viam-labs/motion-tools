@@ -8,8 +8,10 @@ export interface TreeNode {
 	children?: TreeNode[]
 }
 
+const collator = new Intl.Collator()
+
 const compareByName = (a: Entity, b: Entity): number =>
-	(a.get(traits.Name) ?? '').localeCompare(b.get(traits.Name) ?? '')
+	collator.compare(a.get(traits.Name) ?? '', b.get(traits.Name) ?? '')
 
 const buildTree = (world: World): TreeNode[] => {
 	const walk = (entity: Entity): TreeNode => {
@@ -36,8 +38,10 @@ const buildTree = (world: World): TreeNode[] => {
 /**
  * Reactive top-down tree built from `ChildOf` relations. Rebuilds when any
  * named entity is added, removed, renamed, or gains/loses a `ChildOf` or
- * `Orphan` edge. Orphans are hidden from the tree — they reappear once
- * `provideHierarchy` resolves them to a real `ChildOf` parent.
+ * `Orphan` edge; rebuild notifications are throttled (see below) so bursts of
+ * world-state churn stay off the frame budget. Orphans are hidden from the
+ * tree — they reappear once `provideHierarchy` resolves them to a real
+ * `ChildOf` parent.
  */
 export const useTree = (): { readonly current: TreeNode[] } => {
 	const world = useWorld()
@@ -46,9 +50,33 @@ export const useTree = (): { readonly current: TreeNode[] } => {
 	let dirty = true
 
 	const subscribe = createSubscriber((update) => {
+		// The world-state stream can add or remove dozens of entities per second.
+		// Rebuilding and reconciling the whole tree on every ECS event dominates the
+		// frame budget, so coalesce notifications to a human-readable rate: fire on
+		// the leading edge, then at most once per interval with a trailing flush.
+		// `dirty` is still set eagerly, so the next read always reflects the current
+		// world state.
+		let timer: ReturnType<typeof setTimeout> | undefined
+		let trailing = false
+
+		const flush = () => {
+			update()
+			timer = setTimeout(() => {
+				timer = undefined
+				if (trailing) {
+					trailing = false
+					flush()
+				}
+			}, 100)
+		}
+
 		const invalidate = () => {
 			dirty = true
-			update()
+			if (timer === undefined) {
+				flush()
+			} else {
+				trailing = true
+			}
 		}
 
 		const unsubs = [
@@ -63,6 +91,7 @@ export const useTree = (): { readonly current: TreeNode[] } => {
 		]
 
 		return () => {
+			if (timer !== undefined) clearTimeout(timer)
 			for (const unsub of unsubs) unsub()
 		}
 	})
