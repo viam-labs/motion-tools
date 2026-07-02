@@ -2,12 +2,16 @@
 	import { Not, Or } from 'koota'
 
 	import { traits, useQuery } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Arrows from './Arrows/ArrowGroups.svelte'
+	import AxesHelpers from './AxesHelpers.svelte'
+	import Boxes from './Boxes.svelte'
+	import Capsules from './Capsules.svelte'
 	import Frame from './Frame.svelte'
 	import Geometry from './Geometry.svelte'
 	import GLTF from './GLTF.svelte'
-	import Label from './Label.svelte'
+	import Labels from './Labels.svelte'
 	import Line from './Line.svelte'
 	import Points from './Points.svelte'
 	import Pose from './Pose.svelte'
@@ -31,7 +35,8 @@
 	 */
 	const worldStateEntities = useQuery(
 		traits.WorldStateStoreAPI,
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
+		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -40,8 +45,8 @@
 	 */
 	const drawServiceEntities = useQuery(
 		traits.DrawServiceAPI,
-		Not(traits.Points, traits.LinePositions, traits.GLTF),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
+		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -53,67 +58,58 @@
 		Not(traits.WorldStateStoreAPI),
 		Not(traits.DrawServiceAPI),
 		Not(traits.Points),
-		Or(traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Not(traits.Box),
+		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	const points = useQuery(traits.Points)
 	const lines = useQuery(traits.LinePositions)
 	const gltfs = useQuery(traits.GLTF)
+
+	const settings = useSettings()
+
+	const enableLabels = $derived(settings.current.enableLabels)
 </script>
 
 {#each machineFramesEntities.current as entity (entity)}
 	<Pose {entity}>
-		{#snippet children({ pose })}
-			<Frame
-				{pose}
-				{entity}
-			>
-				<Label text={entity.get(traits.Name)} />
-			</Frame>
-		{/snippet}
+		<Frame {entity} />
 	</Pose>
 {/each}
 
 {#each resourceGeometriesEntities.current as entity (entity)}
-	<Geometry {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Geometry>
+	<Geometry {entity} />
 {/each}
 
 {#each worldStateEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each drawServiceEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each meshEntities.current as entity (entity)}
-	<Frame {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Frame>
+	<Frame {entity} />
 {/each}
 
 {#each points.current as entity (entity)}
-	<Points {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Points>
+	<Points {entity} />
 {/each}
 
 {#each lines.current as entity (entity)}
-	<Line {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</Line>
+	<Line {entity} />
 {/each}
 
 {#each gltfs.current as entity (entity)}
-	<GLTF {entity}>
-		<Label text={entity.get(traits.Name)} />
-	</GLTF>
+	<GLTF {entity} />
 {/each}
 
 <Arrows />
+<AxesHelpers />
+<Boxes />
+<Capsules />
+
+{#if enableLabels}
+	<Labels />
+{/if}

@@ -2,6 +2,13 @@ test-results
 node_modules
 
 static/Big_Buck_Bunny_4K.webm
+static/test-fixtures
+
+# Temp files (disk-backed chunk storage)
+.tmp
+
+# wireit task cache/state
+.wireit
 
 # Output
 .output
@@ -9,14 +16,23 @@ static/Big_Buck_Bunny_4K.webm
 .netlify
 .wrangler
 .svelte-kit
+.astro
 build
 src/lib/**/__tests__/__screenshots__
+__snapshots__
 coverage
 dist
 .bin
 draw-server
+/examples
+docs/public/playground
+docs/src/content/docs/api/*.md
 viamrobotics-motion-tools-*.tgz
 .wireit
+
+# Logs
+*-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
@@ -31,6 +47,7 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+.vitest-attachments
 
 *~
 
@@ -43,6 +60,10 @@ vite.config.ts.timestamp-*
 # Protobuf
 src/lib/buf
 protos/vendor
+
+# E2E
+e2e/.bin
+e2e/.env.e2e
 
 # IDE
 .cursor

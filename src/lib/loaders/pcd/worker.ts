@@ -45,7 +45,7 @@ const LOD_THRESHOLD = 100_000
  * Performance: O(n) — one pass to bucket points, one pass to extract results.
  *
  * @param positions - Source positions (3 floats per point: x, y, z)
- * @param colors - Source colors, or null if the cloud has no color data
+ * @param colors - Source colors, or undefined if the cloud has no color data
  * @param cellSize - Side length of each cubic voxel cell
  * @param minX - Bounding box minimum X
  * @param minY - Bounding box minimum Y
@@ -56,7 +56,7 @@ const LOD_THRESHOLD = 100_000
  */
 const voxelDownsample = (
 	positions: Float32Array,
-	colors: Uint8Array | null,
+	colors: Uint8Array | undefined,
 	cellSize: number,
 	minX: number,
 	minY: number,
@@ -64,7 +64,7 @@ const voxelDownsample = (
 	rangeX: number,
 	rangeY: number,
 	colorStride: number
-): { positions: Float32Array<ArrayBuffer>; colors: Uint8Array<ArrayBuffer> | null } => {
+): { positions: Float32Array<ArrayBuffer>; colors: Uint8Array<ArrayBuffer> | undefined } => {
 	const numPoints = positions.length / 3
 	const gridSizeX = Math.ceil(rangeX / cellSize) + 1
 	const gridSizeY = Math.ceil(rangeY / cellSize) + 1
@@ -83,7 +83,7 @@ const voxelDownsample = (
 	}
 
 	const outPositions = new Float32Array(occupied.size * 3)
-	const outColors = colors ? new Uint8Array(occupied.size * colorStride) : null
+	const outColors = colors ? new Uint8Array(occupied.size * colorStride) : undefined
 
 	let j = 0
 	for (const idx of occupied.values()) {
@@ -146,7 +146,7 @@ const countOccupied = (
  */
 const voxelDownsampleToTarget = (
 	positions: Float32Array,
-	colors: Uint8Array | null,
+	colors: Uint8Array | undefined,
 	targetFraction: number,
 	volume: number,
 	minX: number,
@@ -155,7 +155,7 @@ const voxelDownsampleToTarget = (
 	rangeX: number,
 	rangeY: number,
 	colorStride: number
-): { positions: Float32Array<ArrayBuffer>; colors: Uint8Array<ArrayBuffer> | null } => {
+): { positions: Float32Array<ArrayBuffer>; colors: Uint8Array<ArrayBuffer> | undefined } => {
 	const numPoints = positions.length / 3
 	const targetCount = numPoints * targetFraction
 
@@ -183,7 +183,7 @@ const sendLODLevel = (
 	level: number,
 	distance: number,
 	positions: Float32Array<ArrayBuffer>,
-	colors: Uint8Array<ArrayBuffer> | null,
+	colors: Uint8Array<ArrayBuffer> | undefined,
 	done: boolean,
 	diagonal: number
 ) => {
@@ -216,9 +216,9 @@ globalThis.onmessage = async (event) => {
 			const positions =
 				(pcd.geometry.attributes.position?.array as Float32Array<ArrayBuffer>) ??
 				new Float32Array(0)
-			const colorsFloat: Float32Array | null =
-				(pcd.geometry.attributes.color?.array as Float32Array<ArrayBuffer>) ?? null
-			const colors = colorsFloat ? new Uint8Array(colorsFloat.length) : null
+			const colorsFloat: Float32Array | undefined =
+				(pcd.geometry.attributes.color?.array as Float32Array<ArrayBuffer>) ?? undefined
+			const colors = colorsFloat ? new Uint8Array(colorsFloat.length) : undefined
 
 			if (colors) {
 				for (let i = 0, l = colorsFloat.length; i < l; i++) {
@@ -257,11 +257,9 @@ globalThis.onmessage = async (event) => {
 				// LOD 0 (full resolution)
 				sendLODLevel(id, 0, 0, positions, colors, true, diagonal)
 			} else {
-				// Small cloud — single message, no LOD
-				postMessage(
-					{ positions, colors, id } satisfies Message,
-					colors ? [positions.buffer, colors.buffer] : [positions.buffer]
-				)
+				postMessage({ positions, colors, id } satisfies Message, {
+					transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],
+				})
 			}
 		} else {
 			postMessage({ id, error: 'Failed to extract geometry' } satisfies Message)

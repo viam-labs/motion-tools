@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte'
 
+import { useFragmentInfo } from './useFragmentInfo.svelte'
 import { useFrames } from './useFrames.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 
@@ -11,6 +12,7 @@ const key = Symbol('frameless-components-context')
 
 export const provideFramelessComponents = () => {
 	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
 	const frames = useFrames()
 
 	const current = $derived.by(() => {
@@ -22,7 +24,7 @@ export const provideFramelessComponents = () => {
 
 		const fragmentComponentsWithNoFrame = new Set(partComponentsWIthNoFrame)
 
-		for (const fragmentComponentName of Object.keys(partConfig.componentNameToFragmentId)) {
+		for (const fragmentComponentName of Object.keys(fragmentInfo.current)) {
 			if (frames.current.some((frame) => frame.referenceFrame === fragmentComponentName)) {
 				continue
 			}

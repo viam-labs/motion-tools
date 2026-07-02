@@ -14,12 +14,13 @@ import {
 	updateBufferGeometry,
 	updateLODGeometries,
 } from '$lib/attribute'
+import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdWithLOD } from '$lib/loaders/pcd'
+import { useLogs } from '$lib/plugins'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-context')
@@ -155,23 +156,39 @@ export const providePointclouds = (partID: () => string) => {
 						const finest = levels.find((l) => l.level === 0) ?? levels[0]!
 						const metadata = {
 							colors: finest.colors ?? undefined,
+							colorFormat: ColorFormat.RGB,
 						}
 
 						if (existing) {
+							hierarchy.setParent(existing, name)
 							const geometry = existing.get(traits.BufferGeometry)
 							const existingLOD = existing.get(traits.PointCloudLOD)
 
 							if (geometry) {
 								updateBufferGeometry(geometry, finest.positions, metadata)
-								return
 							}
 
-							if (existingLOD && levels.length > 1) {
-								// Update geometry buffers in place without setting the trait
-								// to avoid triggering re-renders and component remounts.
-								// BVH is not recomputed here — it drifts slightly between
-								// frames but avoids expensive main-thread recomputation.
-								updateLODGeometries(existingLOD.levels, levels)
+							if (levels.length > 1) {
+								if (existingLOD) {
+									// Update geometry buffers in place without setting the trait
+									// to avoid triggering re-renders and component remounts.
+									// BVH is not recomputed here — it drifts slightly between
+									// frames but avoids expensive main-thread recomputation.
+									existingLOD.levels = updateLODGeometries(existingLOD.levels, levels)
+									existingLOD.diagonal = boundingBoxDiagonal
+								} else {
+									existing.add(
+										traits.PointCloudLOD({
+											levels: createLODGeometries(levels),
+											diagonal: boundingBoxDiagonal,
+										})
+									)
+								}
+							} else if (existingLOD) {
+								for (const { geometry } of existingLOD.levels) {
+									geometry.dispose()
+								}
+								existing.remove(traits.PointCloudLOD)
 							}
 
 							return
@@ -180,7 +197,7 @@ export const providePointclouds = (partID: () => string) => {
 						const geometry = createBufferGeometry(finest.positions, metadata)
 
 						const entityTraits: ConfigurableTrait[] = [
-							traits.Parent(name),
+							...hierarchy.parentTraits(name),
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
 							traits.Points,

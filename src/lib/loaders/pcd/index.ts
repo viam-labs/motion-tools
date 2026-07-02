@@ -86,7 +86,7 @@ worker.addEventListener('message', (event: MessageEvent<Message>) => {
 	}
 })
 
-export const parsePcdInWorker = (data: Uint8Array<ArrayBufferLike>): Promise<SuccessMessage> => {
+export const parsePcdInWorker = (data: Uint8Array): Promise<SuccessMessage> => {
 	return new Promise((resolve, reject) => {
 		const id = ++requestId
 		pending.set(id, { mode: 'simple', resolve, reject })

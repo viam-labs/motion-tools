@@ -1,14 +1,14 @@
 export interface SuccessMessage {
 	id: number
-	positions: Float32Array<ArrayBuffer>
-	colors: Uint8Array<ArrayBuffer> | null
+	positions: Float32Array<ArrayBufferLike>
+	colors: Uint8Array<ArrayBufferLike> | undefined
 }
 
 export interface LODLevel {
 	level: number
 	distance: number
-	positions: Float32Array<ArrayBuffer>
-	colors: Uint8Array<ArrayBuffer> | null
+	positions: Float32Array<ArrayBufferLike>
+	colors: Uint8Array<ArrayBufferLike> | undefined
 }
 
 export interface LODProgressMessage {

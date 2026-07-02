@@ -1,28 +1,30 @@
 import type { PlainMessage, Struct } from '@viamrobotics/sdk'
 
-import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
+import {
+	ColorFormat,
+	Metadata as MetadataProto,
+	type Relationship as RelationshipProto,
+} from '$lib/buf/draw/v1/metadata_pb'
 
-/**
- * Metadata for a Viam `Transform`.
- *
- * Per the API this can be a struct of any data, so we type this version for
- * fields we use and how we expect them to be defined.
- */
-export type Metadata = {
-	// uniform [r, g, b] or per-vertex [r, g, b, ...] values (0-255)
-	colors?: Uint8Array<ArrayBuffer>
-	// describes the encoding of the colors field
-	colorFormat?: ColorFormat
-	// uniform [a] or per-vertex [a, a, ...] values (0-255)
-	opacities?: Uint8Array<ArrayBuffer>
+/** Metadata for a `Drawing` or `Transform`. Relationships default to empty. */
+export type Metadata = Omit<PlainMessage<MetadataProto>, 'relationships'> & {
+	relationships?: PlainMessage<MetadataProto>['relationships']
 }
 
-/** The known wire-format (snake_case) keys that appear in a metadata Struct. */
-type MetadataWireKey = 'colors' | 'color_format' | 'opacities'
+/** Plain-object representation of a Relationship, usable outside proto classes. */
+export type Relationship = PlainMessage<RelationshipProto>
 
 /** Type guard that checks whether a string is a recognised metadata wire key. */
-export const isMetadataKey = (key: string): key is MetadataWireKey => {
-	return key === 'colors' || key === 'color_format' || key === 'opacities'
+export const isMetadataField = (key: string): boolean => {
+	return (
+		key === 'colors' ||
+		key === 'color_format' ||
+		key === 'opacities' ||
+		key === 'show_axes_helper' ||
+		key === 'invisible' ||
+		key === 'chunks' ||
+		key === 'relationships'
+	)
 }
 
 /**
@@ -34,11 +36,13 @@ export const isMetadataKey = (key: string): key is MetadataWireKey => {
  *
  * Unknown keys are silently ignored.
  */
-export const parseMetadata = (fields: PlainMessage<Struct>['fields'] = {}): Metadata => {
-	const json: Metadata = {}
+export const metadataFromStruct = (fields: PlainMessage<Struct>['fields'] = {}): Metadata => {
+	const json: Metadata = {
+		colorFormat: ColorFormat.UNSPECIFIED,
+	}
 
 	for (const [k, v] of Object.entries(fields)) {
-		if (!isMetadataKey(k)) continue
+		if (!isMetadataField(k)) continue
 		const unwrappedValue = unwrapValue(v)
 
 		switch (k) {
@@ -53,7 +57,6 @@ export const parseMetadata = (fields: PlainMessage<Struct>['fields'] = {}): Meta
 				}
 				break
 			}
-
 			case 'color_format': {
 				if (typeof unwrappedValue === 'number') {
 					json.colorFormat = unwrappedValue as ColorFormat
@@ -69,6 +72,59 @@ export const parseMetadata = (fields: PlainMessage<Struct>['fields'] = {}): Meta
 						opacityBytes[i] = binary.charCodeAt(i)
 					}
 					json.opacities = opacityBytes
+				}
+				break
+			}
+
+			case 'show_axes_helper': {
+				if (typeof unwrappedValue === 'boolean') {
+					json.showAxesHelper = unwrappedValue
+				}
+				break
+			}
+
+			case 'invisible': {
+				if (typeof unwrappedValue === 'boolean') {
+					json.invisible = unwrappedValue
+				}
+				break
+			}
+
+			case 'chunks': {
+				if (typeof unwrappedValue === 'object' && unwrappedValue !== null) {
+					const obj = unwrappedValue as Record<string, unknown>
+					json.chunks = {
+						chunkSize: typeof obj['chunk_size'] === 'number' ? obj['chunk_size'] : 0,
+						total: typeof obj['total'] === 'number' ? obj['total'] : 0,
+						stride: typeof obj['stride'] === 'number' ? obj['stride'] : 0,
+					}
+				}
+				break
+			}
+
+			case 'relationships': {
+				if (Array.isArray(unwrappedValue)) {
+					json.relationships = unwrappedValue
+						.filter(
+							(item): item is Record<string, unknown> => typeof item === 'object' && item !== null
+						)
+						.map((item) => {
+							const targetUuidStr = item['target_uuid']
+							let targetUuid = new Uint8Array()
+							if (typeof targetUuidStr === 'string' && targetUuidStr.length > 0) {
+								const binary = atob(targetUuidStr)
+								targetUuid = new Uint8Array(binary.length)
+								for (let i = 0; i < binary.length; i++) {
+									targetUuid[i] = binary.charCodeAt(i)
+								}
+							}
+							return {
+								targetUuid,
+								type: typeof item['type'] === 'string' ? item['type'] : '',
+								indexMapping:
+									typeof item['index_mapping'] === 'string' ? item['index_mapping'] : undefined,
+							}
+						})
 				}
 				break
 			}

@@ -12,11 +12,12 @@
 		depthTest?: boolean
 	}
 
-	const {
+	let {
 		length = 1,
 		width = 0.1,
 		axesColors = ['red', 'green', 'blue'],
 		depthTest = true,
+		ref = $bindable(),
 		...rest
 	}: Props = $props()
 
@@ -66,6 +67,7 @@
 	is={line}
 	{...rest}
 	bvh={{ enabled: false }}
+	bind:ref
 >
 	<T is={geometry} />
 	<T

@@ -5,28 +5,34 @@ import { ViamClientOptions } from '@viamrobotics/sdk'
 import { ViamClient } from '@viamrobotics/sdk'
 import fs from 'node:fs'
 
-const testConfig = {
-	host: 'motion-tools-e2e-main.l6j4r7m65g.viam.cloud',
-	name: 'motion-tools-e2e-main',
-	partId: '9741704d-ea0e-484c-8cf8-0a849096af1e',
-	apiKeyId: '76fcaf4b-4e04-4c6b-9665-c9c663ee4fad',
-	apiKeyValue: 'iz95ie2bz5h617xhs2ko9eov1b5bryas',
-	signalingAddress: 'https://app.viam.com:443',
-	organizationId: 'd9fd430a-25ec-47ba-b548-5d1b1b2fc6d1',
-}
+import { screenshotCanvas } from './helpers/screenshot'
+
+const getTestConfig = () => ({
+	host: process.env.VIAM_E2E_HOST ?? '',
+	name: process.env.VIAM_E2E_MACHINE_NAME ?? '',
+	partId: process.env.VIAM_E2E_PART_ID ?? '',
+	apiKeyId: process.env.VIAM_E2E_API_KEY_ID ?? '',
+	apiKeyValue: process.env.VIAM_E2E_API_KEY ?? '',
+	signalingAddress: process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443',
+	organizationId: process.env.VIAM_E2E_ORG_ID ?? '',
+})
+
+type TestConfig = ReturnType<typeof getTestConfig>
 
 interface TestPage {
 	page: Page
-	testConfig: typeof testConfig
+	testConfig: TestConfig
 	failedScreenshots: string[]
 	refresh: () => Promise<void>
 	takeScreenshot: (testPrefix: string) => Promise<void>
+	screenshotCanvas: (testPrefix: string) => Promise<void>
 	assertScreenshots: () => void
 	dropFile: (file: string | { name: string; content: string }) => Promise<void>
 	connect: () => Promise<ViamClient>
 }
 
 export const createPage = async (browser: Browser): Promise<TestPage> => {
+	const testConfig = getTestConfig()
 	const context = await browser.newContext()
 	const page = await context.newPage()
 	let failedScreenshots: string[] = []
@@ -60,6 +66,13 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		}
 	}
 
+	const takeCanvasScreenshot = async (testPrefix: string) => {
+		const failure = await screenshotCanvas(page, testPrefix)
+		if (failure) {
+			failedScreenshots.push(failure)
+		}
+	}
+
 	const assertScreenshots = () => {
 		if (failedScreenshots.length > 0) {
 			console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
@@ -72,12 +85,10 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		let fileName: string
 
 		if (typeof file === 'string') {
-			// File path provided - read from disk
 			const fileBuffer = fs.readFileSync(file)
 			base64Data = fileBuffer.toString('base64')
 			fileName = file.split('/').pop() ?? file
 		} else {
-			// Synthetic file - encode content as base64
 			base64Data = Buffer.from(file.content).toString('base64')
 			fileName = file.name
 		}
@@ -120,14 +131,12 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 	}
 
 	const connect = async (): Promise<ViamClient> => {
-		const API_KEY_ID = testConfig.apiKeyId
-		const API_KEY = testConfig.apiKeyValue
 		const opts: ViamClientOptions = {
 			serviceHost: testConfig.signalingAddress,
 			credentials: {
 				type: 'api-key',
-				authEntity: API_KEY_ID,
-				payload: API_KEY,
+				authEntity: testConfig.apiKeyId,
+				payload: testConfig.apiKeyValue,
 			},
 		}
 
@@ -150,6 +159,7 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		dropFile,
 		connect,
 		takeScreenshot,
+		screenshotCanvas: takeCanvasScreenshot,
 		assertScreenshots,
 	}
 }

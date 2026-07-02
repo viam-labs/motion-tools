@@ -1,32 +1,18 @@
 <script lang="ts">
-	import { CameraControls, type CameraControlsRef, Gizmo, Portal } from '@threlte/extras'
+	import { CameraControls, type CameraControlsRef, Gizmo } from '@threlte/extras'
 	import { MathUtils } from 'three'
 
-	import Button from '$lib/components/overlay/dashboard/Button.svelte'
 	import { useCameraControls, useTransformControls } from '$lib/hooks/useControls.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
-	import KeyboardControls from './KeyboardControls.svelte'
+	import InputBindings from './InputBindings.svelte'
 
 	const cameraControls = useCameraControls()
-	const settings = useSettings()
+	const environment = useEnvironment()
 	const transformControls = useTransformControls()
 
-	const enableKeybindings = $derived(settings.current.enableKeybindings)
+	const inputBindingsEnabled = $derived(environment.current.inputBindingsEnabled)
 </script>
-
-<Portal id="dashboard">
-	<fieldset>
-		<Button
-			active
-			icon="camera-outline"
-			description="Reset camera"
-			onclick={() => {
-				cameraControls.setInitialPose()
-			}}
-		/>
-	</fieldset>
-</Portal>
 
 <CameraControls
 	enabled={!transformControls.active}
@@ -37,8 +23,8 @@
 	}}
 >
 	{#snippet children({ ref }: { ref: CameraControlsRef })}
-		{#if enableKeybindings}
-			<KeyboardControls cameraControls={ref} />
+		{#if inputBindingsEnabled}
+			<InputBindings cameraControls={ref} />
 		{/if}
 		<Gizmo placement="bottom-right" />
 	{/snippet}

@@ -2,9 +2,6 @@ name: Pull Request Checks
 
 on:
   pull_request:
-    branches:
-      - main
-      - next
 
 permissions: write-all
 
@@ -17,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
@@ -30,25 +27,31 @@ jobs:
             protos:
               - 'protos/**'
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧
         with:
           run_install: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
+
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Install dependencies
         run: pnpm install
 
       - name: Setup Buf
         uses: bufbuild/buf-setup-action@v1
+        with:
+          version: '1.69.0'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.23.11
           cache: true
@@ -60,23 +63,10 @@ jobs:
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Generate protos
-        run: make proto
+        run: pnpm proto
 
       - name: Check proto formatting
-        run: make proto-format-check
-
-      - name: Upload TypeScript proto artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: protos-ts
-          path: |
-            src/lib/buf/
-
-      - name: Upload Go proto artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: protos-go
-          path: draw/v1/
+        run: pnpm proto:format-check
 
       - name: Commit generated Go protos
         if: steps.check-protos.outputs.protos == 'true'
@@ -97,28 +87,31 @@ jobs:
 
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧
         with:
           run_install: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.23.11
           cache: true
 
       - name: Install golangci-lint
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/v2.11.4/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.11.4
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
@@ -134,28 +127,27 @@ jobs:
 
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧
         with:
           run_install: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
+
       - name: Install dependencies
         run: pnpm install
 
-      - name: Download TypeScript proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-ts
-          path: src/lib/buf/
-
+      # TS protos (src/lib/buf) are restored from the wireit cache primed by the
+      # proto-gen job (this job `needs: proto-gen`), so no buf/artifact needed.
       - name: Check
         run: pnpm check
 
@@ -166,20 +158,23 @@ jobs:
 
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧
         with:
           run_install: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
+
+      - name: Set up wireit caching
+        uses: google/wireit@setup-github-actions-caching/v2
 
       - name: Install dependencies
         run: pnpm install
@@ -187,14 +182,10 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm playwright install chromium --with-deps
 
-      - name: Download TypeScript proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-ts
-          path: src/lib/buf/
-
+      # TS protos (src/lib/buf) are restored from the wireit cache primed by the
+      # proto-gen job (this job `needs: proto-gen`), so no buf/artifact needed.
       - name: Test
-        run: npx vitest run --coverage
+        run: pnpm test:coverage
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
@@ -208,19 +199,15 @@ jobs:
 
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: 1.23.11
           cache: true
 
-      - name: Download Go proto artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: protos-go
-          path: draw/v1/
-
+      # draw/v1 (generated Go protos) is committed, so it's already in the
+      # checkout — no artifact download needed.
       - name: Test Draw
         run: go test ./draw/... -count=1

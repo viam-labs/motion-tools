@@ -50,7 +50,9 @@ func newDrawLineConfig(lineWidth float32, dotSize float32, lineColor Color, dotC
 	}
 }
 
-// DrawLineOption is a functional option for configuring a Line
+// DrawLineOption configures geometry, sizing, and color settings for a Line
+// constructed via NewLine. When multiple options touch the same field, the last
+// option in the argument list wins.
 type DrawLineOption func(*drawLineConfig)
 
 // WithLineWidth creates a line option that sets the line segment width in millimeters.
@@ -148,9 +150,11 @@ func NewLine(positions []r3.Vector, options ...DrawLineOption) (*Line, error) {
 	}, nil
 }
 
-// Draw creates a Drawing from this Line object.
+// Draw wraps the Line in a Drawing identified by name. The DrawableOptions control
+// placement (parent frame, pose, center), identity (UUID), and visibility — see
+// DrawableOption for the full set.
 func (line Line) Draw(name string, options ...DrawableOption) *Drawing {
 	config := NewDrawConfig(name, options...)
 	shape := NewShape(config.Center, config.Name, WithLine(line))
-	return NewDrawing(config.UUID, config.Name, config.Parent, config.Pose, shape, NewMetadata(WithMetadataColors(line.Colors...)))
+	return NewDrawing(config, shape, WithMetadataColors(line.Colors...))
 }

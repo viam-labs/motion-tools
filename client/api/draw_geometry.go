@@ -13,23 +13,32 @@ import (
 
 // DrawGeometryOptions configures a DrawGeometry call.
 type DrawGeometryOptions struct {
-	// A unique identifier for the geometry. Can be empty.
+	// ID is a stable identifier for the entity. When set, calling DrawGeometry
+	// again with the same ID updates the existing entity in place; when empty,
+	// each call creates a new entity with a freshly generated UUID.
 	ID string
-
-	// The name of the parent frame. If empty, the geometry will be parented to the "world" frame.
+	// Name labels the entity in the visualizer. When empty, the geometry's own
+	// label is used.
+	Name string
+	// Parent is the reference frame the geometry is attached to. Defaults to
+	// "world" when empty.
 	Parent string
-
-	// The geometry to draw.
+	// Geometry is the spatial geometry to render. Required.
 	Geometry spatialmath.Geometry
-
-	// The color to draw the geometry with.
+	// Color is the render color for the geometry.
 	Color draw.Color
+	// Attrs carries optional shared display attributes (axes helper, default
+	// visibility). Nil leaves all attributes at their defaults.
+	Attrs *Attrs
 }
 
-// DrawGeometry draws a geometry in the visualizer.
-// Calling DrawGeometry with an ID that already exists in the visualizer will update that geometry.
+// DrawGeometry sends a single geometry to the visualizer as a transform. Passing
+// an ID that already exists updates the previously drawn entity in place;
+// otherwise a new entity is created. Returns the UUID assigned by the server.
 //
-// Returns the UUID of the drawn geometry, or an error if the server is not running or the drawing fails.
+// Returns ErrVisualizerNotRunning if no visualizer is reachable, the underlying
+// validation error if the geometry cannot be wrapped (see draw.NewDrawnGeometry),
+// or a wrapped RPC error if the AddEntity call fails.
 func DrawGeometry(options DrawGeometryOptions) ([]byte, error) {
 	client := server.GetClient()
 	if client == nil {
@@ -41,16 +50,7 @@ func DrawGeometry(options DrawGeometryOptions) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create drawn geometry: %w", err)
 	}
 
-	if options.Parent == "" {
-		options.Parent = "world"
-	}
-
-	drawOpts := []draw.DrawableOption{draw.WithParent(options.Parent)}
-	if options.ID != "" {
-		drawOpts = append(drawOpts, draw.WithID(options.ID))
-	}
-
-	transform, err := drawnGeometry.Draw("", drawOpts...)
+	transform, err := drawnGeometry.Draw(options.Name, entityAttributes(options.ID, options.Parent, options.Attrs)...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transform: %w", err)
 	}

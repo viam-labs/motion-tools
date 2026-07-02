@@ -2,6 +2,7 @@ import type { Entity } from 'koota'
 
 import { useThrelte } from '@threlte/core'
 import {
+	Struct,
 	type TransformChangeEvent,
 	TransformChangeType,
 	type TransformWithUUID,
@@ -10,18 +11,20 @@ import {
 import {
 	createResourceClient,
 	createResourceQuery,
-	createResourceStream,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
+import { Matrix4 } from 'three'
 
-import { drawTransform } from '$lib/draw'
-import { traits, useWorld } from '$lib/ecs'
-import { createBox, createCapsule, createSphere } from '$lib/geometry'
+import { asFloat32Array, inMeters } from '$lib/buffer'
+import { createChunkLoader, type EntityChunk } from '$lib/chunking'
+import { drawTransform, updateMetadata } from '$lib/draw'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
-import { parsePlyInput } from '$lib/ply'
-import { createPose } from '$lib/transform'
+import { metadataFromStruct } from '$lib/metadata'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 import { usePartID } from './usePartID.svelte'
+import { useRelationships } from './useRelationships.svelte'
 
 type TransformEvent = TransformChangeEvent & {
 	transform: TransformWithUUID
@@ -55,24 +58,127 @@ export const provideWorldStates = () => {
 	})
 }
 
+// FieldMask paths are proto field names; spec-compliant backends emit
+// snake_case (`pose_in_observer_frame`) while some emit camelCase. Normalize
+// to camelCase so matching against the message's accessors is casing-agnostic.
+const snakeToCamel = (path: string): string =>
+	path.replaceAll(/_([a-z])/g, (_, char: string) => char.toUpperCase())
+
+const decodeBase64 = (encoded: string): Uint8Array => {
+	const binary = atob(encoded)
+	const bytes = new Uint8Array(binary.length)
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i)
+	}
+	return bytes
+}
+
+/**
+ * Unpacks a `get_entity_chunk` DoCommand response into the shape the shared
+ * chunk loader expects. The world-state store sends binary buffers as base64
+ * strings inside a JSON `Struct`, which is why this adapter exists.
+ *
+ * Request:
+ *   { "command": "get_entity_chunk", "uuid": "<uuid-string>", "start": <element-offset> }
+ *
+ * Response:
+ *   {
+ *     "entity": {
+ *       "metadata": {
+ *         "colors":    "<base64 Uint8Array>" (optional),
+ *         "opacities": "<base64 Uint8Array>" (optional)
+ *       },
+ *       "physical_object": {
+ *         "points": { "positions": "<base64 Float32Array>" }
+ *       }
+ *     },
+ *     "start": <number>,
+ *     "done":  <boolean>
+ *   }
+ */
+const decodeWorldStateChunk = (response: unknown, fallbackStart: number): EntityChunk | null => {
+	const fields = response as Record<string, unknown>
+	const done = fields['done'] === true
+	const start = typeof fields['start'] === 'number' ? fields['start'] : fallbackStart
+
+	const chunkEntity = fields['entity'] as Record<string, unknown> | undefined
+	if (!chunkEntity) return null
+
+	const physicalObject = chunkEntity['physical_object'] as Record<string, unknown> | undefined
+	const points = physicalObject?.['points'] as Record<string, unknown> | undefined
+	const encodedPositions = points?.['positions']
+	if (typeof encodedPositions !== 'string' || encodedPositions.length === 0) return null
+
+	const positions = asFloat32Array(decodeBase64(encodedPositions), inMeters)
+
+	const metadata = chunkEntity['metadata'] as Record<string, unknown> | undefined
+	const encodedColors = metadata?.['colors']
+	const colors =
+		typeof encodedColors === 'string' && encodedColors.length > 0
+			? decodeBase64(encodedColors)
+			: undefined
+
+	const encodedOpacities = metadata?.['opacities']
+	const opacities =
+		typeof encodedOpacities === 'string' && encodedOpacities.length > 0
+			? decodeBase64(encodedOpacities)
+			: undefined
+
+	return { start, positions, colors, opacities, done }
+}
+
 const createWorldState = (client: { current: WorldStateStoreClient | undefined }) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
+	const relationships = useRelationships()
 
 	const entities = new Map<string, Entity>()
+	// UUIDs the stream has removed; guards against a stale initial snapshot or a
+	// self-heal fetch re-creating an entity the server has already deleted.
+	const removedUUIDs = new Set<string>()
+	// UUIDs with an in-flight self-heal `getTransform`, to dedupe concurrent fetches.
+	const pendingSpawns = new Set<string>()
+
+	const chunkLoader = createChunkLoader({
+		world,
+		invalidate,
+		fetchChunk: async (uuid, start, signal) => {
+			const activeClient = client.current
+			if (!activeClient) return null
+
+			const response = await activeClient.doCommand(
+				Struct.fromJson({
+					command: 'get_entity_chunk',
+					uuid,
+					start,
+				})
+			)
+
+			if (signal.aborted) return null
+
+			return decodeWorldStateChunk(response, start)
+		},
+	})
 
 	const spawnEntity = (transform: TransformWithUUID) => {
-		if (entities.has(transform.uuidString)) {
+		if (entities.has(transform.uuidString) || removedUUIDs.has(transform.uuidString)) {
 			return
 		}
 
-		const entity = drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
-		entities.set(transform.uuidString, entity)
+		const spawned = drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
+		entities.set(transform.uuidString, spawned.entity)
+		relationships.apply(spawned.entity, spawned.relationships)
+
+		const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
+		chunkLoader.start(transform.uuidString, spawned.entity, parsedMetadata)
+		relationships.flush(transform.uuidString)
 
 		if (isPointCloud(transform.physicalObject?.geometryType)) invalidate()
 	}
 
 	const destroyEntity = (uuid: string) => {
+		removedUUIDs.add(uuid)
+
 		const entity = entities.get(uuid)
 
 		if (!entity) return
@@ -83,34 +189,73 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		entities.delete(uuid)
 	}
 
+	// Spawn an entity whose UPDATE delta arrived before the initial snapshot
+	// created it. The delta carries only changed fields, so fetch the full
+	// transform; skip if it was removed or already spawned meanwhile.
+	const spawnFromServer = async (uuid: string) => {
+		if (entities.has(uuid) || removedUUIDs.has(uuid) || pendingSpawns.has(uuid)) return
+
+		pendingSpawns.add(uuid)
+		try {
+			const transform = await client.current?.getTransform(uuid)
+			if (transform && !removedUUIDs.has(uuid)) {
+				spawnEntity(transform)
+				invalidate()
+			}
+		} catch (error) {
+			console.error('World state self-heal failed for', uuid, error)
+		} finally {
+			pendingSpawns.delete(uuid)
+		}
+	}
+
 	const updateEntity = (transform: TransformWithUUID, changes: (string | number)[]) => {
 		const entity = entities.get(transform.uuidString)
 
-		if (!entity) return
+		if (!entity) {
+			void spawnFromServer(transform.uuidString)
+			return
+		}
 
-		for (const path of changes) {
-			if (typeof path === 'string') {
-				if (path.startsWith('poseInObserverFrame.pose')) {
-					entity.set(traits.Pose, transform.poseInObserverFrame?.pose ?? createPose())
-				} else if (path.startsWith('physicalObject') && transform.physicalObject) {
-					const { geometryType } = transform.physicalObject
+		let metadataDirty = false
 
-					if (geometryType.case === 'box') {
-						entity.set(traits.Box, createBox(geometryType.value))
-					} else if (geometryType.case === 'capsule') {
-						entity.set(traits.Capsule, createCapsule(geometryType.value))
-					} else if (geometryType.case === 'sphere') {
-						entity.set(traits.Sphere, createSphere(geometryType.value))
-					} else if (geometryType.case === 'mesh') {
-						entity.set(traits.BufferGeometry, parsePlyInput(geometryType.value.mesh))
-					}
+		for (const rawPath of changes) {
+			if (typeof rawPath !== 'string') continue
+
+			const path = snakeToCamel(rawPath)
+
+			if (path.startsWith('poseInObserverFrame')) {
+				const matrix = entity.get(traits.Matrix)
+				if (matrix) {
+					poseToMatrix(createPose(transform.poseInObserverFrame?.pose), matrix)
+					entity.changed(traits.Matrix)
+				} else {
+					entity.add(
+						traits.Matrix(
+							poseToMatrix(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
+						)
+					)
 				}
+				hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
+			} else if (path.startsWith('physicalObject') && transform.physicalObject) {
+				traits.updateGeometryTrait(entity, transform.physicalObject)
+			} else if (path.startsWith('metadata')) {
+				metadataDirty = true
 			}
+		}
+
+		if (metadataDirty) {
+			const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
+			updateMetadata(entity, parsedMetadata, {
+				pointCloud: isPointCloud(transform.physicalObject?.geometryType),
+			})
+			relationships.apply(entity, parsedMetadata.relationships)
 		}
 	}
 
 	let initialized = false
 	let flushScheduled = false
+	let rafId = 0
 	let pendingEvents: TransformEvent[] = []
 
 	const listUUIDs = createResourceQuery(client, 'listUUIDs')
@@ -125,13 +270,10 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		})
 	)
 
-	const changeStream = createResourceStream(client, 'streamTransformChanges', {
-		refetchMode: 'replace',
-	})
-
 	const applyEvents = (events: TransformEvent[]) => {
 		for (const event of events) {
 			if (event.changeType === TransformChangeType.ADDED) {
+				removedUUIDs.delete(event.transform.uuidString)
 				spawnEntity(event.transform)
 			} else if (event.changeType === TransformChangeType.REMOVED) {
 				destroyEntity(event.transform.uuidString)
@@ -149,12 +291,12 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		if (flushScheduled) return
 		flushScheduled = true
 
-		requestAnimationFrame(() => {
-			const toApply = pendingEvents
-
-			applyEvents(toApply)
+		rafId = requestAnimationFrame(() => {
+			rafId = 0
 			flushScheduled = false
+			const toApply = pendingEvents
 			pendingEvents = []
+			applyEvents(toApply)
 		})
 	}
 
@@ -175,65 +317,46 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		initialized = true
 	})
 
-	$effect(() => {
-		if (changeStream?.data === undefined) return
+	/**
+	 * Consumes the `streamTransformChanges` server stream directly.
+	 * Transform changes are write-once into the ECS world, so we drain
+	 * each event into `pendingEvents` (cleared every flush) and never
+	 * retain history. Mirrors `useDrawService`'s stream consumption.
+	 */
+	const consumeChanges = async (signal: AbortSignal) => {
+		const activeClient = client.current
+		if (!activeClient) return
 
-		const eventsByUUID = new Map<string, TransformEvent>()
+		try {
+			for await (const event of activeClient.streamTransformChanges(undefined, { signal })) {
+				if (signal.aborted) break
+				if (!event.transform) continue
 
-		for (const event of changeStream.data) {
-			if (!event.transform) {
-				continue
+				pendingEvents.push(event as TransformEvent)
+				scheduleFlush()
 			}
-
-			const uuid = event.transform.uuidString
-			const existing = eventsByUUID.get(uuid)
-			if (!existing) {
-				eventsByUUID.set(uuid, event as TransformEvent)
-				continue
-			}
-
-			switch (event.changeType) {
-				case TransformChangeType.REMOVED: {
-					eventsByUUID.set(uuid, event as TransformEvent)
-					break
-				}
-
-				case TransformChangeType.ADDED: {
-					if (existing.changeType !== TransformChangeType.REMOVED) {
-						eventsByUUID.set(uuid, event as TransformEvent)
-					}
-					break
-				}
-
-				case TransformChangeType.UPDATED: {
-					// merge with existing updated event
-					if (existing.changeType === TransformChangeType.UPDATED) {
-						existing.updatedFields ??= { paths: [] }
-
-						const paths = event.updatedFields?.paths ?? []
-
-						for (const path of paths) {
-							if (existing.updatedFields.paths.includes(path)) {
-								continue
-							}
-
-							existing.updatedFields.paths.push(path)
-						}
-
-						existing.transform = event.transform
-					} else {
-						eventsByUUID.set(uuid, event as TransformEvent)
-					}
-					break
-				}
+		} catch (error) {
+			if (!signal.aborted) {
+				console.error('World state transform stream error:', error)
 			}
 		}
+	}
 
-		pendingEvents.push(...eventsByUUID.values())
-		scheduleFlush()
+	$effect(() => {
+		if (!client.current) return
+
+		const controller = new AbortController()
+		void consumeChanges(controller.signal)
+
+		return () => {
+			controller.abort()
+		}
 	})
 
 	return () => {
+		if (rafId) cancelAnimationFrame(rafId)
+		pendingEvents = []
+		chunkLoader.dispose()
 		for (const [, entity] of entities) {
 			if (world.has(entity)) {
 				entity.destroy()

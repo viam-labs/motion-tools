@@ -1,36 +1,24 @@
 <script lang="ts">
 	import { type Entity, IsExcluded } from 'koota'
 
-	import { traits, useQuery, useWorld } from '$lib/ecs'
-	import { useFrames } from '$lib/hooks/useFrames.svelte'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { traits, useWorld } from '$lib/ecs'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
-	import { buildTreeNodes, type TreeNode } from './buildTree'
 	import Tree from './Tree.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
+	import { type TreeNode, useTree } from './useTree.svelte'
 
 	provideTreeExpandedContext()
 
-	const selectedEntity = useSelectedEntity()
-
-	const frames = useFrames()
 	const world = useWorld()
 
 	const worldEntity = world.spawn(IsExcluded, traits.Name('World'))
 
-	const allEntities = useQuery(traits.Name)
-
-	const { rootNodes, nodeMap } = $derived.by(() => {
-		// This ensures the tree rebuilds when frame parent relationships change
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		frames.current
-		return buildTreeNodes(allEntities.current)
-	})
+	const tree = useTree()
 
 	const rootNode = $derived<TreeNode>({
 		entity: worldEntity,
-		children: rootNodes,
+		children: tree.current,
 	})
 </script>
 
@@ -44,11 +32,17 @@
 >
 	<Tree
 		{rootNode}
-		{nodeMap}
 		onSelectionChange={(event) => {
-			const value = event.selectedValue[0]
+			const next = new Set(event.selectedValue.map(Number))
 
-			selectedEntity.set(value ? (Number(value) as Entity) : undefined)
+			for (const entity of world.query(traits.Selected)) {
+				if (!next.has(entity as number)) entity.remove(traits.Selected)
+			}
+
+			for (const id of next) {
+				const entity = id as Entity
+				if (!entity.has(traits.Selected)) entity.add(traits.Selected)
+			}
 		}}
 	/>
 </FloatingPanel>

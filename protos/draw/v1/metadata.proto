@@ -10,6 +10,30 @@ enum ColorFormat {
   COLOR_FORMAT_RGB = 1;
 }
 
+// Chunks describes how a large entity is chunked for progressive delivery.
+message Chunks {
+  // The number of elements per chunk.
+  uint32 chunk_size = 1;
+
+  // The total number of elements across all chunks.
+  uint32 total = 2;
+
+  // The number of bytes per element (e.g. 12 for float32 xyz positions).
+  uint32 stride = 3;
+}
+
+// A directed link from a source entity to a target entity.
+message Relationship {
+  // UUID of the target entity this relationship points to.
+  bytes target_uuid = 1;
+
+  // Free-form link type (e.g. "HoverLink"). Clients decide how to interpret.
+  string type = 2;
+
+  // Optional filtrex expression (variable: `index`). Defaults to "index".
+  optional string index_mapping = 3;
+}
+
 message Metadata {
   // Uint8Array of color values (0-255) based on the color format.
   // Can be a single set of values for a uniform color, or an array of values for per-vertex colors.
@@ -21,4 +45,18 @@ message Metadata {
   // Uint8Array of opacity values (0-255) corresponding to colors.
   // Can be a single set of values for a uniform opacity, or an array of values for per-vertex opacity.
   optional bytes opacities = 3;
+
+  // Whether to show the axes helper (RGB XYZ indicator) on the entity.
+  // Defaults to false.
+  optional bool show_axes_helper = 4;
+
+  // Whether the entity is invisible (not rendered) by default.
+  // Defaults to false.
+  optional bool invisible = 5;
+
+  // When present, indicates this drawing uses chunked delivery.
+  optional Chunks chunks = 6;
+
+  // Directed relationships from this entity to other entities.
+  repeated Relationship relationships = 7;
 }

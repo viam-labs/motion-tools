@@ -14,3 +14,6 @@ export { OrientationVector } from './three/OrientationVector'
 
 // Functions
 export { parsePcdInWorker } from './loaders/pcd'
+export { createBinaryPCD } from './pcd'
+export { metadataFromStruct } from './metadata'
+export { decodeDrawnSnapshotPointClouds } from './snapshot'

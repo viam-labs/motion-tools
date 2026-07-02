@@ -14,17 +14,17 @@ Renders a Snapshot protobuf by spawning its transforms and drawings as entities 
 ```
 -->
 <script lang="ts">
-	import type { Entity } from 'koota'
-
 	import { untrack } from 'svelte'
 	import { onDestroy } from 'svelte'
 
 	import type { Snapshot as SnapshotProto } from '$lib/buf/draw/v1/snapshot_pb'
 
-	import { useWorld } from '$lib/ecs'
+	import { uuidBytesToString } from '$lib/draw'
+	import { traits, useWorld } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
+	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { applySceneMetadata, spawnSnapshotEntities } from '$lib/snapshot'
+	import { applySceneMetadata, reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
 	interface Props {
 		snapshot: SnapshotProto
@@ -35,15 +35,39 @@ Renders a Snapshot protobuf by spawning its transforms and drawings as entities 
 	const world = useWorld()
 	const settings = useSettings()
 	const cameraControls = useCameraControls()
+	const relationships = useRelationships()
 
-	let entities: Entity[] = []
+	let entitiesByUuid = new Map<string, SnapshotEntity>()
+	let unkeyedEntities: SnapshotEntity[] = []
+	let lastSnapshotUuid: string | undefined = undefined
 
 	$effect(() => {
-		world.id.toString()
-		snapshot.uuid.toString()
+		void snapshot
 
 		untrack(() => {
-			entities = spawnSnapshotEntities(world, snapshot)
+			for (const entry of unkeyedEntities) {
+				if (world.has(entry.entity)) entry.entity.destroy()
+			}
+			unkeyedEntities = []
+
+			const nextSnapshotUuid = uuidBytesToString(snapshot.uuid)
+			if (lastSnapshotUuid !== undefined && nextSnapshotUuid !== lastSnapshotUuid) {
+				for (const entry of entitiesByUuid.values()) {
+					if (world.has(entry.entity)) entry.entity.destroy()
+				}
+				entitiesByUuid = new Map()
+			}
+
+			const result = reconcileSnapshotEntities(world, snapshot, entitiesByUuid)
+			entitiesByUuid = result.current
+			unkeyedEntities = result.unkeyed
+			lastSnapshotUuid = nextSnapshotUuid
+
+			for (const entry of [...result.spawned, ...result.updated]) {
+				relationships.apply(entry.entity, entry.relationships)
+				const uuid = entry.entity.get(traits.UUID)
+				if (uuid) relationships.flush(uuid)
+			}
 		})
 	})
 
@@ -78,8 +102,11 @@ Renders a Snapshot protobuf by spawning its transforms and drawings as entities 
 	})
 
 	onDestroy(() => {
-		for (const entity of entities) {
-			if (world.has(entity)) entity.destroy()
+		for (const entry of entitiesByUuid.values()) {
+			if (world.has(entry.entity)) entry.entity.destroy()
+		}
+		for (const entry of unkeyedEntities) {
+			if (world.has(entry.entity)) entry.entity.destroy()
 		}
 	})
 </script>

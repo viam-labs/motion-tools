@@ -13,11 +13,19 @@
 
 	const allEntities = useQuery(traits.Name)
 	const name = useTrait(() => entity, traits.Name)
+	const drawServiceAPI = useTrait(() => entity, traits.DrawServiceAPI)
+	const isServiceManaged = $derived(!!drawServiceAPI.current)
+
 	const entityNames = $derived.by(() => {
 		const currentEntityName = name.current
 		return allEntities.current
-			.map((e: Entity) => e.get(traits.Name))
-			.filter((n: string | undefined): n is string => n !== undefined && n !== currentEntityName)
+			.filter((e: Entity) => {
+				const entityName = e.get(traits.Name)
+				if (!entityName || entityName === currentEntityName) return false
+				if (isServiceManaged) return !!e.get(traits.DrawServiceAPI)
+				return true
+			})
+			.map((e: Entity) => e.get(traits.Name)!)
 			.toSorted()
 	})
 
@@ -43,14 +51,14 @@
 		const selectedEntity = allEntities.current.find(
 			(e: Entity) => e.get(traits.Name) === selectedRelationshipEntity
 		)
-		if (selectedEntity) {
-			entity.add(
-				relations.SubEntityLink(selectedEntity, {
-					indexMapping: relationshipFormula,
-					type: linkType,
-				})
-			)
-		}
+		if (!selectedEntity) return
+
+		entity.add(
+			relations.SubEntityLink(selectedEntity, {
+				indexMapping: relationshipFormula,
+				type: linkType,
+			})
+		)
 		showRelationshipOptions = false
 		resetForm()
 	}

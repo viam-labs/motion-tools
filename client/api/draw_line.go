@@ -13,38 +13,49 @@ import (
 
 // DrawLineOptions configures a DrawLine call.
 type DrawLineOptions struct {
-	// A unique identifier for the line. Can be empty.
+	// ID is a stable identifier for the entity. When set, calling DrawLine
+	// again with the same ID updates the existing entity in place; when empty,
+	// each call creates a new entity with a freshly generated UUID.
 	ID string
-
-	// The name of the line.
+	// Name labels the entity in the visualizer. Must be ASCII printable and at
+	// most 100 characters.
 	Name string
-
-	// The positions defining the polyline vertices.
-	Positions []r3.Vector
-
-	// The name of the parent frame. If empty, the line will be parented to the "world" frame.
+	// Parent is the reference frame the line is attached to. Defaults to
+	// "world" when empty.
 	Parent string
-
-	// Colors is the colors to use for the line segments.
-	// Provide no colors for the default, one color to use for all segments,
-	// one color per vertex for per-vertex coloring, or a palette of colors to cycle through.
+	// Positions defines the polyline vertices in order. Must contain at least
+	// two positions.
+	Positions []r3.Vector
+	// Colors controls how line segments are colored. With no colors, segments
+	// use draw.DefaultLineColor (blue). Pass one color to share it across all
+	// segments; pass exactly len(Positions) colors for per-vertex colors; pass
+	// any other count to cycle through the slice as a palette.
 	Colors []draw.Color
-
-	// DotColors is the colors to use for the vertex dots.
-	// Provide no colors for the default, one color to use for all dots,
-	// one color per dot for per-dot coloring, or a palette of colors to cycle through.
+	// DotColors controls how the vertex dots are colored, following the same
+	// count rules as Colors. When DotColors is empty, the dots fall back to
+	// Colors (so dots and segments share their palette by default); if both
+	// are empty, dots use draw.DefaultLineDotColor (dark blue).
 	DotColors []draw.Color
-
-	// LineWidth is the width of the line segments in millimeters. If 0, uses the default.
+	// LineWidth is the rendered thickness of segments in millimeters. 0 (the
+	// default) uses draw.DefaultLineWidth (5mm).
 	LineWidth float32
-
-	// DotSize is the size of the vertex dots in millimeters. If 0, uses the default.
+	// DotSize is the rendered diameter of vertex dots in millimeters. 0 (the
+	// default) uses draw.DefaultLineDotSize (10mm).
 	DotSize float32
+	// Attrs carries optional shared display attributes (axes helper, default
+	// visibility). Nil leaves all attributes at their defaults.
+	Attrs *Attrs
 }
 
-// DrawLine draws a line in the visualizer.
-// Calling DrawLine with an ID that already exists will instead update the line.
-// Returns the UUID of the drawn line, or an error if the server is not running or the drawing fails.
+// DrawLine sends a polyline to the visualizer as a drawing. Passing an ID that
+// already exists updates the previously drawn entity in place; otherwise a new
+// entity is created. Returns the UUID assigned by the server.
+//
+// Returns an error when Name is not ASCII printable or exceeds 100 characters,
+// ErrVisualizerNotRunning if no visualizer is reachable, the underlying
+// validation error if the line cannot be constructed (see draw.NewLine — fewer
+// than two positions, mismatched color count, etc.), or a wrapped RPC error if
+// the AddEntity call fails.
 func DrawLine(options DrawLineOptions) ([]byte, error) {
 	if err := isASCIIPrintable(options.Name); err != nil {
 		return nil, err
@@ -99,17 +110,7 @@ func DrawLine(options DrawLineOptions) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create line: %w", err)
 	}
 
-	parent := options.Parent
-	if parent == "" {
-		parent = "world"
-	}
-
-	drawOpts := []draw.DrawableOption{draw.WithParent(parent)}
-	if options.ID != "" {
-		drawOpts = append(drawOpts, draw.WithID(options.ID))
-	}
-
-	drawing := line.Draw(options.Name, drawOpts...)
+	drawing := line.Draw(options.Name, entityAttributes(options.ID, options.Parent, options.Attrs)...)
 	req := connect.NewRequest(&drawv1.AddEntityRequest{Entity: &drawv1.AddEntityRequest_Drawing{Drawing: drawing.ToProto()}})
 	resp, err := client.AddEntity(context.Background(), req)
 	if err != nil {

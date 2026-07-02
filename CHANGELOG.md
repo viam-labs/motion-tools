@@ -1,5 +1,362 @@
 # motion-tools
 
+## 1.34.9
+
+### Patch Changes
+
+- b49538a: Add color control to details panel
+- 2fc9bbe: Batch capsule rendering into instanced draw calls
+
+## 1.34.8
+
+### Patch Changes
+
+- 9923932: Show triangle count for BufferGeometries
+- db5d3a3: Batch all AxesHelpers into a single draw call
+
+## 1.34.7
+
+### Patch Changes
+
+- 57da47d: fix: make fragment frame parse optional for standalone
+- ee5edd6: Upgrade to Vite 8 and Vitest 4
+- 800ba17: Security patches
+
+## 1.34.6
+
+### Patch Changes
+
+- a61b755: fix: allow llm scene builder to resolve fragments
+- 700db52: Instanced rendering of all boxes
+
+## 1.34.5
+
+### Patch Changes
+
+- 07a0bf4: Add better touchscreen support for the select plugin
+
+## 1.34.4
+
+### Patch Changes
+
+- 7dcb43b: Extract logs into a plugin
+
+## 1.34.3
+
+### Patch Changes
+
+- 7ab8838: Quick frame builder UX hits
+- affbcd5: Reorg frame builder deps
+
+## 1.34.2
+
+### Patch Changes
+
+- 6f1c52e: useFrames condition to show LLM frame edit preview
+
+## 1.34.1
+
+### Patch Changes
+
+- 664674b: Remove AISettings panel from settings tabs and delete AISettings.svelte component
+- 797a8a7: Fix baseline matrix and EditedMatrix update conditions in useFrames
+
+## 1.34.0
+
+### Minor Changes
+
+- 64db2c5: added llm scene builder
+
+## 1.33.2
+
+### Patch Changes
+
+- 054deaf: Fix world state store service race conditions
+
+## 1.33.1
+
+### Patch Changes
+
+- ac05fed: Default `Line` and `Mesh` opacity to `1`, fix `LineDots` instance ID tracking, enable BVH raycasting in `'gizmo'` interaction mode, fix stale matrix reads in `SelectedTransformControls`, and add `isOpen` / `close` to `Popover` snippets plus a `shapes` icon and `disableTooltip` prop on dashboard `Button`
+- dc668f7: Feat: force directed graph labels
+- a0cd017: Split the Details overlay into focused subcomponents under `details/` and expose a `details-extensions` portal target for plugin-supplied editors
+- 0b7b924: Fix unbounded memory growth from the world state transform stream
+
+## 1.33.0
+
+### Minor Changes
+
+- 617679e: Migrate WebXR features to a plugin
+
+## 1.32.0
+
+### Minor Changes
+
+- bca0cd6: Add multiselect / multifocus
+
+### Patch Changes
+
+- 652e924: Add `writeMatrix` and `CustomDetails` ECS traits, and a `'gizmo'` interaction mode
+- 4f1840b: Add plugin docs and make plugin dependencies optional
+- 78579a2: Make <MeasureTool> a plugin
+- cab2479: Stop keyboard events from propagating out of the Details panel so they don't rotate the 3D scene
+
+## 1.31.0
+
+### Minor Changes
+
+- af2df29: create snapshot --> drawn pcd helper
+- 33579d3: feat: have select plugin emit multiple entities per selection (one per source entity)
+
+## 1.30.0
+
+### Minor Changes
+
+- a62cf24: feat: disallow edit components where fragment has variables; update props for Visualizer component
+- 9e60e37: Move query dev tools to `<Debug />` plugin
+
+### Patch Changes
+
+- 03544e9: fix: bug resolving frame updates for non fragment frames
+- c81c67c: fix: hide transform controls on invisible entities
+- 1821030: Redesign dashboard button: inactive state now uses white background with visible icons, active state uses sky-blue background with white icons
+- b0a929b: Remove `dpr` attribute from `<Canvas />`
+
+## 1.29.1
+
+### Patch Changes
+
+- 66089d4: Fix invisibility cascading downwards in the pose graph
+
+## 1.29.0
+
+### Minor Changes
+
+- 1042f65: Move Draw Service to `/plugins`
+
+### Patch Changes
+
+- 3be2ce1: Use prime tweakpane theme
+- 0761452: Fix transforming with gizmo
+- 86243ac: Dark mode fix
+
+## 1.28.1
+
+### Patch Changes
+
+- 97d0242: Use GroundedSkybox for Skybox plugin
+
+## 1.28.0
+
+### Minor Changes
+
+- a95a836: Add SkyBox plugin
+- 6c64bde: Add frame POV panel
+
+### Patch Changes
+
+- bf80dcb: Dashboard cleanup
+- 4d6af12: Fix circular relationships when frames and geometries have the same name
+
+## 1.27.1
+
+### Patch Changes
+
+- a522e15: Fix parenting on `GetGeometries` entities
+
+## 1.27.0
+
+### Minor Changes
+
+- 2fe4e97: Use MatrixWorld trait to transform all entities
+
+### Patch Changes
+
+- d7b764b: Fetch geometries from generic components
+- 2fe4e97: Run BVH generation on demand
+
+## 1.26.2
+
+### Patch Changes
+
+- 8f23f42: Fix: add fragment-defined component names to the parent options in the details panel
+- 3f97069: Clamp geometry dimensions to 0 when editing
+- cc409c0: fix: set 3d models current in outer loop
+- 7e983d0: Use local and world Matrix traits as object transform source-of-truth
+- dd4fd29: Update Treeview to use entity relations
+- 8f23f42: Fix: Hold the staged frame pose in embedded mode while the framesystem reconfigures
+
+## 1.26.1
+
+### Patch Changes
+
+- 424b6f5: Clamp `renderer.devicePixelRatio` between 1 and 2
+
+## 1.26.0
+
+### Minor Changes
+
+- cd5388e: Add an `autoSelectNewEntities` prop to `SelectionTool`. When enabled, each new entity added to the selection set (via lasso or ellipse) is set as the active `selectedEntity`, causing the Details panel to focus the latest selection. Defaults to `false` so existing consumers see no behavior change.
+
+### Patch Changes
+
+- 32a4ce4: Bump `@threlte/extras` to fix ghosting issue
+
+## 1.25.6
+
+### Patch Changes
+
+- dc5c94f: Fix: clicking on frames in the Treeview causes reparenting due to Tweakpane behavior
+
+## 1.25.5
+
+### Patch Changes
+
+- 142223f: Reduce logs memory and CPU consumption
+
+## 1.25.4
+
+### Patch Changes
+
+- f8533f4: hotfix: check positions on line dot cleanup
+
+## 1.25.3
+
+### Patch Changes
+
+- 8a420db: hotfix: Bail out line dot effect when positions is undefined
+
+## 1.25.2
+
+### Patch Changes
+
+- 1e0d80c: Update snapshots with the same UUID, rerender snapshots with different UUIDs, add `SetUUID` to `Snapshot`
+
+## 1.25.1
+
+### Patch Changes
+
+- fb8b7ca: Use Koota relations for parent / child interactions
+- e4ca46e: Allow updating Snapshot entities
+- 8c60f88: Screenshot only canvas for UI-unrelated e2e tests
+
+## 1.25.0
+
+### Minor Changes
+
+- 7a31f2e: Add reconnection backoff and a manual reconnection button
+
+### Patch Changes
+
+- a3ead32: Improve `Mesh.svelte` performance by geometry pooling
+
+## 1.24.0
+
+### Minor Changes
+
+- 20644de: add pcd color prop
+- 76d38d0: Wire up the `ID` field on `DrawGeometriesInFrame`, `DrawFrames`, `DrawFrameSystem`, and `DrawWorldState`.
+
+### Patch Changes
+
+- 116682a: Security patches
+- 76d38d0: Fix `NewColorChooser` pre-allocating zero-valued entries before appending named colors, which produced a doubled-length slice with transparent-black entries at the front.
+
+## 1.23.2
+
+### Patch Changes
+
+- 645d74b: Fix unreadable text in the Details panel under dark mode by swapping
+  `dark:text-black` for `dark:text-white` on the panel container so child
+  text contrasts against dark surroundings rather than disappearing.
+
+## 1.23.1
+
+### Patch Changes
+
+- 7e52e42: Capture save keyboard event before hitting input bindings
+
+## 1.23.0
+
+### Minor Changes
+
+- 29903ad: Enable draw service API by default, add migration doc
+
+### Patch Changes
+
+- 29903ad: Fix frames not rendering for offline parts when the embedder skips dialing. The merge fallback now triggers whenever the connection is not actively `CONNECTED`, instead of only when explicitly `DISCONNECTED`, so config-derived frames render even when `connectionStatus` is `undefined` or `CONNECTING`.
+- 29903ad: useInputMap for navigation controls
+- 29903ad: Add opacity slider to `Details` panel
+
+## 1.22.0
+
+### Minor Changes
+
+- 8ead73e: Add transform controls.
+
+### Patch Changes
+
+- b54ac3b: Fix file drop being triggered by dragging numbers
+
+## 1.21.0
+
+### Minor Changes
+
+- 40cbf95: wire up RenderOrder and Material traits, add depthWrite support
+
+### Patch Changes
+
+- 40cbf95: Use koota relations for model sub-entities
+- 40cbf95: Prevent selection, focus, and hover interactions on invisible entities
+
+## 1.20.0
+
+### Minor Changes
+
+- 79e18f2: Add API to chunk large point clouds
+- f5e0fef: Use tweakpane for frame-editing inputs
+
+## 1.19.1
+
+### Patch Changes
+
+- bbe99fe: Fix world state point cloud rendering and updating
+
+## 1.19.0
+
+### Minor Changes
+
+- 0ed1c07: Add chunking metadata and support in world state hook
+
+### Patch Changes
+
+- efbbaa8: Support bases in GetGeometries calls
+- c2ca03d: Add frame lifecycle for pending saves
+- 7c7d6e9: Fix unbounded logs
+- deaf54d: Consolidate `Parent` trait handling.
+- 7c7d6e9: Fix pcd memory leak
+- 7c7d6e9: Fix inverted visibility on arrow head mesh
+
+## 1.18.1
+
+### Patch Changes
+
+- 1f6e1fe: fix: use screen sapce for ellipse select
+
+## 1.18.0
+
+### Minor Changes
+
+- a2d2976: add interaction layer trait
+- bf53014: Add metadata to configure showing axes helper
+- cec6888: Add `Opacities` trait, update `Metadata` with `color_format` and `opacities`
+- a31c3bd: feat: refactor selection tool to use context instead of callbacks
+- bf53014: Add invisible metadata to allow spawning hidden entities
+
+### Patch Changes
+
+- 9856850: Rework metadata parsing to match API and simplify new field additions
+
 ## 1.17.0
 
 ### Minor Changes

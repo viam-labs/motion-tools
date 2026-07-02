@@ -69,15 +69,21 @@ export const darkenColor = (value: ColorRepresentation, percent: number): Color 
 }
 
 export const resourceNameToColor = (resourceName?: ResourceName) => {
-	return resourceName
-		? new Color(resourceColors[resourceName.subtype as keyof typeof resourceColors])
-		: undefined
+	if (!resourceName) return undefined
+	return subtypeToColor(resourceName.subtype)
+}
+
+export const subtypeToColor = (subtype?: string) => {
+	if (!subtype) return undefined
+	const colorValue = resourceColors[subtype as keyof typeof resourceColors]
+	if (!colorValue) return undefined
+	return new Color(colorValue)
 }
 
 const darkness = '600'
 
 export const colors = {
-	default: oklchToHex(twColors.red[darkness]),
+	default: oklchToHex(twColors.gray[darkness]),
 } as const
 
 export const resourceColors = {

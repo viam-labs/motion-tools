@@ -3,13 +3,12 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useTask, useThrelte } from '@threlte/core'
-	import { Detailed, Portal } from '@threlte/extras'
+	import { Detailed } from '@threlte/extras'
 	import { LOD, OrthographicCamera, Points, PointsMaterial } from 'three'
 
 	import { asColor, isSingleColor } from '$lib/buffer'
 	import { traits, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { poseToObject3d } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
@@ -23,15 +22,16 @@
 	const { camera } = useThrelte()
 	const settings = useSettings()
 
-	const parent = useTrait(() => entity, traits.Parent)
-	const pose = useTrait(() => entity, traits.Pose)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const geometry = useTrait(() => entity, traits.BufferGeometry)
 	const lodData = useTrait(() => entity, traits.PointCloudLOD)
 	const opacity = useTrait(() => entity, traits.Opacity)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
 	const entityPointSize = useTrait(() => entity, traits.PointSize)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
+	const renderOrder = useTrait(() => entity, traits.RenderOrder)
+	const materialProps = useTrait(() => entity, traits.Material)
 
 	const pointSize = $derived(
 		entityPointSize.current ? entityPointSize.current * 0.001 : settings.current.pointSize
@@ -40,6 +40,7 @@
 	const hasLOD = $derived(lodData.current !== undefined && lodData.current.levels.length > 0)
 
 	const points = new Points()
+	points.matrixAutoUpdate = false
 	const material = points.material as PointsMaterial
 	material.toneMapped = false
 
@@ -70,46 +71,46 @@
 	})
 
 	/**
-	 * Points transparancy is very costly for the GPU, so we turn it on conservatively
+	 * Points transparency is very costly for the GPU, so we turn it on conservatively.
+	 * Uniform opacity (entity trait) and per-vertex RGBA alpha are both considered here
+	 * to avoid the two sources conflicting with each other.
 	 */
 	$effect.pre(() => {
-		if (opacity.current !== undefined && opacity.current < 1) {
-			material.transparent = true
-			material.opacity = opacity.current
-
-			return () => {
-				material.transparent = false
-				material.opacity = 1
-			}
-		}
-	})
-
-	$effect.pre(() => {
-		const colors = geometry.current?.getAttribute('color')
+		const vertexColors = geometry.current?.getAttribute('color')
 		const positions = geometry.current?.getAttribute('position')
 
-		material.vertexColors = colors !== undefined
+		material.vertexColors = vertexColors !== undefined
 
-		if (colors && positions) {
-			const hasAlphaChannel = positions.array.length / colors.array.length === 0.75
+		const hasUniformOpacity = opacity.current !== undefined && opacity.current < 1
+		material.opacity = hasUniformOpacity ? opacity.current! : 1
 
-			let transparent = false
+		let hasVertexAlpha = false
+		if (vertexColors && positions) {
+			const hasAlphaChannel = positions.array.length / vertexColors.array.length === 0.75
 			if (hasAlphaChannel) {
-				for (let i = 3, l = colors.array.length; i < l; i += 4) {
-					if (colors.array[i] < 1) {
-						transparent = true
+				for (let i = 3, l = vertexColors.array.length; i < l; i += 4) {
+					if (vertexColors.array[i] < 1) {
+						hasVertexAlpha = true
 						break
 					}
 				}
 			}
-
-			material.transparent = transparent
 		}
+
+		material.transparent = hasUniformOpacity || hasVertexAlpha
 	})
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, hasLOD && lodRef ? lodRef : points)
+		material.depthTest = materialProps.current?.depthTest ?? true
+		material.depthWrite = materialProps.current?.depthWrite ?? true
+	})
+
+	$effect.pre(() => {
+		if (worldMatrix.current) {
+			const target = hasLOD && lodRef ? lodRef : points
+			target.matrixAutoUpdate = false
+			target.matrix.copy(worldMatrix.current)
+			target.updateMatrixWorld()
 		}
 	})
 
@@ -134,34 +135,36 @@
 	})
 </script>
 
-<Portal id={parent.current}>
-	{#if hasLOD}
-		<Detailed
-			bind:ref={lodRef}
-			name={entity}
-			visible={invisible.current !== true}
-			{...events}
-		>
-			{#each lodPoints as { points: childPoints, distance } (childPoints)}
-				<T
-					is={childPoints}
-					{distance}
-					bvh={{ maxDepth: 40, maxLeafSize: 20 }}
-				/>
-			{/each}
-			{@render children?.()}
-		</Detailed>
-	{:else if geometry.current}
-		<T
-			is={points}
-			name={entity}
-			bvh={{ maxDepth: 40, maxLeafSize: 20 }}
-			visible={invisible.current !== true}
-			{...events}
-		>
-			<T is={geometry.current} />
-			<T is={material} />
-			{@render children?.()}
-		</T>
-	{/if}
-</Portal>
+{#if hasLOD}
+	<Detailed
+		bind:ref={lodRef}
+		name={entity}
+		visible={invisible.current !== true}
+		renderOrder={renderOrder.current}
+		{...events}
+	>
+		{#each lodPoints as { points: childPoints, distance } (childPoints)}
+			<T
+				is={childPoints}
+				{distance}
+				bvh={{ maxDepth: 40, maxLeafSize: 20 }}
+			/>
+		{/each}
+
+		{@render children?.()}
+	</Detailed>
+{:else if geometry.current}
+	<T
+		is={points}
+		name={entity}
+		bvh={{ maxDepth: 40, maxLeafSize: 20 }}
+		visible={invisible.current !== true}
+		renderOrder={renderOrder.current}
+		{...events}
+	>
+		<T is={geometry.current} />
+		<T is={material} />
+
+		{@render children?.()}
+	</T>
+{/if}

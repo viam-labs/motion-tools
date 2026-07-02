@@ -12,7 +12,7 @@
 {#if mode === 'perspective'}
 	<T.PerspectiveCamera
 		makeDefault
-		near={0.01}
+		near={0.001}
 		up={[0, 0, 1]}
 		oncreate={(ref) => {
 			ref.lookAt(0, 0, 0)

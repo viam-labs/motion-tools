@@ -9,14 +9,14 @@ import {
 import { getContext, setContext, untrack } from 'svelte'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
+import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
-import { updateGeometryTrait } from '$lib/ecs/traits'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
+import { useLogs } from '$lib/plugins'
 import { createPose } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-object-context')
@@ -187,7 +187,8 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 								const existing = entities.get(pointcloudLabel)
 								const metadata = {
-									colors: colors ?? undefined,
+									colors,
+									colorFormat: ColorFormat.RGB,
 								}
 
 								if (existing) {
@@ -229,21 +230,19 @@ export const providePointcloudObjects = (partID: () => string) => {
 							const existing = entities.get(geometryLabel)
 
 							if (existing) {
+								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
 								existing.set(traits.Center, center)
-								updateGeometryTrait(existing, geometry)
+								traits.updateGeometryTrait(existing, geometry)
 							} else {
 								const entityTraits: ConfigurableTrait[] = [
 									traits.Name(geometryLabel),
+									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
 									traits.Center(center),
 									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
 									traits.Color({ r: 0, g: 1, b: 0 }),
 								]
-
-								if (geometriesInFrame.referenceFrame) {
-									entityTraits.push(traits.Parent(geometriesInFrame.referenceFrame))
-								}
 
 								const entity = world.spawn(...entityTraits)
 

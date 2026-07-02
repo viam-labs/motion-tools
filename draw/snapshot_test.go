@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/golang/geo/r3"
+	"github.com/google/uuid"
+	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
 	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"
@@ -1283,5 +1285,284 @@ func TestGeneratingSnapshots(t *testing.T) {
 		}
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_model.json")
+	})
+
+	// generates a snapshot showcasing per-entity metadata: axes helper visibility and invisible flag
+	t.Run("snapshot metadata", func(t *testing.T) {
+		snapshot := NewSnapshot(
+			WithSceneCamera(
+				NewSceneCamera(
+					r3.Vector{X: 2000, Y: -2000, Z: 1500},
+					r3.Vector{X: 0, Y: 0, Z: 250},
+				),
+			),
+			WithGrid(false),
+		)
+
+		sphereRadius := 250.0
+
+		// Sphere with ShowAxesHelper=true: the RGB XYZ axes indicator is shown
+		axesOnMeta := NewMetadata(
+			WithMetadataColors(NewColor(WithName("dodgerblue"))),
+			WithMetadataAxesHelper(true),
+		).ToProto()
+		sphereAxesOn, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "axes-helper-on")
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot.DrawFrame("axes-helper-on", "world",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -600, Y: 0, Z: 250}),
+			sphereAxesOn, axesOnMeta,
+		)
+
+		// Sphere with ShowAxesHelper=false: no axes indicator rendered
+		axesOffMeta := NewMetadata(
+			WithMetadataColors(NewColor(WithName("crimson"))),
+			WithMetadataAxesHelper(false),
+		).ToProto()
+		sphereAxesOff, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "axes-helper-off")
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot.DrawFrame("axes-helper-off", "world",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			sphereAxesOff, axesOffMeta,
+		)
+
+		// Sphere with Invisible=true: not rendered at all
+		invisibleMeta := NewMetadata(
+			WithMetadataColors(NewColor(WithName("limegreen"))),
+			WithMetadataInvisible(true),
+		).ToProto()
+		sphereInvisible, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), sphereRadius, "invisible-sphere")
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot.DrawFrame("invisible-sphere", "world",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 600, Y: 0, Z: 250}),
+			sphereInvisible, invisibleMeta,
+		)
+
+		// Line drawing with WithAxesHelper(false): no axes indicator on the drawing
+		linePts := []r3.Vector{
+			{X: -600, Y: 0, Z: 600},
+			{X: 0, Y: 0, Z: 600},
+			{X: 600, Y: 0, Z: 600},
+		}
+		line, err := NewLine(linePts,
+			WithSingleLineColor(NewColor(WithName("orange"))),
+			WithLineWidth(15.0),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lineDrawing := line.Draw("line-no-axes",
+			WithParent("world"),
+			WithPose(spatialmath.NewZeroPose()),
+			WithAxesHelper(false),
+		)
+		snapshot.drawings = append(snapshot.drawings, lineDrawing)
+
+		// Arrows drawing with WithInvisible(true): not rendered
+		arrowPoses := []spatialmath.Pose{
+			spatialmath.NewPose(r3.Vector{X: 600, Y: 0, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+			spatialmath.NewPose(r3.Vector{X: 650, Y: 50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+			spatialmath.NewPose(r3.Vector{X: 550, Y: -50, Z: 650}, &spatialmath.OrientationVectorDegrees{OZ: 1}),
+		}
+		arrows, err := NewArrows(arrowPoses, WithSingleArrowColor(NewColor(WithName("purple"))))
+		if err != nil {
+			t.Fatal(err)
+		}
+		invisibleArrows := arrows.Draw("invisible-arrows",
+			WithParent("world"),
+			WithPose(spatialmath.NewZeroPose()),
+			WithInvisible(true),
+			WithAxesHelper(false),
+		)
+		snapshot.drawings = append(snapshot.drawings, invisibleArrows)
+
+		// Relationship demo: a capsule with arrows pointing outward from its surface,
+		// the arrows carry a HoverLink relationship back to the capsule.
+		capsuleCenter := r3.Vector{X: 0, Y: 1200, Z: 300}
+		capsuleRadius := 120.0
+		capsuleHeight := 400.0
+
+		capsuleID := uuid.NewSHA1(uuidNamespace, []byte("relationship-capsule"))
+		capsuleGeo, err := spatialmath.NewCapsule(spatialmath.NewZeroPose(), capsuleRadius, capsuleHeight, "relationship-capsule")
+		if err != nil {
+			t.Fatal(err)
+		}
+		capsuleConfig := NewDrawConfig("relationship-capsule",
+			WithUUID(capsuleID[:]),
+			WithParent("world"),
+			WithPose(spatialmath.NewPoseFromPoint(capsuleCenter)),
+			WithAxesHelper(false),
+		)
+		capsuleTransform := NewTransform(capsuleConfig, capsuleGeo,
+			WithMetadataColors(NewColor(WithName("teal"))),
+		)
+		snapshot.transforms = append(snapshot.transforms, capsuleTransform)
+
+		// Arrows radiating outward from the capsule surface
+		offset := capsuleRadius + 200
+		radiatingPoses := []spatialmath.Pose{
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X + offset, Y: capsuleCenter.Y, Z: capsuleCenter.Z},
+				&spatialmath.OrientationVectorDegrees{OX: 1},
+			),
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X - offset, Y: capsuleCenter.Y, Z: capsuleCenter.Z},
+				&spatialmath.OrientationVectorDegrees{OX: -1},
+			),
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X, Y: capsuleCenter.Y + offset, Z: capsuleCenter.Z},
+				&spatialmath.OrientationVectorDegrees{OY: 1},
+			),
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X, Y: capsuleCenter.Y - offset, Z: capsuleCenter.Z},
+				&spatialmath.OrientationVectorDegrees{OY: -1},
+			),
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X, Y: capsuleCenter.Y, Z: capsuleCenter.Z + capsuleHeight/2 + offset},
+				&spatialmath.OrientationVectorDegrees{OZ: 1},
+			),
+			spatialmath.NewPose(
+				r3.Vector{X: capsuleCenter.X, Y: capsuleCenter.Y, Z: capsuleCenter.Z - capsuleHeight/2 - offset},
+				&spatialmath.OrientationVectorDegrees{OZ: -1},
+			),
+		}
+		radiatingArrows, err := NewArrows(radiatingPoses, WithSingleArrowColor(NewColor(WithName("coral"))))
+		if err != nil {
+			t.Fatal(err)
+		}
+		radiatingDrawing := radiatingArrows.Draw("relationship-arrows",
+			WithParent("world"),
+			WithPose(spatialmath.NewZeroPose()),
+			WithAxesHelper(false),
+		)
+		radiatingDrawing.Metadata.Relationships = []*drawv1.Relationship{
+			{TargetUuid: capsuleID[:], Type: "HoverLink"},
+		}
+		snapshot.drawings = append(snapshot.drawings, radiatingDrawing)
+
+		writeSnapshot(t, snapshot, "visualization_snapshot_metadata.json")
+	})
+
+	// generates a sequence of three snapshots that share per-entity UUIDs so the
+	// frontend reconciler can be exercised end-to-end: entities are added,
+	// updated in place, and removed across versions. The JSON files are also
+	// copied to static/test-fixtures/ so the /snapshot/reconcile route can
+	// fetch them at runtime.
+	t.Run("snapshot reconcile", func(t *testing.T) {
+		writeFixture := func(snapshot *Snapshot, filename string) {
+			t.Helper()
+			writeSnapshot(t, snapshot, filename)
+
+			jsonBytes, err := snapshot.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			staticDir := filepath.Join("..", "static", "test-fixtures")
+			if err := os.MkdirAll(staticDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			staticPath := filepath.Join(staticDir, filename)
+			if err := os.WriteFile(staticPath, jsonBytes, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		camera := WithSceneCamera(NewSceneCamera(
+			r3.Vector{X: 2000, Y: -2000, Z: 1500},
+			r3.Vector{X: 0, Y: 0, Z: 250},
+		))
+
+		// All three versions share a snapshot UUID so the frontend reconciles
+		// per-entity rather than wiping. The snapshot itself stamps each entity
+		// with a UUID derived from its (snapshot UUID, name, parent) triple.
+		sharedSnapshotUUID := uuid.NewSHA1(uuidNamespace, []byte("reconcile/snapshot"))
+
+		drawSphere := func(s *Snapshot, name string, pose spatialmath.Pose, color Color) {
+			geo, err := spatialmath.NewSphere(spatialmath.NewZeroPose(), 200, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
+			s.DrawFrame(name, "world", pose, geo, meta)
+		}
+
+		v1 := NewSnapshot(camera, WithGrid(false))
+		v1.SetUUID(sharedSnapshotUUID)
+		drawSphere(v1, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v1, "reconcile-moving",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 250}),
+			NewColor(WithName("limegreen")),
+		)
+		drawSphere(v1, "reconcile-removed",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 250}),
+			NewColor(WithName("crimson")),
+		)
+		writeFixture(v1, "visualization_snapshot_reconcile_v1.json")
+
+		v2 := NewSnapshot(camera, WithGrid(false))
+		v2.SetUUID(sharedSnapshotUUID)
+		drawSphere(v2, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v2, "reconcile-moving",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 750}),
+			NewColor(WithName("limegreen")),
+		)
+		drawSphere(v2, "reconcile-added",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 250}),
+			NewColor(WithName("orchid")),
+		)
+		writeFixture(v2, "visualization_snapshot_reconcile_v2.json")
+
+		v3 := NewSnapshot(camera, WithGrid(false))
+		v3.SetUUID(sharedSnapshotUUID)
+		drawSphere(v3, "reconcile-static",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 250}),
+			NewColor(WithName("dodgerblue")),
+		)
+		drawSphere(v3, "reconcile-added",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 750}),
+			NewColor(WithName("orchid")),
+		)
+		writeFixture(v3, "visualization_snapshot_reconcile_v3.json")
+
+		// "new" carries a different snapshot UUID and visually distinct content
+		// (boxes instead of spheres). When the visualizer receives this after
+		// the v1/v2/v3 sequence, it should wipe the existing entities and
+		// render the new scene fresh rather than reconciling.
+		drawBox := func(s *Snapshot, name string, pose spatialmath.Pose, color Color) {
+			geo, err := spatialmath.NewBox(spatialmath.NewZeroPose(),
+				r3.Vector{X: 400, Y: 400, Z: 400}, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			meta := NewMetadata(WithMetadataColors(color), WithMetadataAxesHelper(false)).ToProto()
+			s.DrawFrame(name, "world", pose, geo, meta)
+		}
+
+		vNew := NewSnapshot(camera, WithGrid(false))
+		vNew.SetUUID(uuid.NewSHA1(uuidNamespace, []byte("reconcile/snapshot-new")))
+		drawBox(vNew, "wiped-cube-left",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: -700, Y: 0, Z: 200}),
+			NewColor(WithName("orange")),
+		)
+		drawBox(vNew, "wiped-cube-center",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 0, Z: 200}),
+			NewColor(WithName("gold")),
+		)
+		drawBox(vNew, "wiped-cube-right",
+			spatialmath.NewPoseFromPoint(r3.Vector{X: 700, Y: 0, Z: 200}),
+			NewColor(WithName("tomato")),
+		)
+		writeFixture(vNew, "visualization_snapshot_reconcile_new.json")
 	})
 }

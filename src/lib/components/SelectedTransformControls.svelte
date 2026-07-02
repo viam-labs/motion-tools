@@ -1,0 +1,285 @@
+<script lang="ts">
+	import { useThrelte } from '@threlte/core'
+	import { TransformControls } from '@threlte/extras'
+	import { Matrix4 } from 'three'
+
+	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
+
+	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
+	import { useTransformControls } from '$lib/hooks/useControls.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
+
+	const { scene } = useThrelte()
+	const settings = useSettings()
+	const environment = useEnvironment()
+	const fragmentInfo = useFragmentInfo()
+	const transformControls = useTransformControls()
+	const sessions = useFrameEditSession()
+	const selected = useQuery(traits.Selected)
+
+	const mode = $derived(settings.current.transformMode)
+	const entity = $derived(selected.current[0])
+	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
+	const transformable = useTrait(() => entity, traits.Transformable)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
+	const configMatrix = useTrait(() => entity, traits.Matrix)
+	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
+	const box = useTrait(() => entity, traits.Box)
+	const sphere = useTrait(() => entity, traits.Sphere)
+	const capsule = useTrait(() => entity, traits.Capsule)
+	const name = useTrait(() => entity, traits.Name)
+	const hasScalableGeometry = $derived(
+		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
+	)
+	const isFragmentComponentWithVariables = $derived(
+		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
+	)
+
+	// Mesh sets name={entity} on its inner mesh, so getObjectByName resolves
+	// to that mesh — not the parent Frame Group we actually want to drive. Walk
+	// up to the Group so translate/rotate/scale apply to the whole frame, not
+	// the geometry inside it.
+	const ref = $derived(object3d?.parent ?? object3d)
+
+	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
+		if (mode === 'none' || !transformable.current) return
+
+		// Scale only does anything for primitive geometries the gizmo can size.
+		if (mode === 'scale' && !hasScalableGeometry) return
+
+		return mode
+	})
+	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
+	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
+	const transforming = $derived(
+		ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current
+	)
+
+	const refPose = createPose()
+	const tempRefMatrix = new Matrix4()
+	const tempEditedMatrix = new Matrix4()
+	const tempParentInverse = new Matrix4()
+	const tempPose = createPose()
+
+	let session: FrameEditSession | undefined
+	let scaleStart:
+		| { type: 'box'; x: number; y: number; z: number }
+		| { type: 'sphere'; r: number }
+		| { type: 'capsule'; r: number; l: number }
+		| undefined
+
+	const captureScaleStart = () => {
+		if (!entity || activeMode !== 'scale') {
+			scaleStart = undefined
+			return
+		}
+
+		const box = entity.get(traits.Box)
+		if (box) {
+			scaleStart = { type: 'box', ...box }
+			return
+		}
+
+		const sphere = entity.get(traits.Sphere)
+		if (sphere) {
+			scaleStart = { type: 'sphere', ...sphere }
+			return
+		}
+
+		const capsule = entity.get(traits.Capsule)
+		if (capsule) {
+			scaleStart = { type: 'capsule', ...capsule }
+			return
+		}
+
+		scaleStart = undefined
+	}
+
+	const onMouseDown = () => {
+		if (entity?.has(traits.FramesAPI)) {
+			session = sessions.begin([entity])
+		}
+
+		captureScaleStart()
+
+		environment.current.viewerMode = 'edit'
+		transformControls.setActive(true)
+	}
+
+	const onChange = () => {
+		if (!ref || !entity || !activeMode) return
+
+		const isFrameEntity = entity.has(traits.FramesAPI)
+		if (activeMode === 'translate' || activeMode === 'rotate') {
+			if (isFrameEntity) {
+				stageFrameTransform()
+			} else {
+				stageLocalTransform()
+			}
+		} else {
+			// scale → bake the gizmo's scale factor into the geometry trait,
+			// then reset the object's scale so subsequent drags start from 1.
+			if (!scaleStart) {
+				captureScaleStart()
+			}
+
+			// Clamp at 0 — the gizmo can produce negative scale factors when
+			// dragged past the origin, which would yield negative dimensions
+			// and a degenerate OBB.
+			if (scaleStart?.type === 'box') {
+				const next = {
+					x: Math.max(0, scaleStart.x * ref.scale.x),
+					y: Math.max(0, scaleStart.y * ref.scale.y),
+					z: Math.max(0, scaleStart.z * ref.scale.z),
+				}
+				if (isFrameEntity) {
+					session?.stageGeometry(entity, { type: 'box', ...next })
+				} else {
+					entity.set(traits.Box, next)
+				}
+			} else if (scaleStart?.type === 'sphere') {
+				const next = { r: Math.max(0, scaleStart.r * ref.scale.x) }
+				if (isFrameEntity) {
+					session?.stageGeometry(entity, { type: 'sphere', ...next })
+				} else {
+					entity.set(traits.Sphere, next)
+				}
+			} else if (scaleStart?.type === 'capsule') {
+				const next = {
+					r: Math.max(0, scaleStart.r * ref.scale.x),
+					l: Math.max(0, scaleStart.l * ref.scale.y),
+				}
+				if (isFrameEntity) {
+					session?.stageGeometry(entity, { type: 'capsule', ...next })
+				} else {
+					entity.set(traits.Capsule, next)
+				}
+			}
+
+			ref.scale.setScalar(1)
+		}
+	}
+
+	const onMouseUp = () => {
+		session?.commit()
+		session = undefined
+		scaleStart = undefined
+		transformControls.setActive(false)
+	}
+
+	/**
+	 * Build the entity's parent-relative drag target from the gizmo's world-space
+	 * `ref` transform into `out`.
+	 *
+	 * Entity renderers mount at the scene root with `matrixAutoUpdate = false`
+	 * and recompose `group.matrix` from the `WorldMatrix` trait, so
+	 * `ref.position` / `ref.quaternion` are world-space. Matrix-shaped traits
+	 * store local-to-parent, so we left-multiply by the parent's inverted
+	 * WorldMatrix. Otherwise recomposition (parentWorld × local) re-applies the
+	 * parent transform and the entity lands at parentWorld × where-it-was-dragged.
+	 */
+	const computeLocalDragTarget = (out: Matrix4) => {
+		if (!ref || !entity) return
+
+		out.makeRotationFromQuaternion(ref.quaternion)
+		out.setPosition(ref.position)
+
+		const parentWorld = entity.targetFor(relations.ChildOf)?.get(traits.WorldMatrix)
+		if (parentWorld) {
+			tempParentInverse.copy(parentWorld).invert()
+			out.premultiply(tempParentInverse)
+		}
+	}
+
+	/**
+	 * Stages a translate/rotate drag for a frame system entity into the edit
+	 * session. With a kinematic offset (LiveMatrix + Matrix both present), the
+	 * parent-relative target feeds solveEditedMatrix to back out the EditedMatrix
+	 * satisfying live × baseline⁻¹ × edited = local. Without one, Frame.svelte's
+	 * blend short-circuits to EditedMatrix, so we stage the target pose directly.
+	 */
+	const stageFrameTransform = () => {
+		if (!ref || !entity) return
+
+		computeLocalDragTarget(tempRefMatrix)
+		matrixToPose(tempRefMatrix, refPose)
+
+		const live = liveMatrix.current
+		const config = configMatrix.current
+
+		if (!live || !config) {
+			if (activeMode === 'translate') {
+				session?.stagePose(entity, {
+					x: refPose.x,
+					y: refPose.y,
+					z: refPose.z,
+				})
+			} else if (activeMode === 'rotate') {
+				session?.stagePose(entity, {
+					oX: refPose.oX,
+					oY: refPose.oY,
+					oZ: refPose.oZ,
+					theta: refPose.theta,
+				})
+			}
+			return
+		}
+
+		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
+		matrixToPose(tempEditedMatrix, tempPose)
+		session?.stagePose(entity, { ...tempPose })
+	}
+
+	/**
+	 * Stages a translate/rotate drag for a non-frame-system entity (e.g. a gizmo)
+	 * by writing the dragged component into the Matrix trait. Gizmos carry no
+	 * LiveMatrix, so there's no live-pose blend to invert — the parent-relative
+	 * target is the new local transform.
+	 */
+	const stageLocalTransform = () => {
+		if (!ref || !entity) return
+
+		const matrix = entity.get(traits.Matrix)
+		if (!matrix) return
+
+		computeLocalDragTarget(tempRefMatrix)
+
+		// update only the dragged component
+		matrixToPose(matrix, tempPose)
+		matrixToPose(tempRefMatrix, refPose)
+		if (activeMode === 'translate') {
+			tempPose.x = refPose.x
+			tempPose.y = refPose.y
+			tempPose.z = refPose.z
+		} else {
+			tempPose.oX = refPose.oX
+			tempPose.oY = refPose.oY
+			tempPose.oZ = refPose.oZ
+			tempPose.theta = refPose.theta
+		}
+
+		poseToMatrix(tempPose, matrix)
+		entity.changed(traits.Matrix)
+	}
+</script>
+
+{#if transforming}
+	{#key entity}
+		<TransformControls
+			object={ref}
+			mode={activeMode}
+			translationSnap={settings.current.snapping ? 0.1 : undefined}
+			rotationSnap={settings.current.snapping ? Math.PI / 24 : undefined}
+			scaleSnap={settings.current.snapping ? 0.1 : undefined}
+			showY={!isSphereScale}
+			showZ={!isSphereScale && !isCapsuleScale}
+			onmouseDown={onMouseDown}
+			onobjectChange={onChange}
+			onmouseUp={onMouseUp}
+		/>
+	{/key}
+{/if}

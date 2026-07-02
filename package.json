@@ -1,77 +1,494 @@
 {
 	"name": "@viamrobotics/motion-tools",
-	"version": "1.17.0",
+	"version": "1.34.9",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",
 	"type": "module",
 	"scripts": {
-		"dev": "pnpm dev:bun",
+		"dev": "concurrently \"pnpm dev:bun\" \"go run cmd/draw-server/main.go -port 3030\"",
 		"dev:bun": "tsx server/check-bun && bun run server/server.ts",
-		"dev:next": "concurrently \"pnpm dev:bun\" \"go run cmd/draw-server/main.go -port 3030\"",
 		"dev:https": "vite dev -- --https",
-		"build": "vite build && npm run prepack",
-		"build:workers": "node scripts/build-workers.js",
-		"prepack": "svelte-kit sync && pnpm build:workers && svelte-package && publint",
+		"up": "wireit",
+		"build": "wireit",
+		"vite-build": "wireit",
+		"build:workers": "wireit",
+		"go-build": "wireit",
+		"package": "wireit",
+		"svelte-sync": "wireit",
+		"prepare": "pnpm svelte-sync && pnpm build:workers || echo ''",
+		"prepack": "wireit",
 		"preview": "vite preview",
-		"prepare": "svelte-kit sync && pnpm build:workers || echo ''",
-		"check": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json && pnpm vet",
+		"check": "wireit",
 		"check:watch": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write . && eslint . --fix",
-		"lint:draw": "golangci-lint run ./draw/...",
-		"lint:client": "golangci-lint run ./client/...",
-		"lint:prettier": "prettier --check .",
-		"lint:eslint": "eslint .",
-		"lint": "pnpm lint:prettier && pnpm lint:eslint && pnpm lint:draw",
+		"format": "prettier --write . && ./scripts/eslint-progress.sh . --fix",
+		"lint": "wireit",
+		"lint:prettier": "wireit",
+		"lint:eslint": "wireit",
+		"lint:draw": "wireit",
+		"lint:client": "wireit",
 		"knip": "npx knip --include files,exports,types",
+		"test": "wireit",
 		"test:unit": "vitest",
-		"test:client": "go test ./client/... -count=1",
-		"test:draw": "go test ./draw/... -count=1",
-		"test": "pnpm test:unit -- --run",
-		"test:coverage": "npx vitest run --coverage",
-		"test:e2e": "playwright test",
-		"test:e2e-ui": "playwright test --ui",
-		"vet:draw": "go vet ./draw/...",
-		"vet:client": "go vet ./client/...",
-		"vet": "pnpm vet:draw && pnpm vet:client",
-		"model-pipeline:run": "node scripts/model-pipeline.js",
-		"release": "changeset publish"
+		"test:unit-run": "wireit",
+		"test:coverage": "wireit",
+		"test:client": "wireit",
+		"test:draw": "wireit",
+		"test:e2e": "./e2e/setup.sh && playwright test",
+		"test:e2e-ui": "./e2e/setup.sh && playwright test --ui",
+		"vet": "wireit",
+		"vet:draw": "wireit",
+		"vet:client": "wireit",
+		"proto": "wireit",
+		"proto:vendor": "wireit",
+		"proto:dep-update": "buf dep update",
+		"proto:gen-go": "wireit",
+		"proto:gen-ts": "wireit",
+		"proto:lint": "wireit",
+		"proto:format": "buf format -w",
+		"proto:format-check": "wireit",
+		"proto:clean": "rm -rf src/lib/buf protos/vendor",
+		"model-pipeline:run": "wireit",
+		"release": "changeset publish",
+		"docs:dev": "pnpm --dir docs dev",
+		"docs:build": "pnpm --dir docs build",
+		"docs:preview": "pnpm --dir docs preview"
+	},
+	"wireit": {
+		"up": {
+			"command": "WS_PORT=3000 STATIC_PORT=5173 bun run server/server.ts --production > /dev/null 2>&1 & .bin/draw-server -port 3030",
+			"dependencies": [
+				"vite-build",
+				"go-build"
+			]
+		},
+		"build": {
+			"dependencies": [
+				"vite-build",
+				"package"
+			]
+		},
+		"vite-build": {
+			"command": "vite build",
+			"files": [
+				"src/**",
+				"static/**",
+				"vite.config.ts",
+				"svelte.config.js",
+				"tsconfig.json",
+				"tailwind.config.ts",
+				"package.json"
+			],
+			"output": [
+				"build/**",
+				".svelte-kit/output/**"
+			],
+			"dependencies": [
+				"proto:gen-ts",
+				"svelte-sync",
+				"build:workers"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			],
+			"env": {
+				"BASE_PATH": {
+					"external": true
+				},
+				"WS_PORT": {
+					"external": true
+				},
+				"STATIC_PORT": {
+					"external": true
+				}
+			}
+		},
+		"build:workers": {
+			"command": "node scripts/build-workers.js",
+			"files": [
+				"scripts/build-workers.js",
+				"src/lib/loaders/pcd/worker.ts"
+			],
+			"output": [
+				"src/lib/loaders/pcd/worker.inline.ts"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"go-build": {
+			"command": "go build -o .bin/draw-server ./cmd/draw-server",
+			"files": [
+				"cmd/draw-server/**",
+				"client/**",
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": [
+				".bin/draw-server"
+			]
+		},
+		"package": {
+			"command": "svelte-package && publint",
+			"files": [
+				"src/lib/**",
+				"svelte.config.js",
+				"tsconfig.json",
+				"package.json"
+			],
+			"output": [
+				"dist/**"
+			],
+			"dependencies": [
+				"proto:gen-ts",
+				"svelte-sync",
+				"build:workers"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"svelte-sync": {
+			"command": "svelte-kit sync",
+			"files": [
+				"svelte.config.js",
+				"src/**",
+				"tsconfig.json"
+			],
+			"output": [
+				".svelte-kit/generated/**",
+				".svelte-kit/types/**",
+				".svelte-kit/ambient.d.ts",
+				".svelte-kit/non-ambient.d.ts",
+				".svelte-kit/env.d.ts",
+				".svelte-kit/tsconfig.json"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"prepack": {
+			"dependencies": [
+				"package"
+			]
+		},
+		"check": {
+			"command": "svelte-check --tsconfig ./tsconfig.json",
+			"files": [
+				"src/**",
+				"tsconfig.json",
+				"svelte.config.js",
+				"package.json"
+			],
+			"output": [],
+			"dependencies": [
+				"proto:gen-ts",
+				"svelte-sync",
+				"build:workers",
+				"vet"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"lint": {
+			"dependencies": [
+				"lint:prettier",
+				"lint:eslint",
+				"lint:draw"
+			]
+		},
+		"lint:prettier": {
+			"command": "prettier --check .",
+			"files": [
+				"**",
+				"!.bin/**",
+				"!build/**",
+				"!dist/**",
+				"!.svelte-kit/**",
+				"!.astro/**",
+				"!.output/**",
+				"!coverage/**",
+				"!test-results/**",
+				"!.tmp/**",
+				"!src/lib/buf/**",
+				"!protos/vendor/**",
+				"!draw/v1/**",
+				"!**/*.inline.ts",
+				"!**/__snapshots__/**",
+				"!**/*-snapshots/**",
+				"!static/test-fixtures/**",
+				"!static/Big_Buck_Bunny_4K.webm",
+				"!e2e/.bin/**",
+				"!docs/.astro/**",
+				"!docs/dist/**",
+				"!docs/node_modules/**",
+				"!docs/public/playground/**",
+				"!docs/src/content/docs/api/**",
+				"!**/*.tgz"
+			],
+			"output": [],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"lint:eslint": {
+			"command": "TSESTREE_SINGLE_RUN=true eslint .",
+			"files": [
+				"**",
+				"!.bin/**",
+				"!build/**",
+				"!dist/**",
+				"!.svelte-kit/**",
+				"!.astro/**",
+				"!.output/**",
+				"!coverage/**",
+				"!test-results/**",
+				"!.tmp/**",
+				"!src/lib/buf/**",
+				"!protos/vendor/**",
+				"!draw/v1/**",
+				"!**/*.inline.ts",
+				"!**/__snapshots__/**",
+				"!**/*-snapshots/**",
+				"!static/test-fixtures/**",
+				"!static/Big_Buck_Bunny_4K.webm",
+				"!e2e/.bin/**",
+				"!docs/.astro/**",
+				"!docs/dist/**",
+				"!docs/node_modules/**",
+				"!docs/public/playground/**",
+				"!docs/src/content/docs/api/**",
+				"!**/*.tgz"
+			],
+			"output": [],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"lint:draw": {
+			"command": "golangci-lint run ./draw/...",
+			"files": [
+				"draw/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"lint:client": {
+			"command": "golangci-lint run ./client/...",
+			"files": [
+				"client/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"vet": {
+			"dependencies": [
+				"vet:draw",
+				"vet:client"
+			]
+		},
+		"vet:draw": {
+			"command": "go vet ./draw/...",
+			"files": [
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"vet:client": {
+			"command": "go vet ./client/...",
+			"files": [
+				"client/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"test": {
+			"dependencies": [
+				"test:unit-run"
+			]
+		},
+		"test:unit-run": {
+			"command": "vitest --run",
+			"files": [
+				"src/**",
+				"vite.config.ts",
+				"vitest-setup-client.ts",
+				"tsconfig.json"
+			],
+			"output": [],
+			"dependencies": [
+				"proto:gen-ts"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"test:coverage": {
+			"command": "vitest run --coverage",
+			"files": [
+				"src/**",
+				"vite.config.ts",
+				"vitest-setup-client.ts",
+				"tsconfig.json"
+			],
+			"output": [
+				"coverage/**"
+			],
+			"dependencies": [
+				"proto:gen-ts"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"test:client": {
+			"command": "go test ./client/... -count=1",
+			"files": [
+				"client/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"test:draw": {
+			"command": "go test ./draw/... -count=1",
+			"files": [
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"proto": {
+			"command": "pnpm proto:dep-update && pnpm proto:format && pnpm proto:lint && pnpm proto:gen-go && pnpm proto:gen-ts",
+			"dependencies": [
+				"proto:vendor"
+			]
+		},
+		"proto:vendor": {
+			"command": "buf export buf.build/viamrobotics/api --output protos/vendor",
+			"files": [
+				"buf.yaml",
+				"buf.lock"
+			],
+			"output": [
+				"protos/vendor/**"
+			]
+		},
+		"proto:gen-go": {
+			"command": "PATH=\"$(go env GOPATH)/bin:$PATH\" buf generate --template buf.gen.go.yaml",
+			"files": [
+				"protos/draw/**",
+				"protos/vendor/**",
+				"buf.gen.go.yaml",
+				"buf.yaml",
+				"buf.lock"
+			],
+			"output": [],
+			"dependencies": [
+				"proto:vendor"
+			]
+		},
+		"proto:gen-ts": {
+			"command": "buf generate --template buf.gen.typescript.yaml",
+			"files": [
+				"protos/draw/**",
+				"protos/vendor/**",
+				"buf.gen.typescript.yaml",
+				"buf.yaml",
+				"buf.lock"
+			],
+			"output": [
+				"src/lib/buf/**"
+			],
+			"clean": true,
+			"dependencies": [
+				"proto:vendor"
+			]
+		},
+		"proto:lint": {
+			"command": "buf lint",
+			"files": [
+				"protos/draw/**",
+				"buf.yaml"
+			],
+			"output": []
+		},
+		"proto:format-check": {
+			"command": "buf format --diff --exit-code",
+			"files": [
+				"protos/draw/**"
+			],
+			"output": []
+		},
+		"model-pipeline:run": {
+			"command": "node scripts/model-pipeline.js",
+			"files": [
+				"scripts/model-pipeline.js",
+				"static/models/*.glb",
+				"static/models/*.gltf"
+			],
+			"output": [
+				"src/lib/components/models/*.svelte"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		}
 	},
 	"devDependencies": {
 		"@ag-grid-community/client-side-row-model": "32.3.9",
 		"@ag-grid-community/core": "32.3.9",
 		"@ag-grid-community/styles": "32.3.9",
+		"@bufbuild/buf": "1.69.0",
 		"@changesets/cli": "2.29.6",
+		"@connectrpc/connect": "1.7.0",
+		"@connectrpc/connect-web": "1.7.0",
+		"@langchain/anthropic": "^1.4.0",
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
-		"@playwright/test": "1.55.0",
+		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
 		"@skeletonlabs/skeleton": "3.2.0",
 		"@skeletonlabs/skeleton-svelte": "1.5.1",
 		"@sveltejs/adapter-static": "3.0.9",
-		"@sveltejs/kit": "2.55.0",
-		"@sveltejs/package": "2.5.7",
-		"@sveltejs/vite-plugin-svelte": "6.1.4",
+		"@sveltejs/kit": "2.67.0",
+		"@sveltejs/package": "2.5.8",
+		"@sveltejs/vite-plugin-svelte": "7.1.2",
 		"@tailwindcss/forms": "0.5.10",
-		"@tailwindcss/vite": "4.1.13",
+		"@tailwindcss/vite": "4.3.1",
+		"@tanstack/svelte-query-devtools": "6.0.2",
 		"@testing-library/jest-dom": "6.8.0",
 		"@testing-library/svelte": "5.2.8",
 		"@testing-library/user-event": "^14.6.1",
-		"@threlte/core": "8.5.5",
-		"@threlte/extras": "9.14.1",
+		"@three.ez/instanced-mesh": "^0.3.15",
+		"@threlte/core": "8.5.14",
+		"@threlte/extras": "9.21.0",
 		"@threlte/rapier": "3.4.1",
-		"@threlte/xr": "1.5.2",
+		"@threlte/xr": "1.6.0",
 		"@types/bun": "1.2.21",
+		"@types/d3-force": "^3.0.10",
 		"@types/earcut": "^3.0.0",
 		"@types/lodash-es": "4.17.12",
+		"@types/node": "^25.6.0",
 		"@types/three": "0.183.1",
 		"@typescript-eslint/eslint-plugin": "8.56.1",
 		"@typescript-eslint/parser": "8.56.1",
 		"@viamrobotics/prime-core": "0.1.5",
-		"@viamrobotics/sdk": "0.58.0",
-		"@viamrobotics/svelte-sdk": "1.0.1",
-		"@vitest/browser": "3.2.4",
-		"@vitest/coverage-v8": "^3.2.4",
+		"@viamrobotics/sdk": "0.69.0",
+		"@viamrobotics/svelte-sdk": "1.2.2",
+		"@viamrobotics/tweakpane-config": "0.1.1",
+		"@vitest/browser-playwright": "4.1.9",
+		"@vitest/coverage-v8": "4.1.9",
 		"@zag-js/collapsible": "1.22.1",
 		"@zag-js/floating-panel": "1.22.1",
 		"@zag-js/popover": "1.22.1",
@@ -81,7 +498,8 @@
 		"@zag-js/tree-view": "1.22.1",
 		"camera-controls": "3.1.0",
 		"concurrently": "^9.2.1",
-		"esbuild": "^0.27.3",
+		"earcut": "^3.0.2",
+		"esbuild": "^0.28.1",
 		"eslint": "10.0.2",
 		"eslint-config-prettier": "10.1.8",
 		"eslint-plugin-perfectionist": "^5.6.0",
@@ -95,27 +513,33 @@
 		"prettier-plugin-tailwindcss": "0.6.14",
 		"publint": "0.3.12",
 		"runed": "0.31.1",
-		"svelte": "5.55.0",
+		"svelte": "5.55.7",
 		"svelte-check": "4.4.5",
+		"svelte-tweakpane-ui": "^1.5.16",
 		"svelte-virtuallists": "1.4.2",
-		"tailwindcss": "4.1.13",
+		"tailwindcss": "4.3.1",
 		"three": "0.183.2",
-		"threlte-uikit": "1.2.1",
+		"threlte-uikit": "^2.0.0",
 		"tsx": "4.20.5",
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
 		"typescript-eslint": "8.56.1",
-		"vite": "7.3.2",
+		"vite": "8.1.0",
 		"vite-plugin-devtools-json": "1.0.0",
 		"vite-plugin-glsl": "^1.5.5",
-		"vite-plugin-mkcert": "1.17.8",
-		"vitest": "3.2.4"
+		"vite-plugin-mkcert": "1.17.9",
+		"vitest": "4.1.9",
+		"wireit": "0.14.13",
+		"zod": "^4.4.3"
 	},
 	"peerDependencies": {
 		"@ag-grid-community/client-side-row-model": ">=32.3.0",
 		"@ag-grid-community/core": ">=32.3.0",
 		"@ag-grid-community/styles": ">=32.3.0",
+		"@connectrpc/connect": ">=1",
+		"@connectrpc/connect-web": ">=1",
 		"@dimforge/rapier3d-compat": ">=0.17",
+		"@tanstack/svelte-query-devtools": ">=6",
 		"@threlte/core": ">=8",
 		"@threlte/extras": ">=9",
 		"@threlte/rapier": ">=3",
@@ -132,20 +556,46 @@
 		"@zag-js/toggle-group": ">=1",
 		"@zag-js/tree-view": ">=1",
 		"camera-controls": ">=3",
+		"earcut": ">=3",
 		"idb-keyval": ">=6",
 		"lucide-svelte": ">=0.511",
 		"runed": ">=0.28",
 		"svelte": ">=5",
+		"svelte-tweakpane-ui": ">=1.5",
 		"svelte-virtuallists": ">=1"
+	},
+	"peerDependenciesMeta": {
+		"@connectrpc/connect": {
+			"optional": true
+		},
+		"@connectrpc/connect-web": {
+			"optional": true
+		},
+		"@tanstack/svelte-query-devtools": {
+			"optional": true
+		},
+		"earcut": {
+			"optional": true
+		}
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@bufbuild/buf",
 			"@sentry/cli",
 			"@tailwindcss/oxide",
 			"esbuild"
-		]
+		],
+		"peerDependencyRules": {
+			"allowedVersions": {
+				"vite-plugin-devtools-json>vite": "8"
+			}
+		},
+		"overrides": {
+			"js-yaml@^3": "3.14.2",
+			"uuid": ">=14.0.0"
+		}
 	},
-	"packageManager": "pnpm@10.14.0",
+	"packageManager": "pnpm@10.18.0",
 	"engines": {
 		"node": ">=22.12.0"
 	},
@@ -159,11 +609,15 @@
 		"./lib": {
 			"types": "./dist/lib.d.ts",
 			"svelte": "./dist/lib.js"
+		},
+		"./plugins": {
+			"types": "./dist/plugins/index.d.ts",
+			"svelte": "./dist/plugins/index.js"
 		}
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/viam-labs/motion-tools.git"
+		"url": "git+https://github.com/viamrobotics/visualization.git"
 	},
 	"files": [
 		"dist",
@@ -172,11 +626,8 @@
 	],
 	"dependencies": {
 		"@bufbuild/protobuf": "1.10.1",
-		"@connectrpc/connect": "1.7.0",
-		"@connectrpc/connect-web": "1.7.0",
 		"@neodrag/svelte": "^2.3.3",
-		"@tanstack/svelte-query-devtools": "^6.0.2",
-		"earcut": "^3.0.2",
+		"d3-force": "^3.0.0",
 		"filtrex": "^3.1.0",
 		"koota": "0.6.5",
 		"lodash-es": "4.18.1",

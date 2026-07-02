@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/svelte'
+import { fireEvent, render, screen } from '@testing-library/svelte'
 import { createWorld, type Entity } from 'koota'
+import { on } from 'svelte/events'
 import '@testing-library/jest-dom/vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,10 +8,10 @@ import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
 import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
+import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
 import * as useResourceByName from '$lib/hooks/useResourceByName.svelte'
-import * as useSelection from '$lib/hooks/useSelection.svelte'
 import { createWeblabs, WEBLABS_CONTEXT_KEY } from '$lib/hooks/useWeblabs.svelte'
 
 import Details from '../Details.svelte'
@@ -28,16 +29,10 @@ describe('Details component', () => {
 
 		entity = createEntityFixture(world)
 
-		vi.mocked(useSelection.useFocusedEntity).mockReturnValue({
-			current: entity,
-			instance: undefined,
-			set: () => {},
-		})
-
-		vi.mocked(useSelection.useFocusedObject3d).mockReturnValue({
-			current: undefined,
-		})
 		vi.mocked(useResourceByName.useResourceByName).mockReturnValue({
+			current: {},
+		})
+		vi.mocked(useFragmentInfo.useFragmentInfo).mockReturnValue({
 			current: {},
 		})
 		vi.mocked(useConfigFrames.useConfigFrames).mockReturnValue({
@@ -47,9 +42,11 @@ describe('Details component', () => {
 		})
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: { components: [] },
-			componentNameToFragmentId: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
+			hasPendingSave: false,
+			clearPendingSave: vi.fn(),
+			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
@@ -64,6 +61,7 @@ describe('Details component', () => {
 	it('renders object name', () => {
 		const context = createWeblabs()
 		render(Details, {
+			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
 				[WORLD_CONTEXT_KEY, world],
@@ -83,7 +81,7 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 		expect(screen.getByText('parent frame')).toBeInTheDocument()
 		const parentFrameNameSpan = screen.getByLabelText('immutable parent frame name')
 		const parentFrameNameText = parentFrameNameSpan.nextSibling as HTMLElement
@@ -107,15 +105,15 @@ describe('Details component', () => {
 
 		const localOrientationXSpan = screen.getByLabelText('immutable local orientation x coordinate')
 		const localOrientationXText = localOrientationXSpan.nextSibling as HTMLElement
-		expect(localOrientationXText.textContent?.trim()).toBe((0.1).toFixed(2))
+		expect(localOrientationXText.textContent?.trim()).toBe((0.6).toFixed(2))
 
 		const localOrientationYSpan = screen.getByLabelText('immutable local orientation y coordinate')
 		const localOrientationYText = localOrientationYSpan.nextSibling as HTMLElement
-		expect(localOrientationYText.textContent?.trim()).toBe((0.2).toFixed(2))
+		expect(localOrientationYText.textContent?.trim()).toBe((0.8).toFixed(2))
 
 		const localOrientationZSpan = screen.getByLabelText('immutable local orientation z coordinate')
 		const localOrientationZText = localOrientationZSpan.nextSibling as HTMLElement
-		expect(localOrientationZText.textContent?.trim()).toBe((0.3).toFixed(2))
+		expect(localOrientationZText.textContent?.trim()).toBe((0).toFixed(2))
 
 		const localOrientationThSpan = screen.getByLabelText(
 			'immutable local orientation theta degrees'
@@ -136,9 +134,11 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
-			componentNameToFragmentId: {},
 			updateFrame: vi.fn(),
 			isDirty: false,
+			hasPendingSave: false,
+			clearPendingSave: vi.fn(),
+			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
@@ -152,14 +152,74 @@ describe('Details component', () => {
 			[WORLD_CONTEXT_KEY, world],
 		])
 
-		render(Details, { context })
+		render(Details, { props: { entity }, context })
 
-		expect(screen.getByLabelText('mutable local position x coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local position y coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local position z coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local orientation x coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local orientation y coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local orientation z coordinate')).toBeInTheDocument()
-		expect(screen.getByLabelText('mutable local orientation theta degrees')).toBeInTheDocument()
+		const positionGroup = screen.getByLabelText('mutable local position')
+		expect(positionGroup).toBeInTheDocument()
+		expect(positionGroup.querySelectorAll('input')).toHaveLength(3)
+
+		const orientationGroup = screen.getByLabelText('mutable local orientation')
+		expect(orientationGroup).toBeInTheDocument()
+		// 4 OV inputs (x, y, z, theta) plus 3 Euler inputs (x, y, z) — both
+		// TabPages are mounted simultaneously by tweakpane's TabGroup.
+		expect(orientationGroup.querySelectorAll('input')).toHaveLength(7)
+	})
+
+	it('stops keyboard events from propagating out of the panel', async () => {
+		const weblabContext = createWeblabs()
+		weblabContext.isActive = vi.fn(() => true)
+		const environmentContext = createEnvironment()
+		environmentContext.current.isStandalone = true
+
+		entity.add(traits.FramesAPI)
+
+		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
+			current: {
+				components: [resource],
+			},
+			updateFrame: vi.fn(),
+			isDirty: false,
+			hasPendingSave: false,
+			clearPendingSave: vi.fn(),
+			setPendingSave: vi.fn(),
+			save: vi.fn(),
+			discardChanges: vi.fn(),
+			deleteFrame: vi.fn(),
+			createFrame: vi.fn(),
+			hasEditPermissions: true,
+		})
+
+		const { container } = render(Details, {
+			props: { entity },
+			context: new Map<symbol, unknown>([
+				[WEBLABS_CONTEXT_KEY, weblabContext],
+				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+				[WORLD_CONTEXT_KEY, world],
+			]),
+		})
+
+		// Svelte 5 delegates keydown/keyup; use `on` from svelte/events so the
+		// listener participates in the same propagation chain as onkeydown.
+		const parentListener = vi.fn()
+		const stopKeydown = on(container, 'keydown', parentListener)
+		const stopKeyup = on(container, 'keyup', parentListener)
+
+		const panel = screen.getByRole('region', { name: 'Details panel' })
+		const positionGroup = screen.getByLabelText('mutable local position')
+		const input = positionGroup.querySelector('input')
+
+		expect(input).not.toBeNull()
+		expect(panel.contains(input)).toBe(true)
+
+		input!.focus()
+		expect(document.activeElement).toBe(input)
+
+		await fireEvent.keyDown(input!, { key: 'ArrowDown', bubbles: true })
+		await fireEvent.keyUp(input!, { key: 'ArrowDown', bubbles: true })
+
+		expect(parentListener).not.toHaveBeenCalled()
+
+		stopKeydown()
+		stopKeyup()
 	})
 })
