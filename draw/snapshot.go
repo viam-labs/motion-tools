@@ -308,17 +308,13 @@ func (snapshot *Snapshot) DrawLine(opts DrawLineOptions) ([]byte, error) {
 		lineOpts = append(lineOpts, WithLineColorPalette(opts.Colors, posCount))
 	}
 
-	dotColors := opts.DotColors
-	if len(dotColors) == 0 {
-		dotColors = opts.Colors
-	}
-	nDot := len(dotColors)
+	nDot := len(opts.DotColors)
 	if nDot == 1 {
-		lineOpts = append(lineOpts, WithSingleDotColor(dotColors[0]))
+		lineOpts = append(lineOpts, WithSingleDotColor(opts.DotColors[0]))
 	} else if nDot == posCount {
-		lineOpts = append(lineOpts, WithPerDotColors(dotColors...))
+		lineOpts = append(lineOpts, WithPerDotColors(opts.DotColors...))
 	} else if nDot > 1 {
-		lineOpts = append(lineOpts, WithDotColorPalette(dotColors, posCount))
+		lineOpts = append(lineOpts, WithDotColorPalette(opts.DotColors, posCount))
 	}
 
 	if opts.LineWidth > 0 {
@@ -615,7 +611,7 @@ type DrawLineOptions struct {
 	// per-vertex; other = palette cycle.
 	Colors []Color
 	// DotColors controls vertex-dot colors using the same rules as Colors.
-	// When empty, falls back to Colors; if both empty, uses DefaultLineDotColor.
+	// When empty, uses DefaultLineDotColor.
 	DotColors []Color
 	// LineWidth is the rendered segment thickness in mm. 0 uses DefaultLineWidth (5mm).
 	LineWidth float32
