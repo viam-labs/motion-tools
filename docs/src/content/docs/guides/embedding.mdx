@@ -202,7 +202,12 @@ func main() {
         r3.Vector{X: 100, Y: 100, Z: 100},
         "box",
     )
-    snapshot.DrawGeometry(box, spatialmath.NewZeroPose(), "world", draw.NewColor(draw.WithName("red")))
+    _, _ = snapshot.DrawGeometry(draw.DrawGeometryOptions{
+        Geometry: box,
+        Pose:     spatialmath.NewZeroPose(),
+        Parent:   "world",
+        Color:    draw.ColorFromName("red"),
+    })
 
     bytes, _ := snapshot.MarshalBinary()
     _ = os.WriteFile("scene.snapshot.pb", bytes, 0644)

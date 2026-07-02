@@ -11,7 +11,7 @@
 				"box": { "dimsMm": { "x": 200, "y": 200, "z": 200 } },
 				"label": "box"
 			},
-			"uuid": "ohIh09KQV0y0jcnMeTUnAg==",
+			"uuid": "LSoGACv1VtWnuJvHk1zEVA==",
 			"metadata": {
 				"color_format": 1,
 				"colors": "HpD/",
@@ -31,7 +31,7 @@
 				"sphere": { "radiusMm": 120 },
 				"label": "sphere"
 			},
-			"uuid": "mLnHfyEAWw6ZPT8GKtTepw==",
+			"uuid": "s/4gvkQGV6e8mQtK2rNn9g==",
 			"metadata": {
 				"color_format": 1,
 				"colors": "Ms0y",
@@ -51,7 +51,7 @@
 				"capsule": { "radiusMm": 60, "lengthMm": 320 },
 				"label": "capsule"
 			},
-			"uuid": "M13VQ+FiXwCpae9/UX3WGQ==",
+			"uuid": "rWQvBt3qUCC1Zi9qiEzvmw==",
 			"metadata": {
 				"color_format": 1,
 				"colors": "mTLM",
@@ -78,7 +78,7 @@
 					"dotColors": "AACL"
 				}
 			},
-			"uuid": "NCNG8oG9UxC97kLBW8ZHwQ==",
+			"uuid": "lEvasKygUMykD5kq+QNJ+w==",
 			"metadata": {
 				"colors": "/6UA",
 				"colorFormat": "COLOR_FORMAT_RGB",
@@ -101,7 +101,7 @@
 					"poses": "AACvQ44ZXA4AAHBCvVF8v4IpC6XaBC2+xXx3Q8V8d0MAAHBCrGoyv6xqMr/aBC2+nJylKAAAr0MAAHBCWOuKJb1RfL/aBC2+xXx3w8V8d0MAAHBCrGoyP6xqMr/aBC2+AACvw0IJQSkAAHBCvVF8P4IpC6XaBC2+xXx3w8V8d8MAAHBCrGoyP6xqMj/aBC2+Y+WXqQAAr8MAAHBC4jesJb1RfD/aBC2+xXx3Q8V8d8MAAHBCrGoyv6xqMj/aBC2+"
 				}
 			},
-			"uuid": "nrKTqASfXWy8ELCRcnHPTw==",
+			"uuid": "eQHn6ZrKWweYrHqFM3viBw==",
 			"metadata": {
 				"colors": "3BQ8",
 				"colorFormat": "COLOR_FORMAT_RGB",
@@ -112,7 +112,7 @@
 			}
 		}
 	],
-	"uuid": "EBzgbSv5RLqX40OcRf49eg==",
+	"uuid": "Jgxy5VRnRN6TCRfLLJxnzA==",
 	"sceneMetadata": {
 		"sceneCamera": {
 			"position": { "x": 1500, "y": 1500, "z": 1200 },
