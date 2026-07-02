@@ -20,7 +20,7 @@
 		<DashboardButton
 			active={isOpen}
 			icon="robot-outline"
-			description="Frame Builder"
+			description="LLM Scene Builder"
 			onclick={() => (isOpen = !isOpen)}
 		/>
 	</fieldset>
@@ -29,7 +29,7 @@
 <Portal id="dom">
 	<FloatingPanel
 		bind:isOpen
-		title="Frame Builder"
+		title="LLM Scene Builder"
 		defaultSize={{ width: 480, height: 420 }}
 		resizable
 	>

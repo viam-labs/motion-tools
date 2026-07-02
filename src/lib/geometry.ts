@@ -1,4 +1,11 @@
-import type { Capsule, Geometry, PointCloud, RectangularPrism, Sphere } from '@viamrobotics/sdk'
+import type {
+	Capsule,
+	Geometry,
+	PointCloud,
+	RectangularPrism,
+	Sphere,
+	Transform,
+} from '@viamrobotics/sdk'
 
 import type { Frame } from './frame'
 
@@ -75,4 +82,24 @@ export const isPointCloud = (
 	geometry?: Geometry['geometryType']
 ): geometry is { case: 'pointcloud'; value: PointCloud } => {
 	return geometry?.case === 'pointcloud'
+}
+
+// Reverse of createGeometryFromFrame: read a Transform's geometry back into the
+// frame geometry shape. Point clouds / no geometry resolve to undefined.
+export const frameGeometryFromTransform = (transform: Transform): Frame['geometry'] => {
+	const geometryType = transform.physicalObject?.geometryType
+	switch (geometryType?.case) {
+		case 'box': {
+			return { type: 'box', ...createBox(geometryType.value) }
+		}
+		case 'sphere': {
+			return { type: 'sphere', ...createSphere(geometryType.value) }
+		}
+		case 'capsule': {
+			return { type: 'capsule', ...createCapsule(geometryType.value) }
+		}
+		default: {
+			return undefined
+		}
+	}
 }
