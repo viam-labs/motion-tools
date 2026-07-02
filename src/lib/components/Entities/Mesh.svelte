@@ -60,6 +60,14 @@
 		return colors.default
 	})
 
+	/**
+	 * PLY meshes from the world-state store carry per-vertex colors in the
+	 * geometry's `color` attribute. When present, render with `vertexColors`
+	 * enabled and a white base color so the material shows them untinted
+	 * (mirrors Points.svelte and Line.svelte).
+	 */
+	const hasVertexColors = $derived(bufferGeometry.current?.getAttribute('color') !== undefined)
+
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
 	let material = $state.raw<Material>(new Material())
@@ -143,7 +151,8 @@
 	{/if}
 
 	<T.MeshToonMaterial
-		{color}
+		color={hasVertexColors ? 0xffffff : color}
+		vertexColors={hasVertexColors}
 		side={bufferGeometry.current ? DoubleSide : FrontSide}
 		depthTest={materialProps.current?.depthTest ?? true}
 		oncreate={(m) => {
