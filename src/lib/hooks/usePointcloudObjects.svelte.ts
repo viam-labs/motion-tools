@@ -7,6 +7,7 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext, untrack } from 'svelte'
+import { Matrix4 } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
@@ -14,7 +15,7 @@ import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
 import { useLogs } from '$lib/plugins'
-import { createPose } from '$lib/transform'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -24,6 +25,9 @@ const key = Symbol('pointcloud-object-context')
 interface Context {
 	refetch: () => void
 }
+
+/** Scratch matrix for diffing an existing geometry's pose against its update. */
+const tempMatrix = new Matrix4()
 
 export const providePointcloudObjects = (partID: () => string) => {
 	const world = useWorld()
@@ -231,13 +235,18 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 							if (existing) {
 								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
-								existing.set(traits.Center, center)
+								poseToMatrix(center, tempMatrix)
+								const matrix = existing.get(traits.Matrix)
+								if (matrix && !matrix.equals(tempMatrix)) {
+									matrix.copy(tempMatrix)
+									existing.changed(traits.Matrix)
+								}
 								traits.updateGeometryTrait(existing, geometry)
 							} else {
 								const entityTraits: ConfigurableTrait[] = [
 									traits.Name(geometryLabel),
 									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
-									traits.Center(center),
+									traits.Matrix(poseToMatrix(center, new Matrix4())),
 									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
