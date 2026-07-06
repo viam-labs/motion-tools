@@ -25,6 +25,8 @@ type FrameOrientationMap = {
 
 export type FrameOrientation = keyof FrameOrientationMap
 
+export type FrameEulerDegrees = FrameOrientationMap['euler_angles']['value']
+
 export interface Frame<
 	T extends FrameGeometry = FrameGeometry,
 	K extends FrameOrientation = FrameOrientation,

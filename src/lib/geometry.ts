@@ -19,7 +19,7 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
 	}
 }
 
-export const createGeometryFromFrame = (frame: Partial<Frame>) => {
+export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undefined => {
 	if (!frame.geometry) {
 		return
 	}

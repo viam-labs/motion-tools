@@ -1,6 +1,6 @@
 import { getContext, setContext } from 'svelte'
 
-import type { Frame } from '$lib/frame'
+import type { Frame, FrameEulerDegrees } from '$lib/frame'
 
 import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -48,9 +48,9 @@ export interface ComponentFrameInfo {
 	frame: {
 		parent: Frame['parent']
 		translation: Frame['translation']
-		// The stored orientation (Frame['orientation']) is an OV/quaternion union; here we
-		// pass the converted Euler-degrees form the LLM reasons about.
-		orientation: ReturnType<typeof poseToEulerDegrees>
+		// Not Frame['orientation'] — stored frames use OV/quaternion; the callback passes
+		// the LLM-friendly Euler-degrees projection of that orientation. Exported explicit type.
+		orientation: FrameEulerDegrees
 		geometry?: Frame['geometry']
 	}
 }

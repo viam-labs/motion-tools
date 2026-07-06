@@ -91,7 +91,7 @@ export const vector3ToPose = (vec3: Vector3, pose: Partial<Pose>) => {
 	pose.z = vec3.z * 1000
 }
 
-export const object3dToPose = (object3d: Object3D, pose: Partial<Pose>) => {
+export const object3dToPose = (object3d: Object3D, pose: Partial<Pose>): Partial<Pose> => {
 	vector3ToPose(object3d.position, pose)
 	quaternionToPose(object3d.quaternion, pose)
 	return pose
