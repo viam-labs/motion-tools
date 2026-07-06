@@ -16,6 +16,10 @@ import (
 //   - label: an identifier string used for reference in the treeview
 //   - pc: a PointCloud
 //   - color: an optional override color [R, G, B] (0–255); use nil for original color.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPointCloud] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]uint8) error {
 	labelError := isASCIIPrintable(label)
 	if labelError != nil {

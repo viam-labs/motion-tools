@@ -20,6 +20,10 @@ import (
 // Parameters:
 //   - geometry: a geometry
 //   - color: a corresponding color
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGeometry] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawGeometry(geometry spatialmath.Geometry, color string) error {
 
 	rgbColor, err := colorutil.NamedColorToRGB(color)
