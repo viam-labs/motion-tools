@@ -7,6 +7,7 @@
 	import Camera from '$lib/components/Camera.svelte'
 	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
 	import { composeCapsuleBoundsMatrix } from '$lib/components/Entities/composeCapsuleMatrices'
+	import { composeSphereBoundsMatrix } from '$lib/components/Entities/composeSphereMatrix'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { expandBoxByTransformedBox } from '$lib/three/OBBHelper'
@@ -53,14 +54,19 @@
 	$effect(() => {
 		box.makeEmpty()
 		for (const entity of untrack(() => selected.current)) {
-			// Boxes and capsules render instanced, so the entity's named scene
-			// object carries no geometry — frame them from traits instead.
+			// Boxes, capsules, and spheres render instanced, so the entity's named
+			// scene object carries no geometry — frame them from traits instead.
 			if (composeBoxMatrix(entity, matrix4)) {
 				expandBoxByTransformedBox(box, unitBox, matrix4)
 				continue
 			}
 
 			if (composeCapsuleBoundsMatrix(entity, matrix4)) {
+				expandBoxByTransformedBox(box, unitBox, matrix4)
+				continue
+			}
+
+			if (composeSphereBoundsMatrix(entity, matrix4)) {
 				expandBoxByTransformedBox(box, unitBox, matrix4)
 				continue
 			}
