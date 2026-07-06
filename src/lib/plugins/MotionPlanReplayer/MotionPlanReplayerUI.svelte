@@ -3,7 +3,6 @@
 
 	import { Portal } from '@threlte/extras'
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
-
 	import { Eye, EyeOff } from 'lucide-svelte'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
