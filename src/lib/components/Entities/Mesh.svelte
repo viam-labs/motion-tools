@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Entity } from 'koota'
 
-	import { T, type Props as ThrelteProps, useThrelte } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { type Snippet } from 'svelte'
 	import { Color, DoubleSide, FrontSide, Group, Mesh, MeshToonMaterial } from 'three'
 
@@ -12,7 +12,7 @@
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
-	interface Props extends Omit<ThrelteProps<Mesh>, 'ref'> {
+	interface Props {
 		entity: Entity
 		children?: Snippet
 	}
