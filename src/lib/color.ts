@@ -83,7 +83,7 @@ export const subtypeToColor = (subtype?: string) => {
 const darkness = '600'
 
 export const colors = {
-	default: oklchToHex(twColors.red[darkness]),
+	default: oklchToHex(twColors.gray[darkness]),
 } as const
 
 export const resourceColors = {

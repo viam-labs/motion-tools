@@ -11,6 +11,7 @@
 	interface Props {
 		title?: string
 		defaultSize?: { width: number; height: number }
+		minSize?: { width: number; height: number }
 		defaultPosition?: { x: number; y: number }
 		exitable?: boolean
 		resizable?: boolean

@@ -1,9 +1,9 @@
 <!--
 @component
 
-Renders every entity with `Box` + `WorldMatrix` traits as one pair of
+Renders every entity with `Sphere` + `WorldMatrix` traits as one pair of
 instanced draw calls (toon-shaded faces + edge lines) instead of a mesh
-per box. Trait events are coalesced into a microtask flush, mirroring
+per sphere. Trait events are coalesced into a microtask flush, mirroring
 the `WorldMatrix` system, so a burst of changes (one reconcile tick)
 becomes a single batch of instance writes and one `invalidate()`.
 
@@ -17,13 +17,13 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	import { createRadixSort, InstancedMesh2 } from '@three.ez/instanced-mesh'
 	import { T, useThrelte } from '@threlte/core'
 	import {
-		BoxGeometry,
 		Color,
 		EdgesGeometry,
 		LineBasicMaterial,
 		Matrix4,
 		MeshToonMaterial,
 		Sphere,
+		SphereGeometry,
 		Vector3,
 	} from 'three'
 
@@ -31,7 +31,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
 
-	import { composeBoxMatrix } from './composeBoxMatrix'
+	import { composeSphereMatrix } from './composeSphereMatrix'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	const { invalidate, renderer } = useThrelte()
@@ -39,44 +39,45 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
-	 * dimensions through the per-instance matrix scale, so resizing never
-	 * rebuilds GPU buffers.
+	 * radius through the per-instance matrix scale, so resizing never rebuilds
+	 * GPU buffers. Matches the geometry the former per-entity sphere renderer
+	 * used: a radius-1 sphere with 16 × 12 segments.
 	 */
-	const unitBox = new BoxGeometry(1, 1, 1)
-	const unitBoxEdges = new EdgesGeometry(unitBox, 0)
+	const unitSphere = new SphereGeometry(1, 16, 12)
+	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
 
 	/**
-	 * Box meshes render transparent by default (`Opacity` trait absent → 0.7,
+	 * Sphere meshes render transparent by default (`Opacity` trait absent → 0.7,
 	 * depth write off — same as `Mesh.svelte`); per-instance alpha is written
 	 * via `setOpacityAt`. The base color stays white so per-instance colors
 	 * aren't tinted. Whole-object culling is disabled because the library
 	 * culls per instance against a bounding sphere it derives from each
 	 * instance matrix.
 	 */
-	const instancedBoxes = new InstancedMesh2(
-		unitBox,
+	const instancedSpheres = new InstancedMesh2(
+		unitSphere,
 		new MeshToonMaterial({ transparent: true, depthWrite: false }),
 		{ renderer }
 	)
-	instancedBoxes.sortObjects = true
-	instancedBoxes.customSort = createRadixSort(instancedBoxes)
-	instancedBoxes.frustumCulled = false
+	instancedSpheres.sortObjects = true
+	instancedSpheres.customSort = createRadixSort(instancedSpheres)
+	instancedSpheres.frustumCulled = false
 
 	/**
 	 * Keep raycasts on the library's linear (non-BVH) path, but neutralize
 	 * its gate: the whole-object bounding sphere is computed once on the
-	 * first raycast (usually before any boxes have streamed in) and never
+	 * first raycast (usually before any spheres have streamed in) and never
 	 * invalidated, leaving instances unhittable. Pin it open and let the
 	 * per-instance early-outs do the pruning — for an always-animating
 	 * scene this beats `computeBVH()`, which would re-insert every moving
-	 * box into the tree on every kinematics tick.
+	 * sphere into the tree on every kinematics tick.
 	 */
-	instancedBoxes.boundingSphere = new Sphere(new Vector3(), Infinity)
+	instancedSpheres.boundingSphere = new Sphere(new Vector3(), Infinity)
 
-	const instancedBoxEdges = new InstancedMesh2(unitBoxEdges, new LineBasicMaterial(), {
+	const instancedSphereEdges = new InstancedMesh2(unitSphereEdges, new LineBasicMaterial(), {
 		renderer,
 	})
-	instancedBoxEdges.frustumCulled = false
+	instancedSphereEdges.frustumCulled = false
 
 	/**
 	 * `InstancedMesh2` extends `Mesh`, so on its own it would draw the edge
@@ -88,7 +89,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * @three.ez/instanced-mesh ^0.3.15 — patches the 'basic' shader chunks shared
 	 * by MeshBasicMaterial and LineBasicMaterial. Re-validate if upgrading the library.
 	 */
-	Object.assign(instancedBoxEdges, { isMesh: false, isLine: true, isLineSegments: true })
+	Object.assign(instancedSphereEdges, { isMesh: false, isLine: true, isLineSegments: true })
 
 	/**
 	 * Faces and edges are separate meshes with independent free lists, so each
@@ -107,7 +108,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const matrix = new Matrix4()
 	const colorUtil = new Color()
 
-	/** Same resolution order as `Frame.svelte`. */
+	/** Same resolution order as `Boxes.svelte` / `Frame.svelte`. */
 	const resolveColor = (entity: Entity): Color => {
 		const vertexColors = entity.get(traits.Colors)
 		if (vertexColors && vertexColors.length >= 3) {
@@ -126,12 +127,12 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		const color = resolveColor(entity)
 		const visible = !entity.has(traits.InheritedInvisible)
 
-		instancedBoxes.setColorAt(ids.face, color)
-		instancedBoxes.setOpacityAt(ids.face, entity.get(traits.Opacity) ?? 0.7)
-		instancedBoxes.setVisibilityAt(ids.face, visible)
+		instancedSpheres.setColorAt(ids.face, color)
+		instancedSpheres.setOpacityAt(ids.face, entity.get(traits.Opacity) ?? 0.7)
+		instancedSpheres.setVisibilityAt(ids.face, visible)
 
-		instancedBoxEdges.setColorAt(ids.edge, darkenColor(color, 10))
-		instancedBoxEdges.setVisibilityAt(ids.edge, visible)
+		instancedSphereEdges.setColorAt(ids.edge, darkenColor(color, 10))
+		instancedSphereEdges.setVisibilityAt(ids.edge, visible)
 
 		/**
 		 * Mirrors `useEntityEvents`' invisibility watcher: an instance that
@@ -146,16 +147,16 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	/** Caller composes the instance transform into `matrix` first. */
 	const addInstance = (entity: Entity) => {
 		let face = -1
-		instancedBoxes.addInstances(1, (_obj, index) => {
+		instancedSpheres.addInstances(1, (_obj, index) => {
 			face = index
 		})
-		instancedBoxes.setMatrixAt(face, matrix)
+		instancedSpheres.setMatrixAt(face, matrix)
 
 		let edge = -1
-		instancedBoxEdges.addInstances(1, (_obj, index) => {
+		instancedSphereEdges.addInstances(1, (_obj, index) => {
 			edge = index
 		})
-		instancedBoxEdges.setMatrixAt(edge, matrix)
+		instancedSphereEdges.setMatrixAt(edge, matrix)
 
 		const ids = { face, edge }
 		instanceIdByEntity.set(entity, ids)
@@ -166,8 +167,8 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const removeInstance = (entity: Entity, ids: InstanceIds) => {
 		instanceIdByEntity.delete(entity)
 		entityByInstanceId.delete(ids.face)
-		instancedBoxes.removeInstances(ids.face)
-		instancedBoxEdges.removeInstances(ids.edge)
+		instancedSpheres.removeInstances(ids.face)
+		instancedSphereEdges.removeInstances(ids.edge)
 	}
 
 	/**
@@ -187,12 +188,12 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		for (const entity of dirtyTransform) {
 			const ids = instanceIdByEntity.get(entity)
 
-			if (entity.isAlive() && composeBoxMatrix(entity, matrix)) {
+			if (entity.isAlive() && composeSphereMatrix(entity, matrix)) {
 				if (ids === undefined) {
 					addInstance(entity)
 				} else {
-					instancedBoxes.setMatrixAt(ids.face, matrix)
-					instancedBoxEdges.setMatrixAt(ids.edge, matrix)
+					instancedSpheres.setMatrixAt(ids.face, matrix)
+					instancedSphereEdges.setMatrixAt(ids.edge, matrix)
 				}
 			} else if (ids !== undefined) {
 				removeInstance(entity, ids)
@@ -222,11 +223,11 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 
 	/**
 	 * `WorldMatrix` changes fire for every entity on every kinematics tick —
-	 * filter to box entities before touching the dirty sets. `instanceIdByEntity`
-	 * catches entities whose `Box` trait was just removed.
+	 * filter to sphere entities before touching the dirty sets. `instanceIdByEntity`
+	 * catches entities whose `Sphere` trait was just removed.
 	 */
 	const enqueue = (dirty: Set<Entity>) => (entity: Entity) => {
-		if (!entity.has(traits.Box) && !instanceIdByEntity.has(entity)) return
+		if (!entity.has(traits.Sphere) && !instanceIdByEntity.has(entity)) return
 		dirty.add(entity)
 		schedule()
 	}
@@ -235,19 +236,19 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const enqueueAppearance = enqueue(dirtyAppearance)
 
 	$effect(() => {
-		// Initial sync: existing boxes need both an instance allocated (transform)
+		// Initial sync: existing spheres need both an instance allocated (transform)
 		// and appearance written once. At runtime the sets diverge — motion enqueues
 		// transform alone, so appearance buffers aren't rewritten per kinematics tick.
-		for (const entity of world.query(traits.Box)) {
+		for (const entity of world.query(traits.Sphere)) {
 			dirtyTransform.add(entity)
 			dirtyAppearance.add(entity)
 		}
 		if (dirtyTransform.size > 0) schedule()
 
 		const unsubs = [
-			world.onAdd(traits.Box, enqueueTransform),
-			world.onChange(traits.Box, enqueueTransform),
-			world.onRemove(traits.Box, enqueueTransform),
+			world.onAdd(traits.Sphere, enqueueTransform),
+			world.onChange(traits.Sphere, enqueueTransform),
+			world.onRemove(traits.Sphere, enqueueTransform),
 			world.onAdd(traits.WorldMatrix, enqueueTransform),
 			world.onChange(traits.WorldMatrix, enqueueTransform),
 			world.onRemove(traits.WorldMatrix, enqueueTransform),
@@ -277,11 +278,11 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 </script>
 
 <T
-	is={instancedBoxes}
+	is={instancedSpheres}
 	{...events}
 />
 
 <T
-	is={instancedBoxEdges}
+	is={instancedSphereEdges}
 	raycast={() => null}
 />
