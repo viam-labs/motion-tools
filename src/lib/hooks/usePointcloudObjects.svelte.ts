@@ -26,8 +26,7 @@ interface Context {
 	refetch: () => void
 }
 
-/** Scratch matrix for diffing an existing geometry's pose against its update. */
-const tempMatrix = new Matrix4()
+const matrix4 = new Matrix4()
 
 export const providePointcloudObjects = (partID: () => string) => {
 	const world = useWorld()
@@ -235,10 +234,10 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 							if (existing) {
 								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
-								poseToMatrix(center, tempMatrix)
+								poseToMatrix(center, matrix4)
 								const matrix = existing.get(traits.Matrix)
-								if (matrix && !matrix.equals(tempMatrix)) {
-									matrix.copy(tempMatrix)
+								if (matrix && !matrix.equals(matrix4)) {
+									matrix.copy(matrix4)
 									existing.changed(traits.Matrix)
 								}
 								traits.updateGeometryTrait(existing, geometry)
