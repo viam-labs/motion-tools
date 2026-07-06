@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.34.10
+
+### Patch Changes
+
+- 7c7b3c4: add geometry editing for llm scene builder
+
 ## 1.34.9
 
 ### Patch Changes
