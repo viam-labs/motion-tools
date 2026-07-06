@@ -60,6 +60,8 @@
 		return colors.default
 	})
 
+	const hasVertexColors = $derived(bufferGeometry.current?.getAttribute('color') !== undefined)
+
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
 	let material = $state.raw<Material>(new Material())
@@ -143,7 +145,8 @@
 	{/if}
 
 	<T.MeshToonMaterial
-		{color}
+		color={hasVertexColors ? 0xffffff : color}
+		vertexColors={hasVertexColors}
 		side={bufferGeometry.current ? DoubleSide : FrontSide}
 		depthTest={materialProps.current?.depthTest ?? true}
 		oncreate={(m) => {
