@@ -10,6 +10,10 @@ import (
 //
 // Parameters:
 //   - filePath: The gltf filepath
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGLTF] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawGLTF(filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
