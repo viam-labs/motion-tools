@@ -20,6 +20,10 @@ import (
 // Parameters:
 //   - geometriesInFrame: a list of geometries
 //   - colors: a list of corresponding colors for each geometry
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGeometriesInFrame]
+// instead. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors []string) error {
 	var geometries []json.RawMessage
 

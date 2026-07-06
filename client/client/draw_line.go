@@ -16,6 +16,10 @@ import (
 //   - points: a list of poses, each representing a point in the line
 //   - color: An optional color of the line
 //   - dotColor: An optional color for dots at each vertex in the line
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawLine] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawLine(label string, points []spatialmath.Pose, color *[3]uint8, dotColor *[3]uint8) error {
 	labelError := isASCIIPrintable(label)
 	if labelError != nil {
