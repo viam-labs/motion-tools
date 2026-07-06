@@ -8,11 +8,11 @@
 	import AxesHelpers from './AxesHelpers.svelte'
 	import Boxes from './Boxes.svelte'
 	import Capsules from './Capsules.svelte'
-	import Frame from './Frame.svelte'
-	import Geometry from './Geometry.svelte'
+	import GeometryModel from './GeometryModel.svelte'
 	import GLTF from './GLTF.svelte'
 	import Labels from './Labels.svelte'
 	import Line from './Line.svelte'
+	import Mesh from './Mesh.svelte'
 	import Points from './Points.svelte'
 	import Spheres from './Spheres.svelte'
 
@@ -28,11 +28,11 @@
 </script>
 
 {#each resourceGeometriesEntities.current as entity (entity)}
-	<Geometry {entity} />
+	<GeometryModel {entity} />
 {/each}
 
 {#each meshEntities.current as entity (entity)}
-	<Frame {entity} />
+	<Mesh {entity} />
 {/each}
 
 {#each points.current as entity (entity)}
