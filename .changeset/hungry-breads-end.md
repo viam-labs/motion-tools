@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Add color control to details panel
+UI/UX LLM scene builder improvements

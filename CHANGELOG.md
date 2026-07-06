@@ -1,5 +1,18 @@
 # motion-tools
 
+## 1.34.10
+
+### Patch Changes
+
+- 7c7b3c4: add geometry editing for llm scene builder
+
+## 1.34.9
+
+### Patch Changes
+
+- b49538a: Add color control to details panel
+- 2fc9bbe: Batch capsule rendering into instanced draw calls
+
 ## 1.34.8
 
 ### Patch Changes
