@@ -1,6 +1,6 @@
 import type { Pose, Transform } from '@viamrobotics/sdk'
 
-import type { Frame } from '$lib/frame'
+import type { Frame, FrameGeometry } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
@@ -71,7 +71,7 @@ export interface FrameDelta {
 	// send that type's dims (box → x/y/z, sphere → r, capsule → r/l). `type: 'none'`
 	// removes the component's geometry.
 	geometry?: {
-		type?: 'none' | 'box' | 'sphere' | 'capsule'
+		type?: FrameGeometry
 		x?: number
 		y?: number
 		z?: number
@@ -160,37 +160,39 @@ function resolveGeometry(
 		return { error: 'Geometry change requires a type — the component has no existing geometry' }
 	}
 
-	if (type === 'box') {
-		const cur = current?.type === 'box' ? current : undefined
-		const x = delta.x ?? cur?.x
-		const y = delta.y ?? cur?.y
-		const z = delta.z ?? cur?.z
-		if (!isPositive(x) || !isPositive(y) || !isPositive(z)) {
-			return { error: 'Box geometry requires positive x, y, z dimensions' }
+	switch (type) {
+		case 'box': {
+			const cur = current?.type === 'box' ? current : undefined
+			const x = delta.x ?? cur?.x
+			const y = delta.y ?? cur?.y
+			const z = delta.z ?? cur?.z
+			if (!isPositive(x) || !isPositive(y) || !isPositive(z)) {
+				return { error: 'Box geometry requires positive x, y, z dimensions' }
+			}
+			return { geometry: { type: 'box', x, y, z } }
 		}
-		return { geometry: { type: 'box', x, y, z } }
-	}
-
-	if (type === 'sphere') {
-		const cur = current?.type === 'sphere' ? current : undefined
-		const r = delta.r ?? cur?.r
-		if (!isPositive(r)) {
-			return { error: 'Sphere geometry requires a positive radius r' }
+		case 'sphere': {
+			const cur = current?.type === 'sphere' ? current : undefined
+			const r = delta.r ?? cur?.r
+			if (!isPositive(r)) {
+				return { error: 'Sphere geometry requires a positive radius r' }
+			}
+			return { geometry: { type: 'sphere', r } }
 		}
-		return { geometry: { type: 'sphere', r } }
-	}
-
-	if (type === 'capsule') {
-		const cur = current?.type === 'capsule' ? current : undefined
-		const r = delta.r ?? cur?.r
-		const l = delta.l ?? cur?.l
-		if (!isPositive(r) || !isPositive(l)) {
-			return { error: 'Capsule geometry requires positive radius r and length l' }
+		case 'capsule': {
+			const cur = current?.type === 'capsule' ? current : undefined
+			const r = delta.r ?? cur?.r
+			const l = delta.l ?? cur?.l
+			if (!isPositive(r) || !isPositive(l)) {
+				return { error: 'Capsule geometry requires positive radius r and length l' }
+			}
+			return { geometry: { type: 'capsule', r, l } }
 		}
-		return { geometry: { type: 'capsule', r, l } }
+		default: {
+			const _exhaustive: never = type
+			return { error: `Unknown geometry type: ${_exhaustive}` }
+		}
 	}
-
-	return { error: `Unknown geometry type: ${type}` }
 }
 
 /**
