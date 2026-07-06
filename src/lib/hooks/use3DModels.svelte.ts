@@ -1,3 +1,4 @@
+import type { Entity } from 'koota'
 import type { Group } from 'three'
 
 import { isInstanceOf } from '@threlte/core'
@@ -6,6 +7,8 @@ import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk
 import { getContext, setContext } from 'svelte'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+import { traits, useWorld } from '$lib/ecs'
 
 import { useSettings } from './useSettings.svelte'
 
@@ -20,8 +23,35 @@ interface Context {
 	current: Record<string, Record<string, Group>>
 }
 
+type Models = Record<string, Record<string, Group>>
+
+/**
+ * Resolves the loaded 3D model for a geometry entity's `Name`, formatted
+ * `"<componentName>:<id>"`. Returns undefined when the name is malformed or no
+ * model has been fetched for it. Shared by `GeometryModel` (to render the
+ * model) and the `ColliderHidden` sync below (to hide the collider it replaces)
+ * so the two decisions can never drift apart.
+ */
+export const matchModel = (name: string | undefined, models: Models): Group | undefined => {
+	if (!name) return undefined
+	const [componentName, id] = name.split(':')
+	if (!componentName || !id) return undefined
+	return models[componentName]?.[id]
+}
+
+const syncColliderHidden = (entity: Entity, models: Models, hideColliders: boolean) => {
+	const shouldHide = hideColliders && matchModel(entity.get(traits.Name), models) !== undefined
+	if (shouldHide === entity.has(traits.ColliderHidden)) return
+	if (shouldHide) {
+		entity.add(traits.ColliderHidden)
+	} else {
+		entity.remove(traits.ColliderHidden)
+	}
+}
+
 export const provide3DModels = (partID: () => string) => {
 	const settings = useSettings()
+	const world = useWorld()
 	let current = $state.raw<Record<string, Record<string, Group>>>({})
 
 	const arms = useResourceNames(partID, 'arm')
@@ -83,6 +113,25 @@ export const provide3DModels = (partID: () => string) => {
 		if (shouldFetchModels) {
 			fetch3DModels()
 		}
+	})
+
+	/**
+	 * Colliders are hidden only in the `'model'`-only mode — `'colliders+model'`
+	 * intentionally shows both. Reacts to `current` (models finishing loading)
+	 * and the setting; the `onAdd` listener covers geometry entities that stream
+	 * in while neither has changed.
+	 */
+	$effect(() => {
+		const models = current
+		const hideColliders = settings.current.renderArmModels === 'model'
+
+		for (const entity of world.query(traits.GeometriesAPI)) {
+			syncColliderHidden(entity, models, hideColliders)
+		}
+
+		return world.onAdd(traits.GeometriesAPI, (entity) => {
+			syncColliderHidden(entity, models, hideColliders)
+		})
 	})
 
 	setContext<Context>(key, {

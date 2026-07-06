@@ -7,7 +7,7 @@
 
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
@@ -24,6 +24,7 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
+	const colliderHidden = useTag(() => entity, traits.ColliderHidden)
 	const name = useTrait(() => entity, traits.Name)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
@@ -95,7 +96,7 @@
 
 <T
 	is={group}
-	visible={invisible.current !== true}
+	visible={invisible.current !== true && !colliderHidden.current}
 >
 	<T
 		is={mesh}

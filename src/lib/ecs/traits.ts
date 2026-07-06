@@ -92,6 +92,14 @@ export const CustomDetails = trait()
 export const InheritedInvisible = trait(() => true)
 
 /**
+ * Marks a geometry entity whose 3D arm model is being rendered in place of its
+ * collider, so the collider renderers (`Mesh`, `Boxes`, `Capsules`, `Spheres`)
+ * skip it. Maintained by `provide3DModels`; kept separate from `Invisible` so
+ * it never disturbs the user's own visibility toggles or hides the CAD model.
+ */
+export const ColliderHidden = trait()
+
+/**
  * Represents that an entity is composed of many instances, so that the treeview and
  * details panel may display all instances
  */

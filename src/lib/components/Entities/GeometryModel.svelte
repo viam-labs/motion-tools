@@ -10,7 +10,7 @@ Renders a Viam Geometry object
 	import { Group } from 'three'
 
 	import { traits, useTrait } from '$lib/ecs'
-	import { use3DModels } from '$lib/hooks/use3DModels.svelte'
+	import { matchModel, use3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { poseToObject3d } from '$lib/transform'
 
@@ -37,16 +37,7 @@ Renders a Viam Geometry object
 			return
 		}
 
-		if (!name.current) {
-			return
-		}
-
-		const [componentName, id] = name.current.split(':')
-		if (!componentName || !id) {
-			return
-		}
-
-		return models.current[componentName]?.[id]?.clone() ?? undefined
+		return matchModel(name.current, models.current)?.clone() ?? undefined
 	})
 
 	const group = new Group()
