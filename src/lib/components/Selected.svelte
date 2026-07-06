@@ -5,6 +5,7 @@
 
 	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
 	import { composeCapsuleBoundsMatrix } from '$lib/components/Entities/composeCapsuleMatrices'
+	import { composeSphereBoundsMatrix } from '$lib/components/Entities/composeSphereMatrix'
 	import { traits, useQuery } from '$lib/ecs'
 	import { OBBHelper } from '$lib/three/OBBHelper'
 
@@ -21,8 +22,9 @@
 		() => {
 			for (const [entity, obbHelper] of obbHelpers) {
 				/**
-				 * Boxes and capsules render instanced, so the entity's named scene
-				 * object carries no geometry — derive the OBB straight from traits.
+				 * Boxes, capsules, and spheres render instanced, so the entity's
+				 * named scene object carries no geometry — derive the OBB straight
+				 * from traits.
 				 */
 				if (composeBoxMatrix(entity, matrix4)) {
 					obbHelper.setFromMatrix4(matrix4)
@@ -30,6 +32,11 @@
 				}
 
 				if (composeCapsuleBoundsMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
+					continue
+				}
+
+				if (composeSphereBoundsMatrix(entity, matrix4)) {
 					obbHelper.setFromMatrix4(matrix4)
 					continue
 				}

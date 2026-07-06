@@ -15,6 +15,7 @@
 	import Line from './Line.svelte'
 	import Points from './Points.svelte'
 	import Pose from './Pose.svelte'
+	import Spheres from './Spheres.svelte'
 
 	/**
 	 * Frames from a live machine are bucketed into their own query
@@ -36,7 +37,7 @@
 	const worldStateEntities = useQuery(
 		traits.WorldStateStoreAPI,
 		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
-		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -46,7 +47,7 @@
 	const drawServiceEntities = useQuery(
 		traits.DrawServiceAPI,
 		Not(traits.Points, traits.Box, traits.LinePositions, traits.GLTF),
-		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	/**
@@ -59,7 +60,7 @@
 		Not(traits.DrawServiceAPI),
 		Not(traits.Points),
 		Not(traits.Box),
-		Or(traits.Sphere, traits.BufferGeometry, traits.ReferenceFrame)
+		Or(traits.BufferGeometry, traits.ReferenceFrame)
 	)
 
 	const points = useQuery(traits.Points)
@@ -109,6 +110,7 @@
 <AxesHelpers />
 <Boxes />
 <Capsules />
+<Spheres />
 
 {#if enableLabels}
 	<Labels />

@@ -10,7 +10,7 @@ require (
 	go.viam.com/api v0.1.537
 	go.viam.com/rdk v0.122.0
 	go.viam.com/test v1.2.4
-	golang.org/x/image v0.38.0
+	golang.org/x/image v0.41.0
 	golang.org/x/net v0.55.0
 	google.golang.org/protobuf v1.36.11
 )

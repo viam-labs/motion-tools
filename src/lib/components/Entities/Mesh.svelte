@@ -1,17 +1,3 @@
-<script
-	module
-	lang="ts"
->
-	import { EdgesGeometry, SphereGeometry } from 'three'
-
-	/**
-	 * Shared unit geometries — every mesh references these and sets
-	 * dimensions through `mesh.scale`, so resizing never rebuilds GPU buffers.
-	 */
-	const unitSphere = new SphereGeometry(1, 16, 12)
-	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
-</script>
-
 <script lang="ts">
 	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
@@ -39,7 +25,6 @@
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const sphere = useTrait(() => entity, traits.Sphere)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
 	const materialProps = useTrait(() => entity, traits.Material)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
@@ -59,6 +44,8 @@
 
 		return colors.default
 	})
+
+	const hasVertexColors = $derived(bufferGeometry.current?.getAttribute('color') !== undefined)
 
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
@@ -82,15 +69,6 @@
 			invalidate()
 		}
 	})
-
-	$effect(() => {
-		if (sphere.current) {
-			mesh.scale.setScalar((sphere.current.r ?? 0) * 0.001)
-		} else {
-			mesh.scale.set(1, 1, 1)
-		}
-		invalidate()
-	})
 </script>
 
 <T
@@ -100,29 +78,7 @@
 	renderOrder={renderOrder.current}
 	{...rest}
 >
-	{#if sphere.current}
-		<!--
-			Switch via a derived `is` on the same <T> so `useAttach`'s effect
-			cleanup runs before the new attach. Splitting these across two
-			branches of an {#if}/{:else if} races mount-new against unmount-old:
-			the new attach saves `mesh.geometry`, then the old cleanup restores
-			it to the pre-attach value (null), leaving the mesh geometryless.
-		-->
-		<T
-			is={unitSphere}
-			dispose={false}
-		/>
-		<T.LineSegments
-			raycast={() => null}
-			bvh={{ enabled: false }}
-		>
-			<T
-				is={unitSphereEdges}
-				dispose={false}
-			/>
-			<T.LineBasicMaterial color={darkenColor(color, 10)} />
-		</T.LineSegments>
-	{:else if bufferGeometry.current}
+	{#if bufferGeometry.current}
 		<T is={bufferGeometry.current}>
 			{#snippet children({ ref: geo })}
 				<!--
@@ -143,7 +99,8 @@
 	{/if}
 
 	<T.MeshToonMaterial
-		{color}
+		color={hasVertexColors ? 0xffffff : color}
+		vertexColors={hasVertexColors}
 		side={bufferGeometry.current ? DoubleSide : FrontSide}
 		depthTest={materialProps.current?.depthTest ?? true}
 		oncreate={(m) => {
