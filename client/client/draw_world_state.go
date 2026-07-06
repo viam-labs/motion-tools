@@ -10,6 +10,10 @@ import (
 //   - ws: A world state
 //   - fs: A frame system
 //   - inputs: Frame system inputs
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawWorldState] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawWorldState(ws *referenceframe.WorldState, fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
 	geoms, err := ws.ObstaclesInWorldFrame(fs, inputs)
 	if err != nil {

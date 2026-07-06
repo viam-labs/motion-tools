@@ -16,6 +16,10 @@ import (
 //   - points: a list of poses, each representing a point
 //   - colors: Individual point color, optional, and will fallback to defaultColor
 //   - color: an optional fallback color [R, G, B] (0–255); use nil for black
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPoints] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, color *[3]uint8) error {
 	labelError := isASCIIPrintable(label)
 	if labelError != nil {

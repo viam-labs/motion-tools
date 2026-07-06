@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { Portal } from '@threlte/extras'
-
 	import { asset } from '$app/paths'
+	import { DashboardPortal } from '$lib'
 	import { Snapshot as SnapshotProto } from '$lib/buf/draw/v1/snapshot_pb'
 	import Snapshot from '$lib/components/Snapshot.svelte'
 
@@ -23,7 +22,7 @@
 	}
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset class="flex gap-2">
 		{#each versions as version (version)}
 			<button
@@ -40,7 +39,7 @@
 			</button>
 		{/each}
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
 {#if snapshot}
 	<Snapshot {snapshot} />

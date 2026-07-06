@@ -48,7 +48,12 @@
 //	        r3.Vector{X: 100, Y: 100, Z: 100},
 //	        "my-box",
 //	    )
-//	    snapshot.DrawGeometry(box, spatialmath.NewZeroPose(), "world", draw.NewColor(draw.WithName("red")))
+//	    snapshot.DrawGeometry(draw.DrawGeometryOptions{
+//	        Geometry: box,
+//	        Pose:     spatialmath.NewZeroPose(),
+//	        Parent:   "world",
+//	        Color:    draw.ColorFromName("red"),
+//	    })
 //
 //	    // Export the scene as JSON for the visualizer.
 //	    jsonData, _ := snapshot.MarshalJSON()

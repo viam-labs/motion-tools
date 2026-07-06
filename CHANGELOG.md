@@ -1,5 +1,34 @@
 # motion-tools
 
+## 1.35.0
+
+### Minor Changes
+
+- ed62728: Port Snapshot to V2 API signature
+
+### Patch Changes
+
+- dab5ca3: Fix pointcloud object positions
+- 0a844cd: Fix plugin declaration types
+- 644753d: Allow mesh vertex colors
+- ec08d01: Improve plugins infrastructure
+- 56bf4bc: Debounce tree updates
+- 951fc2a: UI/UX LLM scene builder improvements
+- 5294217: Batch sphere rendering into instanced draw calls
+
+## 1.34.10
+
+### Patch Changes
+
+- 7c7b3c4: add geometry editing for llm scene builder
+
+## 1.34.9
+
+### Patch Changes
+
+- b49538a: Add color control to details panel
+- 2fc9bbe: Batch capsule rendering into instanced draw calls
+
 ## 1.34.8
 
 ### Patch Changes

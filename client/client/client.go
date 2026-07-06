@@ -37,6 +37,12 @@ Avoiding object instantiation helps stay in fast paths of the JIT.
 
 // DefaultColorMap is a list of sensible colors to cycle between
 // this is also the "Set1" colormap in Matplotlib
+//
+// Deprecated: the client/client package is deprecated; use
+// [github.com/viam-labs/motion-tools/client/api] instead. DefaultColorMap has no v2
+// equivalent; rebuild the "Set1" palette with the draw color choosers described in the
+// v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 var DefaultColorMap = []string{"#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"}
 
 type colorChooser struct {
@@ -133,6 +139,11 @@ func postHTTP(data []byte, content string, endpoint string) error {
 //
 // Parameters:
 //   - preferredURL: a url string
+//
+// Deprecated: the client/client package is deprecated; use
+// [github.com/viam-labs/motion-tools/client/api] instead. SetURL has no v2 equivalent
+// (transport is no longer user-configurable). See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func SetURL(preferredURL string) {
 	if !strings.HasSuffix(preferredURL, "/") {
 		preferredURL += "/"

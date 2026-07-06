@@ -1,14 +1,13 @@
 <script lang="ts">
-	import type { Component } from 'svelte'
-
 	import { useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
 	import { PersistedState } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
+	import DashboardPortal from '../Portals/DashboardPortal.svelte'
+	import { useSettingsTabs } from '../Portals/useSettingsTabs.svelte'
 	import ConnectionSettings from './ConnectionSettings.svelte'
 	import DebugSettings from './DebugSettings.svelte'
 	import PointcloudSettings from './PointcloudSettings.svelte'
@@ -18,17 +17,9 @@
 	import WeblabSettings from './WeblabSettings.svelte'
 	import WidgetSettings from './WidgetSettings.svelte'
 
-	interface Props {
-		settingsTabs?: {
-			label: string
-			component: Component
-		}[]
-	}
-
-	let { settingsTabs = [] }: Props = $props()
-
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
+	const settingsTabs = useSettingsTabs()
 
 	// Invalidate the renderer for any settings change
 	$effect(() => {
@@ -44,7 +35,7 @@
 	const activeTab = new PersistedState('settings-active-tab', 'Connection')
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset>
 		<DashboardButton
 			active={isOpen.current}
@@ -55,7 +46,7 @@
 			}}
 		/>
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
 <FloatingPanel
 	title="Settings"
@@ -72,7 +63,7 @@
 			{ label: 'Widgets', component: WidgetSettings },
 			{ label: 'Debug', component: DebugSettings },
 			{ label: 'Weblabs', component: WeblabSettings },
-			...settingsTabs,
+			...settingsTabs.current,
 		]}
 		onValueChange={(value) => {
 			activeTab.current = value

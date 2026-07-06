@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Portal } from '@threlte/extras'
 	import { PressedKeys } from 'runed'
 
+	import { DashboardPortal } from '$lib'
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 
@@ -27,7 +27,7 @@
 	})
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset class="flex">
 		<Button
 			icon="focus"
@@ -38,7 +38,7 @@
 			onclick={() => (focusing = !focusing)}
 		/>
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
 {#if focusing}
 	<FocusBox />

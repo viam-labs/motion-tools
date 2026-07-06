@@ -28,16 +28,14 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	} from 'three'
 
 	import { asColor } from '$lib/buffer'
-	import { colors, darkenColor, subtypeToColor } from '$lib/color'
+	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
-	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 
 	import { composeBoxMatrix } from './composeBoxMatrix'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
-	const resourceByName = useResourceByName()
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
@@ -121,8 +119,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 			return colorUtil.setRGB(color.r, color.g, color.b)
 		}
 
-		const subtype = resourceByName.current[entity.get(traits.Name) ?? '']?.subtype
-		return subtypeToColor(subtype) ?? colorUtil.set(colors.default)
+		return colorUtil.set(colors.default)
 	}
 
 	const writeAppearance = (entity: Entity, ids: InstanceIds) => {

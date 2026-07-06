@@ -19,6 +19,10 @@ var recordFile *os.File
 // hood. Not clearing the state first would otherwise result in a replay file that is not entirely
 // self-contained. Something would need to have existed in the browser before a file could be
 // replayed to faithfully re-envision what the original recording produced.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.Record] instead. The v2
+// recording format is not compatible with v1 recordings. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func Record(filename string) error {
 	RemoveAllSpatialObjects()
 
@@ -28,6 +32,11 @@ func Record(filename string) error {
 	return err
 }
 
+// StopRecord stops an in-progress recording started by [Record] and closes the file.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.StopRecord] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func StopRecord() {
 	recordFile.Close()
 	recordFile = nil
@@ -37,6 +46,10 @@ func StopRecord() {
 // how fast the recording will be played. For example, a `playbackSpeed` of 1 will use the existing
 // sleep timings between frames. A playback speed of 2 will be twice as fast and 0.5 will halve the
 // FPS.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.Replay] instead. The v2
+// recording format is not compatible with v1 recordings. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func Replay(filename string, playbackSpeed float64) error {
 	if recordFile != nil {
 		// If we accidentally have a record file open, we'll continue to write to the replay file.

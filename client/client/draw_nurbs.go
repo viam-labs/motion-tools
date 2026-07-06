@@ -17,6 +17,10 @@ import (
 //   - nurbs: A nurbs curve
 //   - color: The color of the line
 //   - name: A unique label for the curve
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawNurbs] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawNurbs(nurbs shapes.Nurbs, color string, name string) error {
 	rgbColor, err := colorutil.NamedColorToRGB(color)
 	if err != nil {
