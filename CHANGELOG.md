@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.35.1
+
+### Patch Changes
+
+- 95cbf22: Start deprecation of legacy go client.
+- 1cf2975: Tighten geom typing (for LLM scene builder)
+
 ## 1.35.0
 
 ### Minor Changes
