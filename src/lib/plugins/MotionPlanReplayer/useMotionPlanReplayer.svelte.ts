@@ -174,6 +174,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 				stepCount: precomputedSnapshots?.length ?? 0,
 			},
 		]
+		selectPlan(index)
 	}
 
 	const removePlan = (index: number) => {

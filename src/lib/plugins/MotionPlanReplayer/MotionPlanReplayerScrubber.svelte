@@ -75,17 +75,8 @@
 <Portal id="dom">
 	{#if ctx.totalSteps > 0}
 		<div
-			class="bg-dark/85 pointer-events-auto fixed bottom-4 left-1/2 z-[10000] flex w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded px-3 py-2 text-xs text-white"
+			class="pointer-events-auto fixed bottom-4 left-1/2 z-10000 flex w-[min(640px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded border border-[#666] bg-[#666] px-3 py-2 text-xs text-white"
 		>
-			<!-- Exit replay -->
-			<button
-				type="button"
-				class="border-medium flex h-7 w-7 shrink-0 items-center justify-center rounded border text-sm leading-none"
-				onclick={ctx.clearActivePlan}
-				aria-label="Exit replay"
-				title="Exit replay"><X size={14} /></button
-			>
-
 			<button
 				type="button"
 				class="border-medium flex h-7 w-7 shrink-0 items-center justify-center rounded border text-sm leading-none disabled:opacity-40"
@@ -142,6 +133,14 @@
 			>
 
 			<span class="whitespace-nowrap tabular-nums">{ctx.currentStep + 1} / {ctx.totalSteps}</span>
+
+			<button
+				type="button"
+				class="border-medium flex h-7 w-7 shrink-0 items-center justify-center rounded border text-sm leading-none"
+				onclick={ctx.clearActivePlan}
+				aria-label="Exit replay"
+				title="Exit replay"><X size={14} /></button
+			>
 		</div>
 	{/if}
 </Portal>

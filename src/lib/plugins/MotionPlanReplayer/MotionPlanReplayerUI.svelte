@@ -4,6 +4,8 @@
 	import { Portal } from '@threlte/extras'
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 
+	import { Eye, EyeOff } from 'lucide-svelte'
+
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
@@ -101,7 +103,13 @@
 					onkeydown={(e) =>
 						e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
 				>
-					<span class="text-subtle-1 mr-1">{isActive ? '●' : '○'}</span>
+					<span class="text-subtle-1 mr-1 shrink-0">
+						{#if isActive}
+							<Eye size={14} />
+						{:else}
+							<EyeOff size={14} />
+						{/if}
+					</span>
 					<span class="grow truncate">{plan.name}</span>
 
 					<button
