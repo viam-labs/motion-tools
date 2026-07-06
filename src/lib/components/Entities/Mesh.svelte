@@ -4,7 +4,7 @@
 
 	import { T, type Props as ThrelteProps, useThrelte } from '@threlte/core'
 	import { type Snippet } from 'svelte'
-	import { Color, DoubleSide, FrontSide, Material, Mesh } from 'three'
+	import { Color, DoubleSide, FrontSide, Mesh, MeshToonMaterial } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
@@ -49,7 +49,8 @@
 
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
-	let material = $state.raw<Material>(new Material())
+	const material = new MeshToonMaterial()
+
 	$effect(() => {
 		const isTransparent = currentOpacity < 1
 		material.depthWrite = !isTransparent
@@ -57,8 +58,8 @@
 		if (material.transparent !== isTransparent) {
 			material.transparent = isTransparent
 			material.needsUpdate = true
-			invalidate()
 		}
+		invalidate()
 	})
 
 	const mesh = new Mesh()
@@ -98,14 +99,12 @@
 		</T>
 	{/if}
 
-	<T.MeshToonMaterial
+	<T
+		is={material}
 		color={hasVertexColors ? 0xffffff : color}
 		vertexColors={hasVertexColors}
 		side={bufferGeometry.current ? DoubleSide : FrontSide}
 		depthTest={materialProps.current?.depthTest ?? true}
-		oncreate={(m) => {
-			material = m
-		}}
 	/>
 
 	{@render children?.()}
