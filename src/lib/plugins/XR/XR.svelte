@@ -4,6 +4,7 @@
 	import { SvelteMap } from 'svelte/reactivity'
 	import { Quaternion } from 'three'
 
+	import { SettingsPortal } from '$lib'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
@@ -17,6 +18,7 @@
 	import { provideAnchors } from './useAnchors.svelte'
 	import { provideOrigin } from './useOrigin.svelte'
 	import XRPlugins from './XRPlugins.svelte'
+	import XRSettings from './XRSettings.svelte'
 	import XRToast from './XRToast.svelte'
 
 	const { ...rest } = $props()
@@ -176,3 +178,7 @@
 		{...rest}
 	/>
 {/if}
+
+<SettingsPortal label="AR">
+	<XRSettings />
+</SettingsPortal>

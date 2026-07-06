@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { T } from '@threlte/core'
-	import { HTML, MeshLineGeometry, MeshLineMaterial, Portal } from '@threlte/extras'
+	import { HTML, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
 	import { untrack } from 'svelte'
 	import { type Intersection, Vector3 } from 'three'
 
+	import { DashboardPortal } from '$lib'
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
@@ -77,7 +78,7 @@
 	})
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset class="relative">
 		<div class="flex">
 			<Button
@@ -121,7 +122,7 @@
 			</Popover>
 		</div>
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
 {#if enabled}
 	{#if intersection && step !== 'p2'}
