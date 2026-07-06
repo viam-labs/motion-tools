@@ -14,7 +14,6 @@
 	import Labels from './Labels.svelte'
 	import Line from './Line.svelte'
 	import Points from './Points.svelte'
-	import Pose from './Pose.svelte'
 	import Spheres from './Spheres.svelte'
 
 	/**
@@ -73,9 +72,7 @@
 </script>
 
 {#each machineFramesEntities.current as entity (entity)}
-	<Pose {entity}>
-		<Frame {entity} />
-	</Pose>
+	<Frame {entity} />
 {/each}
 
 {#each resourceGeometriesEntities.current as entity (entity)}

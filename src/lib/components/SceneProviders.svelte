@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte'
 
 	import { provideHierarchy, provideWorldMatrix } from '$lib/ecs'
+	import { providePoses } from '$lib/hooks/providePoses.svelte'
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
@@ -40,6 +41,7 @@
 	provideConfigFrames()
 	provideFrameEditSession(() => partID.current)
 	provideFrames(() => partID.current)
+	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)
 	providePointclouds(() => partID.current)
