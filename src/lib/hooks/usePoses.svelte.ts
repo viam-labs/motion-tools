@@ -1,3 +1,5 @@
+import type { Entity } from 'koota'
+
 import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
@@ -27,9 +29,9 @@ const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
  * the rendered transform via `composeLocalMatrix(live, baseline, edited)`.
  *
  * Replaces the former per-entity `<Pose>` wrapper component with a single
- * reactor mounted alongside the other `provide*` hooks, following the
- * `provideGeometries` shape: hooks hoisted to init, one query per entity built
- * in a top-level `$derived`, consumed in effects.
+ * reactor mounted alongside the other `provide*` hooks. Each frame's query is
+ * built in its own `$effect.root` and tracked in a stable map, so adding or
+ * removing one frame never tears down the other frames' queries.
  */
 export const providePoses = (partID: () => string) => {
 	const environment = useEnvironment()
@@ -51,54 +53,102 @@ export const providePoses = (partID: () => string) => {
 	})
 
 	/**
-	 * One `getPose` query per frame entity. Rebuilt when query membership
-	 * changes; within a stable set, name / parent / subtype reactivity flows
-	 * through each query's args closure, so a reparent or subtype update
-	 * refetches without rebuilding the list.
+	 * Builds one frame's `getPose` query plus the reactive name/parent it reads.
+	 * Every hook here (`useTrait`, `useParentName`, `createRobotQuery`) allocates
+	 * `$state` and registers `$effect`s / Koota subscriptions, so each entry is
+	 * created inside its own `$effect.root` (below) — never inside a `$derived`
+	 * over the frame list, which would tear down and re-fetch *every* frame's
+	 * query whenever a single frame is added or removed.
+	 *
+	 * Within a stable entry, name / parent / subtype reactivity flows through
+	 * the query's args closure, so a reparent or subtype update refetches
+	 * without rebuilding anything.
 	 */
-	const poseQueries = $derived(
-		frameEntities.current.map((entity) => {
-			const name = useTrait(() => entity, traits.Name)
-			const parentName = useParentName(() => entity)
+	const buildEntry = (entity: Entity) => {
+		const name = useTrait(() => entity, traits.Name)
+		const parentName = useParentName(() => entity)
 
-			// Resolve the `<name>_origin` frame names inside the query's (already
-			// reactive) args closure, so name / parent / subtype changes refetch
-			// without turning each frame into its own module-level `$derived`s.
-			const query = createRobotQuery(
-				robotClient,
-				'getPose',
-				() => {
-					const frameName = name.current
-					const parentFrameName = parentName.current
-					const resource = frameName ? resourceByName.current[frameName] : undefined
-					const parentResource = parentFrameName
-						? resourceByName.current[parentFrameName]
-						: undefined
+		// Resolve the `<name>_origin` frame names inside the query's (already
+		// reactive) args closure, so name / parent / subtype changes refetch
+		// without turning each frame into its own module-level `$derived`s.
+		const query = createRobotQuery(
+			robotClient,
+			'getPose',
+			() => {
+				const frameName = name.current
+				const parentFrameName = parentName.current
+				const resource = frameName ? resourceByName.current[frameName] : undefined
+				const parentResource = parentFrameName ? resourceByName.current[parentFrameName] : undefined
 
-					const resolvedName = originFrameComponentTypes.has(resource?.subtype ?? '')
-						? `${frameName}_origin`
-						: frameName
-					const resolvedParent = originFrameComponentTypes.has(parentResource?.subtype ?? '')
-						? `${parentFrameName}_origin`
-						: parentFrameName
+				const resolvedName = originFrameComponentTypes.has(resource?.subtype ?? '')
+					? `${frameName}_origin`
+					: frameName
+				const resolvedParent = originFrameComponentTypes.has(parentResource?.subtype ?? '')
+					? `${parentFrameName}_origin`
+					: parentFrameName
 
-					return [resolvedName, resolvedParent ?? 'world', []] as [
-						string,
-						string,
-						commonApi.Transform[],
-					]
-				},
-				() => options
-			)
+				return [resolvedName, resolvedParent ?? 'world', []] as [
+					string,
+					string,
+					commonApi.Transform[],
+				]
+			},
+			() => options
+		)
 
-			return { entity, name, query }
-		})
-	)
+		return { entity, name, query }
+	}
+
+	type PoseEntry = ReturnType<typeof buildEntry> & { dispose: () => void }
+
+	const entryByEntity = new Map<Entity, PoseEntry>()
+	let entries = $state.raw<PoseEntry[]>([])
+
+	/**
+	 * Reconcile the query map against the live frame set: a newly-added frame
+	 * gets a fresh `$effect.root`, a departed one is disposed, and a tick that
+	 * doesn't change membership is a no-op. `entries` is only reassigned when
+	 * the set actually changes, so stable frames keep their query instances.
+	 */
+	$effect(() => {
+		const present = new Set(frameEntities.current)
+		let changed = false
+
+		for (const entity of frameEntities.current) {
+			if (entryByEntity.has(entity)) continue
+
+			let built!: ReturnType<typeof buildEntry>
+			const dispose = $effect.root(() => {
+				built = buildEntry(entity)
+			})
+			entryByEntity.set(entity, { ...built, dispose })
+			changed = true
+		}
+
+		for (const [entity, entry] of entryByEntity) {
+			if (present.has(entity)) continue
+			entry.dispose()
+			entryByEntity.delete(entity)
+			changed = true
+		}
+
+		if (changed) {
+			entries = [...entryByEntity.values()]
+		}
+	})
+
+	// Dispose every entry's root when the provider unmounts. Reads nothing
+	// reactive, so it runs once and only its teardown fires — the reconcile
+	// effect above must not dispose on its per-run cleanup.
+	$effect(() => () => {
+		for (const entry of entryByEntity.values()) entry.dispose()
+		entryByEntity.clear()
+	})
 
 	// Register every query with the manual-refetch registry so the
 	// ConnectionSettings "refetch poses" action reaches each one.
 	$effect(() => {
-		const unsubs = poseQueries.map(({ query }) => addQueryToRefetch(query))
+		const unsubs = entries.map(({ query }) => addQueryToRefetch(query))
 		return () => {
 			for (const unsub of unsubs) unsub()
 		}
@@ -111,9 +161,10 @@ export const providePoses = (partID: () => string) => {
 			frames.current &&
 			connectionStatus.current === MachineConnectionEvent.CONNECTED
 		) {
-			const queries = poseQueries
+			// Read `entries` inside `untrack` so this fires on the connect edge,
+			// not every time a frame is added — new entries auto-fetch on creation.
 			untrack(() => {
-				for (const { query } of queries) query.refetch()
+				for (const { query } of entries) query.refetch()
 			})
 		}
 	})
@@ -125,7 +176,7 @@ export const providePoses = (partID: () => string) => {
 			return logs.add(`Fetching poses every ${interval}ms...`)
 		}
 
-		for (const { name, query } of poseQueries) {
+		for (const { name, query } of entries) {
 			untrack(() => {
 				$effect(() => {
 					if (query.isFetching) {
@@ -147,7 +198,7 @@ export const providePoses = (partID: () => string) => {
 	 * as the `Matrix` write in `provideGeometries`).
 	 */
 	$effect(() => {
-		for (const { entity, query } of poseQueries) {
+		for (const { entity, query } of entries) {
 			untrack(() => {
 				$effect(() => {
 					if (environment.current.viewerMode !== 'monitor') return
