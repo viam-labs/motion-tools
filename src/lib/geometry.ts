@@ -20,40 +20,48 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
 }
 
 export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undefined => {
-	if (!frame.geometry) {
-		return
+	const geometry = frame.geometry
+	if (!geometry) {
+		return undefined
 	}
 
-	if (frame.geometry.type === 'box') {
-		return createGeometry({
-			case: 'box',
-			value: {
-				dimsMm: {
-					x: frame.geometry.x,
-					y: frame.geometry.y,
-					z: frame.geometry.z,
+	switch (geometry.type) {
+		case 'none': {
+			return undefined
+		}
+		case 'box': {
+			return createGeometry({
+				case: 'box',
+				value: {
+					dimsMm: {
+						x: geometry.x,
+						y: geometry.y,
+						z: geometry.z,
+					},
 				},
-			},
-		})
-	}
-
-	if (frame.geometry.type === 'sphere') {
-		return createGeometry({
-			case: 'sphere',
-			value: {
-				radiusMm: frame.geometry.r,
-			},
-		})
-	}
-
-	if (frame.geometry.type === 'capsule') {
-		return createGeometry({
-			case: 'capsule',
-			value: {
-				radiusMm: frame.geometry.r,
-				lengthMm: frame.geometry.l,
-			},
-		})
+			})
+		}
+		case 'sphere': {
+			return createGeometry({
+				case: 'sphere',
+				value: {
+					radiusMm: geometry.r,
+				},
+			})
+		}
+		case 'capsule': {
+			return createGeometry({
+				case: 'capsule',
+				value: {
+					radiusMm: geometry.r,
+					lengthMm: geometry.l,
+				},
+			})
+		}
+		default: {
+			const _exhaustive: never = geometry
+			return _exhaustive
+		}
 	}
 }
 
