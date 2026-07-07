@@ -21,6 +21,7 @@
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+	import { provideFullscreen } from '$lib/hooks/useFullscreen.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
@@ -30,7 +31,6 @@
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
-	import FullscreenButton from './overlay/FullscreenButton.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
@@ -91,14 +91,12 @@
 	provideWorld()
 	provideSettingsTabs()
 
-	const isEmbedded = $derived(localConfigProps !== undefined)
-	let fullscreen = $state(false)
-
-	// Clear the fullscreen button (30px + 8px gap) so details cards don't cover it.
-	const detailsBaseOffset = $derived(isEmbedded ? 38 : 0)
-
 	const settings = provideSettings()
 	const environment = provideEnvironment()
+	const fullscreen = provideFullscreen()
+
+	// Clear the Fullscreen plugin's button (30px + 8px gap) so details cards don't cover it.
+	const detailsBaseOffset = $derived(fullscreen.current.available ? 38 : 0)
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -136,7 +134,7 @@
 <div
 	class={[
 		'h-full w-full overflow-hidden bg-white',
-		fullscreen ? 'z-max fixed inset-0' : 'relative',
+		fullscreen.current.active ? 'z-max fixed inset-0' : 'relative',
 	]}
 	bind:this={root}
 >
@@ -166,10 +164,6 @@
 
 				{#if environment.current.isStandalone}
 					<LiveUpdatesBanner />
-				{/if}
-
-				{#if isEmbedded}
-					<FullscreenButton bind:fullscreen />
 				{/if}
 
 				<TreeContainer />
