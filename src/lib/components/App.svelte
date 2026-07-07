@@ -135,10 +135,8 @@
 
 <div
 	class={[
-		'h-full w-full overflow-hidden dark:bg-white',
-		// The canvas is transparent and normally shows the host page's background;
-		// fullscreen covers other page content, so paint our own.
-		fullscreen ? 'z-max fixed inset-0 bg-white' : 'relative',
+		'h-full w-full overflow-hidden bg-white',
+		fullscreen ? 'z-max fixed inset-0' : 'relative',
 	]}
 	bind:this={root}
 >
