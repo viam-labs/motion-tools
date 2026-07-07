@@ -30,6 +30,7 @@
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
+	import FullscreenButton from './overlay/FullscreenButton.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
@@ -90,6 +91,12 @@
 	provideWorld()
 	provideSettingsTabs()
 
+	const isEmbedded = $derived(localConfigProps !== undefined)
+	let fullscreen = $state(false)
+
+	// Clear the fullscreen button (30px + 8px gap) so details cards don't cover it.
+	const detailsBaseOffset = $derived(isEmbedded ? 38 : 0)
+
 	const settings = provideSettings()
 	const environment = provideEnvironment()
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
@@ -127,7 +134,12 @@
 </script>
 
 <div
-	class="relative h-full w-full overflow-hidden dark:bg-white"
+	class={[
+		'h-full w-full overflow-hidden dark:bg-white',
+		// The canvas is transparent and normally shows the host page's background;
+		// fullscreen covers other page content, so paint our own.
+		fullscreen ? 'z-max fixed inset-0 bg-white' : 'relative',
+	]}
 	bind:this={root}
 >
 	<Canvas renderMode="on-demand">
@@ -150,12 +162,16 @@
 					<Details
 						{entity}
 						{details}
-						style="transform: translate(0, {index * 40}px)"
+						style="transform: translate(0, {detailsBaseOffset + index * 40}px)"
 					/>
 				{/each}
 
 				{#if environment.current.isStandalone}
 					<LiveUpdatesBanner />
+				{/if}
+
+				{#if isEmbedded}
+					<FullscreenButton bind:fullscreen />
 				{/if}
 
 				<TreeContainer />

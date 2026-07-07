@@ -38,6 +38,19 @@ pnpm test:e2e      # Playwright E2E
 
 Organize code by feature with **one focused unit per file**. File names should describe what the code does. Avoid generic bucket files (`utils`, `helpers`, `constants`).
 
+## Documentation
+
+User-facing docs live in `docs/` (Astro Starlight) and publish to https://viamrobotics.github.io/visualization/. The `.mdx` files under `docs/src/content/docs/` are the source of truth — read them locally rather than fetching the site. Before working on a documented feature, read its page; when changing documented behavior or public API, update the page in the same change.
+
+| Page                         | Covers                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `guides/local-usage.mdx`     | Running the visualizer locally and driving it from Go via `client/api`    |
+| `guides/embedding.mdx`       | Mounting `<Visualizer />` inside an external Svelte app                   |
+| `guides/worldstatestore.mdx` | Using the `draw` Go package to implement a `WorldStateStoreService`       |
+| `plugins/<name>.mdx`         | One page per visualizer plugin in `src/lib/plugins/`                      |
+| `migration/v1-to-v2.mdx`     | Migrating Go clients from `client/client` (v1) to `client/api` (v2)       |
+| `api/*.md`                   | Generated from Go doc comments via `pnpm gen:api` — edit those, not these |
+
 ## Topic-specific rules
 
 Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude reads matching files; rules without `paths` load every session.
@@ -50,6 +63,7 @@ Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude 
 | `go.md`                  | editing `.go`                                       |
 | `testing-go.md`          | editing Go test files (`*_test.go`)                 |
 | `testing-frontend.md`    | editing frontend test files (`src/**/*.spec.ts`)    |
+| `docs.md`                | editing files under `docs/`                         |
 | `pr-description.md`      | editing files under `.changeset/`                   |
 | `changesets.md`          | editing files under `.changeset/` or `CHANGELOG.md` |
 | `viam-context.md`        | every session (no path scope)                       |
