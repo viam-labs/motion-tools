@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': minor
 ---
 
-Add a fullscreen toggle to the visualizer when embedded in a host app
+Add Fullscreen plugin that expands the visualizer to cover the viewport
