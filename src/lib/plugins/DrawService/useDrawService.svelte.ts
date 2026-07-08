@@ -304,6 +304,19 @@ export function provideDrawService() {
 		})
 	}
 
+	const clearEntities = () => {
+		for (const entity of transformEntities.values()) {
+			if (world.has(entity)) hierarchy.destroyEntityTree(world, entity)
+		}
+		transformEntities.clear()
+
+		for (const entity of drawingEntities.values()) {
+			if (world.has(entity)) hierarchy.destroyEntityTree(world, entity)
+		}
+		drawingEntities.clear()
+		serverRelationships.reset()
+	}
+
 	const streamEntityChanges = async (client: Client<typeof DrawService>, signal: AbortSignal) => {
 		await retryStream(
 			async (sig) => {
@@ -325,29 +338,41 @@ export function provideDrawService() {
 			},
 			signal,
 			() => {
-				connectionStatus = ConnectionStatus.DISCONNECTED
+				// Set CONNECTING so the UI shows reconnect is in progress.
+				// Clear all entities so the server's re-bootstrap (ADDED for every
+				// live entity) can rebuild the scene from scratch. Without this,
+				// processTransformEvent/processDrawingEvent silently drop every ADDED
+				// for a UUID that's still in the maps, leaving the client permanently stale.
+				connectionStatus = ConnectionStatus.CONNECTING
+				clearEntities()
 			}
 		)
 	}
 
 	const streamSceneChanges = async (client: Client<typeof DrawService>, signal: AbortSignal) => {
-		await retryStream(async (sig) => {
-			for await (const response of client.streamSceneChanges({}, { signal: sig })) {
-				const { sceneMetadata } = response
-				if (!sceneMetadata) continue
+		await retryStream(
+			async (sig) => {
+				for await (const response of client.streamSceneChanges({}, { signal: sig })) {
+					const { sceneMetadata } = response
+					if (!sceneMetadata) continue
 
-				if (sceneMetadata.sceneCamera?.position && sceneMetadata.sceneCamera?.lookAt) {
-					const { position, lookAt, animated } = sceneMetadata.sceneCamera
-					cameraControls.setPose(
-						{
-							position: [position.x * 0.001, position.y * 0.001, position.z * 0.001],
-							lookAt: [lookAt.x * 0.001, lookAt.y * 0.001, lookAt.z * 0.001],
-						},
-						animated ?? false
-					)
+					if (sceneMetadata.sceneCamera?.position && sceneMetadata.sceneCamera?.lookAt) {
+						const { position, lookAt, animated } = sceneMetadata.sceneCamera
+						cameraControls.setPose(
+							{
+								position: [position.x * 0.001, position.y * 0.001, position.z * 0.001],
+								lookAt: [lookAt.x * 0.001, lookAt.y * 0.001, lookAt.z * 0.001],
+							},
+							animated ?? false
+						)
+					}
 				}
+			},
+			signal,
+			() => {
+				console.warn('Scene stream disconnected, retrying...')
 			}
-		}, signal)
+		)
 	}
 
 	$effect(() => {
