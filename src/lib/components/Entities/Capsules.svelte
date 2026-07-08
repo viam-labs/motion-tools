@@ -62,19 +62,16 @@ pick the body or head id table and map the `instanceId` back to the entity.
 
 	/**
 	 * Build a faces mesh. Capsule meshes render transparent by default (`Opacity`
-	 * trait absent → 0.7, depth write off — same as the former per-entity
-	 * renderer); per-instance alpha is written via `setOpacityAt`. Whole-object
-	 * culling is disabled and the bounding sphere pinned open for the same reason
-	 * as `Boxes.svelte`: the library culls and raycasts per instance, and its
-	 * once-computed object sphere would otherwise gate an always-animating scene
-	 * shut.
+	 * trait absent → 0.7); per-instance alpha is written via `setOpacityAt`.
+	 * Whole-object culling is disabled and the bounding sphere pinned open for
+	 * the same reason as `Boxes.svelte`: the library culls and raycasts per
+	 * instance, and its once-computed object sphere would otherwise gate an
+	 * always-animating scene shut.
 	 */
 	const createFaces = (geometry: BufferGeometry) => {
-		const mesh = new InstancedMesh2(
-			geometry,
-			new MeshToonMaterial({ transparent: true, depthWrite: false }),
-			{ renderer }
-		)
+		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true }), {
+			renderer,
+		})
 		mesh.sortObjects = true
 		mesh.customSort = createRadixSort(mesh)
 		mesh.frustumCulled = false
