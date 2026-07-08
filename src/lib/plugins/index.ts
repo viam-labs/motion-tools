@@ -23,6 +23,9 @@ export { useLogs } from './Logs/useLogs.svelte'
 // Focus
 export { default as Focus } from './Focus/Focus.svelte'
 
+// Fullscreen
+export { default as Fullscreen } from './Fullscreen/Fullscreen.svelte'
+
 // LLMSceneBuilder
 export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
 export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'

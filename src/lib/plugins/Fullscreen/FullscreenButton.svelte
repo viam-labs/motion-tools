@@ -1,0 +1,57 @@
+<script lang="ts">
+	import { Tooltip } from '@viamrobotics/prime-core'
+	import { Maximize2, Minimize2 } from 'lucide-svelte'
+
+	interface Props {
+		fullscreen: boolean
+	}
+
+	let { fullscreen = $bindable() }: Props = $props()
+
+	// Fullscreen overlays the host page; lock its scroll so only the visualizer receives it.
+	$effect(() => {
+		if (!fullscreen) return
+
+		const { body, documentElement } = document
+		const bodyOverflow = body.style.overflow
+		const documentOverflow = documentElement.style.overflow
+
+		body.style.overflow = 'hidden'
+		documentElement.style.overflow = 'hidden'
+
+		return () => {
+			body.style.overflow = bodyOverflow
+			documentElement.style.overflow = documentOverflow
+		}
+	})
+</script>
+
+<div class="absolute top-2 right-2 z-4">
+	<Tooltip
+		let:tooltipID
+		location="left"
+	>
+		<button
+			class="border-gray-5 text-gray-8 hover:bg-light active:bg-medium block rounded-md border bg-white p-1.5"
+			aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+			aria-pressed={fullscreen}
+			aria-describedby={tooltipID}
+			onclick={() => (fullscreen = !fullscreen)}
+		>
+			{#if fullscreen}
+				<Minimize2
+					size="16"
+					aria-hidden="true"
+				/>
+			{:else}
+				<Maximize2
+					size="16"
+					aria-hidden="true"
+				/>
+			{/if}
+		</button>
+		<p slot="description">
+			{fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+		</p>
+	</Tooltip>
+</div>
