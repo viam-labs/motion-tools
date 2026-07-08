@@ -42,7 +42,14 @@ export default defineConfig({
 		// @testing-library/svelte is excluded so its Svelte components aren't
 		// pre-bundled, but its CJS grandchild aria-query (via @testing-library/dom)
 		// must still be optimized or Rolldown won't expose its named exports.
-		include: ['@testing-library/svelte > @testing-library/dom'],
+		//
+		// PCDLoader is imported by the pcd web worker (loaders/pcd/worker.ts). Vite
+		// discovers worker deps lazily, so without this the dep optimizer re-bundles
+		// mid-run and reloads the page, flaking out whatever tests are importing then.
+		include: [
+			'@testing-library/svelte > @testing-library/dom',
+			'three/examples/jsm/loaders/PCDLoader.js',
+		],
 		exclude: ['@testing-library/svelte'],
 	},
 	build: {
