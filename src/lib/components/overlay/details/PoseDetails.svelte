@@ -30,20 +30,27 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { hierarchy, traits, useParentName, useTrait } from '$lib/ecs'
+	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
+	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
+	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
-		parentOptions: Array<{ value: string; text: string }>
-		onPoseChange: (patch: Partial<Pose>) => void
-		onParentChange: (parent: string) => void
+		/** When false, poses render as read-only text instead of editable controls. */
+		editable: boolean
 	}
 
-	const { entity, parentOptions, onPoseChange, onParentChange }: Props = $props()
+	const { entity, editable }: Props = $props()
 
 	const { invalidate } = useThrelte()
+	const configFrames = useConfigFrames()
+	const partConfig = usePartConfig()
 
+	const frameConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+
+	const name = useTrait(() => entity, traits.Name)
 	const matrix = useTrait(() => entity, traits.Matrix)
 	const editedMatrix = useTrait(() => entity, traits.EditedMatrix)
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
@@ -73,28 +80,48 @@
 		}
 	})
 
-	const applyLocal = (patch: Partial<Pose>) => {
-		onPoseChange(patch)
+	/**
+	 * The `<List>`'s bound value must be one of its options, or the underlying
+	 * native <select> has no matching <option>, snaps to selectedIndex -1, and
+	 * renders blank. `getParentFrameOptions` is derived from the editable part
+	 * config, but `parent.current` comes from the live frame system via the ECS
+	 * and can name a frame the config doesn't enumerate (a frame the robot
+	 * reports but the local config omits, an unresolved orphan, or simply the
+	 * config not having loaded yet). Always include the current parent so the
+	 * field shows it rather than going blank. It's cycle-safe: the current
+	 * parent is neither self nor a descendant.
+	 */
+	const parentFrameOptions = $derived.by(() => {
+		const value = parent.current ?? 'world'
+		const options = configFrames.getParentFrameOptions(name.current ?? '') ?? []
+		return options.includes(value) ? options : [value, ...options]
+	})
+
+	const handleParentChange = (event: ListChangeEvent) => {
+		if (event.detail.origin !== 'internal') return
+		const value = event.detail.value as string
+		if (value === parent.current) return
+		hierarchy.setParent(entity, value)
+		frameConfigUpdater.setFrameParent(entity, value)
 		invalidate()
 	}
 
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue3dObject
-		applyLocal({ x: next.x, y: next.y, z: next.z })
+		frameConfigUpdater.updateLocalPosition(entity, next)
+		invalidate()
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue4dObject
-		applyLocal({ oX: next.x, oY: next.y, oZ: next.z, theta: next.w })
-	}
-
-	const handleParentChange = (event: ListChangeEvent) => {
-		if (event.detail.origin !== 'internal') return
-		const value = event.detail.value as string
-		if (value === parent.current) return
-		onParentChange(value)
+		frameConfigUpdater.updateLocalOrientation(entity, {
+			oX: next.x,
+			oY: next.y,
+			oZ: next.z,
+			theta: next.w,
+		})
 		invalidate()
 	}
 
@@ -109,59 +136,152 @@
 		)
 		quaternionUtil.setFromEuler(eulerUtil)
 		ovUtil.setFromQuaternion(quaternionUtil)
-		applyLocal({ oX: ovUtil.x, oY: ovUtil.y, oZ: ovUtil.z, theta: MathUtils.radToDeg(ovUtil.th) })
+		frameConfigUpdater.updateLocalOrientation(entity, {
+			oX: ovUtil.x,
+			oY: ovUtil.y,
+			oZ: ovUtil.z,
+			theta: MathUtils.radToDeg(ovUtil.th),
+		})
+		invalidate()
 	}
 </script>
 
-<div class="flex flex-col gap-2.5 text-xs">
+{#snippet ImmutableField({
+	label,
+	value,
+	ariaLabel,
+}: {
+	label?: string
+	value?: number | string
+	ariaLabel: string
+})}
 	<div>
-		<strong class="font-semibold">parent</strong>
+		<span
+			class="text-subtle-2"
+			aria-label={`immutable ${ariaLabel}`}
+		>
+			{label}
+		</span>
+
+		{typeof value === 'number' ? value.toFixed(2) : (value ?? '-')}
+	</div>
+{/snippet}
+
+<div>
+	<strong class="font-semibold">world position</strong>
+	<span class="text-subtle-2">(mm)</span>
+
+	<div class="flex gap-3">
+		<div>
+			<span class="text-subtle-2">x</span>
+			{(worldPose?.x ?? 0).toFixed(2)}
+		</div>
+		<div>
+			<span class="text-subtle-2">y</span>
+			{(worldPose?.y ?? 0).toFixed(2)}
+		</div>
+		<div>
+			<span class="text-subtle-2">z</span>
+			{(worldPose?.z ?? 0).toFixed(2)}
+		</div>
+	</div>
+</div>
+
+<div>
+	<strong class="font-semibold">world orientation</strong>
+	<span class="text-subtle-2">(deg)</span>
+	<div class="flex gap-3">
+		<div>
+			<span class="text-subtle-2">x</span>
+			{(worldPose?.oX ?? 0).toFixed(2)}
+		</div>
+		<div>
+			<span class="text-subtle-2">y</span>
+			{(worldPose?.oY ?? 0).toFixed(2)}
+		</div>
+		<div>
+			<span class="text-subtle-2">z</span>
+			{(worldPose?.oZ ?? 0).toFixed(2)}
+		</div>
+		<div>
+			<span class="text-subtle-2">th</span>
+			{(worldPose?.theta ?? 0).toFixed(2)}
+		</div>
+	</div>
+</div>
+
+<div>
+	<strong class="font-semibold">parent frame</strong>
+	{#if editable}
+		<!--
+			Remount on entity change. svelte-tweakpane-ui's List runs
+			`listBlade.value = value` on the still-mounted blade before its
+			`options` prop has propagated, so the new entity's parent name
+			(absent from the previous entity's option set) hits Tweakpane's
+			ListConstraint, snaps to the first option, and fires a change
+			event that handleParentChange interprets as a user pick — silently
+			reparenting the clicked frame.
+		-->
 		{#key entity}
-			<div aria-label="mutable parent">
+			<div aria-label="mutable parent frame">
 				<List
-					options={parentOptions}
+					options={parentFrameOptions}
 					value={parent.current ?? 'world'}
 					on:change={handleParentChange}
 				/>
 			</div>
 		{/key}
-	</div>
+	{:else}
+		<div class="mt-0.5 flex gap-3">
+			{@render ImmutableField({
+				ariaLabel: 'parent frame name',
+				value: parent.current ?? 'world',
+			})}
+		</div>
+	{/if}
+</div>
 
+{#if localPose}
 	<div>
-		<strong class="font-semibold">world position</strong>
+		<strong class="font-semibold">local position</strong>
 		<span class="text-subtle-2">(mm)</span>
-		<div class="flex gap-3">
-			<div><span class="text-subtle-2">x</span> {(worldPose?.x ?? 0).toFixed(2)}</div>
-			<div><span class="text-subtle-2">y</span> {(worldPose?.y ?? 0).toFixed(2)}</div>
-			<div><span class="text-subtle-2">z</span> {(worldPose?.z ?? 0).toFixed(2)}</div>
-		</div>
-	</div>
 
-	<div>
-		<strong class="font-semibold">world orientation</strong>
-		<span class="text-subtle-2">(deg)</span>
-		<div class="flex gap-3">
-			<div><span class="text-subtle-2">x</span> {(worldPose?.oX ?? 0).toFixed(2)}</div>
-			<div><span class="text-subtle-2">y</span> {(worldPose?.oY ?? 0).toFixed(2)}</div>
-			<div><span class="text-subtle-2">z</span> {(worldPose?.oZ ?? 0).toFixed(2)}</div>
-			<div><span class="text-subtle-2">th</span> {(worldPose?.theta ?? 0).toFixed(2)}</div>
-		</div>
-	</div>
-
-	{#if localPose}
-		<div>
-			<strong class="font-semibold">local position</strong>
-			<span class="text-subtle-2">(mm)</span>
+		{#if editable}
 			<div aria-label="mutable local position">
 				<Point
-					value={{ x: localPose.x, y: localPose.y, z: localPose.z }}
+					value={{
+						x: localPose.x,
+						y: localPose.y,
+						z: localPose.z,
+					}}
 					on:change={handlePositionChange}
 				/>
 			</div>
-		</div>
+		{:else}
+			<div class="mt-0.5 flex gap-3">
+				{@render ImmutableField({
+					label: 'x',
+					ariaLabel: 'local position x coordinate',
+					value: localPose.x,
+				})}
+				{@render ImmutableField({
+					label: 'y',
+					ariaLabel: 'local position y coordinate',
+					value: localPose.y,
+				})}
+				{@render ImmutableField({
+					label: 'z',
+					ariaLabel: 'local position z coordinate',
+					value: localPose.z,
+				})}
+			</div>
+		{/if}
+	</div>
 
-		<div>
-			<strong class="font-semibold">local orientation</strong>
+	<div>
+		<strong class="font-semibold">local orientation</strong>
+
+		{#if editable}
 			<div aria-label="mutable local orientation">
 				<TabGroup>
 					<TabPage title="OV (deg)">
@@ -184,6 +304,29 @@
 					</TabPage>
 				</TabGroup>
 			</div>
-		</div>
-	{/if}
-</div>
+		{:else}
+			<div class="mt-0.5 flex gap-3">
+				{@render ImmutableField({
+					label: 'x',
+					ariaLabel: 'local orientation x coordinate',
+					value: localPose.oX,
+				})}
+				{@render ImmutableField({
+					label: 'y',
+					ariaLabel: 'local orientation y coordinate',
+					value: localPose.oY,
+				})}
+				{@render ImmutableField({
+					label: 'z',
+					ariaLabel: 'local orientation z coordinate',
+					value: localPose.oZ,
+				})}
+				{@render ImmutableField({
+					label: 'th',
+					ariaLabel: 'local orientation theta degrees',
+					value: localPose.theta,
+				})}
+			</div>
+		{/if}
+	</div>
+{/if}

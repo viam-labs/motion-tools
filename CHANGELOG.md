@@ -1,5 +1,13 @@
 # motion-tools
 
+## 1.36.1
+
+### Patch Changes
+
+- b55128d: `Pose.svelte` and `Entities.svelte` refactor
+- c1529d2: Fix parent field in details occasionally rendering blank
+- 21ea83d: Fix sorting for instanced rendering
+
 ## 1.36.0
 
 ### Minor Changes
