@@ -25,6 +25,7 @@
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
+	import { provideFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 	import { domPortal } from '$lib/portal'
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
@@ -92,6 +93,8 @@
 
 	const settings = provideSettings()
 	const environment = provideEnvironment()
+	const fullscreen = provideFullscreen()
+
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -127,7 +130,10 @@
 </script>
 
 <div
-	class="relative h-full w-full overflow-hidden dark:bg-white"
+	class={[
+		'h-full w-full overflow-hidden bg-white',
+		fullscreen.active ? 'z-max fixed inset-0' : 'relative',
+	]}
 	bind:this={root}
 >
 	<Canvas renderMode="on-demand">
@@ -150,7 +156,7 @@
 					<Details
 						{entity}
 						{details}
-						style="transform: translate(0, {index * 40}px)"
+						style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
 					/>
 				{/each}
 

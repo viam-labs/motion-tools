@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.36.0
+
+### Minor Changes
+
+- 0620ce8: Add Fullscreen plugin that expands the visualizer to cover the viewport
+
 ## 1.35.1
 
 ### Patch Changes
