@@ -56,9 +56,8 @@ withRobot.beforeAll(async () => {
 withRobot('arm', async ({ robotPage }) => {
 	const { page } = robotPage
 	const testPrefix = 'ARM'
-	const failedScreenshots: string[] = []
 
-	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-indicator"]')
+	const frameTreeCarrot = await page.waitForSelector('[data-part="branch-trigger"]')
 	await frameTreeCarrot.click()
 
 	await expect(page.getByText('arm-1:base_link', { exact: true })).toBeVisible()
@@ -66,17 +65,9 @@ withRobot('arm', async ({ robotPage }) => {
 
 	await page.getByRole('button', { name: 'arm-1' }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-0-loaded.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-0-loaded.png`)
-	}
+	await robotPage.screenshotCanvas(`${testPrefix}-0-loaded`)
 
 	// MOVE ARM
 	execSync('go run e2e/fixtures/go-scripts/main.go moveArmJointPositions', {
@@ -89,20 +80,9 @@ withRobot('arm', async ({ robotPage }) => {
 		},
 	})
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-moved.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-1-moved.png`)
-	}
+	await robotPage.screenshotCanvas(`${testPrefix}-1-moved`)
 
-	if (failedScreenshots.length > 0) {
-		console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-		throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-	}
+	robotPage.assertScreenshots()
 })
 
 withRobot.afterAll(async () => {

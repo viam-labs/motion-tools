@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test'
 import { JsonValue, Struct, type ViamClient } from '@viamrobotics/sdk'
 
 import {
+	activateConnectionConfigByHost,
 	applyMachineConfig,
 	connectOrgViamClient,
 	connectViamClient,
@@ -89,16 +90,23 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible({ timeout: 15_000 })
 	await page.getByText('base-1', { exact: true }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await expect(page.getByText('Box', { exact: true })).toBeVisible()
 	await page.getByText('Box', { exact: true }).click()
 
-	await expect(page.getByLabel('mutable local position')).toBeVisible()
+	// The `mutable …` aria-label divs are invisible Svelte wrappers around
+	// Tweakpane widgets — their content gets portaled into Tweakpane's own
+	// pane DOM. Assert attachment (i.e. the conditional render flipped on)
+	// rather than visibility.
+	await expect(page.getByLabel('mutable local position')).toBeAttached()
 	await fillFrameInputs(page, 'mutable local position', ['100', '200', '300'])
 
-	await expect(page.getByLabel('mutable box dimensions')).toBeVisible()
-	await fillFrameInputs(page, 'mutable box dimensions', ['400', '500', '600'])
+	// `mutable box dimensions` attaches when the entity gets a Box trait, but
+	// the actual <input>s live in the outer Tweakpane pane DOM (under
+	// `mutable geometry`), not as descendants of the box-dimensions wrapper.
+	await expect(page.getByLabel('mutable box dimensions')).toBeAttached()
+	await fillFrameInputs(page, 'mutable geometry', ['400', '500', '600'])
 
 	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
 	try {
@@ -136,7 +144,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	})
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible()
 	await page.getByText('base-1', { exact: true }).click()
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, {
 			fullPage: true,
@@ -148,7 +156,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	}
 
 	// REPARENT THE OBJECT
-	await expect(page.getByLabel('mutable parent frame')).toBeVisible()
+	await expect(page.getByLabel('mutable parent frame')).toBeAttached()
 	await page.getByLabel('mutable parent frame').locator('select').selectOption('parent')
 
 	try {
@@ -173,7 +181,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByText('None', { exact: true }).first()).toBeVisible()
 	await page.getByText('None', { exact: true }).first().click()
 
-	await expect(page.getByLabel('mutable local position')).toBeVisible()
+	await expect(page.getByLabel('mutable local position')).toBeAttached()
 	await fillFrameInputs(page, 'mutable local position', ['0', '0', '0'])
 
 	// SAVE THE CHANGES
@@ -232,6 +240,7 @@ withRobot('create and delete frame', async ({ browser }) => {
 	await injectMachineConfig(page, config)
 	await page.reload()
 	await page.waitForLoadState('domcontentloaded')
+	await activateConnectionConfigByHost(page, config.host)
 
 	const machineConfigButton = page.getByRole('button', { name: 'Machine connection configs' })
 	await expect(machineConfigButton.getByText('live', { exact: true })).toBeVisible({
@@ -374,6 +383,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	await injectMachineConfig(page, config)
 	await page.reload()
 	await page.waitForLoadState('domcontentloaded')
+	await activateConnectionConfigByHost(page, config.host)
 
 	const machineConfigButton = page.getByRole('button', { name: 'Machine connection configs' })
 	await expect(machineConfigButton.getByText('live', { exact: true })).toBeVisible({
@@ -391,16 +401,16 @@ withRobot('fragment edit frame', async ({ browser }) => {
 
 	await page.getByText('frag-base-1', { exact: true }).click()
 
-	await expect(page.getByTestId('details-header')).toBeVisible()
+	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
 	await expect(page.getByText('Sphere', { exact: true })).toBeVisible()
 	await page.getByText('Sphere', { exact: true }).click()
 
-	await expect(page.getByLabel('mutable local position')).toBeVisible()
+	await expect(page.getByLabel('mutable local position')).toBeAttached()
 	await fillFrameInputs(page, 'mutable local position', ['100', '200', '300'])
 
-	await expect(page.getByLabel('mutable sphere dimensions')).toBeVisible()
-	await fillFrameInputs(page, 'mutable sphere dimensions', ['400'])
+	await expect(page.getByLabel('mutable sphere dimensions')).toBeAttached()
+	await fillFrameInputs(page, 'mutable geometry', ['400'])
 
 	// SAVE THE CHANGES
 	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()

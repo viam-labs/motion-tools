@@ -11,11 +11,11 @@ import { getContext, setContext, untrack } from 'svelte'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
+import { useLogs } from '$lib/plugins'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-context')
@@ -154,6 +154,7 @@ export const providePointclouds = (partID: () => string) => {
 						}
 
 						if (existing) {
+							hierarchy.setParent(existing, name)
 							const geometry = existing.get(traits.BufferGeometry)
 
 							if (geometry) {
@@ -165,7 +166,7 @@ export const providePointclouds = (partID: () => string) => {
 						const geometry = createBufferGeometry(positions, metadata)
 
 						const entity = world.spawn(
-							traits.Parent(name),
+							...hierarchy.parentTraits(name),
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
 							traits.Points

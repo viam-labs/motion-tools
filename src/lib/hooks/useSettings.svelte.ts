@@ -6,8 +6,9 @@ import { getContext, setContext } from 'svelte'
 const key = Symbol('dashboard-context')
 
 export interface Settings {
+	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
-	interactionMode: 'navigate' | 'measure' | 'select'
+	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo'
 	refreshRates: {
 		poses: number
 		pointclouds: number
@@ -41,11 +42,11 @@ export interface Settings {
 	enableMeasureAxisZ: boolean
 
 	enableLabels: boolean
-	enableQueryDevtools: boolean
 
 	// Widgets
 	enableArmPositionsWidget: boolean
 	openCameraWidgets: Record<string, string[]>
+	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean
 	renderArmModels: 'colliders' | 'colliders+model' | 'model'
@@ -83,6 +84,7 @@ export const RefreshRates = {
 } as const
 
 const defaults = (): Settings => ({
+	anthropicKey: '',
 	cameraMode: 'perspective',
 
 	refreshRates: {
@@ -115,10 +117,10 @@ const defaults = (): Settings => ({
 	enableMeasureAxisZ: true,
 
 	enableLabels: false,
-	enableQueryDevtools: false,
 
 	enableArmPositionsWidget: false,
 	openCameraWidgets: {},
+	openFramePovWidgets: {},
 
 	renderStats: false,
 	renderArmModels: 'colliders+model',

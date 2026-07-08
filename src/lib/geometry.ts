@@ -1,4 +1,11 @@
-import type { Capsule, Geometry, PointCloud, RectangularPrism, Sphere } from '@viamrobotics/sdk'
+import type {
+	Capsule,
+	Geometry,
+	PointCloud,
+	RectangularPrism,
+	Sphere,
+	Transform,
+} from '@viamrobotics/sdk'
 
 import type { Frame } from './frame'
 
@@ -12,41 +19,49 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
 	}
 }
 
-export const createGeometryFromFrame = (frame: Partial<Frame>) => {
-	if (!frame.geometry) {
-		return
+export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undefined => {
+	const geometry = frame.geometry
+	if (!geometry) {
+		return undefined
 	}
 
-	if (frame.geometry.type === 'box') {
-		return createGeometry({
-			case: 'box',
-			value: {
-				dimsMm: {
-					x: frame.geometry.x,
-					y: frame.geometry.y,
-					z: frame.geometry.z,
+	switch (geometry.type) {
+		case 'none': {
+			return undefined
+		}
+		case 'box': {
+			return createGeometry({
+				case: 'box',
+				value: {
+					dimsMm: {
+						x: geometry.x,
+						y: geometry.y,
+						z: geometry.z,
+					},
 				},
-			},
-		})
-	}
-
-	if (frame.geometry.type === 'sphere') {
-		return createGeometry({
-			case: 'sphere',
-			value: {
-				radiusMm: frame.geometry.r,
-			},
-		})
-	}
-
-	if (frame.geometry.type === 'capsule') {
-		return createGeometry({
-			case: 'capsule',
-			value: {
-				radiusMm: frame.geometry.r,
-				lengthMm: frame.geometry.l,
-			},
-		})
+			})
+		}
+		case 'sphere': {
+			return createGeometry({
+				case: 'sphere',
+				value: {
+					radiusMm: geometry.r,
+				},
+			})
+		}
+		case 'capsule': {
+			return createGeometry({
+				case: 'capsule',
+				value: {
+					radiusMm: geometry.r,
+					lengthMm: geometry.l,
+				},
+			})
+		}
+		default: {
+			const _exhaustive: never = geometry
+			return _exhaustive
+		}
 	}
 }
 
@@ -75,4 +90,24 @@ export const isPointCloud = (
 	geometry?: Geometry['geometryType']
 ): geometry is { case: 'pointcloud'; value: PointCloud } => {
 	return geometry?.case === 'pointcloud'
+}
+
+// Reverse of createGeometryFromFrame: read a Transform's geometry back into the
+// frame geometry shape. Point clouds / no geometry resolve to undefined.
+export const frameGeometryFromTransform = (transform: Transform): Frame['geometry'] => {
+	const geometryType = transform.physicalObject?.geometryType
+	switch (geometryType?.case) {
+		case 'box': {
+			return { type: 'box', ...createBox(geometryType.value) }
+		}
+		case 'sphere': {
+			return { type: 'sphere', ...createSphere(geometryType.value) }
+		}
+		case 'capsule': {
+			return { type: 'capsule', ...createCapsule(geometryType.value) }
+		}
+		default: {
+			return undefined
+		}
+	}
 }

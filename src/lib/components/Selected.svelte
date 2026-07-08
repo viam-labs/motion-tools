@@ -1,55 +1,72 @@
 <script lang="ts">
-	import { isInstanceOf, T, useTask, useThrelte } from '@threlte/core'
-	import { BatchedMesh, Box3 } from 'three'
+	import { T, useTask, useThrelte } from '@threlte/core'
+	import { BatchedMesh, Box3, Matrix4 } from 'three'
 	import { OBB } from 'three/addons/math/OBB.js'
 
-	import type { InstancedArrows } from '$lib/three/InstancedArrows/InstancedArrows'
-
-	import { useSelectedEntity, useSelectedObject3d } from '$lib/hooks/useSelection.svelte'
+	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
+	import { composeCapsuleBoundsMatrix } from '$lib/components/Entities/composeCapsuleMatrices'
+	import { composeSphereBoundsMatrix } from '$lib/components/Entities/composeSphereMatrix'
+	import { traits, useQuery } from '$lib/ecs'
 	import { OBBHelper } from '$lib/three/OBBHelper'
 
 	const box3 = new Box3()
 	const obb = new OBB()
-	const obbHelper = new OBBHelper()
+	const matrix4 = new Matrix4()
 
-	const { invalidate } = useThrelte()
-	const selectedEntity = useSelectedEntity()
-	const selectedObject3d = useSelectedObject3d()
+	const { scene, invalidate } = useThrelte()
+	const selected = useQuery(traits.Selected)
 
-	const object = $derived(selectedObject3d.current)
+	const obbHelpers = $derived(selected.current.map((entity) => [entity, new OBBHelper()] as const))
 
 	useTask(
 		() => {
-			if (object === undefined) {
-				return
-			}
+			for (const [entity, obbHelper] of obbHelpers) {
+				/**
+				 * Boxes, capsules, and spheres render instanced, so the entity's
+				 * named scene object carries no geometry — derive the OBB straight
+				 * from traits.
+				 */
+				if (composeBoxMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
+					continue
+				}
 
-			if (
-				selectedEntity.instance &&
-				(isInstanceOf(object, 'BatchedMesh') || (object as InstancedArrows).isInstancedArrows)
-			) {
-				const mesh = object as BatchedMesh | InstancedArrows
-				mesh.getBoundingBoxAt(selectedEntity.instance, box3)
-				obb.fromBox3(box3)
-				obbHelper.setFromOBB(obb)
-			} else {
-				obbHelper.setFromObject(object)
+				if (composeCapsuleBoundsMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
+					continue
+				}
+
+				if (composeSphereBoundsMatrix(entity, matrix4)) {
+					obbHelper.setFromMatrix4(matrix4)
+					continue
+				}
+
+				const object = scene.getObjectByName(entity as unknown as string)
+				if (!object) continue
+
+				const instance = entity.get(traits.InstanceId)
+				if (instance !== undefined && instance >= 0 && object instanceof BatchedMesh) {
+					object.getBoundingBoxAt(instance, box3)
+					obb.fromBox3(box3)
+					obbHelper.setFromOBB(obb)
+				} else {
+					obbHelper.setFromObject(object)
+				}
 			}
 
 			invalidate()
 		},
 		{
-			running: () => selectedEntity.current !== undefined,
+			running: () => selected.current.length > 0,
 			autoInvalidate: false,
 		}
 	)
 </script>
 
-{#if selectedEntity.current}
+{#each obbHelpers as [entity, obbHelper] (entity)}
 	<T
 		is={obbHelper}
-		dispose={false}
 		raycast={() => null}
 		bvh={{ enabled: false }}
 	/>
-{/if}
+{/each}

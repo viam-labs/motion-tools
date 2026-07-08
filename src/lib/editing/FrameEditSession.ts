@@ -3,8 +3,10 @@ import type { Entity } from 'koota'
 
 import type { Frame } from '$lib/frame'
 
-import { traits } from '$lib/ecs'
-import { isFinitePose } from '$lib/transform'
+import { hierarchy, traits } from '$lib/ecs'
+import { createPose, isFinitePose, matrixToPose, poseToMatrix } from '$lib/transform'
+
+const tempPose = createPose()
 
 export type UpdateFrameFn = (
 	componentName: string,
@@ -100,13 +102,14 @@ export class FrameEditSession {
 
 		for (const entity of entities) {
 			const name = entity.get(traits.Name)
-			const editedPose = entity.get(traits.EditedPose)
-			if (!name || !editedPose) continue
+			const editedMatrix = entity.get(traits.EditedMatrix)
+			if (!name || !editedMatrix) continue
 
+			matrixToPose(editedMatrix, tempPose)
 			this.snapshots.set(entity, {
 				name,
-				parent: entity.get(traits.Parent) ?? 'world',
-				editedPose: { ...editedPose },
+				parent: hierarchy.getParentName(entity) ?? 'world',
+				editedPose: { ...tempPose },
 				geometry: captureGeometry(entity),
 			})
 		}
@@ -124,12 +127,19 @@ export class FrameEditSession {
 		const snap = this.snapshots.get(entity)
 		if (!snap || this.#closed) return
 
-		const current = entity.get(traits.EditedPose)
+		const current = entity.get(traits.EditedMatrix)
 		if (!current) return
 
-		const next: Pose = { ...current, ...pose }
-		entity.set(traits.EditedPose, next)
-		this.updateFrame(snap.name, entity.get(traits.Parent) ?? 'world', next, liveGeometry(entity))
+		matrixToPose(current, tempPose)
+		const next: Pose = { ...tempPose, ...pose }
+		poseToMatrix(next, current)
+		entity.changed(traits.EditedMatrix)
+		this.updateFrame(
+			snap.name,
+			hierarchy.getParentName(entity) ?? 'world',
+			next,
+			liveGeometry(entity)
+		)
 	}
 
 	stageGeometry = (entity: Entity, geometry: Frame['geometry']): void => {
@@ -147,9 +157,15 @@ export class FrameEditSession {
 			restoreGeometryTrait(entity, { type: 'capsule', capsule: { r: geometry.r, l: geometry.l } })
 		}
 
-		const editedPose = entity.get(traits.EditedPose)
-		if (editedPose) {
-			this.updateFrame(snap.name, entity.get(traits.Parent) ?? 'world', editedPose, geometry)
+		const editedMatrix = entity.get(traits.EditedMatrix)
+		if (editedMatrix) {
+			matrixToPose(editedMatrix, tempPose)
+			this.updateFrame(
+				snap.name,
+				hierarchy.getParentName(entity) ?? 'world',
+				{ ...tempPose },
+				geometry
+			)
 		}
 	}
 
@@ -157,11 +173,12 @@ export class FrameEditSession {
 		const snap = this.snapshots.get(entity)
 		if (!snap || this.#closed) return
 
-		traits.setParentTrait(entity, parent === 'world' ? undefined : parent)
+		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
 
-		const editedPose = entity.get(traits.EditedPose)
-		if (editedPose) {
-			this.updateFrame(snap.name, parent, editedPose, liveGeometry(entity))
+		const editedMatrix = entity.get(traits.EditedMatrix)
+		if (editedMatrix) {
+			matrixToPose(editedMatrix, tempPose)
+			this.updateFrame(snap.name, parent, { ...tempPose }, liveGeometry(entity))
 		}
 	}
 
@@ -179,10 +196,13 @@ export class FrameEditSession {
 		if (this.#closed) return false
 
 		for (const [entity] of this.snapshots) {
-			const pose = entity.get(traits.EditedPose)
-			if (pose && !isFinitePose(pose)) {
-				this.abort()
-				return false
+			const matrix = entity.get(traits.EditedMatrix)
+			if (matrix) {
+				matrixToPose(matrix, tempPose)
+				if (!isFinitePose(tempPose)) {
+					this.abort()
+					return false
+				}
 			}
 		}
 
@@ -199,8 +219,12 @@ export class FrameEditSession {
 
 		for (const [entity, snap] of this.snapshots) {
 			if (entity.isAlive()) {
-				entity.set(traits.EditedPose, snap.editedPose)
-				traits.setParentTrait(entity, snap.parent === 'world' ? undefined : snap.parent)
+				const matrix = entity.get(traits.EditedMatrix)
+				if (matrix) {
+					poseToMatrix(snap.editedPose, matrix)
+					entity.changed(traits.EditedMatrix)
+				}
+				hierarchy.setParent(entity, snap.parent === 'world' ? undefined : snap.parent)
 				restoreGeometryTrait(entity, snap.geometry)
 			}
 			this.updateFrame(

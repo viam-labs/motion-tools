@@ -6,7 +6,7 @@
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import type { TreeNode } from './buildTree'
+	import type { TreeNode } from './useTree.svelte'
 
 	import Self from './TreeNode.svelte'
 
@@ -20,6 +20,7 @@
 
 	const name = useTrait(() => node.entity, traits.Name)
 	const invisible = useTrait(() => node.entity, traits.Invisible)
+	const inheritedInvisible = useTrait(() => node.entity, traits.InheritedInvisible)
 	const chunkProgress = useTrait(() => node.entity, traits.ChunkProgress)
 	const loading = $derived(chunkProgress.current !== undefined)
 	const progress = $derived(
@@ -55,19 +56,21 @@
 		class={[
 			'w-full',
 			{
-				'text-disabled': invisible.current,
+				'text-disabled': inheritedInvisible.current,
 				'bg-medium': nodeState.selected,
 				sticky: true,
 			},
 		]}
 	>
 		<div {...api.getBranchControlProps(nodeProps)}>
-			<span
-				{...api.getBranchIndicatorProps(nodeProps)}
-				class={{ 'rotate-90': expanded }}
+			<button
+				type="button"
+				aria-label={expanded ? 'Collapse' : 'Expand'}
+				{...api.getBranchTriggerProps(nodeProps)}
+				class={['flex items-center', { 'rotate-90': expanded }]}
 			>
 				<ChevronRight size={14} />
-			</span>
+			</button>
 			<span
 				class="flex items-center overflow-hidden text-ellipsis"
 				{...api.getBranchTextProps(nodeProps)}
@@ -129,7 +132,7 @@
 	<div
 		class={{
 			'flex justify-between': true,
-			'text-disabled': invisible.current,
+			'text-disabled': inheritedInvisible.current,
 			'bg-medium': nodeState.selected,
 		}}
 		{...api.getItemProps(nodeProps)}

@@ -10,41 +10,36 @@ Renders a Viam Frame object
 </script>
 
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { Portal, PortalTarget } from '@threlte/extras'
 	import { Group, type Object3D } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, resourceColors } from '$lib/color'
 	import { traits, useTrait } from '$lib/ecs'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-	import { poseToObject3d } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 	import Mesh from './Mesh.svelte'
 
 	interface Props {
 		entity: Entity
-		pose?: Pose
 		children?: Snippet<[{ ref: Object3D }]>
 	}
 
-	let { entity, pose, children }: Props = $props()
+	let { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const resourceByName = useResourceByName()
 
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
-	const entityPose = useTrait(() => entity, traits.Pose)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
-	const invisible = useTrait(() => entity, traits.Invisible)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 
 	const events = useEntityEvents(() => entity)
 
@@ -68,32 +63,36 @@ Renders a Viam Frame object
 	})
 
 	const group = new Group()
+	group.matrixAutoUpdate = false
 
-	const resolvedPose = $derived(pose ?? entityPose.current)
 	$effect.pre(() => {
-		if (resolvedPose) {
-			poseToObject3d(resolvedPose, group)
-			invalidate()
-		}
+		if (!worldMatrix.current) return
+
+		group.matrix.copy(worldMatrix.current)
+
+		/**
+		 * Keep position/quaternion/scale in sync with matrix so TransformControls
+		 * (which reads/writes those fields) sees the entity's actual transform on
+		 * drag start. Without this, the gizmo applies its drag delta against an
+		 * identity baseline and the frame snaps to identity on first onChange.
+		 */
+		group.matrix.decompose(group.position, group.quaternion, group.scale)
+
+		group.updateMatrixWorld()
+		invalidate()
 	})
 </script>
 
-<Portal id={parent.current}>
-	<T
-		is={group}
-		visible={invisible.current !== true}
-	>
-		<Mesh
-			{entity}
-			{color}
-			{...events}
-			center={center.current}
-		/>
+<T
+	is={group}
+	visible={invisible.current !== true}
+>
+	<Mesh
+		{entity}
+		{color}
+		{...events}
+		center={center.current}
+	/>
 
-		{#if name.current}
-			<PortalTarget id={name.current} />
-		{/if}
-
-		{@render children?.({ ref: group })}
-	</T>
-</Portal>
+	{@render children?.({ ref: group })}
+</T>

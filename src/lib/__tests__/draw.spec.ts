@@ -1,7 +1,7 @@
 import { createWorld, type World } from 'koota'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { relations } from '$lib/ecs'
+import { hierarchy, relations } from '$lib/ecs'
 
 vi.mock('$lib/loaders/pcd', () => ({
 	parsePcdInWorker: vi.fn(() => Promise.resolve({ positions: new Float32Array(), colors: null })),
@@ -54,13 +54,16 @@ describe('drawTransform', () => {
 		const { entity } = drawTransform(world, transform, traits.SnapshotAPI)
 
 		expect(entity.get(traits.Name)).toBe('box-frame')
-		expect(entity.get(traits.Parent)).toBe('arm')
-		expect(entity.get(traits.Pose)).toStrictEqual(createPose({ x: 100, y: 200, z: 300 }))
+		expect(hierarchy.getParentName(entity)).toBe('arm')
+		// Pose translation is in mm; matrix translation is in m (× 0.001).
+		const matrix = entity.get(traits.Matrix)
+		expect(matrix?.elements[12]).toBeCloseTo(0.1)
+		expect(matrix?.elements[13]).toBeCloseTo(0.2)
+		expect(matrix?.elements[14]).toBeCloseTo(0.3)
 		expect(entity.get(traits.Box)).toStrictEqual({ x: 10, y: 20, z: 30 })
 		expect(entity.has(traits.ReferenceFrame)).toBe(false)
 		expect(entity.has(traits.ShowAxesHelper)).toBe(false)
 		expect(entity.has(traits.Removable)).toBe(true)
-		expect(entity.get(traits.Parent)).toBe('arm')
 		expect(entity.has(traits.SnapshotAPI)).toBe(true)
 	})
 
@@ -114,7 +117,7 @@ describe('drawTransform', () => {
 		expect(entity.has(traits.Removable)).toBe(false)
 	})
 
-	it('does not attach Parent trait when parent is world', () => {
+	it('does not add a parent relation when parent is world', () => {
 		world = createWorld()
 		const transform = new Transform({
 			referenceFrame: 'arm',
@@ -123,7 +126,8 @@ describe('drawTransform', () => {
 
 		const { entity } = drawTransform(world, transform, traits.SnapshotAPI)
 
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
+		expect(entity.has(traits.Orphan)).toBe(false)
 	})
 
 	it('adds Color trait for pointcloud with uniform color', async () => {
@@ -203,7 +207,7 @@ describe('drawDrawing', () => {
 		const { entity } = drawDrawing(world, drawing, traits.SnapshotAPI, { removable: true })
 
 		expect(entity.get(traits.Name)).toBe('line-1')
-		expect(entity.get(traits.Parent)).toBe('base')
+		expect(hierarchy.getParentName(entity)).toBe('base')
 		expect(entity.has(traits.LinePositions)).toBe(true)
 		expect(entity.get(traits.LineWidth)).toBe(3)
 		expect(entity.get(traits.DotSize)).toBe(6)
@@ -338,11 +342,15 @@ describe('drawDrawing', () => {
 
 		expect(rootEntity.has(traits.ReferenceFrame)).toBe(true)
 		expect(rootEntity.get(traits.Name)).toBe('robot-model')
-		expect(rootEntity.get(traits.Parent)).toBe('arm')
+		expect(hierarchy.getParentName(rootEntity)).toBe('arm')
 		expect(rootEntity.has(traits.SnapshotAPI)).toBe(true)
-		expect(assetEntity.get(traits.Parent)).toBe('robot-model')
+		expect(hierarchy.getParentName(assetEntity)).toBe('robot-model')
+		expect(assetEntity.targetFor(relations.ChildOf)).toBe(rootEntity)
 		expect(assetEntity.has(traits.SnapshotAPI)).toBe(true)
-		expect(assetEntity.get(traits.Scale)).toStrictEqual({ x: 2, y: 2, z: 2 })
+		const assetMatrix = assetEntity.get(traits.Matrix)
+		expect(assetMatrix?.elements[0]).toBeCloseTo(2)
+		expect(assetMatrix?.elements[5]).toBeCloseTo(2)
+		expect(assetMatrix?.elements[10]).toBeCloseTo(2)
 		expect(assetEntity.get(traits.GLTF)).toStrictEqual({
 			source: { url: 'https://example.com/model.gltf' },
 			animationName: '',
@@ -378,7 +386,7 @@ describe('updateTransform', () => {
 	let world: World
 	afterEach(() => world?.destroy())
 
-	it("removes the Parent trait when a frame's parent changes back to 'world'", () => {
+	it("clears the parent relation when a frame's parent changes back to 'world'", () => {
 		world = createWorld()
 
 		const initial = new Transform({
@@ -386,17 +394,17 @@ describe('updateTransform', () => {
 			poseInObserverFrame: { referenceFrame: 'arm', pose: createPose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
-		expect(entity.get(traits.Parent)).toBe('arm')
+		expect(hierarchy.getParentName(entity)).toBe('arm')
 
 		updateTransform(entity, {
 			...initial,
 			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
 		} as Transform)
 
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
 	})
 
-	it("adds the Parent trait when a frame's parent changes from 'world' to a named frame", () => {
+	it("attaches a parent when a frame's parent changes from 'world' to a named frame", () => {
 		world = createWorld()
 
 		const initial = new Transform({
@@ -404,14 +412,14 @@ describe('updateTransform', () => {
 			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
-		expect(entity.has(traits.Parent)).toBe(false)
+		expect(hierarchy.getParentName(entity)).toBeUndefined()
 
 		updateTransform(entity, {
 			...initial,
 			poseInObserverFrame: { referenceFrame: 'base', pose: createPose() },
 		} as Transform)
 
-		expect(entity.get(traits.Parent)).toBe('base')
+		expect(hierarchy.getParentName(entity)).toBe('base')
 	})
 })
 
@@ -479,84 +487,6 @@ describe('updateMetadata', () => {
 
 		updateMetadata(entity, { colorFormat: ColorFormat.UNSPECIFIED })
 		expect(entity.get(traits.Opacity)).toBe(1)
-	})
-})
-
-describe('setParentTrait', () => {
-	let world: World
-	afterEach(() => world?.destroy())
-
-	it('leaves the Parent trait absent when parent is undefined', () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, undefined)
-
-		expect(entity.has(traits.Parent)).toBe(false)
-	})
-
-	it("removes the Parent trait when parent is 'world'", () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Parent('arm'))
-
-		traits.setParentTrait(entity, 'world')
-
-		expect(entity.has(traits.Parent)).toBe(false)
-	})
-
-	it('adds the Parent trait when transitioning from unset to a named parent', () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, 'arm')
-
-		expect(entity.get(traits.Parent)).toBe('arm')
-	})
-
-	it('updates the Parent trait when switching named parents', () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Parent('arm'))
-
-		traits.setParentTrait(entity, 'base')
-
-		expect(entity.get(traits.Parent)).toBe('base')
-	})
-
-	it("removes the Parent trait after a named -> 'world' round-trip (regression)", () => {
-		world = createWorld()
-		const entity = world.spawn()
-
-		traits.setParentTrait(entity, 'arm')
-		expect(entity.get(traits.Parent)).toBe('arm')
-
-		traits.setParentTrait(entity, 'world')
-		expect(entity.has(traits.Parent)).toBe(false)
-
-		traits.setParentTrait(entity, 'base')
-		expect(entity.get(traits.Parent)).toBe('base')
-	})
-})
-
-describe('getParentTrait', () => {
-	let world: World
-	afterEach(() => world?.destroy())
-
-	it('returns an empty list for undefined, empty, or world parents', () => {
-		expect(traits.getParentTrait(undefined)).toEqual([])
-		expect(traits.getParentTrait('')).toEqual([])
-		expect(traits.getParentTrait('world')).toEqual([])
-	})
-
-	it('spawns without Parent trait when parent is world-like', () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Name('child'), ...traits.getParentTrait('world'))
-		expect(entity.has(traits.Parent)).toBe(false)
-	})
-
-	it('spawns with Parent trait when parent is a named frame', () => {
-		world = createWorld()
-		const entity = world.spawn(traits.Name('child'), ...traits.getParentTrait('arm'))
-		expect(entity.get(traits.Parent)).toBe('arm')
 	})
 })
 

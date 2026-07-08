@@ -15,6 +15,10 @@ import (
 //   - poses: a list of poses
 //   - colors: Individual arrow color
 //   - arrowHeadAtPose: whether the tip of the cone of the arrow will be at the pose. default is false
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPosesAsArrows] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawPoses(poses []spatialmath.Pose, colors []string, arrowHeadAtPose bool) error {
 	drawColors := make([]draw.Color, len(colors))
 	for i, color := range colors {

@@ -4,37 +4,28 @@
 
 	import { T, type Props as ThrelteProps, useThrelte } from '@threlte/core'
 	import { type Snippet } from 'svelte'
-	import { BufferGeometry, Color, DoubleSide, FrontSide, Material, Mesh } from 'three'
+	import { Color, DoubleSide, FrontSide, Mesh, MeshToonMaterial } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useTrait } from '$lib/ecs'
-	import { CapsuleGeometry } from '$lib/three/CapsuleGeometry'
 	import { poseToObject3d } from '$lib/transform'
 
-	import AxesHelper from '../AxesHelper.svelte'
-
-	interface Props extends ThrelteProps<Mesh> {
+	interface Props extends Omit<ThrelteProps<Mesh>, 'ref'> {
 		entity: Entity
 		color?: string
 		center?: Pose
 		children?: Snippet
 	}
 
-	let { entity, color: overrideColor, center, children, ...rest }: Props = $props()
-
-	const colorUtil = new Color()
+	const { entity, color: overrideColor, center, children, ...rest }: Props = $props()
 
 	const { invalidate } = useThrelte()
 	const name = useTrait(() => entity, traits.Name)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const box = useTrait(() => entity, traits.Box)
-	const capsule = useTrait(() => entity, traits.Capsule)
-	const sphere = useTrait(() => entity, traits.Sphere)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
 	const materialProps = useTrait(() => entity, traits.Material)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 
@@ -44,19 +35,22 @@
 		}
 
 		if (entityColors.current) {
-			return asColor(entityColors.current, colorUtil)
+			return asColor(entityColors.current, new Color())
 		}
 
 		if (entityColor.current) {
-			return colorUtil.setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
+			return new Color().setRGB(entityColor.current.r, entityColor.current.g, entityColor.current.b)
 		}
 
 		return colors.default
 	})
 
+	const hasVertexColors = $derived(bufferGeometry.current?.getAttribute('color') !== undefined)
+
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
-	let material = $state.raw<Material>(new Material())
+	const material = new MeshToonMaterial()
+
 	$effect(() => {
 		const isTransparent = currentOpacity < 1
 		material.depthWrite = !isTransparent
@@ -64,28 +58,18 @@
 		if (material.transparent !== isTransparent) {
 			material.transparent = isTransparent
 			material.needsUpdate = true
-			invalidate()
 		}
+		invalidate()
 	})
 
 	const mesh = new Mesh()
-	$effect.pre(() => {
+
+	$effect(() => {
 		if (center) {
 			poseToObject3d(center, mesh)
 			invalidate()
 		}
 	})
-
-	let geo = $state.raw<BufferGeometry>()
-	$effect.pre(() => {
-		if (!box.current && !sphere.current && !capsule.current && !bufferGeometry.current) {
-			geo = undefined
-		}
-	})
-
-	const oncreate = (bufferGeometry: BufferGeometry) => {
-		geo = bufferGeometry
-	}
 </script>
 
 <T
@@ -95,62 +79,33 @@
 	renderOrder={renderOrder.current}
 	{...rest}
 >
-	{#if box.current}
-		{@const { x, y, z } = box.current ?? { x: 0, y: 0, z: 0 }}
-		<T.BoxGeometry
-			args={[x * 0.001, y * 0.001, z * 0.001]}
-			{oncreate}
-		/>
-	{:else if sphere.current}
-		{@const { r } = sphere.current ?? { r: 0 }}
-		<T.SphereGeometry
-			args={[r * 0.001]}
-			{oncreate}
-		/>
-	{:else if capsule.current}
-		{@const { r, l } = capsule.current ?? { r: 0, l: 0 }}
-		<T
-			is={CapsuleGeometry}
-			args={[r * 0.001, l * 0.001]}
-			{oncreate}
-		/>
-	{:else if bufferGeometry.current}
-		<T
-			is={bufferGeometry.current}
-			{oncreate}
-		/>
+	{#if bufferGeometry.current}
+		<T is={bufferGeometry.current}>
+			{#snippet children({ ref: geo })}
+				<!--
+					TODO(mp) currently some bufferGeometries are coming in empty,
+					this is a quick fix but this should be handled upstream
+				-->
+				{#if geo.getAttribute('position').array.length > 0}
+					<T.LineSegments
+						raycast={() => null}
+						bvh={{ enabled: false }}
+					>
+						<T.EdgesGeometry args={[geo, 0]} />
+						<T.LineBasicMaterial color={darkenColor(color, 10)} />
+					</T.LineSegments>
+				{/if}
+			{/snippet}
+		</T>
 	{/if}
 
-	<T.MeshToonMaterial
-		{color}
+	<T
+		is={material}
+		color={hasVertexColors ? 0xffffff : color}
+		vertexColors={hasVertexColors}
 		side={bufferGeometry.current ? DoubleSide : FrontSide}
 		depthTest={materialProps.current?.depthTest ?? true}
-		oncreate={(m) => {
-			material = m
-		}}
 	/>
-
-	<!-- 
-		TODO(mp) currently some bufferGeometries are coming in empty, 
-		this is a quick fix but this should be handled upstream
-	-->
-	{#if geo && geo.getAttribute('position').array.length > 0}
-		<T.LineSegments
-			raycast={() => null}
-			bvh={{ enabled: false }}
-		>
-			<T.EdgesGeometry args={[geo, 0]} />
-			<T.LineBasicMaterial color={darkenColor(color, 10)} />
-		</T.LineSegments>
-	{/if}
 
 	{@render children?.()}
 </T>
-
-{#if showAxesHelper.current}
-	<AxesHelper
-		name={entity}
-		width={3}
-		length={0.1}
-	/>
-{/if}

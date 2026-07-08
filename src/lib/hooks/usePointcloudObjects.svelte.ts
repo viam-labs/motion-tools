@@ -7,16 +7,17 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext, untrack } from 'svelte'
+import { Matrix4 } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { traits, useWorld } from '$lib/ecs'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
-import { createPose } from '$lib/transform'
+import { useLogs } from '$lib/plugins'
+import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
-import { useLogs } from './useLogs.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-object-context')
@@ -24,6 +25,8 @@ const key = Symbol('pointcloud-object-context')
 interface Context {
 	refetch: () => void
 }
+
+const matrix4 = new Matrix4()
 
 export const providePointcloudObjects = (partID: () => string) => {
 	const world = useWorld()
@@ -230,13 +233,19 @@ export const providePointcloudObjects = (partID: () => string) => {
 							const existing = entities.get(geometryLabel)
 
 							if (existing) {
-								existing.set(traits.Center, center)
+								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
+								poseToMatrix(center, matrix4)
+								const matrix = existing.get(traits.Matrix)
+								if (matrix && !matrix.equals(matrix4)) {
+									matrix.copy(matrix4)
+									existing.changed(traits.Matrix)
+								}
 								traits.updateGeometryTrait(existing, geometry)
 							} else {
 								const entityTraits: ConfigurableTrait[] = [
 									traits.Name(geometryLabel),
-									...traits.getParentTrait(geometriesInFrame.referenceFrame),
-									traits.Center(center),
+									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
+									traits.Matrix(poseToMatrix(center, new Matrix4())),
 									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),

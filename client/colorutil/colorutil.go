@@ -1,3 +1,12 @@
+// Package colorutil maps CSS/SVG color names to hex and RGB for the legacy v1 client.
+//
+// Deprecated: colorutil is part of the deprecated client/client v1 API and will be
+// removed in a future release. Use the color helpers in the draw package instead, such
+// as [github.com/viam-labs/motion-tools/draw.ColorFromName] and
+// [github.com/viam-labs/motion-tools/draw.ColorFromHex]. When v2 ships, the client/api
+// and draw packages move to a new module path, github.com/viamrobotics/visualization.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 package colorutil
 
 import (
@@ -6,6 +15,11 @@ import (
 	"strings"
 )
 
+// Colors maps CSS/SVG color names to their hex strings.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/draw.ColorFromName] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 var Colors = map[string]string{
 	"black":                "#000000",
 	"white":                "#ffffff",
@@ -160,6 +174,10 @@ var Colors = map[string]string{
 
 // NamedColorToHex returns the hex string for a given named color.
 // For unsupported colors, it returns an error.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/draw.ColorFromName] and call ToHex
+// on the result. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func NamedColorToHex(name string) string {
 	if strings.HasPrefix(name, "#") {
 		return name
@@ -174,6 +192,11 @@ func NamedColorToHex(name string) string {
 	return hex
 }
 
+// NamedColorsToHexes maps a slice of named colors to their hex strings.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/draw.ColorFromName] and call ToHex
+// on each result. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func NamedColorsToHexes(names []string) []string {
 	var hexes []string
 	for _, name := range names {
@@ -192,6 +215,11 @@ func NamedColorsToHexes(names []string) []string {
 	return hexes
 }
 
+// NamedColorToRGB returns the RGB triple for a given named color.
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/draw.ColorFromName] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func NamedColorToRGB(name string) ([3]uint8, error) {
 	var rgb [3]uint8
 

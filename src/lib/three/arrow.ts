@@ -1,13 +1,16 @@
 import { BoxGeometry, type BufferGeometry, ConeGeometry } from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
+/** Total length of the geometry produced by `createArrowGeometry`, in meters. */
+export const ARROW_LENGTH = 0.1
+
 /**
  * Returns one merged geometry for an arrow (box tail + cone head)
  *
  * Arrow points along +Y with its base at y = 0
  */
 export const createArrowGeometry = (): BufferGeometry => {
-	const length = 0.1
+	const length = ARROW_LENGTH
 	const headLength = length * 0.3
 	const headWidth = headLength * 0.3
 	const tailLength = length - headLength
@@ -25,6 +28,8 @@ export const createArrowGeometry = (): BufferGeometry => {
 	headGeo.translate(0, tailLength + headLength * 0.5, 0)
 
 	const merged = mergeGeometries([tailGeometry, headGeo], true)
+	tailGeometry.dispose()
+	headGeo.dispose()
 	merged.computeVertexNormals()
 	merged.computeBoundingBox()
 	merged.computeBoundingSphere()

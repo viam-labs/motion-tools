@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Portal } from '@threlte/extras'
 	import { Button } from '@viamrobotics/prime-core'
 
+	import { DashboardPortal } from '$lib'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -19,10 +19,10 @@
 </script>
 
 {#if partID.current && partConfig.hasEditPermissions}
-	<Portal id="dashboard">
+	<DashboardPortal>
 		<fieldset>
 			<DashboardButton
-				active
+				active={isOpen}
 				icon="axis-arrow"
 				description="Add frames"
 				onclick={() => {
@@ -30,7 +30,7 @@
 				}}
 			/>
 		</fieldset>
-	</Portal>
+	</DashboardPortal>
 
 	<FloatingPanel
 		{isOpen}

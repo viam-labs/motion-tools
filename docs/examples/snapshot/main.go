@@ -45,12 +45,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("box: %v", err)
 	}
-	if err := snapshot.DrawGeometry(
-		box,
-		spatialmath.NewPoseFromPoint(r3.Vector{X: -400, Y: 0, Z: 100}),
-		"world",
-		draw.ColorFromName("dodgerblue"),
-	); err != nil {
+	if _, err := snapshot.DrawGeometry(draw.DrawGeometryOptions{
+		Geometry: box,
+		Pose:     spatialmath.NewPoseFromPoint(r3.Vector{X: -400, Y: 0, Z: 100}),
+		Parent:   "world",
+		Color:    draw.ColorFromName("dodgerblue"),
+	}); err != nil {
 		log.Fatalf("DrawGeometry box: %v", err)
 	}
 
@@ -58,12 +58,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("sphere: %v", err)
 	}
-	if err := snapshot.DrawGeometry(
-		sphere,
-		spatialmath.NewPoseFromPoint(r3.Vector{X: 400, Y: 0, Z: 120}),
-		"world",
-		draw.ColorFromName("limegreen"),
-	); err != nil {
+	if _, err := snapshot.DrawGeometry(draw.DrawGeometryOptions{
+		Geometry: sphere,
+		Pose:     spatialmath.NewPoseFromPoint(r3.Vector{X: 400, Y: 0, Z: 120}),
+		Parent:   "world",
+		Color:    draw.ColorFromName("limegreen"),
+	}); err != nil {
 		log.Fatalf("DrawGeometry sphere: %v", err)
 	}
 
@@ -71,12 +71,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("capsule: %v", err)
 	}
-	if err := snapshot.DrawGeometry(
-		capsule,
-		spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 400, Z: 160}),
-		"world",
-		draw.ColorFromName("darkorchid"),
-	); err != nil {
+	if _, err := snapshot.DrawGeometry(draw.DrawGeometryOptions{
+		Geometry: capsule,
+		Pose:     spatialmath.NewPoseFromPoint(r3.Vector{X: 0, Y: 400, Z: 160}),
+		Parent:   "world",
+		Color:    draw.ColorFromName("darkorchid"),
+	}); err != nil {
 		log.Fatalf("DrawGeometry capsule: %v", err)
 	}
 
@@ -89,14 +89,14 @@ func main() {
 		z := 50 + 80*math.Sin(t*math.Pi*4)
 		linePoints = append(linePoints, r3.Vector{X: x, Y: y, Z: z})
 	}
-	if err := snapshot.DrawLine(
-		"sine-line",
-		"world",
-		spatialmath.NewZeroPose(),
-		linePoints,
-		draw.WithLineWidth(8),
-		draw.WithSingleLineColor(draw.ColorFromName("orange")),
-	); err != nil {
+	if _, err := snapshot.DrawLine(draw.DrawLineOptions{
+		Name:      "sine-line",
+		Parent:    "world",
+		Pose:      spatialmath.NewZeroPose(),
+		Positions: linePoints,
+		LineWidth: 8,
+		Colors:    []draw.Color{draw.ColorFromName("orange")},
+	}); err != nil {
 		log.Fatalf("DrawLine: %v", err)
 	}
 
@@ -111,13 +111,13 @@ func main() {
 		orientation := &spatialmath.OrientationVector{OX: dir.X, OY: dir.Y, OZ: dir.Z, Theta: 0}
 		ring = append(ring, spatialmath.NewPose(pos, orientation))
 	}
-	if err := snapshot.DrawArrows(
-		"arrow-ring",
-		"world",
-		spatialmath.NewZeroPose(),
-		ring,
-		draw.WithSingleArrowColor(draw.ColorFromName("crimson")),
-	); err != nil {
+	if _, err := snapshot.DrawArrows(draw.DrawArrowsOptions{
+		Name:   "arrow-ring",
+		Parent: "world",
+		Pose:   spatialmath.NewZeroPose(),
+		Poses:  ring,
+		Colors: []draw.Color{draw.ColorFromName("crimson")},
+	}); err != nil {
 		log.Fatalf("DrawArrows: %v", err)
 	}
 

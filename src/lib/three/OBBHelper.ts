@@ -36,7 +36,7 @@ const corners = [
 	new Vector3(),
 ]
 
-const expandBoxByTransformedBox = (box: Box3, childBox: Box3, matrix: Matrix4) => {
+export const expandBoxByTransformedBox = (box: Box3, childBox: Box3, matrix: Matrix4) => {
 	const min = childBox.min
 	const max = childBox.max
 
@@ -56,9 +56,12 @@ const expandBoxByTransformedBox = (box: Box3, childBox: Box3, matrix: Matrix4) =
 
 export class OBBHelper extends LineSegments2 {
 	constructor(color = 0x000000, linewidth = 2) {
-		const edges = new EdgesGeometry(new BoxGeometry())
+		const boxGeometry = new BoxGeometry()
+		const edges = new EdgesGeometry(boxGeometry)
 		const geometry = new LineSegmentsGeometry()
 		geometry.setPositions(edges.getAttribute('position').array as Float32Array)
+		edges.dispose()
+		boxGeometry.dispose()
 
 		const material = new LineMaterial({
 			color,
@@ -71,8 +74,21 @@ export class OBBHelper extends LineSegments2 {
 		super(geometry, material)
 
 		this.matrixAutoUpdate = false
+		this.matrixWorldAutoUpdate = false
 		this.frustumCulled = false
 		this.renderOrder = 999
+	}
+
+	/**
+	 * Drive the helper with a composed world transform whose scale holds the
+	 * box extents in meters — the helper's unit-box edges span ±0.5, so the
+	 * matrix maps them onto the box's faces directly.
+	 */
+	setFromMatrix4(matrix: Matrix4) {
+		this.matrix.copy(matrix)
+		this.matrixWorld.copy(this.matrix)
+
+		return this
 	}
 
 	setFromOBB(obb: { center: Vector3; halfSize: Vector3; rotation: { elements: number[] } }) {

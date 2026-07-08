@@ -3,15 +3,12 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useTask, useThrelte } from '@threlte/core'
-	import { Portal } from '@threlte/extras'
 	import { OrthographicCamera, Points, PointsMaterial } from 'three'
 
 	import { asColor, isSingleColor } from '$lib/buffer'
 	import { traits, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { poseToObject3d } from '$lib/transform'
 
-	import AxesHelper from '../AxesHelper.svelte'
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
 	interface Props {
@@ -24,15 +21,13 @@
 	const { camera } = useThrelte()
 	const settings = useSettings()
 
-	const parent = useTrait(() => entity, traits.Parent)
-	const pose = useTrait(() => entity, traits.Pose)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const geometry = useTrait(() => entity, traits.BufferGeometry)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const colors = useTrait(() => entity, traits.Colors)
 	const entityPointSize = useTrait(() => entity, traits.PointSize)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const invisible = useTrait(() => entity, traits.Invisible)
-	const showAxesHelper = useTrait(() => entity, traits.ShowAxesHelper)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 	const materialProps = useTrait(() => entity, traits.Material)
 
@@ -42,6 +37,7 @@
 	const orthographic = $derived(settings.current.cameraMode === 'orthographic')
 
 	const points = new Points()
+	points.matrixAutoUpdate = false
 	const material = points.material as PointsMaterial
 	material.toneMapped = false
 
@@ -98,8 +94,9 @@
 	})
 
 	$effect.pre(() => {
-		if (pose.current) {
-			poseToObject3d(pose.current, points)
+		if (worldMatrix.current) {
+			points.matrix.copy(worldMatrix.current)
+			points.updateMatrixWorld()
 		}
 	})
 
@@ -125,25 +122,17 @@
 </script>
 
 {#if geometry.current}
-	<Portal id={parent.current}>
-		<T
-			is={points}
-			name={entity}
-			bvh={{ maxDepth: 40, maxLeafSize: 20 }}
-			visible={invisible.current !== true}
-			renderOrder={renderOrder.current}
-			{...events}
-		>
-			<T is={geometry.current} />
-			<T is={material} />
-			{#if showAxesHelper.current}
-				<AxesHelper
-					name={entity}
-					width={3}
-					length={0.1}
-				/>
-			{/if}
-			{@render children?.()}
-		</T>
-	</Portal>
+	<T
+		is={points}
+		name={entity}
+		bvh={{ maxDepth: 40, maxLeafSize: 20 }}
+		visible={invisible.current !== true}
+		renderOrder={renderOrder.current}
+		{...events}
+	>
+		<T is={geometry.current} />
+		<T is={material} />
+
+		{@render children?.()}
+	</T>
 {/if}

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
+	import type { ClassValue } from 'svelte/elements'
 
 	import { useThrelte } from '@threlte/core'
+	import { Portal } from '@threlte/extras'
 	import { Icon } from '@viamrobotics/prime-core'
 	import * as floatingPanel from '@zag-js/floating-panel'
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
@@ -9,11 +11,15 @@
 	interface Props {
 		title?: string
 		defaultSize?: { width: number; height: number }
+		minSize?: { width: number; height: number }
 		defaultPosition?: { x: number; y: number }
 		exitable?: boolean
 		resizable?: boolean
 		persistRect?: boolean
 		isOpen?: boolean
+		bodyClass?: ClassValue
+		onPositionChange?: (details: floatingPanel.PositionChangeDetails) => void
+		onSizeChange?: (details: floatingPanel.SizeChangeDetails) => void
 		children: Snippet
 	}
 
@@ -25,6 +31,7 @@
 		resizable = false,
 		persistRect = true,
 		isOpen = $bindable(false),
+		bodyClass = 'bg-white',
 		children,
 		...props
 	}: Props = $props()
@@ -50,85 +57,95 @@
 	const api = $derived(floatingPanel.connect(floatingPanelService, normalizeProps))
 </script>
 
-<div
-	{...api.getPositionerProps()}
-	class="z-5"
->
+<Portal id="dom">
 	<div
-		{...api.getContentProps()}
-		class="border-medium border-1 bg-white dark:text-black"
+		{...api.getPositionerProps()}
+		class="z-5"
 	>
 		<div
-			{...api.getDragTriggerProps()}
-			class="sticky"
+			{...api.getContentProps()}
+			class="border-medium border dark:text-black"
 		>
 			<div
-				{...api.getHeaderProps()}
-				class="border-medium flex items-center justify-between border-b p-2"
+				{...api.getDragTriggerProps()}
+				class="sticky"
 			>
-				<h3
-					{...api.getTitleProps()}
-					class="text-gray-7 text-xs"
+				<div
+					{...api.getHeaderProps()}
+					class="border-medium flex items-center justify-between border-b bg-white p-2"
 				>
-					{title}
-				</h3>
-
-				{#if exitable}
-					<div
-						{...api.getControlProps()}
-						class="flex gap-3"
+					<h3
+						{...api.getTitleProps()}
+						class="text-gray-7 text-xs"
 					>
-						<button
-							aria-label="Close connection configs panel"
-							onclick={() => (isOpen = false)}
+						{title}
+					</h3>
+
+					{#if exitable}
+						<div
+							{...api.getControlProps()}
+							class="flex gap-3"
 						>
-							<Icon name="close" />
-						</button>
-					</div>
+							<button
+								aria-label="Close connection configs panel"
+								onclick={() => (isOpen = false)}
+							>
+								<Icon name="close" />
+							</button>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!--
+			Skip rendering the body subtree while collapsed. zag-js controls
+			visibility via attributes (the panel chrome stays mounted), but the
+			children don't need to react to upstream state when the user can't see them.
+			Children mount fresh on open.
+		-->
+			<div
+				{...api.getBodyProps()}
+				class={['relative h-[calc(100%-33px)]', bodyClass]}
+			>
+				{#if isOpen}
+					{@render children()}
 				{/if}
 			</div>
-		</div>
 
-		<div
-			{...api.getBodyProps()}
-			class="relative h-[calc(100%-33px)]"
-		>
-			{@render children()}
+			{#if resizable}
+				<div
+					{...api.getResizeTriggerProps({ axis: 'n' })}
+					class="h-1.5 max-w-[90%]"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'e' })}
+					class="max-h-[90%] w-1.5"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'w' })}
+					class="max-h-[90%] w-1.5"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 's' })}
+					class="h-1.5 max-w-[90%]"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'ne' })}
+					class="size-2.5"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'se' })}
+					class="size-2.5"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'sw' })}
+					class="size-2.5"
+				></div>
+				<div
+					{...api.getResizeTriggerProps({ axis: 'nw' })}
+					class="size-2.5"
+				></div>
+			{/if}
 		</div>
-
-		{#if resizable}
-			<div
-				{...api.getResizeTriggerProps({ axis: 'n' })}
-				class="h-1.5 max-w-[90%]"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'e' })}
-				class="max-h-[90%] w-1.5"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'w' })}
-				class="max-h-[90%] w-1.5"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 's' })}
-				class="h-1.5 max-w-[90%]"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'ne' })}
-				class="size-2.5"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'se' })}
-				class="size-2.5"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'sw' })}
-				class="size-2.5"
-			></div>
-			<div
-				{...api.getResizeTriggerProps({ axis: 'nw' })}
-				class="size-2.5"
-			></div>
-		{/if}
 	</div>
-</div>
+</Portal>

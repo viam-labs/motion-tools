@@ -11,17 +11,16 @@
 	import { PressedKeys } from 'runed'
 	import { SvelteSet } from 'svelte/reactivity'
 
-	import { traits, useWorld } from '$lib/ecs'
-	import { useSelectedEntity } from '$lib/hooks/useSelection.svelte'
+	import { traits, useQuery, useWorld } from '$lib/ecs'
 
 	import Frame from './Entities/Frame.svelte'
 
 	const world = useWorld()
-	const selectedEntity = useSelectedEntity()
+	const selected = useQuery(traits.Selected)
 
 	const entities = new SvelteSet<Entity>()
 	const selectedCustomGeometry = $derived(
-		[...entities].find((entity) => entity === selectedEntity.current)
+		[...entities].find((entity) => entity === selected.current[0])
 	)
 
 	const keys = new PressedKeys()
@@ -29,7 +28,7 @@
 	keys.onKeys('=', () => {
 		const entity = world.spawn(
 			traits.Name(`custom geometry ${++index}`),
-			traits.Pose,
+			traits.Matrix,
 			traits.Box({ x: 100, y: 100, z: 100 }),
 			traits.Removable,
 			traits.Transformable
@@ -43,7 +42,6 @@
 			const entity = selectedCustomGeometry
 			entity.destroy()
 			entities.delete(entity)
-			selectedEntity.set()
 		}
 	})
 </script>

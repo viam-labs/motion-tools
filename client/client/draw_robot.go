@@ -16,6 +16,10 @@ import (
 //   - ctx: A context
 //   - myRobot: A robot
 //   - ws: An optional world state
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawRobot] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawRobot(ctx context.Context, myRobot robot.Robot, ws *referenceframe.WorldState) error {
 	fsCfg, err := myRobot.FrameSystemConfig(ctx)
 	if err != nil {

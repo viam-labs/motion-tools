@@ -14,12 +14,21 @@
 		renderOrder?: number
 		depthTest?: boolean
 		depthWrite?: boolean
+		color?: { r: number; g: number; b: number }
 		interactionLayers?: InteractionLayerValue[]
 		oncreate?: (positions: Float32Array, colors: Uint8Array | undefined) => void
 	}
 
-	let { data, name, renderOrder, depthTest, depthWrite, interactionLayers, oncreate }: Props =
-		$props()
+	let {
+		data,
+		name,
+		renderOrder,
+		depthTest,
+		depthWrite,
+		color,
+		interactionLayers,
+		oncreate,
+	}: Props = $props()
 
 	const world = useWorld()
 
@@ -41,10 +50,15 @@
 			if (renderOrder) {
 				entityTraits.push(traits.RenderOrder(renderOrder))
 			}
+
 			if (depthTest !== undefined || depthWrite !== undefined) {
 				entityTraits.push(
 					traits.Material({ depthTest: depthTest ?? true, depthWrite: depthWrite ?? true })
 				)
+			}
+			if (color !== undefined) {
+				geometry.deleteAttribute('color')
+				entityTraits.push(traits.Color({ r: color.r, g: color.g, b: color.b }))
 			}
 			if (interactionLayers?.includes('selectTool')) {
 				entityTraits.push(traits.SelectToolInteractionLayer)

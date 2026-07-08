@@ -40,9 +40,16 @@
 	})
 
 	$effect(() => {
+		if (!positions) return
+		// Track the IDs `addInstance` returns rather than assuming they're a
+		// sequential 0..N-1 range — when positions changes (e.g. a line gizmo
+		// being placed), cleanup-by-index would target slots that were never
+		// allocated for this effect run and throw "Invalid instanceId".
+		const instances: number[] = []
 		for (let i = 0, l = positions.length; i < l; i += 3) {
 			const dotIndex = i / 3
 			const instance = mesh.addInstance(geometryID)
+			instances.push(instance)
 			matrix.makeTranslation(positions[i + 0], positions[i + 1], positions[i + 2])
 			matrix.scale(vec3.setScalar(scale))
 			mesh.setMatrixAt(instance, matrix)
@@ -54,8 +61,8 @@
 		}
 
 		return () => {
-			for (let i = 0, l = positions.length / 3; i < l; i += 1) {
-				mesh.deleteInstance(i)
+			for (const instance of instances) {
+				mesh.deleteInstance(instance)
 			}
 		}
 	})

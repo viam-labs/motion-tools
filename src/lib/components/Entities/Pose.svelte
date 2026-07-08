@@ -1,52 +1,45 @@
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { traits, useTrait } from '$lib/ecs'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { Matrix4 } from 'three'
+
+	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { usePose } from '$lib/hooks/usePose.svelte'
-	import { composeRenderedPose } from '$lib/transform'
+	import { poseToMatrix } from '$lib/transform'
 
 	interface Props {
 		entity: Entity
-		children: Snippet<[{ pose: Pose | undefined }]>
+		children: Snippet
 	}
 	let { entity, children }: Props = $props()
 
-	const partConfig = usePartConfig()
 	const name = useTrait(() => entity, traits.Name)
-	const parent = useTrait(() => entity, traits.Parent)
-	const editedPose = useTrait(() => entity, traits.EditedPose)
-	const entityPose = useTrait(() => entity, traits.Pose)
+	const parent = useParentName(() => entity)
 
 	const pose = usePose(
 		() => name.current,
 		() => parent.current
 	)
 
+	/**
+	 * Mirror the robot's live kinematics-resolved pose into LiveMatrix so
+	 * Frame.svelte can compose the rendered transform via
+	 * `composeLocalMatrix(live, baseline, edited)`. Mutate the stored
+	 * `Matrix4` in place when present and notify via `entity.changed` —
+	 * allocate only on first add.
+	 */
 	$effect.pre(() => {
 		if (pose.current === undefined) return
 
-		if (entity.has(traits.LivePose)) {
-			entity.set(traits.LivePose, pose.current)
+		const live = entity.get(traits.LiveMatrix)
+		if (live) {
+			poseToMatrix(pose.current, live)
+			entity.changed(traits.LiveMatrix)
 		} else {
-			entity.add(traits.LivePose(pose.current))
+			entity.add(traits.LiveMatrix(poseToMatrix(pose.current, new Matrix4())))
 		}
-	})
-
-	// Always render through the live blend: live × network⁻¹ × edited. With
-	// `edited === network` (no edits) this collapses to `live`, so the rendered
-	// pose tracks the robot's kinematics-resolved position. With edits, the
-	// formula composes the staged delta on top of live. Input handlers that
-	// drive edits (gizmo onChange, Details panel) compute `edited` such that
-	// the blend renders to the user's intent.
-	const resolvedPose = $derived.by(() => {
-		if (pose.current === undefined || partConfig.hasPendingSave) return editedPose.current
-		if (!entityPose.current || !editedPose.current) return undefined
-
-		return composeRenderedPose(pose.current, entityPose.current, editedPose.current)
 	})
 </script>
 
-{@render children({ pose: resolvedPose })}
+{@render children()}

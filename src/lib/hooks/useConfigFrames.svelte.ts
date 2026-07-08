@@ -4,6 +4,7 @@ import { getContext, setContext } from 'svelte'
 import { createTransformFromFrame, type Frame } from '$lib/frame'
 
 import { useEnvironment } from './useEnvironment.svelte'
+import { useFragmentInfo } from './useFragmentInfo.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 
 const key = Symbol('config-frames-context')
@@ -17,6 +18,7 @@ interface ConfigFramesContext {
 export const provideConfigFrames = () => {
 	const environment = useEnvironment()
 	const partConfig = usePartConfig()
+	const fragmentInfo = useFragmentInfo()
 
 	$effect(() => {
 		environment.current.viewerMode = partConfig.isDirty ? 'edit' : 'monitor'
@@ -42,14 +44,14 @@ export const provideConfigFrames = () => {
 
 	const [fragmentFrames, fragmentUnsetFrameNames] = $derived.by(() => {
 		const { fragment_mods: fragmentMods = [] } = partConfig.current
-		const fragmentDefinedComponents = Object.keys(partConfig.componentNameToFragmentId)
+		const fragmentDefinedComponents = Object.keys(fragmentInfo.current ?? {})
 
 		const results: Record<string, Transform> = {}
 		const unsetResults: string[] = []
 
 		// deal with fragment defined components
 		for (const fragmentComponentName of fragmentDefinedComponents || []) {
-			const fragmentId = partConfig.componentNameToFragmentId[fragmentComponentName]
+			const fragmentId = fragmentInfo.current[fragmentComponentName].id
 			const fragmentMod = fragmentMods?.find((mod) => mod.fragment_id === fragmentId)
 
 			if (!fragmentMod) {
@@ -88,6 +90,20 @@ export const provideConfigFrames = () => {
 
 	const getParentFrameOptions = (componentName: string) => {
 		const validFrames = new Set(frameValues.map((frame) => frame.referenceFrame))
+
+		/**
+		 * Fragment components without a mod don't appear in frameValues (we only
+		 * track frames with explicit $set mods), but the fragment itself supplies
+		 * their frame so they render in the scene and are valid parents. Exclude
+		 * any whose frame the user has $unset.
+		 */
+		const unsetFragmentNames = new Set(fragmentUnsetFrameNames)
+		for (const name of Object.keys(fragmentInfo.current)) {
+			if (!unsetFragmentNames.has(name)) {
+				validFrames.add(name)
+			}
+		}
+
 		validFrames.add('world')
 
 		const frameNameQueue = [componentName]

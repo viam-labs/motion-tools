@@ -1,0 +1,145 @@
+---
+title: <LLMSceneBuilder />
+description: Natural-language frame editing — describe a spatial change in plain text and an LLM proposes the frame deltas.
+---
+
+import { Aside } from '@astrojs/starlight/components'
+
+`<LLMSceneBuilder />` adds an **LLM Scene Builder** panel to the visualizer dashboard. You type a natural-language instruction ("Move the arm 200 mm forward along X"), the plugin calls your `onInfer` callback with the current frame state, and presents a diff of every proposed field change before anything is applied. The user confirms or cancels — no frame is mutated until confirmation.
+
+The plugin is model-agnostic: you wire in whatever LLM backend you prefer via the `onInfer` prop.
+
+## Usage
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { LLMSceneBuilder } from '@viamrobotics/motion-tools/plugins'
+	import type { ComponentFrameInfo, FrameDelta } from '@viamrobotics/motion-tools/plugins'
+
+	async function handleInfer(
+		prompt: string,
+		components: ComponentFrameInfo[]
+	): Promise<{ updates: FrameDelta[]; explanation?: string; refusal?: string }> {
+		const response = await fetch('/api/infer-frames', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ prompt, components }),
+		})
+		return response.json()
+	}
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<LLMSceneBuilder onInfer={handleInfer} />
+	</Visualizer>
+</div>
+```
+
+A robot-outline button appears in the dashboard. Clicking it opens the **LLM Scene Builder** floating panel. Enter a prompt and press **Submit** (or `Enter`) — the panel shows a diff table while the LLM responds, then lets the user confirm or cancel.
+
+## Props
+
+| Prop      | Type            | Default | Description                                                                                                   |
+| --------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `onInfer` | `InferCallback` | —       | **Required.** Called with the prompt and current frame state; must return proposed deltas and an explanation. |
+
+## InferCallback
+
+```ts
+type InferCallback = (
+	prompt: string,
+	components: ComponentFrameInfo[]
+) => Promise<{ updates: FrameDelta[]; explanation?: string; refusal?: string }>
+```
+
+The plugin passes every component that has a frame defined:
+
+```ts
+interface ComponentFrameInfo {
+	name: string
+	frame: {
+		parent: string | undefined
+		translation: { x?: number; y?: number; z?: number } | undefined
+		orientation: { roll: number; pitch: number; yaw: number } // degrees
+		geometry?:
+			| { type: 'none' }
+			| { type: 'box'; x: number; y: number; z: number }
+			| { type: 'sphere'; r: number }
+			| { type: 'capsule'; r: number; l: number }
+	}
+}
+```
+
+Your callback should return:
+
+- **`updates`** — an array of `FrameDelta` objects describing changes (see below). Omit any field that should remain unchanged.
+- **`explanation`** — a human-readable summary shown above the diff table.
+- **`refusal`** — optional. When set, the plugin skips the diff and shows the message in its error state instead. Use it for requests the plugin cannot fulfil (e.g. adding a new component).
+
+### FrameDelta
+
+```ts
+interface FrameDelta {
+	componentName: string
+	translation?: { x?: number; y?: number; z?: number } // mm, absolute
+	orientation?: { roll?: number; pitch?: number; yaw?: number } // degrees, delta applied to current
+	// resize (omit `type`), change shape (set `type`), or remove (`type: 'none'`); send only changed dims
+	geometry?: {
+		type?: 'none' | 'box' | 'sphere' | 'capsule'
+		x?: number
+		y?: number
+		z?: number
+		r?: number
+		l?: number
+	}
+	parent?: string
+	explanation?: string // per-component note shown in the diff
+}
+```
+
+<Aside type="caution">
+	`translation` values are **absolute** — they replace the current translation field directly.
+	`orientation` values are **deltas** added to the current Euler angles. `geometry` is like
+	translation/orientation: send only the changed dims (in millimeters). Omit `type` to resize the
+	current shape (unspecified dims keep their value); set `type` to change shape and send that type's
+	dims (`box` → `x`/`y`/`z`, `sphere` → `r`, `capsule` → `r`/`l`). If the component has no geometry,
+	send `type` + dims to add one; send `type: 'none'` to remove an existing geometry.
+</Aside>
+
+The plugin validates every delta before showing the diff: unknown component names, self-referential parent assignments, non-finite numbers, and geometry with missing or non-positive dimensions are surfaced as errors without blocking the rest of the update batch.
+
+## Example: using the Anthropic SDK
+
+Set `ANTHROPIC_API_KEY` in your environment (see `.env.example`). A minimal server-side route using the Anthropic SDK:
+
+```ts
+// src/routes/api/infer-frames/+server.ts  (SvelteKit)
+import Anthropic from '@anthropic-ai/sdk'
+
+export async function POST({ request }) {
+	const { prompt, components } = await request.json()
+
+	const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+	const message = await client.messages.create({
+		model: 'claude-sonnet-4-6',
+		max_tokens: 1024,
+		messages: [
+			{
+				role: 'user',
+				content: [
+					{
+						type: 'text',
+						text: `Current robot frame configuration (JSON):\n${JSON.stringify(components, null, 2)}\n\nUser request: ${prompt}\n\nRespond with JSON matching the schema: { updates: FrameDelta[], explanation: string }`,
+					},
+				],
+			},
+		],
+	})
+
+	const text = message.content.find((b) => b.type === 'text')?.text ?? '{}'
+	return new Response(text, { headers: { 'Content-Type': 'application/json' } })
+}
+```

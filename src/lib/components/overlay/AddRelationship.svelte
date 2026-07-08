@@ -4,14 +4,12 @@
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { SubEntityLinkType } from '$lib/ecs/relations'
-	import { useDrawService } from '$lib/hooks/useDrawService.svelte'
 
 	interface Props {
 		entity: Entity | undefined
 	}
 
 	const { entity }: Props = $props()
-	const drawService = useDrawService()
 
 	const allEntities = useQuery(traits.Name)
 	const name = useTrait(() => entity, traits.Name)
@@ -55,24 +53,12 @@
 		)
 		if (!selectedEntity) return
 
-		if (isServiceManaged) {
-			const sourceUuid = entity.get(traits.UUID)
-			const targetUuid = selectedEntity.get(traits.UUID)
-			if (!sourceUuid || !targetUuid) return
-			void drawService.createRelationship(
-				sourceUuid,
-				targetUuid,
-				linkType ?? '',
-				relationshipFormula
-			)
-		} else {
-			entity.add(
-				relations.SubEntityLink(selectedEntity, {
-					indexMapping: relationshipFormula,
-					type: linkType,
-				})
-			)
-		}
+		entity.add(
+			relations.SubEntityLink(selectedEntity, {
+				indexMapping: relationshipFormula,
+				type: linkType,
+			})
+		)
 		showRelationshipOptions = false
 		resetForm()
 	}

@@ -2,15 +2,18 @@
 export { default as MotionTools } from './components/App.svelte'
 export { default as Visualizer } from './components/App.svelte'
 
+export { useSettings } from './hooks/useSettings.svelte'
+export { default as SettingsPortal } from './components/overlay/Portals/SettingsPortal.svelte'
+export { default as DashboardPortal } from './components/overlay/Portals/DashboardPortal.svelte'
+export { default as DetailsPortal } from './components/overlay/Portals/DetailsPortal.svelte'
+
 // Plugins
-export { default as SelectionTool } from './components/Selection/Tool.svelte'
 export { default as PCD } from './components/PCD.svelte'
 
 // ECS
 export * as relations from './ecs/relations'
 export * as traits from './ecs/traits'
-export * as selectionTraits from './components/Selection/traits'
-export { useSelectionPlugin as useSelection } from './components/Selection/useSelectionPlugin.svelte'
+
 export { default as FloatingPanel } from './components/overlay/FloatingPanel.svelte'
 
 export { provideWorld, useWorld } from './ecs/useWorld'

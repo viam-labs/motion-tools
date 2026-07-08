@@ -10,6 +10,10 @@ import (
 // Parameters:
 //   - fs: A frame system
 //   - inputs: Frame system inputs
+//
+// Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawFrameSystem] instead.
+// See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func DrawFrameSystem(fs *referenceframe.FrameSystem, inputs referenceframe.FrameSystemInputs) error {
 
 	colorMap := make(map[string]draw.Color)

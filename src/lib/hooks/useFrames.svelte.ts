@@ -7,15 +7,16 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
+import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
-import { traits, useWorld } from '$lib/ecs'
-import { createPose } from '$lib/transform'
+import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { useLogs } from '$lib/plugins'
+import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrameEditSession } from './useFrameEditSession.svelte'
-import { useLogs } from './useLogs.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
@@ -217,34 +218,51 @@ export const provideFrames = (partID: () => string) => {
 						continue
 					}
 
-					traits.setParentTrait(existing, parent)
+					hierarchy.setParent(existing, parent)
 
 					if (color) {
-						existing.set(traits.Color, color)
+						const cur = existing.get(traits.Color)
+						if (!cur || cur.r !== color.r || cur.g !== color.g || cur.b !== color.b) {
+							existing.set(traits.Color, color)
+						}
 					}
 
-					if (center) {
+					if (center && !isPoseEqual(existing.get(traits.Center), center)) {
 						existing.set(traits.Center, center)
 					}
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					if (!isEditMode && !partConfig.hasPendingSave) {
-						existing.set(traits.Pose, pose)
+					// Freeze the baseline while the user has unsaved edits so the
+					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
+					// edited position rather than amplifying any robot movement.
+					// isDirty is used rather than isEditMode because isDirty is $state
+					// and updates synchronously; isEditMode derives from viewerMode via
+					// a plain $effect and lags by one flush.
+					if (!partConfig.isDirty) {
+						const baseline = existing.get(traits.Matrix)
+						if (baseline) {
+							poseToMatrix(pose, baseline)
+							existing.changed(traits.Matrix)
+						}
 					}
 
-					if (!existing.has(traits.LivePose)) {
-						existing.add(traits.LivePose(pose))
+					if (!existing.has(traits.LiveMatrix)) {
+						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
-					// Skip the EditedPose overwrite while in edit mode. The merged
+					// Skip the EditedMatrix overwrite while in edit mode. The merged
 					// `frames` source can differ from query.data once didRecentlyEdit
 					// flips (fragment overrides, round-trip drift), and writing those
 					// values would shift entities whose parents the user is portaling
 					// into — the gizmo's drag target moves underneath it. Once we're
 					// back in monitor mode, the next sync resumes the overwrite.
-					if (!isEditMode) {
-						existing.set(traits.EditedPose, pose)
+					if (!isEditMode || !editSession.current) {
+						const edited = existing.get(traits.EditedMatrix)
+						if (edited) {
+							poseToMatrix(pose, edited)
+							existing.changed(traits.EditedMatrix)
+						}
 					}
 
 					continue
@@ -252,13 +270,13 @@ export const provideFrames = (partID: () => string) => {
 
 				const entityTraits: ConfigurableTrait[] = [
 					traits.Name(name),
-					traits.Pose(pose),
-					traits.EditedPose(pose),
-					traits.LivePose(pose),
+					traits.Matrix(poseToMatrix(pose, new Matrix4())),
+					traits.EditedMatrix(poseToMatrix(pose, new Matrix4())),
+					traits.LiveMatrix(poseToMatrix(pose, new Matrix4())),
 					traits.FramesAPI,
 					traits.Transformable,
 					traits.ShowAxesHelper,
-					...traits.getParentTrait(parent),
+					...hierarchy.parentTraits(parent),
 				]
 
 				if (color) {
