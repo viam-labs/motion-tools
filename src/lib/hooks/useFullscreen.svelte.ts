@@ -11,6 +11,8 @@ interface Fullscreen {
 
 interface Context {
 	current: Fullscreen
+	/** Vertical clearance overlays need to stay below the plugin's button (30px + 8px gap). */
+	baseOffset: number
 }
 
 const defaults = (): Fullscreen => ({
@@ -20,10 +22,14 @@ const defaults = (): Fullscreen => ({
 
 export const createFullscreen = (): Context => {
 	const fullscreen = $state<Fullscreen>(defaults())
+	const baseOffset = $derived(fullscreen.available ? 38 : 0)
 
 	const context: Context = {
 		get current() {
 			return fullscreen
+		},
+		get baseOffset() {
+			return baseOffset
 		},
 	}
 

@@ -95,8 +95,6 @@
 	const environment = provideEnvironment()
 	const fullscreen = provideFullscreen()
 
-	// Clear the Fullscreen plugin's button (30px + 8px gap) so details cards don't cover it.
-	const detailsBaseOffset = $derived(fullscreen.current.available ? 38 : 0)
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -158,7 +156,7 @@
 					<Details
 						{entity}
 						{details}
-						style="transform: translate(0, {detailsBaseOffset + index * 40}px)"
+						style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
 					/>
 				{/each}
 
