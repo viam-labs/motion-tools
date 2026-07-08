@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Component } from 'svelte'
+	import type { Component, Snippet } from 'svelte'
 
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 	import * as tabs from '@zag-js/tabs'
@@ -7,10 +7,16 @@
 	interface Props {
 		defaultTab?: string
 		onValueChange: (value: string) => void
-		items: {
-			label: string
-			component: Component
-		}[]
+		items: (
+			| {
+					label: string
+					component: Component
+			  }
+			| {
+					label: string
+					children: Snippet
+			  }
+		)[]
 	}
 
 	let { defaultTab, items, onValueChange }: Props = $props()
@@ -45,13 +51,17 @@
 	</div>
 
 	{#each items as item (item.label)}
-		{@const Component = item.component}
-
 		<div
 			{...api.getContentProps({ value: item.label })}
 			class="h-full w-full overflow-y-auto p-4"
 		>
-			<Component />
+			{#if 'component' in item}
+				{@const Component = item.component}
+
+				<Component />
+			{:else if 'children' in item}
+				{@render item.children()}
+			{/if}
 		</div>
 	{/each}
 </div>

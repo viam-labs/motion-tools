@@ -12,16 +12,14 @@ import PoseDetails from '../PoseDetails.svelte'
 
 describe('PoseDetails', () => {
 	const world = createWorld()
-	const parentOptions = [{ value: 'world', text: 'world' }]
-	const noop = () => {}
 
 	it('always renders parent, world position, and world orientation sections', () => {
 		const entity = world.spawn()
 		render(PoseDetails, {
-			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
+			props: { entity, editable: true },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
-		expect(screen.getByText('parent')).toBeInTheDocument()
+		expect(screen.getByText('parent frame')).toBeInTheDocument()
 		expect(screen.getByText('world position')).toBeInTheDocument()
 		expect(screen.getByText('world orientation')).toBeInTheDocument()
 	})
@@ -33,7 +31,7 @@ describe('PoseDetails', () => {
 		)
 		const entity = world.spawn(traits.Matrix(matrix))
 		render(PoseDetails, {
-			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
+			props: { entity, editable: true },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
 		expect(screen.getByLabelText('mutable local position')).toBeInTheDocument()
@@ -43,7 +41,7 @@ describe('PoseDetails', () => {
 	it('does not render local position/orientation when entity has no matrix or center', () => {
 		const entity = world.spawn()
 		render(PoseDetails, {
-			props: { entity, parentOptions, onPoseChange: noop, onParentChange: noop },
+			props: { entity, editable: true },
 			context: new Map([[WORLD_CONTEXT_KEY, world]]),
 		})
 		expect(screen.queryByLabelText('mutable local position')).not.toBeInTheDocument()

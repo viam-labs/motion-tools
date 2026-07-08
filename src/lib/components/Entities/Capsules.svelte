@@ -62,19 +62,16 @@ pick the body or head id table and map the `instanceId` back to the entity.
 
 	/**
 	 * Build a faces mesh. Capsule meshes render transparent by default (`Opacity`
-	 * trait absent → 0.7, depth write off — same as the former per-entity
-	 * renderer); per-instance alpha is written via `setOpacityAt`. Whole-object
-	 * culling is disabled and the bounding sphere pinned open for the same reason
-	 * as `Boxes.svelte`: the library culls and raycasts per instance, and its
-	 * once-computed object sphere would otherwise gate an always-animating scene
-	 * shut.
+	 * trait absent → 0.7); per-instance alpha is written via `setOpacityAt`.
+	 * Whole-object culling is disabled and the bounding sphere pinned open for
+	 * the same reason as `Boxes.svelte`: the library culls and raycasts per
+	 * instance, and its once-computed object sphere would otherwise gate an
+	 * always-animating scene shut.
 	 */
 	const createFaces = (geometry: BufferGeometry) => {
-		const mesh = new InstancedMesh2(
-			geometry,
-			new MeshToonMaterial({ transparent: true, depthWrite: false }),
-			{ renderer }
-		)
+		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true }), {
+			renderer,
+		})
 		mesh.sortObjects = true
 		mesh.customSort = createRadixSort(mesh)
 		mesh.frustumCulled = false
@@ -155,7 +152,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 		const color = resolveColor(entity)
 		const edgeColor = darkenColor(color, 10)
 		const opacity = entity.get(traits.Opacity) ?? 0.7
-		const visible = !entity.has(traits.InheritedInvisible)
+		const visible = !entity.has(traits.InheritedInvisible) && !entity.has(traits.ColliderHidden)
 
 		/**
 		 * The cylinder collapses once `l ≤ 2r`; hide it so the two caps read as a
@@ -366,6 +363,8 @@ pick the body or head id table and map the `instanceId` back to the entity.
 			world.onRemove(traits.Opacity, enqueueAppearance),
 			world.onAdd(traits.InheritedInvisible, enqueueAppearance),
 			world.onRemove(traits.InheritedInvisible, enqueueAppearance),
+			world.onAdd(traits.ColliderHidden, enqueueAppearance),
+			world.onRemove(traits.ColliderHidden, enqueueAppearance),
 		]
 
 		return () => {

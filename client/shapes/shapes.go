@@ -1,3 +1,11 @@
+// Package shapes provides NURBS sample data for the legacy v1 drawing client.
+//
+// Deprecated: shapes is part of the deprecated client/client v1 API and will be
+// removed in a future release. Its types have no v2 equivalent; use the drawing
+// functions in [github.com/viam-labs/motion-tools/client/api] instead. When v2 ships,
+// the client/api and draw packages move to a new module path,
+// github.com/viamrobotics/visualization. See the v1 → v2 migration guide:
+// https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 package shapes
 
 import (
@@ -7,6 +15,12 @@ import (
 	"go.viam.com/rdk/spatialmath"
 )
 
+// Nurbs describes a NURBS curve for the legacy v1 drawing client.
+//
+// Deprecated: the Nurbs wrapper is no longer needed in v2. Pass ControlPoints, Knots,
+// Weights, and Degree directly to
+// [github.com/viam-labs/motion-tools/client/api.DrawNurbs]. See the v1 → v2 migration
+// guide: https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 type Nurbs struct {
 	ControlPts []spatialmath.Pose
 	Degree     int
@@ -15,6 +29,11 @@ type Nurbs struct {
 }
 
 // Generate a NURBS structure similar to the Three.js version
+//
+// Deprecated: shapes is part of the deprecated v1 API and has no v2 equivalent. Build
+// NURBS inputs directly and pass them to
+// [github.com/viam-labs/motion-tools/client/api.DrawNurbs]. See the v1 → v2 migration
+// guide: https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func GenerateNURBS(numControlPoints int, degree int, offset r3.Vector) Nurbs {
 	controlPts := make([]spatialmath.Pose, numControlPoints)
 	weights := make([]float64, numControlPoints)

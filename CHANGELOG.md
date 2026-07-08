@@ -1,5 +1,48 @@
 # motion-tools
 
+## 1.36.1
+
+### Patch Changes
+
+- b55128d: `Pose.svelte` and `Entities.svelte` refactor
+- c1529d2: Fix parent field in details occasionally rendering blank
+- 21ea83d: Fix sorting for instanced rendering
+
+## 1.36.0
+
+### Minor Changes
+
+- 0620ce8: Add Fullscreen plugin that expands the visualizer to cover the viewport
+
+## 1.35.1
+
+### Patch Changes
+
+- 95cbf22: Start deprecation of legacy go client.
+- 1cf2975: Tighten geom typing (for LLM scene builder)
+
+## 1.35.0
+
+### Minor Changes
+
+- ed62728: Port Snapshot to V2 API signature
+
+### Patch Changes
+
+- dab5ca3: Fix pointcloud object positions
+- 0a844cd: Fix plugin declaration types
+- 644753d: Allow mesh vertex colors
+- ec08d01: Improve plugins infrastructure
+- 56bf4bc: Debounce tree updates
+- 951fc2a: UI/UX LLM scene builder improvements
+- 5294217: Batch sphere rendering into instanced draw calls
+
+## 1.34.10
+
+### Patch Changes
+
+- 7c7b3c4: add geometry editing for llm scene builder
+
 ## 1.34.9
 
 ### Patch Changes

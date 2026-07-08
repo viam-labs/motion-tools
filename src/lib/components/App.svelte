@@ -7,7 +7,7 @@
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
-	import { type Component, onMount, type Snippet } from 'svelte'
+	import { onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -25,12 +25,14 @@
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
+	import { provideFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 	import { domPortal } from '$lib/portal'
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
+	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
@@ -53,14 +55,6 @@
 		 * supply this; in standalone it is computed from fragment queries (omit).
 		 */
 		componentNameToFragmentInfo?: Record<string, FragmentInfo>
-
-		/**
-		 * Allows adding additional tabs to the settings panel
-		 */
-		settingsTabs?: {
-			label: string
-			component: Component
-		}[]
 
 		/**
 		 * Allows setting the initial camera pose
@@ -89,16 +83,18 @@
 		localConfigProps,
 		componentNameToFragmentInfo,
 		cameraPose,
-		settingsTabs,
 		children: appChildren,
 		dashboard,
 		details,
 	}: Props = $props()
 
 	provideWorld()
+	provideSettingsTabs()
 
 	const settings = provideSettings()
 	const environment = provideEnvironment()
+	const fullscreen = provideFullscreen()
+
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -134,7 +130,10 @@
 </script>
 
 <div
-	class="relative h-full w-full overflow-hidden dark:bg-white"
+	class={[
+		'h-full w-full overflow-hidden bg-white',
+		fullscreen.active ? 'z-max fixed inset-0' : 'relative',
+	]}
 	bind:this={root}
 >
 	<Canvas renderMode="on-demand">
@@ -157,7 +156,7 @@
 					<Details
 						{entity}
 						{details}
-						style="transform: translate(0, {index * 40}px)"
+						style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
 					/>
 				{/each}
 
@@ -183,7 +182,7 @@
 
 				<PortalTarget id="dom" />
 
-				<Settings {settingsTabs} />
+				<Settings />
 				<AddFrames />
 			</div>
 		</SceneProviders>

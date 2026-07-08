@@ -1,54 +1,39 @@
-<script
-	module
-	lang="ts"
->
-	import { EdgesGeometry, SphereGeometry } from 'three'
-
-	/**
-	 * Shared unit geometries — every mesh references these and sets
-	 * dimensions through `mesh.scale`, so resizing never rebuilds GPU buffers.
-	 */
-	const unitSphere = new SphereGeometry(1, 16, 12)
-	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
-</script>
-
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 
-	import { T, type Props as ThrelteProps, useThrelte } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { type Snippet } from 'svelte'
-	import { Color, DoubleSide, FrontSide, Material, Mesh } from 'three'
+	import { Color, DoubleSide, FrontSide, Group, Mesh, MeshToonMaterial } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
-	import { traits, useTrait } from '$lib/ecs'
+	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { poseToObject3d } from '$lib/transform'
 
-	interface Props extends Omit<ThrelteProps<Mesh>, 'ref'> {
+	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
+
+	interface Props {
 		entity: Entity
-		color?: string
-		center?: Pose
 		children?: Snippet
 	}
 
-	const { entity, color: overrideColor, center, children, ...rest }: Props = $props()
+	const { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
+
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
+	const center = useTrait(() => entity, traits.Center)
+	const invisible = useTrait(() => entity, traits.InheritedInvisible)
+	const colliderHidden = useTag(() => entity, traits.ColliderHidden)
 	const name = useTrait(() => entity, traits.Name)
 	const entityColors = useTrait(() => entity, traits.Colors)
 	const entityColor = useTrait(() => entity, traits.Color)
 	const opacity = useTrait(() => entity, traits.Opacity)
-	const sphere = useTrait(() => entity, traits.Sphere)
 	const bufferGeometry = useTrait(() => entity, traits.BufferGeometry)
 	const materialProps = useTrait(() => entity, traits.Material)
 	const renderOrder = useTrait(() => entity, traits.RenderOrder)
 
 	const color = $derived.by(() => {
-		if (overrideColor) {
-			return overrideColor
-		}
-
 		if (entityColors.current) {
 			return asColor(entityColors.current, new Color())
 		}
@@ -60,9 +45,34 @@
 		return colors.default
 	})
 
+	const hasVertexColors = $derived(bufferGeometry.current?.getAttribute('color') !== undefined)
+
 	const currentOpacity = $derived(opacity.current ?? 0.7)
 
-	let material = $state.raw<Material>(new Material())
+	const events = useEntityEvents(() => entity)
+
+	const group = new Group()
+	group.matrixAutoUpdate = false
+
+	$effect(() => {
+		if (!worldMatrix.current) return
+
+		group.matrix.copy(worldMatrix.current)
+
+		/**
+		 * Keep position/quaternion/scale in sync with matrix so TransformControls
+		 * (which reads/writes those fields) sees the entity's actual transform on
+		 * drag start. Without this, the gizmo applies its drag delta against an
+		 * identity baseline and the frame snaps to identity on first onChange.
+		 */
+		group.matrix.decompose(group.position, group.quaternion, group.scale)
+
+		group.updateMatrixWorld()
+		invalidate()
+	})
+
+	const material = new MeshToonMaterial()
+
 	$effect(() => {
 		const isTransparent = currentOpacity < 1
 		material.depthWrite = !isTransparent
@@ -70,86 +80,59 @@
 		if (material.transparent !== isTransparent) {
 			material.transparent = isTransparent
 			material.needsUpdate = true
-			invalidate()
 		}
+		invalidate()
 	})
 
 	const mesh = new Mesh()
 
 	$effect(() => {
-		if (center) {
-			poseToObject3d(center, mesh)
+		if (center.current) {
+			poseToObject3d(center.current, mesh)
 			invalidate()
 		}
-	})
-
-	$effect(() => {
-		if (sphere.current) {
-			mesh.scale.setScalar((sphere.current.r ?? 0) * 0.001)
-		} else {
-			mesh.scale.set(1, 1, 1)
-		}
-		invalidate()
 	})
 </script>
 
 <T
-	is={mesh}
-	name={entity}
-	userData.name={name}
-	renderOrder={renderOrder.current}
-	{...rest}
+	is={group}
+	visible={invisible.current !== true && !colliderHidden.current}
 >
-	{#if sphere.current}
-		<!--
-			Switch via a derived `is` on the same <T> so `useAttach`'s effect
-			cleanup runs before the new attach. Splitting these across two
-			branches of an {#if}/{:else if} races mount-new against unmount-old:
-			the new attach saves `mesh.geometry`, then the old cleanup restores
-			it to the pre-attach value (null), leaving the mesh geometryless.
-		-->
-		<T
-			is={unitSphere}
-			dispose={false}
-		/>
-		<T.LineSegments
-			raycast={() => null}
-			bvh={{ enabled: false }}
-		>
-			<T
-				is={unitSphereEdges}
-				dispose={false}
-			/>
-			<T.LineBasicMaterial color={darkenColor(color, 10)} />
-		</T.LineSegments>
-	{:else if bufferGeometry.current}
-		<T is={bufferGeometry.current}>
-			{#snippet children({ ref: geo })}
-				<!--
+	<T
+		is={mesh}
+		name={entity}
+		userData.name={name}
+		renderOrder={renderOrder.current}
+		{...events}
+	>
+		{#if bufferGeometry.current}
+			<T is={bufferGeometry.current}>
+				{#snippet children({ ref: geo })}
+					<!--
 					TODO(mp) currently some bufferGeometries are coming in empty,
 					this is a quick fix but this should be handled upstream
 				-->
-				{#if geo.getAttribute('position').array.length > 0}
-					<T.LineSegments
-						raycast={() => null}
-						bvh={{ enabled: false }}
-					>
-						<T.EdgesGeometry args={[geo, 0]} />
-						<T.LineBasicMaterial color={darkenColor(color, 10)} />
-					</T.LineSegments>
-				{/if}
-			{/snippet}
-		</T>
-	{/if}
+					{#if geo.getAttribute('position').array.length > 0}
+						<T.LineSegments
+							raycast={() => null}
+							bvh={{ enabled: false }}
+						>
+							<T.EdgesGeometry args={[geo, 0]} />
+							<T.LineBasicMaterial color={darkenColor(color, 10)} />
+						</T.LineSegments>
+					{/if}
+				{/snippet}
+			</T>
+		{/if}
 
-	<T.MeshToonMaterial
-		{color}
-		side={bufferGeometry.current ? DoubleSide : FrontSide}
-		depthTest={materialProps.current?.depthTest ?? true}
-		oncreate={(m) => {
-			material = m
-		}}
-	/>
+		<T
+			is={material}
+			color={hasVertexColors ? 0xffffff : color}
+			vertexColors={hasVertexColors}
+			side={bufferGeometry.current ? DoubleSide : FrontSide}
+			depthTest={materialProps.current?.depthTest ?? true}
+		/>
 
-	{@render children?.()}
+		{@render children?.()}
+	</T>
 </T>
