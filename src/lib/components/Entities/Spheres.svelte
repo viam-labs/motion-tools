@@ -47,16 +47,15 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const unitSphereEdges = new EdgesGeometry(unitSphere, 0)
 
 	/**
-	 * Sphere meshes render transparent by default (`Opacity` trait absent → 0.7,
-	 * depth write off — same as `Mesh.svelte`); per-instance alpha is written
-	 * via `setOpacityAt`. The base color stays white so per-instance colors
-	 * aren't tinted. Whole-object culling is disabled because the library
-	 * culls per instance against a bounding sphere it derives from each
-	 * instance matrix.
+	 * Sphere meshes render transparent by default (`Opacity` trait absent → 0.7);
+	 * per-instance alpha is written via `setOpacityAt`. The base color stays
+	 * white so per-instance colors aren't tinted. Whole-object culling is
+	 * disabled because the library culls per instance against a bounding sphere
+	 * it derives from each instance matrix.
 	 */
 	const instancedSpheres = new InstancedMesh2(
 		unitSphere,
-		new MeshToonMaterial({ transparent: true, depthWrite: false }),
+		new MeshToonMaterial({ transparent: true }),
 		{ renderer }
 	)
 	instancedSpheres.sortObjects = true
@@ -125,7 +124,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 
 	const writeAppearance = (entity: Entity, ids: InstanceIds) => {
 		const color = resolveColor(entity)
-		const visible = !entity.has(traits.InheritedInvisible)
+		const visible = !entity.has(traits.InheritedInvisible) && !entity.has(traits.ColliderHidden)
 
 		instancedSpheres.setColorAt(ids.face, color)
 		instancedSpheres.setOpacityAt(ids.face, entity.get(traits.Opacity) ?? 0.7)
@@ -267,6 +266,8 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 			world.onRemove(traits.Opacity, enqueueAppearance),
 			world.onAdd(traits.InheritedInvisible, enqueueAppearance),
 			world.onRemove(traits.InheritedInvisible, enqueueAppearance),
+			world.onAdd(traits.ColliderHidden, enqueueAppearance),
+			world.onRemove(traits.ColliderHidden, enqueueAppearance),
 		]
 
 		return () => {

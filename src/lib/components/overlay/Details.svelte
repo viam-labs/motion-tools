@@ -2,13 +2,7 @@
 	module
 	lang="ts"
 >
-	import { BufferAttribute, Euler, MathUtils, Quaternion } from 'three'
-
-	import { OrientationVector } from '$lib/three/OrientationVector'
-
-	const quaternion = new Quaternion()
-	const ov = new OrientationVector()
-	const euler = new Euler()
+	import { BufferAttribute, MathUtils } from 'three'
 </script>
 
 <script lang="ts">
@@ -23,15 +17,9 @@
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 	import {
-		List,
-		type ListChangeEvent,
 		Point,
 		type PointChangeEvent,
 		type PointValue3dObject,
-		type PointValue4dObject,
-		RotationEuler,
-		type RotationEulerChangeEvent,
-		type RotationEulerValueObject,
 		Slider,
 		type SliderChangeEvent,
 		TabGroup,
@@ -41,9 +29,9 @@
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
-	import { hierarchy, relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
+	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
+	import { relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
 	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
-	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -67,7 +55,6 @@
 	const { scene } = useThrelte()
 	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
-	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
 	const fragmentInfo = useFragmentInfo()
 	const partID = usePartID()
@@ -123,6 +110,7 @@
 	const showEditFrameOptions = $derived(
 		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
 	)
+
 	const showRelationshipOptions = $derived(points.current || arrows.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
@@ -157,57 +145,10 @@
 	let copied = $state(false)
 	let dragElement = $state.raw<HTMLElement>()
 
-	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
-		if (!localPose) return { x: 0, y: 0, z: 0 }
-		ov.set(localPose.oX, localPose.oY, localPose.oZ, MathUtils.degToRad(localPose.theta))
-		ov.toEuler(euler)
-		return {
-			x: MathUtils.radToDeg(euler.x),
-			y: MathUtils.radToDeg(euler.y),
-			z: MathUtils.radToDeg(euler.z),
-		}
-	})
-
 	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
-	}
-
-	const handlePositionChange = (event: PointChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const next = event.detail.value as PointValue3dObject
-		detailConfigUpdater.updateLocalPosition(entity, next)
-	}
-
-	const handleOrientationOVChange = (event: PointChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const next = event.detail.value as PointValue4dObject
-		detailConfigUpdater.updateLocalOrientation(entity, {
-			oX: next.x,
-			oY: next.y,
-			oZ: next.z,
-			theta: next.w,
-		})
-	}
-
-	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const next = event.detail.value as RotationEulerValueObject
-		euler.set(
-			MathUtils.degToRad(next.x),
-			MathUtils.degToRad(next.y),
-			MathUtils.degToRad(next.z),
-			'ZYX'
-		)
-		quaternion.setFromEuler(euler)
-		ov.setFromQuaternion(quaternion)
-		detailConfigUpdater.updateLocalOrientation(entity, {
-			oX: ov.x,
-			oY: ov.y,
-			oZ: ov.z,
-			theta: MathUtils.radToDeg(ov.th),
-		})
 	}
 
 	const handleBoxChange = (event: PointChangeEvent) => {
@@ -234,14 +175,6 @@
 	const handleCapsuleLChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
-	}
-
-	const handleParentChange = (event: ListChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const value = event.detail.value as string
-		if (value === parent.current) return
-		hierarchy.setParent(entity, value)
-		detailConfigUpdater.setFrameParent(entity, value)
 	}
 
 	const getCopyClipboardText = () => {
@@ -456,169 +389,10 @@
 
 		<div class="flex flex-col gap-2.5">
 			{#if !customDetails.current}
-				<div>
-					<strong class="font-semibold">world position</strong>
-					<span class="text-subtle-2">(mm)</span>
-
-					<div class="flex gap-3">
-						<div>
-							<span class="text-subtle-2">x</span>
-							{(worldPose?.x ?? 0).toFixed(2)}
-						</div>
-						<div>
-							<span class="text-subtle-2">y</span>
-							{(worldPose?.y ?? 0).toFixed(2)}
-						</div>
-						<div>
-							<span class="text-subtle-2">z</span>
-							{(worldPose?.z ?? 0).toFixed(2)}
-						</div>
-					</div>
-				</div>
-
-				<div>
-					<strong class="font-semibold">world orientation</strong>
-					<span class="text-subtle-2">(deg)</span>
-					<div class="flex gap-3">
-						<div>
-							<span class="text-subtle-2">x</span>
-							{(worldPose?.oX ?? 0).toFixed(2)}
-						</div>
-						<div>
-							<span class="text-subtle-2">y</span>
-							{(worldPose?.oY ?? 0).toFixed(2)}
-						</div>
-						<div>
-							<span class="text-subtle-2">z</span>
-							{(worldPose?.oZ ?? 0).toFixed(2)}
-						</div>
-						<div>
-							<span class="text-subtle-2">th</span>
-							{(worldPose?.theta ?? 0).toFixed(2)}
-						</div>
-					</div>
-				</div>
-
-				<div>
-					<strong class="font-semibold">parent frame</strong>
-					{#if showEditFrameOptions}
-						<!--
-						Remount on entity change. svelte-tweakpane-ui's List runs
-						`listBlade.value = value` on the still-mounted blade before its
-						`options` prop has propagated, so the new entity's parent name
-						(absent from the previous entity's option set) hits Tweakpane's
-						ListConstraint, snaps to the first option, and fires a change
-						event that handleParentChange interprets as a user pick — silently
-						reparenting the clicked frame.
-					-->
-						{#key entity}
-							<div aria-label="mutable parent frame">
-								<List
-									options={configFrames.getParentFrameOptions(name.current ?? '') ?? []}
-									value={parent.current ?? 'world'}
-									on:change={handleParentChange}
-								/>
-							</div>
-						{/key}
-					{:else}
-						<div class="mt-0.5 flex gap-3">
-							{@render ImmutableField({
-								ariaLabel: 'parent frame name',
-								value: parent.current ?? 'world',
-							})}
-						</div>
-					{/if}
-				</div>
-
-				{#if localPose}
-					<div>
-						<strong class="font-semibold">local position</strong>
-						<span class="text-subtle-2">(mm)</span>
-
-						{#if showEditFrameOptions}
-							<div aria-label="mutable local position">
-								<Point
-									value={{
-										x: localPose.x,
-										y: localPose.y,
-										z: localPose.z,
-									}}
-									on:change={handlePositionChange}
-								/>
-							</div>
-						{:else}
-							<div class="mt-0.5 flex gap-3">
-								{@render ImmutableField({
-									label: 'x',
-									ariaLabel: 'local position x coordinate',
-									value: localPose.x,
-								})}
-								{@render ImmutableField({
-									label: 'y',
-									ariaLabel: 'local position y coordinate',
-									value: localPose.y,
-								})}
-								{@render ImmutableField({
-									label: 'z',
-									ariaLabel: 'local position z coordinate',
-									value: localPose.z,
-								})}
-							</div>
-						{/if}
-					</div>
-
-					<div>
-						<strong class="font-semibold">local orientation</strong>
-
-						{#if showEditFrameOptions}
-							<div aria-label="mutable local orientation">
-								<TabGroup>
-									<TabPage title="OV (deg)">
-										<Point
-											value={{
-												x: localPose.oX,
-												y: localPose.oY,
-												z: localPose.oZ,
-												w: localPose.theta,
-											}}
-											on:change={handleOrientationOVChange}
-										/>
-									</TabPage>
-									<TabPage title="Euler">
-										<RotationEuler
-											value={eulerValue}
-											unit="deg"
-											on:change={handleOrientationEulerChange}
-										/>
-									</TabPage>
-								</TabGroup>
-							</div>
-						{:else}
-							<div class="mt-0.5 flex gap-3">
-								{@render ImmutableField({
-									label: 'x',
-									ariaLabel: 'local orientation x coordinate',
-									value: localPose.oX,
-								})}
-								{@render ImmutableField({
-									label: 'y',
-									ariaLabel: 'local orientation y coordinate',
-									value: localPose.oY,
-								})}
-								{@render ImmutableField({
-									label: 'z',
-									ariaLabel: 'local orientation z coordinate',
-									value: localPose.oZ,
-								})}
-								{@render ImmutableField({
-									label: 'th',
-									ariaLabel: 'local orientation theta degrees',
-									value: localPose.theta,
-								})}
-							</div>
-						{/if}
-					</div>
-				{/if}
+				<PoseDetails
+					{entity}
+					editable={showEditFrameOptions}
+				/>
 			{/if}
 
 			{#if showEditFrameOptions}

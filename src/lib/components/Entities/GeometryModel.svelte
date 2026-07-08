@@ -5,25 +5,22 @@ Renders a Viam Geometry object
 -->
 <script lang="ts">
 	import type { Entity } from 'koota'
-	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
 	import { Group } from 'three'
 
 	import { traits, useTrait } from '$lib/ecs'
-	import { use3DModels } from '$lib/hooks/use3DModels.svelte'
+	import { matchModel, use3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { poseToObject3d } from '$lib/transform'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
-	import Mesh from './Mesh.svelte'
 
 	interface Props {
 		entity: Entity
-		children?: Snippet
 	}
 
-	const { entity, children }: Props = $props()
+	const { entity }: Props = $props()
 
 	const settings = useSettings()
 
@@ -40,29 +37,20 @@ Renders a Viam Geometry object
 			return
 		}
 
-		if (!name.current) {
-			return
-		}
-
-		const [componentName, id] = name.current.split(':')
-		if (!componentName || !id) {
-			return
-		}
-
-		return models.current[componentName]?.[id]?.clone() ?? undefined
+		return matchModel(name.current, models.current)?.clone() ?? undefined
 	})
 
 	const group = new Group()
 	group.matrixAutoUpdate = false
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (!worldMatrix.current) return
 		group.matrix.copy(worldMatrix.current)
 		group.updateMatrixWorld()
 		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (model && center.current) {
 			poseToObject3d(center.current, model)
 			invalidate()
@@ -72,25 +60,15 @@ Renders a Viam Geometry object
 	const events = useEntityEvents(() => entity)
 </script>
 
-<T
-	is={group}
-	visible={invisible.current !== true}
->
-	{#if model}
+{#if model}
+	<T
+		is={group}
+		visible={invisible.current !== true}
+	>
 		<T
 			is={model}
 			name={entity}
 			{...events}
 		/>
-	{/if}
-
-	{#if settings.current.renderArmModels.includes('colliders') || !model}
-		<Mesh
-			{entity}
-			center={center.current}
-			{...events}
-		>
-			{@render children?.()}
-		</Mesh>
-	{/if}
-</T>
+	</T>
+{/if}
