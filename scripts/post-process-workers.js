@@ -61,7 +61,7 @@ for (const file of distFiles) {
 			`})()`,
 		].join('\n')
 
-		result = result.replace(fullMatch, replacement)
+		result = result.replaceAll(fullMatch, replacement)
 
 		try {
 			unlinkSync(workerAbsPath)
