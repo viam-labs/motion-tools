@@ -26,14 +26,6 @@
 	})
 </script>
 
-<svelte:window
-	onkeydown={(event) => {
-		if (event.key === 'Escape' && fullscreen) {
-			fullscreen = false
-		}
-	}}
-/>
-
 <div class="absolute top-2 right-2 z-4">
 	<Tooltip
 		let:tooltipID
@@ -59,11 +51,7 @@
 			{/if}
 		</button>
 		<p slot="description">
-			{#if fullscreen}
-				Exit fullscreen <span class="text-gray-5 pl-1">Esc</span>
-			{:else}
-				Enter fullscreen
-			{/if}
+			{fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
 		</p>
 	</Tooltip>
 </div>

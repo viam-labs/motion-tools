@@ -36,15 +36,4 @@ describe('<FullscreenButton>', () => {
 		expect(document.body.style.overflow).toBe('')
 		expect(document.documentElement.style.overflow).toBe('')
 	})
-
-	it('exits fullscreen on Escape', async () => {
-		const user = userEvent.setup()
-		render(FullscreenButton, { props: { fullscreen: true } })
-
-		expect(screen.getByRole('button', { name: 'Exit fullscreen' })).toBeInTheDocument()
-
-		await user.keyboard('{Escape}')
-
-		expect(screen.getByRole('button', { name: 'Enter fullscreen' })).toBeInTheDocument()
-	})
 })
