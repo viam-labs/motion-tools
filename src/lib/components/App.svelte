@@ -21,11 +21,11 @@
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { provideFullscreen } from '$lib/hooks/useFullscreen.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
+	import { provideFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 	import { domPortal } from '$lib/portal'
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
@@ -132,7 +132,7 @@
 <div
 	class={[
 		'h-full w-full overflow-hidden bg-white',
-		fullscreen.current.active ? 'z-max fixed inset-0' : 'relative',
+		fullscreen.active ? 'z-max fixed inset-0' : 'relative',
 	]}
 	bind:this={root}
 >
