@@ -49,9 +49,10 @@
 
 <Arrows />
 <AxesHelpers />
-<Boxes />
+
 <Capsules />
 <Spheres />
+<Boxes />
 
 {#if enableLabels}
 	<Labels />
