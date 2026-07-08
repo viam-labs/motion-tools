@@ -13,8 +13,6 @@
 
 	import { traits, useQuery, useWorld } from '$lib/ecs'
 
-	import Frame from './Entities/Frame.svelte'
-
 	const world = useWorld()
 	const selected = useQuery(traits.Selected)
 
@@ -45,7 +43,3 @@
 		}
 	})
 </script>
-
-{#each entities as entity (entity)}
-	<Frame {entity} />
-{/each}

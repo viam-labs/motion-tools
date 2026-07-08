@@ -155,7 +155,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 		const color = resolveColor(entity)
 		const edgeColor = darkenColor(color, 10)
 		const opacity = entity.get(traits.Opacity) ?? 0.7
-		const visible = !entity.has(traits.InheritedInvisible)
+		const visible = !entity.has(traits.InheritedInvisible) && !entity.has(traits.ColliderHidden)
 
 		/**
 		 * The cylinder collapses once `l ≤ 2r`; hide it so the two caps read as a
@@ -366,6 +366,8 @@ pick the body or head id table and map the `instanceId` back to the entity.
 			world.onRemove(traits.Opacity, enqueueAppearance),
 			world.onAdd(traits.InheritedInvisible, enqueueAppearance),
 			world.onRemove(traits.InheritedInvisible, enqueueAppearance),
+			world.onAdd(traits.ColliderHidden, enqueueAppearance),
+			world.onRemove(traits.ColliderHidden, enqueueAppearance),
 		]
 
 		return () => {
