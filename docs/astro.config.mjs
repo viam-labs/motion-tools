@@ -44,6 +44,7 @@ export default defineConfig({
 					items: [
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
+						{ label: '<Fullscreen />', link: '/plugins/fullscreen/' },
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },
 						{ label: '<SelectionTool />', link: '/plugins/selection/' },
 						{ label: '<Skybox />', link: '/plugins/skybox/' },
