@@ -47,33 +47,142 @@
 <div class="sl-heading-wrapper level-h2"><h2 id="prerequisites">Prerequisites</h2><a class="sl-anchor-link" href="#prerequisites"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Prerequisites”</span></a></div>
 <p>Both v1 and v2 assume you run the visualizer locally with <code dir="auto">make up</code>. No extra server-lifecycle code is required in your program.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="quick-reference">Quick Reference</h2><a class="sl-anchor-link" href="#quick-reference"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Quick Reference”</span></a></div>
-<p>| v1 (<code dir="auto">client/client</code>)               | v2 (<code dir="auto">client/api</code>)                  | Change type                           |
-| ---------------------------------- | ---------------------------------- | ------------------------------------- |
-| <code dir="auto">DrawGeometry</code>                     | <code dir="auto">DrawGeometry</code>                     | Signature changed                     |
-| <code dir="auto">DrawGeometries</code>                   | <code dir="auto">DrawGeometriesInFrame</code>            | Renamed + signature changed           |
-| <code dir="auto">DrawFrameSystem</code>                  | <code dir="auto">DrawFrameSystem</code>                  | Signature changed                     |
-| <code dir="auto">DrawFrames</code>                       | <code dir="auto">DrawFrames</code>                       | Signature changed                     |
-| <code dir="auto">DrawPoints</code>                       | <code dir="auto">DrawPoints</code>                       | Signature changed                     |
-| <code dir="auto">DrawLine</code>                         | <code dir="auto">DrawLine</code>                         | Signature changed                     |
-| <code dir="auto">DrawPoses</code>                        | <code dir="auto">DrawPosesAsArrows</code>                | Renamed + signature changed           |
-| <code dir="auto">DrawPointCloud</code>                   | <code dir="auto">DrawPointCloud</code>                   | Signature changed                     |
-| <code dir="auto">DrawNurbs</code>                        | <code dir="auto">DrawNurbs</code>                        | Signature changed                     |
-| <code dir="auto">DrawGLTF</code>                         | <code dir="auto">DrawGLTF</code>                         | Signature changed                     |
-| <code dir="auto">DrawRobot</code>                        | <code dir="auto">DrawRobot</code>                        | Signature changed                     |
-| <code dir="auto">DrawWorldState</code>                   | <code dir="auto">DrawWorldState</code>                   | Signature changed                     |
-| <code dir="auto">SetCameraPose</code>                    | <code dir="auto">SetCamera</code>                        | Renamed + signature changed           |
-| —                                  | <code dir="auto">ResetCamera</code>                      | New                                   |
-| <code dir="auto">RemoveAllSpatialObjects</code>          | <code dir="auto">RemoveAll</code>                        | Renamed + returns count               |
-| <code dir="auto">RemoveSpatialObjects</code>             | —                                  | Removed                               |
-| —                                  | <code dir="auto">RemoveTransforms</code>                 | New                                   |
-| —                                  | <code dir="auto">RemoveDrawings</code>                   | New                                   |
-| —                                  | <code dir="auto">CreateRelationship</code>               | New                                   |
-| —                                  | <code dir="auto">DeleteRelationship</code>               | New                                   |
-| <code dir="auto">Record</code> / <code dir="auto">StopRecord</code> / <code dir="auto">Replay</code> | <code dir="auto">Record</code> / <code dir="auto">StopRecord</code> / <code dir="auto">Replay</code> | Same signatures, new recording format |
-| <code dir="auto">SetURL</code>                           | —                                  | Removed                               |
-| <code dir="auto">DefaultColorMap</code>                  | —                                  | Removed (see color section)           |
-| <code dir="auto">colorutil.NamedColorToRGB</code>        | —                                  | Removed (use <code dir="auto">draw.ColorFromName</code>)    |
-| <code dir="auto">shapes.Nurbs</code>                     | —                                  | Removed (fields inlined)              |</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v1 (<code dir="auto">client/client</code>)</th><th>v2 (<code dir="auto">client/api</code>)</th><th>Change type</th></tr></thead><tbody><tr><td><code dir="auto">DrawGeometry</code></td><td><code dir="auto">DrawGeometry</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawGeometries</code></td><td><code dir="auto">DrawGeometriesInFrame</code></td><td>Renamed + signature changed</td></tr><tr><td><code dir="auto">DrawFrameSystem</code></td><td><code dir="auto">DrawFrameSystem</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawFrames</code></td><td><code dir="auto">DrawFrames</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawPoints</code></td><td><code dir="auto">DrawPoints</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawLine</code></td><td><code dir="auto">DrawLine</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawPoses</code></td><td><code dir="auto">DrawPosesAsArrows</code></td><td>Renamed + signature changed</td></tr><tr><td><code dir="auto">DrawPointCloud</code></td><td><code dir="auto">DrawPointCloud</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawNurbs</code></td><td><code dir="auto">DrawNurbs</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawGLTF</code></td><td><code dir="auto">DrawGLTF</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawRobot</code></td><td><code dir="auto">DrawRobot</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">DrawWorldState</code></td><td><code dir="auto">DrawWorldState</code></td><td>Signature changed</td></tr><tr><td><code dir="auto">SetCameraPose</code></td><td><code dir="auto">SetCamera</code></td><td>Renamed + signature changed</td></tr><tr><td>—</td><td><code dir="auto">ResetCamera</code></td><td>New</td></tr><tr><td><code dir="auto">RemoveAllSpatialObjects</code></td><td><code dir="auto">RemoveAll</code></td><td>Renamed + returns count</td></tr><tr><td><code dir="auto">RemoveSpatialObjects</code></td><td>—</td><td>Removed</td></tr><tr><td>—</td><td><code dir="auto">RemoveTransforms</code></td><td>New</td></tr><tr><td>—</td><td><code dir="auto">RemoveDrawings</code></td><td>New</td></tr><tr><td>—</td><td><code dir="auto">CreateRelationship</code></td><td>New</td></tr><tr><td>—</td><td><code dir="auto">DeleteRelationship</code></td><td>New</td></tr><tr><td><code dir="auto">Record</code> / <code dir="auto">StopRecord</code> / <code dir="auto">Replay</code></td><td><code dir="auto">Record</code> / <code dir="auto">StopRecord</code> / <code dir="auto">Replay</code></td><td>Same signatures, new recording format</td></tr><tr><td><code dir="auto">SetURL</code></td><td>—</td><td>Removed</td></tr><tr><td><code dir="auto">DefaultColorMap</code></td><td>—</td><td>Removed (see color section)</td></tr><tr><td><code dir="auto">colorutil.NamedColorToRGB</code></td><td>—</td><td>Removed (use <code dir="auto">draw.ColorFromName</code>)</td></tr><tr><td><code dir="auto">shapes.Nurbs</code></td><td>—</td><td>Removed (fields inlined)</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h2"><h2 id="import-path">Import path</h2><a class="sl-anchor-link" href="#import-path"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Import path”</span></a></div>
 <div data-nova-code-container="" class="not-content relative overflow-hidden [&#x26;_pre]:relative [&#x26;_nova-code-copy-button]:opacity-0 [&#x26;:hover_nova-code-copy-button]:opacity-100 border border-solid border-(--sl-color-gray-5) rounded-md"><pre class="astro-code astro-code-themes one-light github-dark-dimmed" style="--shiki-light:#383A42;--shiki-dark:#adbac7;--shiki-light-bg:#FAFAFA;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="go" dir="ltr"><code><span class="line"><span style="--shiki-light:#A0A1A7;--shiki-light-font-style:italic;--shiki-dark:#768390;--shiki-dark-font-style:inherit">// v1</span></span>
 <span class="line"><span style="--shiki-light:#A626A4;--shiki-dark:#F47067">import</span><span style="--shiki-light:#50A14F;--shiki-dark:#96D0FF"> "</span><span style="--shiki-light:#50A14F;--shiki-dark:#F69D50">github.com/viam-labs/motion-tools/client/client</span><span style="--shiki-light:#50A14F;--shiki-dark:#96D0FF">"</span></span>
@@ -679,20 +788,77 @@ colors := chooser.Get(len(geometries))" title="Copy code" aria-label="Copy code"
 <p><code dir="auto">draw.Snapshot</code> is the Go API for building offline scenes — you call <code dir="auto">Draw*</code> methods to populate a snapshot, then serialize it with <code dir="auto">MarshalJSON()</code>, <code dir="auto">MarshalBinary()</code>, or <code dir="auto">MarshalBinaryGzip()</code>. The serialized output can be rendered by the <code dir="auto">&#x3C;Snapshot /></code> Svelte component or loaded via drag-and-drop in the playground.</p>
 <p>The same cross-cutting changes that apply to <code dir="auto">client/api</code> also apply here: options structs, <code dir="auto">draw.Color</code>, and UUID return values.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="quick-reference-1">Quick reference</h3><a class="sl-anchor-link" href="#quick-reference-1"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Quick reference”</span></a></div>
-<p>| v1 method                                        | v2 method                                                          | Change                                         |
-| ------------------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------- |
-| <code dir="auto">DrawGeometry(geo, pose, parent, color)</code>         | <code dir="auto">DrawGeometry(DrawGeometryOptions{...})</code>                           | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| <code dir="auto">DrawFrame(name, parent, pose, geo, meta)</code>       | <code dir="auto">DrawFrame(DrawFrameOptions{...})</code>                                 | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| <code dir="auto">DrawFrameSystemGeometries(fs, inputs, colors)</code>  | <code dir="auto">DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{...})</code> | Signature changed, returns <code dir="auto">([][]byte, error)</code> |
-| <code dir="auto">DrawLine(name, parent, pose, pts, ...opts)</code>     | <code dir="auto">DrawLine(DrawLineOptions{...})</code>                                   | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| <code dir="auto">DrawArrows(name, parent, pose, poses, ...opts)</code> | <code dir="auto">DrawArrows(DrawArrowsOptions{...})</code>                               | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| <code dir="auto">DrawPoints(name, parent, pose, pts, ...opts)</code>   | <code dir="auto">DrawPoints(DrawPointsOptions{...})</code>                               | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| <code dir="auto">DrawModel(name, parent, pose, ...opts)</code>         | <code dir="auto">DrawModel(DrawModelOptions{...})</code>                                 | Signature changed, returns <code dir="auto">([]byte, error)</code>   |
-| —                                                | <code dir="auto">DrawNurbs(DrawNurbsOptions{...})</code>                                 | New, returns <code dir="auto">([]byte, error)</code>                 |
-| —                                                | <code dir="auto">DrawPointCloud(DrawPointCloudOptions{...})</code>                       | New, returns <code dir="auto">([]byte, error)</code>                 |
-| —                                                | <code dir="auto">DrawGeometriesInFrame(DrawGeometriesInFrameOptions{...})</code>         | New, returns <code dir="auto">([][]byte, error)</code>               |
-| —                                                | <code dir="auto">DrawFrames(DrawFramesOptions{...})</code>                               | New, returns <code dir="auto">([][]byte, error)</code>               |
-| —                                                | <code dir="auto">DrawWorldState(DrawWorldStateOptions{...})</code>                       | New, returns <code dir="auto">([][]byte, error)</code>               |</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>v1 method</th><th>v2 method</th><th>Change</th></tr></thead><tbody><tr><td><code dir="auto">DrawGeometry(geo, pose, parent, color)</code></td><td><code dir="auto">DrawGeometry(DrawGeometryOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td><code dir="auto">DrawFrame(name, parent, pose, geo, meta)</code></td><td><code dir="auto">DrawFrame(DrawFrameOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td><code dir="auto">DrawFrameSystemGeometries(fs, inputs, colors)</code></td><td><code dir="auto">DrawFrameSystemGeometries(DrawFrameSystemGeometriesOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([][]byte, error)</code></td></tr><tr><td><code dir="auto">DrawLine(name, parent, pose, pts, ...opts)</code></td><td><code dir="auto">DrawLine(DrawLineOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td><code dir="auto">DrawArrows(name, parent, pose, poses, ...opts)</code></td><td><code dir="auto">DrawArrows(DrawArrowsOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td><code dir="auto">DrawPoints(name, parent, pose, pts, ...opts)</code></td><td><code dir="auto">DrawPoints(DrawPointsOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td><code dir="auto">DrawModel(name, parent, pose, ...opts)</code></td><td><code dir="auto">DrawModel(DrawModelOptions{...})</code></td><td>Signature changed, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td>—</td><td><code dir="auto">DrawNurbs(DrawNurbsOptions{...})</code></td><td>New, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td>—</td><td><code dir="auto">DrawPointCloud(DrawPointCloudOptions{...})</code></td><td>New, returns <code dir="auto">([]byte, error)</code></td></tr><tr><td>—</td><td><code dir="auto">DrawGeometriesInFrame(DrawGeometriesInFrameOptions{...})</code></td><td>New, returns <code dir="auto">([][]byte, error)</code></td></tr><tr><td>—</td><td><code dir="auto">DrawFrames(DrawFramesOptions{...})</code></td><td>New, returns <code dir="auto">([][]byte, error)</code></td></tr><tr><td>—</td><td><code dir="auto">DrawWorldState(DrawWorldStateOptions{...})</code></td><td>New, returns <code dir="auto">([][]byte, error)</code></td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h3"><h3 id="before-and-after">Before and after</h3><a class="sl-anchor-link" href="#before-and-after"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Before and after”</span></a></div>
 <div data-nova-code-container="" class="not-content relative overflow-hidden [&#x26;_pre]:relative [&#x26;_nova-code-copy-button]:opacity-0 [&#x26;:hover_nova-code-copy-button]:opacity-100 border border-solid border-(--sl-color-gray-5) rounded-md"><pre class="astro-code astro-code-themes one-light github-dark-dimmed" style="--shiki-light:#383A42;--shiki-dark:#adbac7;--shiki-light-bg:#FAFAFA;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="go" dir="ltr"><code><span class="line"><span style="--shiki-light:#A0A1A7;--shiki-light-font-style:italic;--shiki-dark:#768390;--shiki-dark-font-style:inherit">// v1 — positional arguments, returns only error</span></span>
 <span class="line"><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7">err</span><span style="--shiki-light:#383A42;--shiki-dark:#F47067"> :=</span><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7"> snapshot</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">.</span><span style="--shiki-light:#4078F2;--shiki-dark:#DCBDFB">DrawGeometry</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">(</span><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7">box</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">, </span><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7">spatialmath</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">.</span><span style="--shiki-light:#4078F2;--shiki-dark:#DCBDFB">NewZeroPose</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">(), </span><span style="--shiki-light:#50A14F;--shiki-dark:#96D0FF">"world"</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">, </span><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7">draw</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">.</span><span style="--shiki-light:#4078F2;--shiki-dark:#DCBDFB">NewColor</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">(</span><span style="--shiki-light:#E45649;--shiki-dark:#ADBAC7">draw</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">.</span><span style="--shiki-light:#4078F2;--shiki-dark:#DCBDFB">WithName</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">(</span><span style="--shiki-light:#50A14F;--shiki-dark:#96D0FF">"red"</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">)))</span></span>

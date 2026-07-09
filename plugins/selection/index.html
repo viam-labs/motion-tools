@@ -70,11 +70,36 @@
 </div>" title="Copy code" aria-label="Copy code" class="absolute top-2 right-2 m-0 size-6 rounded border border-solid border-(--sl-color-gray-5) bg-gray-100/30 p-1 text-black backdrop-blur-sm transition hover:bg-gray-200/50 active:scale-90 dark:bg-gray-600/30 dark:text-white hover:dark:bg-gray-500/50"></nova-code-copy-button></div>
 <p>A new toggle appears in the top dashboard; clicking it enters selection mode. The popover next to it switches between <strong>Lasso</strong> and <strong>Ellipse</strong> tools.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="props">Props</h2><a class="sl-anchor-link" href="#props"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Props”</span></a></div>
-<p>| Prop                    | Type      | Default | Description                                                                                   |
-| ----------------------- | --------- | ------- | --------------------------------------------------------------------------------------------- |
-| <code dir="auto">enabled</code>               | <code dir="auto">boolean</code> | <code dir="auto">false</code> | Enter selection mode automatically on mount.                                                  |
-| <code dir="auto">autoSelectNewEntities</code> | <code dir="auto">boolean</code> | <code dir="auto">false</code> | Auto-select the most recently created selection entity (sets it as the focused entity).       |
-| <code dir="auto">children</code>              | <code dir="auto">Snippet</code> | —       | Rendered only while selection mode is active — useful for overlays scoped to the active tool. |</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code dir="auto">enabled</code></td><td><code dir="auto">boolean</code></td><td><code dir="auto">false</code></td><td>Enter selection mode automatically on mount.</td></tr><tr><td><code dir="auto">autoSelectNewEntities</code></td><td><code dir="auto">boolean</code></td><td><code dir="auto">false</code></td><td>Auto-select the most recently created selection entity (sets it as the focused entity).</td></tr><tr><td><code dir="auto">children</code></td><td><code dir="auto">Snippet</code></td><td>—</td><td>Rendered only while selection mode is active — useful for overlays scoped to the active tool.</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h2"><h2 id="reading-the-selection">Reading the selection</h2><a class="sl-anchor-link" href="#reading-the-selection"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Reading the selection”</span></a></div>
 <p>Use <code dir="auto">useSelectionPlugin</code> to read the current set of selected entities from anywhere inside <code dir="auto">&#x3C;Visualizer /></code>:</p>
 <div data-nova-code-container="" class="not-content relative overflow-hidden [&#x26;_pre]:relative [&#x26;_nova-code-copy-button]:opacity-0 [&#x26;:hover_nova-code-copy-button]:opacity-100 border border-solid border-(--sl-color-gray-5) rounded-md"><pre class="astro-code astro-code-themes one-light github-dark-dimmed" style="--shiki-light:#383A42;--shiki-dark:#adbac7;--shiki-light-bg:#FAFAFA;--shiki-dark-bg:#22272e; overflow-x: auto;" tabindex="0" data-language="svelte" dir="ltr"><code><span class="line"><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">&#x3C;</span><span style="--shiki-light:#E45649;--shiki-dark:#8DDB8C">script</span><span style="--shiki-light:#986801;--shiki-dark:#6CB6FF"> lang</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">=</span><span style="--shiki-light:#50A14F;--shiki-dark:#96D0FF">"ts"</span><span style="--shiki-light:#383A42;--shiki-dark:#ADBAC7">></span></span>
