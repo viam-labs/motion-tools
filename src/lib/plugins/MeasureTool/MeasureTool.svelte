@@ -2,11 +2,12 @@
 	import { T } from '@threlte/core'
 	import { HTML, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
 	import { untrack } from 'svelte'
+	import { Element } from 'svelte-tweakpane-ui'
 	import { type Intersection, Vector3 } from 'three'
 
 	import { DashboardPortal } from '$lib'
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
-	import Popover from '$lib/components/overlay/Popover.svelte'
+	import DropdownPane from '$lib/components/overlay/dashboard/DropdownPane.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useMouseRaycaster } from '$lib/hooks/useMouseRaycaster.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
@@ -90,20 +91,14 @@
 					settings.current.interactionMode = enabled ? 'navigate' : 'measure'
 				}}
 			/>
-			<Popover>
-				{#snippet trigger(triggerProps)}
-					<Button
-						{...triggerProps}
-						active={enabled}
-						class="rounded-l-none border-l-0"
-						icon="filter-sliders"
-						description="Measurement settings"
-					/>
-				{/snippet}
-
-				<div class="border-medium m-2 border bg-white p-2 text-xs">
-					<div class="flex items-center gap-2">
-						Enabled axes
+			<DropdownPane
+				title="Measurement"
+				active={enabled}
+				description="Measurement axes"
+			>
+				<Element>
+					<div class="font-public-sans text-subtle-1 flex items-center gap-2 text-xs">
+						<span>Axes</span>
 						<ToggleGroup
 							multiple
 							options={[
@@ -118,8 +113,8 @@
 							}}
 						/>
 					</div>
-				</div>
-			</Popover>
+				</Element>
+			</DropdownPane>
 		</div>
 	</fieldset>
 </DashboardPortal>
