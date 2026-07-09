@@ -1,3 +1,25 @@
+<script
+	lang="ts"
+	module
+>
+	import { configureTextBuilder } from 'troika-three-text'
+
+	// Embedding hosts (e.g. app.viam.com) can serve a Content-Security-Policy
+	// that blocks the `blob:` worker troika-three-text typesets in, which
+	// leaves every troika Text mesh blank — the perf monitor counters, XR
+	// labels, etc. The visualizer only renders short labels, so typeset on
+	// the main thread instead of depending on host CSP allowing blob workers.
+	// Troika ignores configuration changes after its first font request, so
+	// this must run before the first Text renders.
+	//
+	// Note: troika's CONFIG is a process-global singleton, so this switches
+	// every troika Text on the page to main-thread typesetting, not just the
+	// visualizer's own meshes. That is intended (it also rescues any troika
+	// text a CSP host renders itself); the only cost on a non-CSP host is
+	// losing worker offload, which is negligible for our short labels.
+	configureTextBuilder({ useWorker: false })
+</script>
+
 <script lang="ts">
 	import type { Struct } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'

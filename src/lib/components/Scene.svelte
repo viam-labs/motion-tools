@@ -2,12 +2,13 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { Environment, Grid, interactivity, PerfMonitor, PortalTarget } from '@threlte/extras'
+	import { Environment, Grid, interactivity, PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { ShaderMaterial } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
+	import PerfMonitor from '$lib/components/PerfMonitor.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'

@@ -36,6 +36,12 @@ importers:
       three-mesh-bvh:
         specifier: ^0.9.8
         version: 0.9.8(three@0.183.2)
+      three-perf:
+        specifier: ^1.0.11
+        version: 1.0.11(three@0.183.2)
+      troika-three-text:
+        specifier: ^0.52.4
+        version: 0.52.4(three@0.183.2)
       uuid-tool:
         specifier: ^2.0.3
         version: 2.0.3

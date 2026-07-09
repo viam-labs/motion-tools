@@ -452,10 +452,10 @@
 		"@changesets/cli": "2.29.6",
 		"@connectrpc/connect": "1.7.0",
 		"@connectrpc/connect-web": "1.7.0",
-		"@langchain/anthropic": "^1.4.0",
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
+		"@langchain/anthropic": "^1.4.0",
 		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
 		"@skeletonlabs/skeleton": "3.2.0",
@@ -632,6 +632,8 @@
 		"koota": "0.6.5",
 		"lodash-es": "4.18.1",
 		"three-mesh-bvh": "^0.9.8",
+		"three-perf": "^1.0.11",
+		"troika-three-text": "^0.52.4",
 		"uuid-tool": "^2.0.3"
 	}
 }
