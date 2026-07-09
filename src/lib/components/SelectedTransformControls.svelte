@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
-	import { Group, MathUtils, Matrix4 } from 'three'
+	import { Group, Matrix4 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
