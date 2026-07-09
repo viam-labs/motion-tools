@@ -2,7 +2,7 @@
 	module
 	lang="ts"
 >
-	import { BufferAttribute, MathUtils } from 'three'
+	import { Box3, BufferAttribute, MathUtils } from 'three'
 </script>
 
 <script lang="ts">
@@ -26,6 +26,7 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
+	import { expandBoxByEntity } from '$lib/components/Entities/expandBoxByEntity'
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
@@ -80,6 +81,19 @@
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 	const customDetails = useTag(() => entity, traits.CustomDetails)
+
+	// Fit-to-view needs world bounds. `object3d` alone is undefined for instanced
+	// primitives and geometry-less frames, so resolve bounds via the shared
+	// helper (traits / named object / WorldMatrix) and only offer the button when
+	// something is resolvable.
+	const focusBox = new Box3()
+	const focusable = $derived(
+		object3d !== undefined ||
+			box.current !== undefined ||
+			sphere.current !== undefined ||
+			capsule.current !== undefined ||
+			worldMatrix.current !== undefined
+	)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -260,7 +274,7 @@
 				<span class="text-subtle-2">{displayType}</span>
 			</div>
 
-			{#if object3d}
+			{#if focusable}
 				<Tooltip
 					let:tooltipID
 					location="bottom"
@@ -275,9 +289,13 @@
 
 							if (!currentControls || !('fitToBox' in currentControls)) return
 
+							focusBox.makeEmpty()
+							expandBoxByEntity(focusBox, entity, scene)
+							if (focusBox.isEmpty()) return
+
 							const { azimuthAngle, polarAngle } = currentControls
 
-							currentControls.fitToBox(object3d, true, {
+							currentControls.fitToBox(focusBox, true, {
 								paddingTop: padding,
 								paddingBottom: padding,
 								paddingLeft: padding,

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { T, useTask, useThrelte } from '@threlte/core'
-	import { BatchedMesh, Box3, Matrix4 } from 'three'
+	import { BatchedMesh, Box3, Matrix4, Vector3 } from 'three'
 	import { OBB } from 'three/addons/math/OBB.js'
 
 	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
@@ -12,6 +12,11 @@
 	const box3 = new Box3()
 	const obb = new OBB()
 	const matrix4 = new Matrix4()
+
+	// Geometry-less frames have no bounds to measure, so a selected reference
+	// frame gets a small marker cube at its origin instead — roughly the size of
+	// the frame's axes helper — so the selection stays visible.
+	const referenceFrameScale = new Vector3(0.1, 0.1, 0.1)
 
 	const { scene, invalidate } = useThrelte()
 	const selected = useQuery(traits.Selected)
@@ -42,7 +47,17 @@
 				}
 
 				const object = scene.getObjectByName(entity as unknown as string)
-				if (!object) continue
+				if (!object) {
+					// Reference frames render only an instanced axes helper (no named
+					// object) and carry no primitive trait. Anchor a marker cube at the
+					// frame origin from its WorldMatrix so the selection is still shown.
+					const world = entity.get(traits.WorldMatrix)
+					if (world) {
+						matrix4.copy(world).scale(referenceFrameScale)
+						obbHelper.setFromMatrix4(matrix4)
+					}
+					continue
+				}
 
 				const instance = entity.get(traits.InstanceId)
 				if (instance !== undefined && instance >= 0 && object instanceof BatchedMesh) {

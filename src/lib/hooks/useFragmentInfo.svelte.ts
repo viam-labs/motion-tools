@@ -47,6 +47,33 @@ export const useFragmentInfo = (): FragmentInfoContext => {
 	return getContext<FragmentInfoContext>(key)
 }
 
+/**
+ * Extract the component names a `fragment_mods` list targets, from dot-notation
+ * mod paths like `components.<name>.frame` or `components.<name>.attributes.*`.
+ * A component only appears here if a fragment provides it, so its presence maps
+ * the component to that mod's fragment.
+ */
+const moddedComponentNames = (mods: unknown[]): string[] => {
+	const names: string[] = []
+	for (const mod of mods) {
+		if (!mod || typeof mod !== 'object') {
+			continue
+		}
+		for (const opValue of Object.values(mod as Record<string, unknown>)) {
+			if (!opValue || typeof opValue !== 'object') {
+				continue
+			}
+			for (const path of Object.keys(opValue as Record<string, unknown>)) {
+				const match = /^components\.([^.]+)/.exec(path)
+				if (match) {
+					names.push(match[1])
+				}
+			}
+		}
+	}
+	return names
+}
+
 const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext => {
 	const partQuery = createAppQuery('getRobotPart', () => [partID()] as const, {
 		refetchInterval: false,
@@ -112,6 +139,29 @@ const useStandaloneFragmentInfo = (partID: () => string): FragmentInfoContext =>
 							results[componentName.value] = fragmentInfo
 						}
 					}
+				}
+			}
+		}
+
+		// A component this part targets via `fragment_mods` is, by definition,
+		// provided by that mod's fragment — even when `getFragment` doesn't surface
+		// it as a top-level `components` entry (e.g. it comes from a nested
+		// fragment). Map those names too so their frame edits route to the fragment
+		// path (`updateFragmentFrame`) instead of silently no-opping against the
+		// part's own components. Fragment-component matches above keep priority
+		// since they also carry the base `frame`.
+		const fragmentMods = (configJSON?.['fragment_mods'] ?? []) as {
+			fragment_id?: string
+			mods?: unknown[]
+		}[]
+		for (const { fragment_id: modFragmentId, mods } of fragmentMods) {
+			if (!modFragmentId || !mods) {
+				continue
+			}
+			for (const name of moddedComponentNames(mods)) {
+				results[name] ??= {
+					id: modFragmentId,
+					variables: fragmentIdToVariables[modFragmentId] ?? {},
 				}
 			}
 		}

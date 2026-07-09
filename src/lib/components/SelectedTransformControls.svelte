@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { useThrelte } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
-	import { Matrix4 } from 'three'
+	import { Group, Matrix4 } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
@@ -13,7 +13,7 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
 
-	const { scene } = useThrelte()
+	const { invalidate } = useThrelte()
 	const settings = useSettings()
 	const environment = useEnvironment()
 	const fragmentInfo = useFragmentInfo()
@@ -23,11 +23,11 @@
 
 	const mode = $derived(settings.current.transformMode)
 	const entity = $derived(selected.current[0])
-	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
 	const transformable = useTrait(() => entity, traits.Transformable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const configMatrix = useTrait(() => entity, traits.Matrix)
 	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
+	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
@@ -39,11 +39,29 @@
 		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
 
-	// Mesh sets name={entity} on its inner mesh, so getObjectByName resolves
-	// to that mesh — not the parent Frame Group we actually want to drive. Walk
-	// up to the Group so translate/rotate/scale apply to the whole frame, not
-	// the geometry inside it.
-	const ref = $derived(object3d?.parent ?? object3d)
+	// Non-mesh frames (reference frames, and instanced box/sphere/capsule frames)
+	// render no named scene object, so `getObjectByName` can't locate a gizmo
+	// target. Drive a dedicated anchor Group from the selected entity's
+	// WorldMatrix instead — the same world transform the entity renderers
+	// compose. They mount at the scene root with `matrixAutoUpdate = false`, so
+	// this anchor's world-space transform matches theirs exactly.
+	const anchor = new Group()
+	anchor.matrixAutoUpdate = false
+
+	$effect.pre(() => {
+		const world = worldMatrix.current
+		if (!world) return
+
+		anchor.matrix.copy(world)
+		// Keep position/quaternion/scale in sync with the matrix so
+		// TransformControls (which reads/writes those fields) sees the entity's
+		// actual transform on drag start.
+		anchor.matrix.decompose(anchor.position, anchor.quaternion, anchor.scale)
+		anchor.updateMatrixWorld()
+		invalidate()
+	})
+
+	const ref = $derived(worldMatrix.current ? anchor : undefined)
 
 	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
 		if (mode === 'none' || !transformable.current) return
@@ -268,6 +286,10 @@
 </script>
 
 {#if transforming}
+	<T
+		is={anchor}
+		dispose={false}
+	/>
 	{#key entity}
 		<TransformControls
 			object={ref}
