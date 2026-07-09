@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
-	import { Group, Matrix4 } from 'three'
+	import { Group, Matrix4, MathUtils } from 'three'
 
 	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
 
@@ -294,9 +294,16 @@
 		<TransformControls
 			object={ref}
 			mode={activeMode}
-			translationSnap={settings.current.snapping ? 0.1 : undefined}
-			rotationSnap={settings.current.snapping ? Math.PI / 24 : undefined}
-			scaleSnap={settings.current.snapping ? 0.1 : undefined}
+			space={settings.current.transformSpace}
+			translationSnap={settings.current.snapping && settings.current.snapTranslate > 0
+				? settings.current.snapTranslate
+				: null}
+			rotationSnap={settings.current.snapping && settings.current.snapRotate > 0
+				? MathUtils.degToRad(settings.current.snapRotate)
+				: null}
+			scaleSnap={settings.current.snapping && settings.current.snapScale > 0
+				? settings.current.snapScale
+				: null}
 			showY={!isSphereScale}
 			showZ={!isSphereScale && !isCapsuleScale}
 			onmouseDown={onMouseDown}

@@ -20,7 +20,11 @@ export interface Settings {
 
 	// Transform controls
 	snapping: boolean
+	snapTranslate: number
+	snapRotate: number
+	snapScale: number
 	transformMode: 'none' | 'translate' | 'rotate' | 'scale'
+	transformSpace: 'local' | 'world'
 
 	// Grid
 	grid: boolean
@@ -97,7 +101,11 @@ const defaults = (): Settings => ({
 	disabledVisionServices: {},
 
 	snapping: false,
+	snapTranslate: 0.1,
+	snapRotate: 7.5,
+	snapScale: 0.1,
 	transformMode: 'none',
+	transformSpace: 'world',
 
 	grid: true,
 	gridCellSize: 0.5,
