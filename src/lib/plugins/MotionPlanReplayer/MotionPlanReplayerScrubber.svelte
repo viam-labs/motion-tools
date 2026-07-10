@@ -66,6 +66,10 @@
 	$effect(() => {
 		if (ctx.totalSteps <= 0 && isPlaying) pause()
 	})
+	$effect(() => {
+		document.body.classList.toggle('has-scrubber', ctx.totalSteps > 0)
+		return () => document.body.classList.remove('has-scrubber')
+	})
 </script>
 
 <Portal id="dom">
