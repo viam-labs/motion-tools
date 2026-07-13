@@ -1,4 +1,5 @@
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
+import { UuidTool } from 'uuid-tool'
 
 import {
 	Capsule,
@@ -13,9 +14,13 @@ import { quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
 
-import { planUuid } from './plan-uuid'
+import { PlanParseError } from './parse-plan'
 
-/** A rigid link with a fixed local transform — no joint involved. */
+/**
+ * Split from joints because a trajectory step only carries joint angles: every other frame's
+ * pose is fixed for the whole plan and can be built once. On the reference dual-arm rig that
+ * is 67 of 79 frames.
+ */
 export interface StaticFrameDescriptor {
 	kind: 'static'
 	name: string
@@ -25,7 +30,10 @@ export interface StaticFrameDescriptor {
 	uuid: Uint8Array<ArrayBuffer>
 }
 
-/** A revolute joint frame. Its pose at each step is a pure rotation around `axis` by the trajectory angle. */
+/**
+ * A step addresses joints positionally (`left-arm: [0.1, -0.3, …]`), so `componentName` +
+ * `jointIndex` are what turn a step into this frame's angle.
+ */
 export interface JointFrameDescriptor {
 	kind: 'joint'
 	name: string
@@ -38,7 +46,8 @@ export interface JointFrameDescriptor {
 
 export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 
-// Shared scratch objects — safe in single-threaded JS
+// Reused per frame instead of allocated. Safe only because none escape the borrowing function
+// — never hold one across an await or return it.
 const tmpQ = new Quaternion()
 const tmpQFrame = new Quaternion()
 const tmpQGeo = new Quaternion()
@@ -56,24 +65,25 @@ type OrientJson =
 	| { type: 'euler_angles'; value: EulerJson }
 	| { type: 'ov_degrees'; value: OvJson }
 	| { type: 'ov_radians'; value: OvJson }
-	| undefined
-type Vec3Json = { X: number; Y: number; Z: number } | undefined
+type Vec3Json = { X: number; Y: number; Z: number }
+type FramePoseJson = { translation?: Vec3Json; orientation?: OrientJson }
 
-const hasOrientJson = (orientation: OrientJson): orientation is NonNullable<OrientJson> =>
+const hasOrientJson = (orientation: OrientJson | undefined): orientation is OrientJson =>
 	orientation?.type === 'quaternion' ||
 	orientation?.type === 'euler_angles' ||
 	orientation?.type === 'ov_degrees' ||
 	orientation?.type === 'ov_radians'
 
-/** Write orientation JSON into `out`. RDK euler_angles use Tait–Bryan Z-Y′-X″ (ZYX). */
-const quatFromJson = (orientation: OrientJson, out: Quaternion): Quaternion => {
+/** Each branch is a conversion, not a copy — a wrong one mis-poses the arm silently. */
+const quatFromJson = (orientation: OrientJson | undefined, out: Quaternion): Quaternion => {
 	if (orientation?.type === 'quaternion' && orientation.value) {
 		const v = orientation.value
-		// Three.js Quaternion order: (x, y, z, w) — W is LAST
+		// RDK writes the scalar first; Three.js takes it last.
 		return out.set(v.X, v.Y, v.Z, v.W)
 	}
 	if (orientation?.type === 'euler_angles' && orientation.value) {
 		const v = orientation.value
+		// RDK uses Tait–Bryan Z-Y′-X″; Three.js defaults to 'XYZ'.
 		tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX')
 		return out.setFromEuler(tmpE)
 	}
@@ -86,10 +96,15 @@ const quatFromJson = (orientation: OrientJson, out: Quaternion): Quaternion => {
 		const th = MathUtils.degToRad(v.th ?? 0)
 		return tmpOv.set(v.x, v.y, v.z, th).toQuaternion(out)
 	}
+
+	// Omitting orientation is normal (a pure translation), not a malformed plan.
 	return out.set(0, 0, 0, 1)
 }
 
-const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): Pose => {
+const poseFromFrame = (
+	translation: Vec3Json | undefined,
+	orientation: OrientJson | undefined
+): Pose => {
 	const pose = new Pose({
 		x: translation?.X ?? 0,
 		y: translation?.Y ?? 0,
@@ -99,19 +114,14 @@ const poseFromFrame = (translation: Vec3Json, orientation: OrientJson): Pose => 
 	return pose
 }
 
-type FramePoseJson = { translation?: Vec3Json; orientation?: OrientJson }
-
 /**
- * Convert a geometry center pose from parent-frame coordinates into the link
- * frame's local coordinates.
- *
- * Both the link frame and geometry center are expressed in the same parent
- * frame. The link frame pose places the frame origin; the geometry describes
- * the physical link body (length/shape) with its center offset in parent space.
+ * An arm link's geometry center is measured from the link's *parent*, sibling to the link's own
+ * pose — but the renderer attaches geometry to the link and reads the center as link-local.
+ * Passing it through unchanged doubles every offset, so the parent frame has to be undone.
  */
 const geometryCenterInFrame = (
-	geoTrans: Vec3Json,
-	geoOrient: OrientJson,
+	geoTrans: Vec3Json | undefined,
+	geoOrient: OrientJson | undefined,
 	framePose: FramePoseJson
 ): Pose => {
 	quatFromJson(framePose.orientation, tmpQFrame)
@@ -137,23 +147,21 @@ const geometryCenterInFrame = (
 }
 
 /**
- * Parse a geometry from raw JSON, returning a proto Geometry.
- *
- * For named arm link frames, pass `framePose` so the geometry center (which is
- * in parent-frame coordinates alongside the link frame) is converted to local
- * coordinates via R_frame⁻¹.
- *
- * For tail_geometry_static / static frames, omit `framePose` — geometry is
- * already in local coordinates.
+ * Pass `framePose` for arm links, whose center is in parent coordinates (see
+ * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
+ * looks identical either way — only the frame's kind says which convention applies.
  */
 const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | null => {
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
-	if (type !== 'box' && type !== 'sphere' && type !== 'capsule') return null
 
-	const trans = g.translation as Vec3Json
-	const orient = g.orientation as OrientJson
+	// Go marshals the zero value rather than omitting it, so an empty type means "no geometry",
+	// not "unrecognized geometry" — distinct from the types rejected below.
+	if (type === '') return null
+
+	const trans = g.translation as Vec3Json | undefined
+	const orient = g.orientation as OrientJson | undefined
 	const center = framePose
 		? geometryCenterInFrame(trans, orient, framePose)
 		: (() => {
@@ -168,53 +176,87 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 				return local
 			})()
 
-	const label = (g.Label ?? g.label ?? '') as string
+	// Capitalized because RDK leaves the field untagged and Go marshals its exported name — as
+	// with X/Y/Z and W. There is no lowercase spelling to fall back to.
+	const label = (g.Label ?? '') as string
 
-	if (type === 'sphere') {
-		return new Geometry({
-			center,
-			geometryType: { case: 'sphere', value: new Sphere({ radiusMm: (g.r as number) ?? 0 }) },
-			label,
-		})
+	switch (type) {
+		case 'sphere': {
+			return new Geometry({
+				center,
+				geometryType: { case: 'sphere', value: new Sphere({ radiusMm: (g.r as number) ?? 0 }) },
+				label,
+			})
+		}
+
+		case 'capsule': {
+			return new Geometry({
+				center,
+				geometryType: {
+					case: 'capsule',
+					value: new Capsule({ radiusMm: (g.r as number) ?? 0, lengthMm: (g.l as number) ?? 0 }),
+				},
+				label,
+			})
+		}
+
+		case 'box': {
+			return new Geometry({
+				center,
+				geometryType: {
+					case: 'box',
+					value: new RectangularPrism({
+						dimsMm: new ViamVector3({
+							x: (g.x as number) ?? 0,
+							y: (g.y as number) ?? 0,
+							z: (g.z as number) ?? 0,
+						}),
+					}),
+				},
+				label,
+			})
+		}
+
+		// A stand-in shape would lie about where the collision volume is. PlanParseError
+		// specifically: `planDropper` only surfaces the message for that class.
+		default: {
+			throw new PlanParseError(`plan has an unsupported geometry type "${type}"`)
+		}
 	}
-	if (type === 'capsule') {
-		return new Geometry({
-			center,
-			geometryType: {
-				case: 'capsule',
-				value: new Capsule({ radiusMm: (g.r as number) ?? 0, lengthMm: (g.l as number) ?? 0 }),
-			},
-			label,
-		})
-	}
-	return new Geometry({
-		center,
-		geometryType: {
-			case: 'box',
-			value: new RectangularPrism({
-				dimsMm: new ViamVector3({
-					x: (g.x as number) ?? 0,
-					y: (g.y as number) ?? 0,
-					z: (g.z as number) ?? 0,
-				}),
-			}),
-		},
-		label,
-	})
 }
 
-export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
-	const { frames, parents } = plan
+type Frames = ParsedPlan['frames']
+type Parents = ParsedPlan['parents']
 
-	// Pass 1: map component name → ordered joint frame names (from "model" frames).
-	// This gives us the index each joint occupies in the trajectory array.
+const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
+	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
+
+/**
+ * Invert `parents` into a parent --> children index, so asking "who hangs off this frame?" is a
+ * lookup rather than a scan.
+ */
+const buildChildMap = (parents: Parents): Map<string, string[]> => {
+	const childMap = new Map<string, string[]>()
+
+	for (const [child, parent] of Object.entries(parents)) {
+		const siblings = childMap.get(parent)
+		if (siblings) siblings.push(child)
+		else childMap.set(parent, [child])
+	}
+
+	return childMap
+}
+
+/**
+ * The order of `model.joints` is the only record of which slot in a trajectory step drives
+ * which joint frame, so it has to be captured before any descriptor can claim a `jointIndex`.
+ */
+const buildJointMap = (frames: Frames): Map<string, string[]> => {
 	const jointMap = new Map<string, string[]>()
+
 	for (const [frameName, entry] of Object.entries(frames)) {
 		if (entry.frame_type !== 'model') continue
-		const model = (entry.frame as Record<string, unknown>).model as
-			| Record<string, unknown>
-			| undefined
-		const joints = model?.joints as Array<{ id: string }> | undefined
+		const joints = modelOf(entry)?.joints as Array<{ id: string }> | undefined
 		if (!joints) continue
 		jointMap.set(
 			frameName,
@@ -222,20 +264,28 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		)
 	}
 
-	// Pass 1b: map model frame name → its end-effector static frame name.
-	// External components (cameras, remote grippers) have parent = model frame name in the
-	// JSON, but the model frame itself is never an ECS entity. Reparent them to the terminal
-	// static frame so they appear at the arm's end-effector instead of floating at origin.
-	//
-	// Prefer primary_output_frame from model metadata; fall back to the last entry in
-	// model.links (always the end-effector in Viam's kinematic format). If neither is
-	// present, use the static frame parented to the last joint.
+	return jointMap
+}
+
+/**
+ * Anything bolted to an arm (camera, remote gripper) names the *model* frame as its parent, but
+ * a model frame never becomes an entity — such a child would inherit no transform and render at
+ * the world origin. Their parents get rewritten to the arm's terminal link.
+ *
+ * Three sources, because the frame system guarantees none of them: the model's declared
+ * `primary_output_frame`, else the last of `model.links` (the end-effector by Viam convention),
+ * else the static frame parented to the final joint.
+ */
+const buildModelTerminalMap = (
+	frames: Frames,
+	childMap: Map<string, string[]>,
+	jointMap: Map<string, string[]>
+): Map<string, string> => {
 	const modelTerminalMap = new Map<string, string>()
+
 	for (const [frameName, entry] of Object.entries(frames)) {
 		if (entry.frame_type !== 'model') continue
-		const model = (entry.frame as Record<string, unknown>).model as
-			| Record<string, unknown>
-			| undefined
+		const model = modelOf(entry)
 		const primaryOutput = model?.primary_output_frame as string | undefined
 		const links = model?.links as Array<{ id: string }> | undefined
 		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
@@ -243,20 +293,26 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 			modelTerminalMap.set(frameName, `${frameName}:${endEffectorId}`)
 			continue
 		}
-		const jointNames = jointMap.get(frameName)
-		const lastJoint = jointNames?.at(-1)
+
+		const lastJoint = jointMap.get(frameName)?.at(-1)
 		if (!lastJoint) continue
-		for (const [childFrame, parentName] of Object.entries(parents)) {
-			if (parentName === lastJoint) {
-				modelTerminalMap.set(frameName, childFrame)
-				break
-			}
-		}
+		const terminal = childMap.get(lastJoint)?.[0]
+		if (terminal) modelTerminalMap.set(frameName, terminal)
 	}
 
-	// Pass 2: emit one descriptor per frame. Joint frames become JointFrameDescriptors
-	// (their pose is computed from the trajectory at each step). All other frames
-	// become StaticFrameDescriptors with a fixed local pose.
+	return modelTerminalMap
+}
+
+/**
+ * Runs last: neither a frame's real parent nor a joint's index is answerable from that frame
+ * alone, which is why this cannot be a single pass.
+ */
+const buildDescriptors = (
+	plan: ParsedPlan,
+	jointMap: Map<string, string[]>,
+	modelTerminalMap: Map<string, string>
+): FrameDescriptor[] => {
+	const { frames, parents } = plan
 	const descriptors: FrameDescriptor[] = []
 
 	for (const [frameName, entry] of Object.entries(frames)) {
@@ -264,6 +320,8 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 		const parent = modelTerminalMap.get(rawParent) ?? rawParent
 
 		switch (entry.frame_type) {
+			// The arm's links and joints are already frames in their own right; a descriptor for
+			// the model itself would draw the arm a second time, at the origin.
 			case 'model': {
 				continue
 			}
@@ -285,6 +343,9 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 							break
 						}
 					}
+
+					// A rotational frame no model claims has no column in any step, so there is no
+					// angle to drive it. Dropping it leaves the rest of the plan viewable.
 					if (!componentName) continue
 
 					descriptors.push({
@@ -294,13 +355,13 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 						axis: innerData.axis as { X: number; Y: number; Z: number },
 						componentName,
 						jointIndex,
-						uuid: planUuid(),
+						uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
 					})
 				} else if (inner.frame_type === 'static') {
 					const innerData = inner.frame as Record<string, unknown>
 					const framePose: FramePoseJson = {
-						translation: innerData.translation as Vec3Json,
-						orientation: innerData.orientation as OrientJson,
+						translation: innerData.translation as Vec3Json | undefined,
+						orientation: innerData.orientation as OrientJson | undefined,
 					}
 					descriptors.push({
 						kind: 'static',
@@ -308,7 +369,7 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 						parent,
 						localPose: poseFromFrame(framePose.translation, framePose.orientation),
 						geometry: parseGeometry(innerData.geometry, framePose),
-						uuid: planUuid(),
+						uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
 					})
 				}
 				break
@@ -321,9 +382,12 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 					kind: 'static',
 					name: frameName,
 					parent,
-					localPose: poseFromFrame(frame.translation as Vec3Json, frame.orientation as OrientJson),
+					localPose: poseFromFrame(
+						frame.translation as Vec3Json | undefined,
+						frame.orientation as OrientJson | undefined
+					),
 					geometry: parseGeometry(frame.geometry),
-					uuid: planUuid(),
+					uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
 				})
 				break
 			}
@@ -331,4 +395,12 @@ export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
 	}
 
 	return descriptors
+}
+
+export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
+	const childMap = buildChildMap(plan.parents)
+	const jointMap = buildJointMap(plan.frames)
+	const modelTerminalMap = buildModelTerminalMap(plan.frames, childMap, jointMap)
+
+	return buildDescriptors(plan, jointMap, modelTerminalMap)
 }

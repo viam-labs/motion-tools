@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { ParsedPlan } from '../parse-plan'
 
 import { buildFrameDescriptors } from '../build-frame-descriptors'
+import { PlanParseError } from '../parse-plan'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
 	frames,
@@ -474,7 +475,7 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('returns null geometry for unrecognized geometry type', () => {
+	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
 		const p = plan(
 			{
 				'arm:link': {
@@ -496,5 +497,23 @@ describe('buildFrameDescriptors', () => {
 		const descriptors = buildFrameDescriptors(p)
 		const d = descriptors[0]!
 		if (d.kind === 'static') expect(d.geometry).toBeNull()
+	})
+
+	it('rejects an unsupported geometry type rather than rendering it as a box', () => {
+		const p = plan(
+			{
+				obstacle: {
+					frame_type: 'static',
+					frame: {
+						translation: { X: 0, Y: 0, Z: 0 },
+						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+						geometry: { type: 'mesh', x: 1, y: 2, z: 3 },
+					},
+				},
+			},
+			{ obstacle: 'world' }
+		)
+		expect(() => buildFrameDescriptors(p)).toThrow(PlanParseError)
+		expect(() => buildFrameDescriptors(p)).toThrow(/mesh/)
 	})
 })
