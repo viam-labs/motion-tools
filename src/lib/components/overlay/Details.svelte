@@ -32,7 +32,7 @@
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
 	import { relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -153,13 +153,13 @@
 		 */
 		if (nextType === geometryType) return
 
-		detailConfigUpdater.setGeometryType(entity, nextType)
+		frameEditor.setGeometryType(entity, nextType)
 	})
 
 	let copied = $state(false)
 	let dragElement = $state.raw<HTMLElement>()
 
-	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
@@ -168,7 +168,7 @@
 	const handleBoxChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
-		detailConfigUpdater.updateGeometry(entity, {
+		frameEditor.setGeometry(entity, {
 			type: 'box',
 			x: next.x,
 			y: next.y,
@@ -178,17 +178,17 @@
 
 	const handleSphereRChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'sphere', r: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'sphere', r: event.detail.value })
 	}
 
 	const handleCapsuleRChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', r: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'capsule', r: event.detail.value })
 	}
 
 	const handleCapsuleLChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
 	const getCopyClipboardText = () => {
@@ -587,7 +587,7 @@
 			<Button
 				variant="danger"
 				class="mt-2 w-full"
-				onclick={() => detailConfigUpdater.deleteFrame(entity)}
+				onclick={() => frameEditor.deleteFrame(entity)}
 			>
 				Delete frame
 			</Button>

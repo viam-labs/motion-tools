@@ -47,7 +47,7 @@ export const Center = trait({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
  */
 export const Matrix = trait(() => new Matrix4())
 
-/** User-staged local transform during a `FrameEditSession`. */
+/** User-staged local transform written by frame-editing tools (see `FrameEditor`). */
 export const EditedMatrix = trait(() => new Matrix4())
 
 /**
