@@ -1,0 +1,70 @@
+---
+title: <MotionPlanReplayer />
+description: Upload a motion plan JSON and step through its trajectory in 3D inside a motion-tools visualizer.
+---
+
+`<MotionPlanReplayer />` adds a floating panel to the visualizer for replaying motion plans. Drop in a motion plan JSON (the request/result payload emitted by RDK's motion service) and the plugin parses it client-side into per-step snapshots, then renders the frame system — arm links, joints, and obstacles — in 3D. A scrubber lets you play, pause, and step through the trajectory.
+
+## Usage
+
+Mount `<MotionPlanReplayer />` anywhere inside `<Visualizer />`:
+
+```svelte
+<script lang="ts">
+	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { MotionPlanReplayer } from '@viamrobotics/motion-tools/plugins'
+</script>
+
+<div class="h-screen w-screen">
+	<Visualizer>
+		<MotionPlanReplayer />
+	</Visualizer>
+</div>
+```
+
+## Uploading a plan
+
+Click the upload button in the panel and select a motion plan JSON file. Each uploaded plan is added to the list with a status:
+
+- **ready** — parsed successfully; select it to render and scrub.
+- **no-trajectory** — the plan parsed but has no trajectory steps to replay.
+- **error** — the file could not be parsed as a motion plan.
+
+Selecting a `ready` plan spawns its entities and reveals the scrubber. Removing a plan (or exiting replay) tears the plan's entities back down.
+
+## Scrubbing
+
+Once a plan is selected, the scrubber appears at the bottom of the viewport:
+
+1. **Play / pause** steps through the trajectory automatically.
+2. **Previous / next** advance one step at a time.
+3. **Jump to start / end** snap to the first or last step.
+4. The **slider** seeks to any step directly.
+
+Each step reconciles the scene against that step's snapshot, moving joints and links to their pose for that frame.
+
+## Per-frame display config
+
+Plan entities behave like any other scene entity: select one in the 3D view to open the **Details** panel, where you can change its color, opacity, and axes-helper visibility, or hide it from the left-hand tree. These edits **persist as you scrub** — they are captured before each step's reconcile and restored afterward, so stepping through the trajectory doesn't reset them.
+
+Display edits are session-only: reloading the plan or refreshing the page restores the defaults.
+
+## Seeding and injecting plans
+
+Two optional props let a host app supply plans without the user uploading files by hand.
+
+`plans` seeds the list on mount — useful when your app already has plan payloads (e.g. fetched from a database):
+
+```svelte
+<MotionPlanReplayer plans={[{ name: 'grab-cup', content: planJson }]} />
+```
+
+`extraSource` is a snippet rendered inside the panel's action area. It receives `addPlan(name, content)`, so you can add a custom source — a database picker, a fetch button — without escaping the plugin's context boundary:
+
+```svelte
+<MotionPlanReplayer>
+	{#snippet extraSource(addPlan)}
+		<button onclick={() => addPlan('from-db', fetchedContent)}> Load from database </button>
+	{/snippet}
+</MotionPlanReplayer>
+```
