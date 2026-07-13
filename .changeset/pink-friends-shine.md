@@ -1,5 +1,5 @@
 ---
-'@viamrobotics/motion-tools': patch
+'@viamrobotics/motion-tools': minor
 ---
 
-motion plan replay docs
+Motion plan replayer + docs

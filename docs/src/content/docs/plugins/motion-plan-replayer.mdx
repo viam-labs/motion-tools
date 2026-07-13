@@ -49,22 +49,40 @@ Plan entities behave like any other scene entity: select one in the 3D view to o
 
 Display edits are session-only: reloading the plan or refreshing the page restores the defaults.
 
-## Seeding and injecting plans
+## Props
 
-Two optional props let a host app supply plans without the user uploading files by hand.
-
-`plans` seeds the list on mount — useful when your app already has plan payloads (e.g. fetched from a database):
+| Prop       | Type          | Default | Description                                                                                       |
+| ---------- | ------------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `plans`    | `PlanEntry[]` | —       | Seeds the plan list on mount — useful when your app already has plan payloads (e.g. from a DB).   |
+| `children` | `Snippet`     | —       | Rendered inside the panel's action area, above the upload button — a place for your own controls. |
 
 ```svelte
 <MotionPlanReplayer plans={[{ name: 'grab-cup', content: planJson }]} />
 ```
 
-`extraSource` is a snippet rendered inside the panel's action area. It receives `addPlan(name, content)`, so you can add a custom source — a database picker, a fetch button — without escaping the plugin's context boundary:
+## Adding plans from your own source
+
+Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<MotionPlanReplayer />`. Rendering your component as a child puts it inside the plugin's context, so it can call `addPlan` directly — no props to thread:
 
 ```svelte
 <MotionPlanReplayer>
-	{#snippet extraSource(addPlan)}
-		<button onclick={() => addPlan('from-db', fetchedContent)}> Load from database </button>
-	{/snippet}
+	<PlanDatabasePicker />
 </MotionPlanReplayer>
 ```
+
+```svelte
+<!-- PlanDatabasePicker.svelte — your component, your data fetching -->
+<script lang="ts">
+	import { useMotionPlanReplayer } from '@viamrobotics/motion-tools/plugins'
+
+	const replayer = useMotionPlanReplayer()
+</script>
+
+<button onclick={async () => replayer.addPlan('from-db', await fetchPlan())}>
+	Load from database
+</button>
+```
+
+`addPlan(name, content)` parses the plan, adds it to the list, and selects it. The hook also exposes the current `plans` and `activePlanIndex`, plus `removePlan`, `selectPlan`, `setStep`, and `clearActivePlan` — so a custom panel can drive the replayer as fully as the built-in UI does.
+
+Calling `useMotionPlanReplayer()` outside a `<MotionPlanReplayer />` throws.
