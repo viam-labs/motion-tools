@@ -18,13 +18,6 @@ const PlanChunkSchema = z.object({
 
 export type RawFrame = z.infer<typeof RawFrameSchema>
 
-export type ParsedPlan = {
-	frames: Record<string, RawFrame>
-	parents: Record<string, string>
-	trajectory: Array<Record<string, number[]>>
-	goals: unknown[]
-}
-
 export class PlanParseError extends Error {
 	constructor(message: string) {
 		super(message)
@@ -88,49 +81,58 @@ const splitJsonObjects = (content: string): string[] => {
 	return chunks
 }
 
-const parseChunk = (raw: string): z.infer<typeof PlanChunkSchema> => {
-	let parsed: unknown
-	try {
-		parsed = JSON.parse(raw)
-	} catch {
-		throw new PlanParseError('plan JSON contains invalid JSON')
-	}
+const PlanSchema = z
+	.string()
+	// A plan file is one or more JSON objects concatenated with no separator, so
+	// split it before anything can be handed to JSON.parse.
+	.transform(splitJsonObjects)
+	.pipe(z.array(z.string()).min(1, 'plan JSON contains invalid JSON'))
+	.transform((chunks, ctx) => {
+		try {
+			return chunks.map((raw) => JSON.parse(raw) as unknown)
+		} catch {
+			ctx.addIssue({ code: 'custom', message: 'plan JSON contains invalid JSON' })
+			return z.NEVER
+		}
+	})
+	.pipe(z.array(PlanChunkSchema))
+	.transform((chunks, ctx) => {
+		let frames: Record<string, RawFrame> = {}
+		let parents: Record<string, string> = {}
+		let trajectory: Array<Record<string, number[]>> = []
+		let goals: unknown[] = []
+		let foundFrameSystem = false
 
-	const result = PlanChunkSchema.safeParse(parsed)
-	if (!result.success) {
-		throw new PlanParseError('plan JSON does not match expected motion plan format')
-	}
-	return result.data
-}
+		for (const chunk of chunks) {
+			if (chunk.frame_system) {
+				frames = chunk.frame_system.frames
+				parents = chunk.frame_system.parents
+				goals = chunk.goals ?? []
+				foundFrameSystem = true
+			}
+
+			if (chunk.trajectory) {
+				trajectory = chunk.trajectory
+			}
+		}
+
+		if (!foundFrameSystem) {
+			ctx.addIssue({ code: 'custom', message: 'plan is missing frame_system' })
+			return z.NEVER
+		}
+
+		return { frames, parents, trajectory, goals }
+	})
+
+export type ParsedPlan = z.infer<typeof PlanSchema>
 
 export const parsePlan = (content: string): ParsedPlan => {
-	const chunks = splitJsonObjects(content)
-	if (chunks.length === 0) {
-		throw new PlanParseError('plan JSON contains invalid JSON')
-	}
+	const result = PlanSchema.safeParse(content)
+	if (result.success) return result.data
 
-	let frames: Record<string, RawFrame> = {}
-	let parents: Record<string, string> = {}
-	let trajectory: Array<Record<string, number[]>> = []
-	let goals: unknown[] = []
-	let foundFrameSystem = false
-
-	for (const chunk of chunks) {
-		const obj = parseChunk(chunk)
-
-		if (obj.frame_system) {
-			frames = obj.frame_system.frames
-			parents = obj.frame_system.parents
-			goals = obj.goals ?? []
-			foundFrameSystem = true
-		}
-
-		if (obj.trajectory) {
-			trajectory = obj.trajectory
-		}
-	}
-
-	if (!foundFrameSystem) throw new PlanParseError('plan is missing frame_system')
-
-	return { frames, parents, trajectory, goals }
+	const issue = result.error.issues[0]
+	const path = issue?.path.join('.')
+	throw new PlanParseError(
+		path ? `${issue!.message} (at ${path})` : (issue?.message ?? 'plan JSON is invalid')
+	)
 }
