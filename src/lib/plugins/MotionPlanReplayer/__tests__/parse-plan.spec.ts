@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parsePlan, PlanParseError } from '../parse-plan'
+import capturedPlan from './__fixtures__/plan.json?raw'
 
 const MINIMAL_FRAME_SYSTEM = {
 	frames: {
@@ -50,5 +51,47 @@ describe('parsePlan', () => {
 		expect(() =>
 			parsePlan(JSON.stringify({ frame_system: MINIMAL_FRAME_SYSTEM, trajectory: 'bad' }))
 		).toThrow(PlanParseError)
+	})
+})
+
+/**
+ * `plan.json` is an unmodified capture of a two-armed rig lowering to a cup —
+ * the same file a user drags into the tool. It is deliberately not touched up,
+ * so these assertions describe what real plans actually contain.
+ */
+describe('parsePlan with a captured plan', () => {
+	const plan = parsePlan(capturedPlan)
+
+	it('reads the frame system and the trajectory from the two concatenated objects', () => {
+		expect(Object.keys(plan.frames)).toHaveLength(79)
+		expect(Object.keys(plan.parents)).toHaveLength(79)
+		expect(plan.goals).toHaveLength(1)
+		expect(plan.trajectory).toHaveLength(2)
+	})
+
+	it('keeps every frame type the planner emits', () => {
+		const counts: Record<string, number> = {}
+		for (const { frame_type } of Object.values(plan.frames)) {
+			counts[frame_type] = (counts[frame_type] ?? 0) + 1
+		}
+
+		expect(counts).toEqual({ static: 4, tail_geometry_static: 19, model: 15, named: 41 })
+	})
+
+	it('keeps the empty joint arrays that static frames carry in every step', () => {
+		const step = plan.trajectory[0]!
+		const moving = Object.entries(step).filter(([, joints]) => joints.length > 0)
+
+		// Only the two arms actually articulate; the other 36 frames ride along
+		// with an empty array, which is the shape the descriptor builder relies on.
+		expect(Object.keys(step)).toHaveLength(38)
+		expect(moving.map(([name]) => name)).toEqual(['left-arm', 'right-arm'])
+		expect(step['left-arm']).toHaveLength(6)
+	})
+
+	it('ignores the planner keys the replayer does not read', () => {
+		// world_state, constraints, planner_options, start_state and path are all
+		// present in the capture; parsing must not reject them.
+		expect(plan.frames['obstacle-table']).toBeDefined()
 	})
 })
