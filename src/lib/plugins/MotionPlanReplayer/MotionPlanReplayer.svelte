@@ -3,7 +3,6 @@
 
 	import { untrack } from 'svelte'
 
-	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
 	import MotionPlanReplayerUI from './MotionPlanReplayerUI.svelte'
 	import { type PlanEntry, provideMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
@@ -24,4 +23,3 @@
 </script>
 
 <MotionPlanReplayerUI {children} />
-<MotionPlanReplayerScrubber />
