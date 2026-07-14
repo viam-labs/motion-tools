@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	import { Portal } from '@threlte/extras'
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { Eye, EyeOff } from 'lucide-svelte'
 
+	import { DashboardPortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
@@ -65,7 +65,7 @@
 	}
 </script>
 
-<Portal id="dashboard">
+<DashboardPortal>
 	<fieldset>
 		<DashboardButton
 			active={isOpen}
@@ -74,80 +74,78 @@
 			onclick={() => (isOpen = !isOpen)}
 		/>
 	</fieldset>
-</Portal>
+</DashboardPortal>
 
-<Portal id="dom">
-	<FloatingPanel
-		bind:isOpen
-		title="Motion Plan Replayer"
-		defaultSize={{ width: 320, height: 260 }}
-	>
-		<div class="flex h-full flex-col gap-1 p-2 text-xs">
-			{#if ctx.plans.length === 0}
-				<div class="text-subtle-1 flex grow items-center justify-center text-center">
-					Use the button below to upload a plan JSON file
-				</div>
-			{/if}
+<FloatingPanel
+	bind:isOpen
+	title="Motion Plan Replayer"
+	defaultSize={{ width: 320, height: 260 }}
+>
+	<div class="flex h-full flex-col gap-1 p-2 text-xs">
+		{#if ctx.plans.length === 0}
+			<div class="text-subtle-1 flex grow items-center justify-center text-center">
+				Use the button below to upload a plan JSON file
+			</div>
+		{/if}
 
-			{#each ctx.plans as plan, i (plan.name)}
-				{@const isActive = ctx.activePlanIndex === i}
-				<div
-					class={[
-						'flex cursor-pointer items-center gap-1 rounded px-2 py-1',
-						isActive ? 'bg-light font-medium' : 'hover:bg-ghost-light',
-					]}
-					role="button"
-					tabindex="0"
-					onclick={() => (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
-					onkeydown={(e) =>
-						e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
-				>
-					<span class="text-subtle-1 mr-1 shrink-0">
-						{#if isActive}
-							<Eye size={14} />
-						{:else}
-							<EyeOff size={14} />
-						{/if}
-					</span>
-					<span class="grow truncate">{plan.name}</span>
+		{#each ctx.plans as plan, i (plan.name)}
+			{@const isActive = ctx.activePlanIndex === i}
+			<div
+				class={[
+					'flex cursor-pointer items-center gap-1 rounded px-2 py-1',
+					isActive ? 'bg-light font-medium' : 'hover:bg-ghost-light',
+				]}
+				role="button"
+				tabindex="0"
+				onclick={() => (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
+				onkeydown={(e) =>
+					e.key === 'Enter' && (isActive ? ctx.clearActivePlan() : ctx.selectPlan(i))}
+			>
+				<span class="text-subtle-1 mr-1 shrink-0">
+					{#if isActive}
+						<Eye size={14} />
+					{:else}
+						<EyeOff size={14} />
+					{/if}
+				</span>
+				<span class="grow truncate">{plan.name}</span>
 
-					<button
-						type="button"
-						class="text-subtle-1 ml-1 rounded px-1 hover:text-red-500"
-						onclick={(e) => {
-							e.stopPropagation()
-							ctx.removePlan(i)
-						}}
-						aria-label="Remove plan"
-						title="Remove plan">×</button
-					>
-				</div>
-
-				{#if plan.status === 'error'}
-					<div class="pl-5 text-[10px] text-red-600">{plan.error}</div>
-				{/if}
-				{#if plan.status === 'no-trajectory'}
-					<div class="pl-5 text-[10px] text-yellow-600">No trajectory — nothing to replay</div>
-				{/if}
-			{/each}
-
-			<div class="mt-auto pt-1">
-				{@render children?.()}
-				<input
-					bind:this={fileInput}
-					type="file"
-					accept=".json"
-					class="hidden"
-					onchange={onFileChange}
-				/>
 				<button
 					type="button"
-					class="border-light text-subtle-1 hover:bg-light w-full rounded border px-2 py-1"
-					onclick={() => fileInput?.click()}
+					class="text-subtle-1 ml-1 rounded px-1 hover:text-red-500"
+					onclick={(e) => {
+						e.stopPropagation()
+						ctx.removePlan(i)
+					}}
+					aria-label="Remove plan"
+					title="Remove plan">×</button
 				>
-					Upload plan JSON
-				</button>
 			</div>
+
+			{#if plan.status === 'error'}
+				<div class="pl-5 text-[10px] text-red-600">{plan.error}</div>
+			{/if}
+			{#if plan.status === 'no-trajectory'}
+				<div class="pl-5 text-[10px] text-yellow-600">No trajectory — nothing to replay</div>
+			{/if}
+		{/each}
+
+		<div class="mt-auto pt-1">
+			{@render children?.()}
+			<input
+				bind:this={fileInput}
+				type="file"
+				accept=".json"
+				class="hidden"
+				onchange={onFileChange}
+			/>
+			<button
+				type="button"
+				class="border-light text-subtle-1 hover:bg-light w-full rounded border px-2 py-1"
+				onclick={() => fileInput?.click()}
+			>
+				Upload plan JSON
+			</button>
 		</div>
-	</FloatingPanel>
-</Portal>
+	</div>
+</FloatingPanel>
