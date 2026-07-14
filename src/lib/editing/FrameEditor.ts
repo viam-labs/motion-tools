@@ -18,8 +18,6 @@ export type DeleteFrameFn = (componentName: string) => void
 type Geometry = NonNullable<Frame['geometry']>
 type GeometryType = Geometry['type']
 
-const tempPose = createPose()
-
 const defaultGeometry = (type: GeometryType): Geometry => {
 	switch (type) {
 		case 'box': {
@@ -58,8 +56,7 @@ const resolveGeometry = (entity: Entity, geometry: Partial<Geometry>): Geometry 
 	}
 	if (geometry.type === 'sphere') {
 		if (geometry.r === undefined) return
-		const cur = entity.get(traits.Sphere)
-		return { type: 'sphere', r: geometry.r ?? cur?.r ?? 0 }
+		return { type: 'sphere', r: geometry.r }
 	}
 	if (geometry.type === 'capsule') {
 		if (geometry.r === undefined && geometry.l === undefined) return
@@ -107,6 +104,9 @@ const parentName = (entity: Entity): string => hierarchy.getParentName(entity) ?
 export class FrameEditor {
 	#updateFrame: UpdateFrameFn
 	#deleteFrame: DeleteFrameFn
+	// Per-instance scratch pose so a synchronous Koota subscriber firing on a
+	// trait change can't clobber it mid-method from another FrameEditor.
+	#tempPose = createPose()
 
 	constructor(updateFrame: UpdateFrameFn, deleteFrame: DeleteFrameFn) {
 		this.#updateFrame = updateFrame
@@ -119,8 +119,8 @@ export class FrameEditor {
 		const matrix = entity.get(traits.EditedMatrix)
 		if (!name || !matrix) return
 
-		matrixToPose(matrix, tempPose)
-		const next: Pose = { ...tempPose, ...pose }
+		matrixToPose(matrix, this.#tempPose)
+		const next: Pose = { ...this.#tempPose, ...pose }
 		// Guard against a degenerate gizmo solve producing NaN/∞ — leave the frame
 		// at its last good pose rather than writing garbage into the config.
 		if (!isFinitePose(next)) return
@@ -147,8 +147,8 @@ export class FrameEditor {
 		if (!name || !matrix) return
 
 		applyGeometryTrait(entity, geometry)
-		matrixToPose(matrix, tempPose)
-		this.#updateFrame(name, parentName(entity), { ...tempPose }, geometry)
+		matrixToPose(matrix, this.#tempPose)
+		this.#updateFrame(name, parentName(entity), { ...this.#tempPose }, geometry)
 	}
 
 	setParent = (entity: Entity, parent: string): void => {
@@ -157,8 +157,8 @@ export class FrameEditor {
 		if (!name || !matrix) return
 
 		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
-		matrixToPose(matrix, tempPose)
-		this.#updateFrame(name, parent, { ...tempPose })
+		matrixToPose(matrix, this.#tempPose)
+		this.#updateFrame(name, parent, { ...this.#tempPose })
 	}
 
 	deleteFrame = (entity: Entity): void => {
