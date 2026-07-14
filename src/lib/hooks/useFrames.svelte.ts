@@ -25,6 +25,12 @@ interface FramesContext {
 	current: Transform[]
 }
 
+interface KinematicNode {
+	id: string
+	parent: string | null
+	isLink: boolean
+}
+
 const key = Symbol('frames-context')
 
 export const provideFrames = (partID: () => string) => {
@@ -84,17 +90,39 @@ export const provideFrames = (partID: () => string) => {
 	$inspect(kinematics)
 
 	const kinematicsDerivedFrames = $derived.by(() => {
+
+		const nodes: Record<string, KinematicNode> = {}
+
 		const frames: Record<string, Transform> = {}
 		for (const [componentName, kinematicJson] of Object.entries(kinematics)) {
 			for (const link of kinematicJson.links ?? []) {
+				nodes[link.id] = {
+					id: link.id,
+					parent: link.parent,
+					isLink: true,
+				}
+			}
+			for (const joint of kinematicJson.joints ?? []) {
+				nodes[joint.id] = {
+					id: joint.id,
+					parent: joint.parent,
+					isLink: false,
+				}
+			}
+			for (const link of kinematicJson.links ?? []) {
 				const frameName = `${componentName}:${link.id}`
 				const pose = createPoseFromOrientation(link.translation, link.orientation)
+				let parent = nodes[link.parent]
+				while (parent && !parent.isLink && parent.parent !== null) {
+					parent = nodes[parent.parent]
+				}
+				const parentFrameName = parent ? `${componentName}:${parent.id}` : componentName
 
 				frames[frameName] = {
 					uuid: new Uint8Array(0),
 					referenceFrame: frameName,
 					poseInObserverFrame: {
-						referenceFrame: componentName,
+						referenceFrame: parentFrameName,
 						pose,
 					},
 				}
