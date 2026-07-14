@@ -21,8 +21,13 @@ import { useFrameEditSession } from './useFrameEditSession.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
+interface TransformMetadata {
+	fromKinematics: boolean
+	isEndEffector: boolean
+}
+
 interface FramesContext {
-	current: Transform[]
+	current: (Transform & TransformMetadata)[]
 }
 
 interface KinematicNode {
@@ -93,7 +98,7 @@ export const provideFrames = (partID: () => string) => {
 
 		const nodes: Record<string, KinematicNode> = {}
 
-		const frames: Record<string, Transform> = {}
+		const frames: Record<string, Transform & TransformMetadata> = {}
 		for (const [componentName, kinematicJson] of Object.entries(kinematics)) {
 			for (const link of kinematicJson.links ?? []) {
 				nodes[link.id] = {
@@ -109,7 +114,8 @@ export const provideFrames = (partID: () => string) => {
 					isLink: false,
 				}
 			}
-			for (const link of kinematicJson.links ?? []) {
+			for (let i = 0; i < kinematicJson.links.length; i++) {
+				const link = kinematicJson.links[i]
 				const frameName = `${componentName}:${link.id}`
 				const pose = createPoseFromOrientation(link.translation, link.orientation)
 				let parent = nodes[link.parent]
@@ -119,6 +125,8 @@ export const provideFrames = (partID: () => string) => {
 				const parentFrameName = parent ? `${componentName}:${parent.id}` : componentName
 
 				frames[frameName] = {
+					fromKinematics: true,
+					isEndEffector: false,
 					uuid: new Uint8Array(0),
 					referenceFrame: frameName,
 					poseInObserverFrame: {
@@ -159,6 +167,10 @@ export const provideFrames = (partID: () => string) => {
 					}
 
 					frames[frameName].physicalObject = geo
+				}
+
+				if (i === kinematicJson.links.length - 1) {
+					frames[frameName].isEndEffector = true
 				}
 			}
 		}
@@ -212,10 +224,9 @@ export const provideFrames = (partID: () => string) => {
 		return frames
 	})
 
-	$inspect(frames)
-	$inspect(kinematicsDerivedFrames)
-
 	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
+
+	$inspect(current)
 
 	const entities = new Map<string, Entity | undefined>()
 
