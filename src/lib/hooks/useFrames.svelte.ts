@@ -1,4 +1,4 @@
-import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
+import { MachineConnectionEvent, Pose, Transform } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -7,12 +7,13 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
-import { Matrix4 } from 'three'
+import { Matrix4, Quaternion } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { createPoseFromOrientation, parseKinematicsGeometry } from '$lib/kinematicsTransform'
 import { useLogs } from '$lib/plugins'
-import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
+import { createPose, isPoseEqual, poseToMatrix, poseToQuaternion, quaternionToPose } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -70,6 +71,62 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const kinematics: Record<string, any> = $derived.by(() => {
+		const kinematics: Record<string, any> = {}
+		for (const fsConfig of query.data ?? []) {
+			if (fsConfig.kinematics === undefined || Object.keys(fsConfig.kinematics.fields).length === 0) {
+				continue
+			}
+			kinematics[fsConfig.frame?.referenceFrame ?? ''] = fsConfig.kinematics.toJson() as any
+		}
+		return kinematics
+	})
+	$inspect(kinematics)
+
+	const kinematicsDerivedFrames = $derived.by(() => {
+		const frames: Record<string, Transform> = {}
+		for (const [componentName, kinematicJson] of Object.entries(kinematics)) {
+			for (const link of kinematicJson.links ?? []) {
+				const frameName = `${componentName}:${link.id}`
+				const pose = createPoseFromOrientation(link.translation, link.orientation)
+
+				// TODO: doing some hacky stuff to offset the geometry properly (need to clarify how transforms and geo transforms should be appleid together when building this new frame setup for kinematics)
+				frames[frameName] = {
+					uuid: new Uint8Array(0),
+					referenceFrame: frameName,
+					poseInObserverFrame: {
+						referenceFrame: 'world',
+						pose,
+					},
+				}
+
+				if (link.geometry) {
+					const geo = parseKinematicsGeometry(link.geometry)
+					if (geo.center) {
+						geo.center.x -= pose.x
+						geo.center.y -= pose.y
+						geo.center.z -= pose.z
+
+						// const geoCenterQuat = new Quaternion()
+						// const frameQuat = new Quaternion()
+						// poseToQuaternion(geo.center, geoCenterQuat)
+						// poseToQuaternion(pose, frameQuat)
+						// geoCenterQuat.multiply(frameQuat.invert())
+						// const result = new Pose()
+						// quaternionToPose(geoCenterQuat, result)
+						// geo.center.oX = result.oX
+						// geo.center.oY = result.oY
+						// geo.center.oZ = result.oZ
+						// geo.center.theta = result.theta
+					}
+
+					frames[frameName].physicalObject = geo
+				}
+			}
+		}
+		return frames
+	})
+
 	const frames = $derived.by(() => {
 		const frames: Record<string, Transform> = {}
 
@@ -117,7 +174,10 @@ export const provideFrames = (partID: () => string) => {
 		return frames
 	})
 
-	const current = $derived(Object.values(frames))
+	$inspect(frames)
+	$inspect(kinematicsDerivedFrames)
+
+	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
 
 	const entities = new Map<string, Entity | undefined>()
 
