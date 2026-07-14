@@ -4,7 +4,7 @@ import { getContext, setContext } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { relations, traits, useWorld } from '$lib/ecs'
+import { traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
@@ -76,37 +76,44 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		activePlanIndex = null
 	}
 
-	const tagPartOfPlan = (entity: Entity): void => {
-		if (!planEntity) return
-		entity.add(planRelations.PartOfPlan(planEntity))
-		for (const child of world.query(relations.ChildOf(entity))) {
-			tagPartOfPlan(child)
-		}
-	}
-
 	const applyStep = (snapshots: Snapshot[], step: number) => {
 		const snap = snapshots[step]!
 
 		const result = reconcileSnapshotEntities(world, snap, entityMap)
 
+		// One spawned entry per snapshot message. Plans emit transforms only, and a
+		// transform spawns exactly one childless entity — so tagging the spawned set
+		// tags every entity the plan owns. Model drawings (the one case that spawns
+		// ChildOf sub-entities, for GLTF assets) would need those tagged too.
 		for (const spawned of result.spawned) {
 			relationships.apply(spawned.entity, spawned.relationships)
 			const uuid = spawned.entity.get(traits.UUID)
 			if (uuid) relationships.flush(uuid)
-			tagPartOfPlan(spawned.entity)
+			if (planEntity) spawned.entity.add(planRelations.PartOfPlan(planEntity))
 		}
 		entityMap = result.current
 
+		// `set` writes the trait's store slot but will not add an absent trait — the
+		// entity's mask is untouched, so nothing querying the trait ever sees the value.
+		// Plan transforms carry no color metadata, so `Color` is always absent on spawn;
+		// `Opacity` is always present (drawTransform adds it unconditionally), but guard
+		// both rather than depend on that.
 		if (planEntity) {
 			for (const entity of world.query(planRelations.PartOfPlan(planEntity))) {
 				if (!entity.isAlive()) continue
 				if (entity.has(traits.ReferenceFrame)) continue
+
 				if (entity.has(traits.Color)) {
 					entity.set(traits.Color, PLAN_COLOR)
 				} else {
 					entity.add(traits.Color(PLAN_COLOR))
 				}
-				entity.set(traits.Opacity, PLAN_OPACITY)
+
+				if (entity.has(traits.Opacity)) {
+					entity.set(traits.Opacity, PLAN_OPACITY)
+				} else {
+					entity.add(traits.Opacity(PLAN_OPACITY))
+				}
 			}
 		}
 
