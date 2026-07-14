@@ -94,7 +94,7 @@ export const provideFrames = (partID: () => string) => {
 					uuid: new Uint8Array(0),
 					referenceFrame: frameName,
 					poseInObserverFrame: {
-						referenceFrame: 'world',
+						referenceFrame: componentName,
 						pose,
 					},
 				}
