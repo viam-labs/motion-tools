@@ -1,4 +1,4 @@
-import { MachineConnectionEvent, Pose, Transform } from '@viamrobotics/sdk'
+import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -7,7 +7,7 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
-import { Matrix4, Quaternion } from 'three'
+import { Matrix4, Quaternion, Vector3 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
@@ -90,7 +90,6 @@ export const provideFrames = (partID: () => string) => {
 				const frameName = `${componentName}:${link.id}`
 				const pose = createPoseFromOrientation(link.translation, link.orientation)
 
-				// TODO: doing some hacky stuff to offset the geometry properly (need to clarify how transforms and geo transforms should be appleid together when building this new frame setup for kinematics)
 				frames[frameName] = {
 					uuid: new Uint8Array(0),
 					referenceFrame: frameName,
@@ -103,21 +102,32 @@ export const provideFrames = (partID: () => string) => {
 				if (link.geometry) {
 					const geo = parseKinematicsGeometry(link.geometry)
 					if (geo.center) {
-						geo.center.x -= pose.x
-						geo.center.y -= pose.y
-						geo.center.z -= pose.z
+						// `link.geometry`'s translation/orientation in the kinematics JSON is
+						// expressed in the same frame as `link.translation`/`link.orientation`
+						// (the link's parent frame), not relative to the link's own rotated
+						// frame — rdk's `staticFrame.Geometries()` returns the geometry pose
+						// untouched by the link's own transform. `Center` renders as
+						// `WorldMatrix × Center × part` (local to this frame), so rotate out
+						// the frame's own orientation to express the geometry locally.
+						const frameQuat = new Quaternion()
+						poseToQuaternion(pose, frameQuat)
+						const invFrameQuat = frameQuat.clone().invert()
 
-						// const geoCenterQuat = new Quaternion()
-						// const frameQuat = new Quaternion()
-						// poseToQuaternion(geo.center, geoCenterQuat)
-						// poseToQuaternion(pose, frameQuat)
-						// geoCenterQuat.multiply(frameQuat.invert())
-						// const result = new Pose()
-						// quaternionToPose(geoCenterQuat, result)
-						// geo.center.oX = result.oX
-						// geo.center.oY = result.oY
-						// geo.center.oZ = result.oZ
-						// geo.center.theta = result.theta
+						const geoQuat = new Quaternion()
+						poseToQuaternion(geo.center, geoQuat)
+
+						const offset = new Vector3(
+							geo.center.x - pose.x,
+							geo.center.y - pose.y,
+							geo.center.z - pose.z
+						).applyQuaternion(invFrameQuat)
+
+						geo.center.x = offset.x
+						geo.center.y = offset.y
+						geo.center.z = offset.z
+
+						invFrameQuat.multiply(geoQuat)
+						quaternionToPose(invFrameQuat, geo.center)
 					}
 
 					frames[frameName].physicalObject = geo
