@@ -189,6 +189,10 @@ export const provideGeometries = (partID: () => string) => {
 							continue
 						}
 
+						if (geometry.geometryType.case === 'mesh') {
+							geometry.geometryType.value.contentType = "stl";
+						}
+
 						const entityTraits: ConfigurableTrait[] = [
 							...hierarchy.parentTraits(name),
 							traits.Name(label),
