@@ -207,11 +207,11 @@
 	}
 
 	/**
-	 * Stages a translate/rotate drag for a frame system entity into the edit
-	 * session. With a kinematic offset (LiveMatrix + Matrix both present), the
-	 * parent-relative target feeds solveEditedMatrix to back out the EditedMatrix
-	 * satisfying live × baseline⁻¹ × edited = local. Without one, Frame.svelte's
-	 * blend short-circuits to EditedMatrix, so we stage the target pose directly.
+	 * Applies a translate/rotate drag for a frame system entity. With a kinematic
+	 * offset (LiveMatrix + Matrix both present), the parent-relative target feeds
+	 * solveEditedMatrix to back out the EditedMatrix satisfying
+	 * live × baseline⁻¹ × edited = local. Without one, Frame.svelte's blend
+	 * short-circuits to EditedMatrix, so we write the target pose directly.
 	 */
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
