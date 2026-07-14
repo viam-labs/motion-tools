@@ -226,98 +226,92 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 }
 
 type Frames = ParsedPlan['frames']
-type Parents = ParsedPlan['parents']
 
 const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
 	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
 
-/**
- * Invert `parents` into a parent --> children index, so asking "who hangs off this frame?" is a
- * lookup rather than a scan.
- */
-const buildChildMap = (parents: Parents): Map<string, string[]> => {
-	const childMap = new Map<string, string[]>()
+const newUuid = (): Uint8Array<ArrayBuffer> =>
+	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
 
+/**
+ * The two facts a frame's own entry cannot supply.
+ *
+ * `frames` is flat: a joint frame knows it rotates about an axis, but not which arm owns it,
+ * and a frame may be parented to a *model* frame (e.g. camera parented to left-arm), which never becomes an entity. Both
+ * answers need the model declarations, so they are resolved once here and read back per frame.
+ */
+interface FrameContext {
+	/** Parent with model frames already resolved away — safe to use as a descriptor's parent. */
+	parent: string
+	/** Present iff a model claims this frame as a joint. Absent means no trajectory column. */
+	joint?: { componentName: string; jointIndex: number }
+}
+
+const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
+	const { frames, parents } = plan
+
+	// Inverted `parents`. Its only question is "what hangs off the last joint?", asked below when
+	// a model declares no end-effector — hence local, not a field on the frames it describes.
+	const childMap = new Map<string, string[]>()
 	for (const [child, parent] of Object.entries(parents)) {
 		const siblings = childMap.get(parent)
 		if (siblings) siblings.push(child)
 		else childMap.set(parent, [child])
 	}
 
-	return childMap
-}
+	const jointOwners = new Map<string, FrameContext['joint']>()
+	const modelTerminals = new Map<string, string>()
 
-/**
- * The order of `model.joints` is the only record of which slot in a trajectory step drives
- * which joint frame, so it has to be captured before any descriptor can claim a `jointIndex`.
- */
-const buildJointMap = (frames: Frames): Map<string, string[]> => {
-	const jointMap = new Map<string, string[]>()
-
-	for (const [frameName, entry] of Object.entries(frames)) {
-		if (entry.frame_type !== 'model') continue
-		const joints = modelOf(entry)?.joints as Array<{ id: string }> | undefined
-		if (!joints) continue
-		jointMap.set(
-			frameName,
-			joints.map((j) => `${frameName}:${j.id}`)
-		)
-	}
-
-	return jointMap
-}
-
-/**
- * Anything bolted to an arm (camera, remote gripper) names the *model* frame as its parent, but
- * a model frame never becomes an entity — such a child would inherit no transform and render at
- * the world origin. Their parents get rewritten to the arm's terminal link.
- *
- * Three sources, because the frame system guarantees none of them: the model's declared
- * `primary_output_frame`, else the last of `model.links` (the end-effector by Viam convention),
- * else the static frame parented to the final joint.
- */
-const buildModelTerminalMap = (
-	frames: Frames,
-	childMap: Map<string, string[]>,
-	jointMap: Map<string, string[]>
-): Map<string, string> => {
-	const modelTerminalMap = new Map<string, string>()
-
-	for (const [frameName, entry] of Object.entries(frames)) {
+	for (const [modelName, entry] of Object.entries(frames)) {
 		if (entry.frame_type !== 'model') continue
 		const model = modelOf(entry)
+
+		// `model.joints` is the only record of which slot in a trajectory step drives which frame,
+		// and its array order *is* that slot. Keyed by frame name because that is how the frame
+		// asks — the join between the two is the `${model}:${id}` naming convention, nothing else.
+		const joints = (model?.joints ?? []) as Array<{ id: string }>
+		for (const [jointIndex, joint] of joints.entries()) {
+			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
+		}
+
 		const primaryOutput = model?.primary_output_frame as string | undefined
 		const links = model?.links as Array<{ id: string }> | undefined
 		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
 		if (endEffectorId) {
-			modelTerminalMap.set(frameName, `${frameName}:${endEffectorId}`)
+			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
 			continue
 		}
 
-		const lastJoint = jointMap.get(frameName)?.at(-1)
+		const lastJoint = joints.at(-1)
 		if (!lastJoint) continue
-		const terminal = childMap.get(lastJoint)?.[0]
-		if (terminal) modelTerminalMap.set(frameName, terminal)
+		const terminal = childMap.get(`${modelName}:${lastJoint.id}`)?.[0]
+		if (terminal) modelTerminals.set(modelName, terminal)
 	}
 
-	return modelTerminalMap
+	const contexts = new Map<string, FrameContext>()
+	for (const frameName of Object.keys(frames)) {
+		const rawParent = parents[frameName] ?? 'world'
+		contexts.set(frameName, {
+			parent: modelTerminals.get(rawParent) ?? rawParent,
+			joint: jointOwners.get(frameName),
+		})
+	}
+
+	return contexts
 }
 
 /**
- * Runs last: neither a frame's real parent nor a joint's index is answerable from that frame
- * alone, which is why this cannot be a single pass.
+ * A straight map over `frames` — every cross-frame question was already answered by
+ * {@link buildFrameContexts}, so each entry is built from itself plus its context.
  */
 const buildDescriptors = (
 	plan: ParsedPlan,
-	jointMap: Map<string, string[]>,
-	modelTerminalMap: Map<string, string>
+	contexts: Map<string, FrameContext>
 ): FrameDescriptor[] => {
-	const { frames, parents } = plan
 	const descriptors: FrameDescriptor[] = []
 
-	for (const [frameName, entry] of Object.entries(frames)) {
-		const rawParent = parents[frameName] ?? 'world'
-		const parent = modelTerminalMap.get(rawParent) ?? rawParent
+	for (const [frameName, entry] of Object.entries(plan.frames)) {
+		const { parent, joint } = contexts.get(frameName)!
 
 		switch (entry.frame_type) {
 			// The arm's links and joints are already frames in their own right; a descriptor for
@@ -329,36 +323,23 @@ const buildDescriptors = (
 			case 'named': {
 				const outer = entry.frame as Record<string, unknown>
 				const inner = outer.inner_frame as Record<string, unknown>
+				const innerData = inner.frame as Record<string, unknown>
 
 				if (inner.frame_type === 'rotational') {
-					const innerData = inner.frame as Record<string, unknown>
-
-					let componentName = ''
-					let jointIndex = -1
-					for (const [comp, names] of jointMap) {
-						const idx = names.indexOf(frameName)
-						if (idx !== -1) {
-							componentName = comp
-							jointIndex = idx
-							break
-						}
-					}
-
 					// A rotational frame no model claims has no column in any step, so there is no
 					// angle to drive it. Dropping it leaves the rest of the plan viewable.
-					if (!componentName) continue
+					if (!joint) continue
 
 					descriptors.push({
 						kind: 'joint',
 						name: frameName,
 						parent,
 						axis: innerData.axis as { X: number; Y: number; Z: number },
-						componentName,
-						jointIndex,
-						uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
+						componentName: joint.componentName,
+						jointIndex: joint.jointIndex,
+						uuid: newUuid(),
 					})
 				} else if (inner.frame_type === 'static') {
-					const innerData = inner.frame as Record<string, unknown>
 					const framePose: FramePoseJson = {
 						translation: innerData.translation as Vec3Json | undefined,
 						orientation: innerData.orientation as OrientJson | undefined,
@@ -369,7 +350,7 @@ const buildDescriptors = (
 						parent,
 						localPose: poseFromFrame(framePose.translation, framePose.orientation),
 						geometry: parseGeometry(innerData.geometry, framePose),
-						uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
+						uuid: newUuid(),
 					})
 				}
 				break
@@ -387,7 +368,7 @@ const buildDescriptors = (
 						frame.orientation as OrientJson | undefined
 					),
 					geometry: parseGeometry(frame.geometry),
-					uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
+					uuid: newUuid(),
 				})
 				break
 			}
@@ -397,10 +378,5 @@ const buildDescriptors = (
 	return descriptors
 }
 
-export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] => {
-	const childMap = buildChildMap(plan.parents)
-	const jointMap = buildJointMap(plan.frames)
-	const modelTerminalMap = buildModelTerminalMap(plan.frames, childMap, jointMap)
-
-	return buildDescriptors(plan, jointMap, modelTerminalMap)
-}
+export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] =>
+	buildDescriptors(plan, buildFrameContexts(plan))
