@@ -134,7 +134,6 @@
 	defaultSize={{ width: 320, height: 280 }}
 	minSize={{ width: 160, height: 120 }}
 	resizable
-	resizable
 	bodyClass="bg-black"
 >
 	<div class="flex h-full flex-col text-xs dark:text-black">

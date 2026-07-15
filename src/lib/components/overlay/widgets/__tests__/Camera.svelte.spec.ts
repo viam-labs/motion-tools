@@ -66,6 +66,7 @@ describe('Camera widget', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockSettings.current.openCameraWidgets = { 'test-part-id': ['test-camera'] }
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(useSettings).mockReturnValue(mockSettings as any)
 	})
@@ -79,6 +80,17 @@ describe('Camera widget', () => {
 
 		const select = screen.getByRole('combobox')
 		expect(select).toHaveTextContent('640x480')
+	})
+
+	it('removes itself from settings when close button is clicked', async () => {
+		render(Camera, { name: 'test-camera' })
+
+		const closeButton = screen.getByRole('button', { name: /close panel/i })
+		await fireEvent.click(closeButton)
+
+		await waitFor(() => {
+			expect(mockSettings.current.openCameraWidgets['test-part-id']).not.toContain('test-camera')
+		})
 	})
 
 	it('calls setOptions when a resolution is selected', async () => {
