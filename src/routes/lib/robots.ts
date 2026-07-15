@@ -28,14 +28,22 @@ export const getDialConfs = (robots: PlaygroundRobotsConfig): Record<string, Dia
 	Object.fromEntries(Object.values(robots).map((robot) => [robot.partId, getDialConf(robot)]))
 
 export const getDialConf = (robot: PlaygroundRobotsConfig[string]): DialWebRTCConf => {
-	return {
+	const conf: DialWebRTCConf = {
 		host: robot.host,
-		credentials: {
-			type: 'api-key',
-			payload: robot.apiKeyValue,
-			authEntity: robot.apiKeyId,
-		},
 		signalingAddress: robot.signalingAddress,
 		disableSessions: Boolean(robot.disableSessions),
 	}
+
+	// A local, unauthenticated viam-server (a bare config with no `cloud`/`auth`
+	// section) has no API key. Only attach credentials when present — sending an
+	// empty api-key would be rejected by the robot.
+	if (robot.apiKeyId && robot.apiKeyValue) {
+		conf.credentials = {
+			type: 'api-key',
+			payload: robot.apiKeyValue,
+			authEntity: robot.apiKeyId,
+		}
+	}
+
+	return conf
 }

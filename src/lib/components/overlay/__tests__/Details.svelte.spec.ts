@@ -6,13 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
-import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
 import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
-import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
-import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
 import * as useResourceByName from '$lib/hooks/useResourceByName.svelte'
 import { createWeblabs, WEBLABS_CONTEXT_KEY } from '$lib/hooks/useWeblabs.svelte'
+import * as useConfigFrames from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+import * as useFragmentInfo from '$lib/plugins/FrameEditing/useFragmentInfo.svelte'
+import * as usePartConfig from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 import Details from '../Details.svelte'
 import { createEntityFixture } from './__fixtures__/entity'
@@ -74,7 +74,7 @@ describe('Details component', () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
+
 		const context = new Map<symbol, unknown>([
 			[WEBLABS_CONTEXT_KEY, weblabContext],
 			[ENVIRONMENT_CONTEXT_KEY, environmentContext],
@@ -126,7 +126,6 @@ describe('Details component', () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
 
 		entity.add(traits.FramesAPI)
 
@@ -169,7 +168,6 @@ describe('Details component', () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
 
 		entity.add(traits.FramesAPI)
 

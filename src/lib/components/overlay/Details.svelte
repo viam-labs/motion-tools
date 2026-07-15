@@ -16,31 +16,22 @@
 	import { Button, Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
-	import {
-		Point,
-		type PointChangeEvent,
-		type PointValue3dObject,
-		Slider,
-		type SliderChangeEvent,
-		TabGroup,
-		TabPage,
-	} from 'svelte-tweakpane-ui'
 
 	import { expandBoxByEntity } from '$lib/components/Entities/expandBoxByEntity'
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
+	import GeometryDetails from '$lib/components/overlay/details/GeometryDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
 	import { relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
-	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
-	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { useLinkedEntities } from '$lib/hooks/useLinked.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { FrameEditor } from '$lib/plugins/FrameEditing/FrameEditor'
+	import { useFragmentInfo } from '$lib/plugins/FrameEditing/useFragmentInfo.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	import ColorDetails from './details/ColorDetails.svelte'
@@ -60,7 +51,6 @@
 	const fragmentInfo = useFragmentInfo()
 	const partID = usePartID()
 	const settings = useSettings()
-	const environment = useEnvironment()
 	const linkedEntities = useLinkedEntities()
 
 	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
@@ -136,26 +126,6 @@
 		return 'none'
 	})
 
-	const geometryTypes = ['none', 'box', 'sphere', 'capsule'] as const
-
-	let geometryTabIndex = $derived(geometryTypes.indexOf(geometryType))
-
-	$effect(() => {
-		const nextType = geometryTypes[geometryTabIndex]
-
-		/**
-		 * geometryTabIndex is derived from the entity's geometry traits, so on
-		 * selection (or any trait-driven recompute) nextType already equals
-		 * geometryType — firing then would call updateFrame, dirtying the part
-		 * config and resetting the geometry to default dimensions. Only a user
-		 * tab pick sets geometryTabIndex ahead of the trait, so guard on the two
-		 * differing to fire solely for user-initiated changes.
-		 */
-		if (nextType === geometryType) return
-
-		frameEditor.setGeometryType(entity, nextType)
-	})
-
 	let copied = $state(false)
 	let dragElement = $state.raw<HTMLElement>()
 
@@ -163,32 +133,6 @@
 
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
-	}
-
-	const handleBoxChange = (event: PointChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		const next = event.detail.value as PointValue3dObject
-		frameEditor.setGeometry(entity, {
-			type: 'box',
-			x: next.x,
-			y: next.y,
-			z: next.z,
-		})
-	}
-
-	const handleSphereRChange = (event: SliderChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		frameEditor.setGeometry(entity, { type: 'sphere', r: event.detail.value })
-	}
-
-	const handleCapsuleRChange = (event: SliderChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		frameEditor.setGeometry(entity, { type: 'capsule', r: event.detail.value })
-	}
-
-	const handleCapsuleLChange = (event: SliderChangeEvent) => {
-		if (event.detail.origin !== 'internal' || !entity) return
-		frameEditor.setGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
 	const getCopyClipboardText = () => {
@@ -413,112 +357,10 @@
 				/>
 			{/if}
 
-			{#if showEditFrameOptions}
-				<div>
-					<strong class="font-semibold">geometry</strong>
-					<span class="text-subtle-2">(mm)</span>
-					<div aria-label="mutable geometry">
-						<TabGroup bind:selectedIndex={geometryTabIndex}>
-							<TabPage title="None" />
-							<TabPage title="Box">
-								{#if box.current}
-									<div aria-label="mutable box dimensions">
-										<Point
-											value={{
-												x: box.current.x,
-												y: box.current.y,
-												z: box.current.z,
-											}}
-											min={0}
-											on:change={handleBoxChange}
-										/>
-									</div>
-								{/if}
-							</TabPage>
-							<TabPage title="Sphere">
-								{#if sphere.current}
-									<div aria-label="mutable sphere dimensions">
-										<Slider
-											label="r"
-											value={sphere.current.r}
-											min={0}
-											on:change={handleSphereRChange}
-										/>
-									</div>
-								{/if}
-							</TabPage>
-							<TabPage title="Capsule">
-								{#if capsule.current}
-									<div aria-label="mutable capsule dimensions">
-										<Slider
-											label="r"
-											value={capsule.current.r}
-											min={0}
-											on:change={handleCapsuleRChange}
-										/>
-										<Slider
-											label="l"
-											value={capsule.current.l}
-											min={0}
-											on:change={handleCapsuleLChange}
-										/>
-									</div>
-								{/if}
-							</TabPage>
-						</TabGroup>
-					</div>
-				</div>
-			{:else if box.current}
-				<div>
-					<strong class="font-semibold">dimensions</strong>
-					<span class="text-subtle-2">(box) (mm)</span>
-					<div class="mt-0.5 flex items-center gap-2">
-						{@render ImmutableField({
-							label: 'x',
-							ariaLabel: 'box dimensions x value input',
-							value: box.current.x,
-						})}
-						{@render ImmutableField({
-							label: 'y',
-							ariaLabel: 'box dimensions y value input',
-							value: box.current.y,
-						})}
-						{@render ImmutableField({
-							label: 'z',
-							ariaLabel: 'box dimensions z value input',
-							value: box.current.z,
-						})}
-					</div>
-				</div>
-			{:else if capsule.current}
-				<div>
-					<strong class="font-semibold">dimensions</strong>
-					<span class="text-subtle-2">(capsule) (mm)</span>
-					<div class="mt-0.5 flex items-center gap-2">
-						{@render ImmutableField({
-							label: 'r',
-							ariaLabel: 'capsule dimensions radius value input',
-							value: capsule.current.r,
-						})}
-						{@render ImmutableField({
-							label: 'l',
-							ariaLabel: 'capsule dimensions length value input',
-							value: capsule.current.l,
-						})}
-					</div>
-				</div>
-			{:else if sphere.current}
-				<div>
-					<strong class="font-semibold">dimensions (sphere)</strong>
-					<div class="flex items-center gap-2">
-						{@render ImmutableField({
-							label: 'r',
-							ariaLabel: 'sphere dimensions radius value',
-							value: sphere.current.r,
-						})}
-					</div>
-				</div>
-			{/if}
+			<GeometryDetails
+				{entity}
+				editable={showEditFrameOptions}
+			/>
 
 			{#if isInstanceOf(object3d, 'Points')}
 				<div>
@@ -575,7 +417,7 @@
 
 		{@render details?.({ entity })}
 
-		{#if showRelationshipOptions || (showEditFrameOptions && environment.current.isStandalone)}
+		{#if showRelationshipOptions || showEditFrameOptions}
 			<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>
 		{/if}
 
@@ -583,7 +425,7 @@
 			<AddRelationship {entity} />
 		{/if}
 
-		{#if showEditFrameOptions && environment.current.isStandalone}
+		{#if showEditFrameOptions}
 			<Button
 				variant="danger"
 				class="mt-2 w-full"

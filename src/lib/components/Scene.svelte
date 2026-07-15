@@ -9,7 +9,6 @@
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
 	import Selected from '$lib/components/Selected.svelte'
-	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
@@ -66,7 +65,6 @@
 <Environment url={hdrImage} />
 
 <PointerMissBox />
-<SelectedTransformControls />
 
 {#if !$isPresenting && settings.current.grid}
 	<Grid

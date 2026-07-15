@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Struct } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
@@ -10,8 +9,6 @@
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
-	import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
@@ -20,8 +17,6 @@
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
 	import { provideWeblabs } from '$lib/hooks/useWeblabs.svelte'
@@ -30,8 +25,6 @@
 
 	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
-	import AddFrames from './overlay/AddFrames.svelte'
-	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
 	import Camera from './overlay/widgets/Camera.svelte'
@@ -39,22 +32,9 @@
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
-	interface LocalConfigProps {
-		current: Struct
-		isDirty: boolean
-		setLocalPartConfig: (config: Struct) => void
-	}
-
 	interface Props {
 		partID?: string
 		inputBindingsEnabled?: boolean
-		localConfigProps?: LocalConfigProps
-
-		/**
-		 * Maps a component name to the fragment that defines it. Embedded hosts
-		 * supply this; in standalone it is computed from fragment queries (omit).
-		 */
-		componentNameToFragmentInfo?: Record<string, FragmentInfo>
 
 		/**
 		 * Allows setting the initial camera pose
@@ -80,8 +60,7 @@
 	let {
 		partID = '',
 		inputBindingsEnabled = true,
-		localConfigProps,
-		componentNameToFragmentInfo,
+
 		cameraPose,
 		children: appChildren,
 		dashboard,
@@ -119,19 +98,8 @@
 
 	let root = $state.raw<HTMLElement>()
 
-	provideFragmentInfo(
-		() => partID,
-		() => componentNameToFragmentInfo
-	)
-
-	providePartConfig(
-		() => partID,
-		() => localConfigProps
-	)
-
 	$effect(() => {
 		environment.current.inputBindingsEnabled = inputBindingsEnabled
-		environment.current.isStandalone = !localConfigProps
 	})
 
 	const selected = useQuery(traits.Selected)
@@ -168,10 +136,6 @@
 					/>
 				{/each}
 
-				{#if environment.current.isStandalone}
-					<LiveUpdatesBanner />
-				{/if}
-
 				<TreeContainer />
 
 				{#if settings.current.enableArmPositionsWidget}
@@ -191,7 +155,6 @@
 				<PortalTarget id="dom" />
 
 				<Settings />
-				<AddFrames />
 			</div>
 		</SceneProviders>
 	</Canvas>

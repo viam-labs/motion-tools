@@ -2,8 +2,8 @@ import { Transform } from '@viamrobotics/sdk'
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
-import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
+import type { FragmentInfo } from '$lib/plugins/FrameEditing/useFragmentInfo.svelte'
+import type { PartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 import { createGeometryFromFrame } from '$lib/geometry'
 import { createPose } from '$lib/transform'

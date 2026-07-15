@@ -5,9 +5,7 @@
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
-	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
-	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { provideInheritedInvisible } from '$lib/hooks/useInheritedInvisible.svelte'
@@ -19,6 +17,8 @@
 	import { provideRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
+	import { provideConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+	import { provideFramelessComponents } from '$lib/plugins/FrameEditing/useFramelessComponents.svelte'
 
 	interface Props {
 		children: Snippet

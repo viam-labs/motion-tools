@@ -2,7 +2,7 @@
 	import { Text } from 'threlte-uikit'
 	import { Button, ButtonLabel, Panel } from 'threlte-uikit/horizon'
 
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 	import WristDisplay from './WristDisplay.svelte'
 

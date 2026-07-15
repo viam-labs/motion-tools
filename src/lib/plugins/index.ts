@@ -26,6 +26,10 @@ export { default as Focus } from './Focus/Focus.svelte'
 // Fullscreen
 export { default as Fullscreen } from './Fullscreen/Fullscreen.svelte'
 
+// Frame Editing
+export { default as FrameEditing } from './FrameEditing/FrameEditing.svelte'
+export { default as LiveUpdatesBanner } from './FrameEditing/LiveUpdatesBanner.svelte'
+
 // LLMSceneBuilder
 export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
 export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'

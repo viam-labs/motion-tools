@@ -14,9 +14,9 @@ import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useLogs } from '$lib/plugins'
 import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
-import { useConfigFrames } from './useConfigFrames.svelte'
+import { useConfigFrames } from '../plugins/FrameEditing/useConfigFrames.svelte'
+import { usePartConfig } from '../plugins/FrameEditing/usePartConfig.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
-import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {

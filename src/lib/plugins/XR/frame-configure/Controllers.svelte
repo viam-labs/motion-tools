@@ -12,10 +12,10 @@
 	import { Icon, Locate, Move3d, Plus, Rotate3d, Scale3d } from 'threlte-uikit/lucide'
 
 	import { traits, useQuery, useTrait } from '$lib/ecs'
-	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
-	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { FrameEditor } from '$lib/plugins/FrameEditing/FrameEditor'
+	import { useFramelessComponents } from '$lib/plugins/FrameEditing/useFramelessComponents.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 	import { OrientationVector } from '$lib/three/OrientationVector'
 
 	import { useOrigin } from '../useOrigin.svelte'

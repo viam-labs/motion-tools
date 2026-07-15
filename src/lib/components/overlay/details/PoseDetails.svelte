@@ -31,9 +31,9 @@
 	} from 'svelte-tweakpane-ui'
 
 	import { traits, useParentName, useTrait } from '$lib/ecs'
-	import { FrameEditor } from '$lib/editing/FrameEditor'
-	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { FrameEditor } from '$lib/plugins/FrameEditing/FrameEditor'
+	import { useConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
 
 	interface Props {

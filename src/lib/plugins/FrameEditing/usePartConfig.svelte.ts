@@ -5,8 +5,9 @@ import { createAppMutation, createAppQuery } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 
 import { createFrame, type Frame } from '$lib/frame'
-import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { createPoseFromFrame } from '$lib/transform'
+
+import { useFragmentInfo } from './useFragmentInfo.svelte'
 
 const key = Symbol('part-config-context')
 

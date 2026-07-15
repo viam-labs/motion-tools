@@ -1,7 +1,7 @@
 import { getContext, setContext } from 'svelte'
 
+import { useFrames } from '../../hooks/useFrames.svelte'
 import { useFragmentInfo } from './useFragmentInfo.svelte'
-import { useFrames } from './useFrames.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 
 interface FramelessComponents {
@@ -31,6 +31,7 @@ export const provideFramelessComponents = () => {
 
 			fragmentComponentsWithNoFrame.add(fragmentComponentName)
 		}
+
 		return [...fragmentComponentsWithNoFrame]
 	})
 

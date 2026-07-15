@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button, Icon } from '@viamrobotics/prime-core'
 
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 	const partConfig = usePartConfig()
 

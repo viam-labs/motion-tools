@@ -1,8 +1,8 @@
 import type { Pose, Transform } from '@viamrobotics/sdk'
 
 import type { Frame, FrameGeometry } from '$lib/frame'
-import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
+import type { FragmentInfo } from '$lib/plugins/FrameEditing/useFragmentInfo.svelte'
+import type { PartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 
 import { frameGeometryFromTransform } from '$lib/geometry'
 import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'

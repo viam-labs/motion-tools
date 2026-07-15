@@ -2,12 +2,12 @@
 	import { Button } from '@viamrobotics/prime-core'
 
 	import { DashboardPortal } from '$lib'
-	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
-	import DashboardButton from './dashboard/Button.svelte'
-	import FloatingPanel from './FloatingPanel.svelte'
+	import { useFramelessComponents } from './useFramelessComponents.svelte'
+	import { usePartConfig } from './usePartConfig.svelte'
 
 	const partID = usePartID()
 	const framelessComponents = useFramelessComponents()

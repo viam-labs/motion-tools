@@ -4,7 +4,6 @@ export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
 
 interface Environemnt {
 	viewerMode: 'edit' | 'monitor'
-	isStandalone: boolean
 	inputBindingsEnabled: boolean
 }
 
@@ -14,7 +13,6 @@ interface Context {
 
 const defaults = (): Environemnt => ({
 	viewerMode: 'monitor',
-	isStandalone: true,
 	inputBindingsEnabled: true,
 })
 

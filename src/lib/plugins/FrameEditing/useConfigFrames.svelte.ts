@@ -3,7 +3,7 @@ import { getContext, setContext } from 'svelte'
 
 import { createTransformFromFrame, type Frame } from '$lib/frame'
 
-import { useEnvironment } from './useEnvironment.svelte'
+import { useEnvironment } from '../../hooks/useEnvironment.svelte'
 import { useFragmentInfo } from './useFragmentInfo.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 

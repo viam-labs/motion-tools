@@ -4,13 +4,14 @@
 	import { Group, MathUtils, Matrix4 } from 'three'
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
-	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
+
+	import { FrameEditor } from './FrameEditor'
+	import { useFragmentInfo } from './useFragmentInfo.svelte'
+	import { usePartConfig } from './usePartConfig.svelte'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()

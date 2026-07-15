@@ -2,10 +2,10 @@ import { getContext, setContext } from 'svelte'
 
 import type { Frame, FrameEulerDegrees } from '$lib/frame'
 
-import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
-import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { useFrames } from '$lib/hooks/useFrames.svelte'
-import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
+import { useConfigFrames } from '$lib/plugins/FrameEditing/useConfigFrames.svelte'
+import { useFragmentInfo } from '$lib/plugins/FrameEditing/useFragmentInfo.svelte'
+import { usePartConfig } from '$lib/plugins/FrameEditing/usePartConfig.svelte'
 import { createPoseFromFrame, poseToEulerDegrees } from '$lib/transform'
 
 import {
