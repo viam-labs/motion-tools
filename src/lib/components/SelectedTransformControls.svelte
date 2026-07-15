@@ -3,13 +3,12 @@
 	import { TransformControls } from '@threlte/extras'
 	import { Group, MathUtils, Matrix4 } from 'three'
 
-	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
-
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
+	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
 
@@ -18,7 +17,8 @@
 	const environment = useEnvironment()
 	const fragmentInfo = useFragmentInfo()
 	const transformControls = useTransformControls()
-	const sessions = useFrameEditSession()
+	const partConfig = usePartConfig()
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 	const selected = useQuery(traits.Selected)
 
 	const mode = $derived(settings.current.transformMode)
@@ -83,7 +83,6 @@
 	const tempParentInverse = new Matrix4()
 	const tempPose = createPose()
 
-	let session: FrameEditSession | undefined
 	let scaleStart:
 		| { type: 'box'; x: number; y: number; z: number }
 		| { type: 'sphere'; r: number }
@@ -118,10 +117,6 @@
 	}
 
 	const onMouseDown = () => {
-		if (entity?.has(traits.FramesAPI)) {
-			session = sessions.begin([entity])
-		}
-
 		captureScaleStart()
 
 		environment.current.viewerMode = 'edit'
@@ -155,14 +150,14 @@
 					z: Math.max(0, scaleStart.z * ref.scale.z),
 				}
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'box', ...next })
+					frameEditor.setGeometry(entity, { type: 'box', ...next })
 				} else {
 					entity.set(traits.Box, next)
 				}
 			} else if (scaleStart?.type === 'sphere') {
 				const next = { r: Math.max(0, scaleStart.r * ref.scale.x) }
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'sphere', ...next })
+					frameEditor.setGeometry(entity, { type: 'sphere', ...next })
 				} else {
 					entity.set(traits.Sphere, next)
 				}
@@ -172,7 +167,7 @@
 					l: Math.max(0, scaleStart.l * ref.scale.y),
 				}
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'capsule', ...next })
+					frameEditor.setGeometry(entity, { type: 'capsule', ...next })
 				} else {
 					entity.set(traits.Capsule, next)
 				}
@@ -183,8 +178,6 @@
 	}
 
 	const onMouseUp = () => {
-		session?.commit()
-		session = undefined
 		scaleStart = undefined
 		transformControls.setActive(false)
 	}
@@ -214,11 +207,11 @@
 	}
 
 	/**
-	 * Stages a translate/rotate drag for a frame system entity into the edit
-	 * session. With a kinematic offset (LiveMatrix + Matrix both present), the
-	 * parent-relative target feeds solveEditedMatrix to back out the EditedMatrix
-	 * satisfying live × baseline⁻¹ × edited = local. Without one, Frame.svelte's
-	 * blend short-circuits to EditedMatrix, so we stage the target pose directly.
+	 * Applies a translate/rotate drag for a frame system entity. With a kinematic
+	 * offset (LiveMatrix + Matrix both present), the parent-relative target feeds
+	 * solveEditedMatrix to back out the EditedMatrix satisfying
+	 * live × baseline⁻¹ × edited = local. Without one, Frame.svelte's blend
+	 * short-circuits to EditedMatrix, so we write the target pose directly.
 	 */
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
@@ -231,13 +224,13 @@
 
 		if (!live || !config) {
 			if (activeMode === 'translate') {
-				session?.stagePose(entity, {
+				frameEditor.setPose(entity, {
 					x: refPose.x,
 					y: refPose.y,
 					z: refPose.z,
 				})
 			} else if (activeMode === 'rotate') {
-				session?.stagePose(entity, {
+				frameEditor.setPose(entity, {
 					oX: refPose.oX,
 					oY: refPose.oY,
 					oZ: refPose.oZ,
@@ -249,7 +242,7 @@
 
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
 		matrixToPose(tempEditedMatrix, tempPose)
-		session?.stagePose(entity, { ...tempPose })
+		frameEditor.setPose(entity, { ...tempPose })
 	}
 
 	/**
