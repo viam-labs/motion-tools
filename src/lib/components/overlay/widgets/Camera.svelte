@@ -132,6 +132,8 @@
 	title={name}
 	bind:isOpen
 	defaultSize={{ width: 320, height: 280 }}
+	minSize={{ width: 160, height: 120 }}
+	resizable
 	resizable
 	bodyClass="bg-black"
 >
