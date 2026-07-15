@@ -43,7 +43,7 @@ describe('retryStream', () => {
 		vi.useRealTimers()
 	})
 
-	it('stops retrying when signal is aborted', async () => {
+	it('calls onRetry but does not retry run when signal is aborted during backoff', async () => {
 		vi.useFakeTimers()
 
 		const controller = new AbortController()
