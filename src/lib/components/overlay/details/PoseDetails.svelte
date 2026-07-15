@@ -30,8 +30,8 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { hierarchy, traits, useParentName, useTrait } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPose, matrixToPose } from '$lib/transform'
@@ -48,7 +48,7 @@
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
 
-	const frameConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const name = useTrait(() => entity, traits.Name)
 	const matrix = useTrait(() => entity, traits.Matrix)
@@ -101,22 +101,21 @@
 		if (event.detail.origin !== 'internal') return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		hierarchy.setParent(entity, value)
-		frameConfigUpdater.setFrameParent(entity, value)
+		frameEditor.setParent(entity, value)
 		invalidate()
 	}
 
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue3dObject
-		frameConfigUpdater.updateLocalPosition(entity, next)
+		frameEditor.setPose(entity, next)
 		invalidate()
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue4dObject
-		frameConfigUpdater.updateLocalOrientation(entity, {
+		frameEditor.setPose(entity, {
 			oX: next.x,
 			oY: next.y,
 			oZ: next.z,
@@ -136,7 +135,7 @@
 		)
 		quaternionUtil.setFromEuler(eulerUtil)
 		ovUtil.setFromQuaternion(quaternionUtil)
-		frameConfigUpdater.updateLocalOrientation(entity, {
+		frameEditor.setPose(entity, {
 			oX: ovUtil.x,
 			oY: ovUtil.y,
 			oZ: ovUtil.z,

@@ -16,7 +16,6 @@ import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
-import { useFrameEditSession } from './useFrameEditSession.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
@@ -29,7 +28,6 @@ const key = Symbol('frames-context')
 export const provideFrames = (partID: () => string) => {
 	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
-	const editSession = useFrameEditSession()
 	const environment = useEnvironment()
 	const world = useWorld()
 	const resourceByName = useResourceByName()
@@ -55,6 +53,10 @@ export const provideFrames = (partID: () => string) => {
 	})
 
 	const isEditMode = $derived(environment.current.viewerMode === 'edit')
+	// Live frame data is only synced onto existing entities while monitoring. In
+	// any tool mode (edit today, move next) the active tool owns the entities and
+	// mutates them directly, so we back off to avoid fighting its edits.
+	const isMonitorMode = $derived(environment.current.viewerMode === 'monitor')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
 		enabled: partID() !== '' && !isEditMode,
@@ -210,11 +212,11 @@ export const provideFrames = (partID: () => string) => {
 				const existing = entities.get(entityKey)
 
 				if (existing) {
-					// Active edit session owns the entity's traits for the duration of
-					// the user's gesture. Skip the entire re-sync — re-setting Parent
-					// would re-evaluate the <Portal> id and re-mount the group,
-					// detaching the gizmo's drag target mid-stroke.
-					if (editSession.current?.owns(existing)) {
+					// Outside monitor mode an editing tool owns the entity and drives its
+					// traits directly. Skip the entire re-sync — re-setting Parent would
+					// re-evaluate the <Portal> id and re-mount the group, detaching the
+					// gizmo's drag target mid-stroke.
+					if (!isMonitorMode) {
 						continue
 					}
 
@@ -251,18 +253,12 @@ export const provideFrames = (partID: () => string) => {
 						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
-					// Skip the EditedMatrix overwrite while in edit mode. The merged
-					// `frames` source can differ from query.data once didRecentlyEdit
-					// flips (fragment overrides, round-trip drift), and writing those
-					// values would shift entities whose parents the user is portaling
-					// into — the gizmo's drag target moves underneath it. Once we're
-					// back in monitor mode, the next sync resumes the overwrite.
-					if (!isEditMode || !editSession.current) {
-						const edited = existing.get(traits.EditedMatrix)
-						if (edited) {
-							poseToMatrix(pose, edited)
-							existing.changed(traits.EditedMatrix)
-						}
+					// Only reached in monitor mode (tool modes skip the whole re-sync
+					// above), so track the live pose into EditedMatrix unconditionally.
+					const edited = existing.get(traits.EditedMatrix)
+					if (edited) {
+						poseToMatrix(pose, edited)
+						existing.changed(traits.EditedMatrix)
 					}
 
 					continue
