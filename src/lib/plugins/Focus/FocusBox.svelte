@@ -2,15 +2,12 @@
 	import { T, useThrelte } from '@threlte/core'
 	import { Gizmo, TrackballControls } from '@threlte/extras'
 	import { untrack } from 'svelte'
-	import { Box3, Matrix4, Vector3 } from 'three'
+	import { Box3, Vector3 } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
-	import { composeBoxMatrix } from '$lib/components/Entities/composeBoxMatrix'
-	import { composeCapsuleBoundsMatrix } from '$lib/components/Entities/composeCapsuleMatrices'
-	import { composeSphereBoundsMatrix } from '$lib/components/Entities/composeSphereMatrix'
+	import { expandBoxByEntity } from '$lib/components/Entities/expandBoxByEntity'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
-	import { expandBoxByTransformedBox } from '$lib/three/OBBHelper'
 
 	const { scene } = useThrelte()
 	const cameraControls = useCameraControls()
@@ -39,8 +36,6 @@
 
 	const box = new Box3()
 	const vec = new Vector3()
-	const unitBox = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5))
-	const matrix4 = new Matrix4()
 
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
@@ -54,27 +49,7 @@
 	$effect(() => {
 		box.makeEmpty()
 		for (const entity of untrack(() => selected.current)) {
-			// Boxes, capsules, and spheres render instanced, so the entity's named
-			// scene object carries no geometry — frame them from traits instead.
-			if (composeBoxMatrix(entity, matrix4)) {
-				expandBoxByTransformedBox(box, unitBox, matrix4)
-				continue
-			}
-
-			if (composeCapsuleBoundsMatrix(entity, matrix4)) {
-				expandBoxByTransformedBox(box, unitBox, matrix4)
-				continue
-			}
-
-			if (composeSphereBoundsMatrix(entity, matrix4)) {
-				expandBoxByTransformedBox(box, unitBox, matrix4)
-				continue
-			}
-
-			const object3d = scene.getObjectByName(entity as unknown as string)
-			if (object3d) {
-				box.expandByObject(object3d)
-			}
+			expandBoxByEntity(box, entity, scene)
 		}
 
 		size = box.getSize(vec).toArray()

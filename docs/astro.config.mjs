@@ -1,6 +1,7 @@
 import starlight from '@astrojs/starlight'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'astro/config'
+import remarkGfm from 'remark-gfm'
 import starlightThemeNova from 'starlight-theme-nova'
 
 const base = process.env.DOCS_BASE ?? '/visualization/'
@@ -9,6 +10,12 @@ const site = process.env.DOCS_SITE ?? 'https://viamrobotics.github.io'
 export default defineConfig({
 	site,
 	base,
+	// astro 6.4.x stopped applying GFM to .mdx by default, which flattened every
+	// pipe table into a paragraph. Declaring the plugin explicitly restores it
+	// (the MDX integration extends markdown config) and is version-independent.
+	markdown: {
+		remarkPlugins: [remarkGfm],
+	},
 	integrations: [
 		starlight({
 			plugins: [starlightThemeNova()],

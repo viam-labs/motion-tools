@@ -6,6 +6,7 @@
 
 	interface Props extends HTMLButtonAttributes {
 		icon: IconName | 'ruler' | 'mouse-pointer' | 'shapes' | 'focus'
+		iconCx?: string
 		active?: boolean
 		description: string
 		hotkey?: string
@@ -17,6 +18,7 @@
 
 	let {
 		icon,
+		iconCx,
 		active = false,
 		description,
 		hotkey = '',
@@ -58,7 +60,10 @@
 			{:else if icon === 'focus'}
 				<Focus size="16" />
 			{:else}
-				<Icon name={icon} />
+				<Icon
+					name={icon}
+					cx={iconCx}
+				/>
 			{/if}
 		</button>
 	</label>

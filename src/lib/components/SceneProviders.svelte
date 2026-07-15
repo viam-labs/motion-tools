@@ -7,7 +7,6 @@
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
 	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
-	import { provideFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
 	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
@@ -39,7 +38,6 @@
 
 	provideResourceByName(() => partID.current)
 	provideConfigFrames()
-	provideFrameEditSession(() => partID.current)
 	provideFrames(() => partID.current)
 	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)

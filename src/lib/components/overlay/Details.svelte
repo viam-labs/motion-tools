@@ -2,7 +2,7 @@
 	module
 	lang="ts"
 >
-	import { BufferAttribute, MathUtils } from 'three'
+	import { Box3, BufferAttribute, MathUtils } from 'three'
 </script>
 
 <script lang="ts">
@@ -26,12 +26,13 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
+	import { expandBoxByEntity } from '$lib/components/Entities/expandBoxByEntity'
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
 	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
 	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
 	import { relations, traits, useParentName, useTag, useTrait, useWorld } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -80,6 +81,19 @@
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 	const customDetails = useTag(() => entity, traits.CustomDetails)
+
+	// Fit-to-view needs world bounds. `object3d` alone is undefined for instanced
+	// primitives and geometry-less frames, so resolve bounds via the shared
+	// helper (traits / named object / WorldMatrix) and only offer the button when
+	// something is resolvable.
+	const focusBox = new Box3()
+	const focusable = $derived(
+		object3d !== undefined ||
+			box.current !== undefined ||
+			sphere.current !== undefined ||
+			capsule.current !== undefined ||
+			worldMatrix.current !== undefined
+	)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -139,13 +153,13 @@
 		 */
 		if (nextType === geometryType) return
 
-		detailConfigUpdater.setGeometryType(entity, nextType)
+		frameEditor.setGeometryType(entity, nextType)
 	})
 
 	let copied = $state(false)
 	let dragElement = $state.raw<HTMLElement>()
 
-	const detailConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const stopKeyboardPropagation = (event: KeyboardEvent) => {
 		event.stopPropagation()
@@ -154,7 +168,7 @@
 	const handleBoxChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
 		const next = event.detail.value as PointValue3dObject
-		detailConfigUpdater.updateGeometry(entity, {
+		frameEditor.setGeometry(entity, {
 			type: 'box',
 			x: next.x,
 			y: next.y,
@@ -164,17 +178,17 @@
 
 	const handleSphereRChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'sphere', r: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'sphere', r: event.detail.value })
 	}
 
 	const handleCapsuleRChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', r: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'capsule', r: event.detail.value })
 	}
 
 	const handleCapsuleLChange = (event: SliderChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !entity) return
-		detailConfigUpdater.updateGeometry(entity, { type: 'capsule', l: event.detail.value })
+		frameEditor.setGeometry(entity, { type: 'capsule', l: event.detail.value })
 	}
 
 	const getCopyClipboardText = () => {
@@ -260,7 +274,7 @@
 				<span class="text-subtle-2">{displayType}</span>
 			</div>
 
-			{#if object3d}
+			{#if focusable}
 				<Tooltip
 					let:tooltipID
 					location="bottom"
@@ -275,9 +289,13 @@
 
 							if (!currentControls || !('fitToBox' in currentControls)) return
 
+							focusBox.makeEmpty()
+							expandBoxByEntity(focusBox, entity, scene)
+							if (focusBox.isEmpty()) return
+
 							const { azimuthAngle, polarAngle } = currentControls
 
-							currentControls.fitToBox(object3d, true, {
+							currentControls.fitToBox(focusBox, true, {
 								paddingTop: padding,
 								paddingBottom: padding,
 								paddingLeft: padding,
@@ -569,7 +587,7 @@
 			<Button
 				variant="danger"
 				class="mt-2 w-full"
-				onclick={() => detailConfigUpdater.deleteFrame(entity)}
+				onclick={() => frameEditor.deleteFrame(entity)}
 			>
 				Delete frame
 			</Button>

@@ -1,5 +1,12 @@
 # motion-tools
 
+## 1.36.2
+
+### Patch Changes
+
+- 191c8ec: Snapping and local transform improvements
+- 6b481e4: Fix transform controls & fragment editing
+
 ## 1.36.1
 
 ### Patch Changes

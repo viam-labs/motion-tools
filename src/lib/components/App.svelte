@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Struct } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
+	import type { Snippet } from 'svelte'
 
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
-	import { onMount, type Snippet } from 'svelte'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
 
 	import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -88,6 +88,18 @@
 		details,
 	}: Props = $props()
 
+	/**
+	 * Apply the Viam tweakpane theme to `<html>` here in setup, before any child
+	 * is created. This must not be deferred to `onMount`: a parent's `onMount`
+	 * runs only after all of its children have mounted, and each child `<Pane>`
+	 * builds its underlying Tweakpane instance during its own setup. So by the
+	 * time App's `onMount` fired the panes already existed and could paint with
+	 * Tweakpane's default dark theme before the theme variables reached `<html>`.
+	 * Running in setup guarantees the variables are set before any pane is built.
+	 * `setGlobalDefaultTheme` no-ops when there is no document (prerender).
+	 */
+	ThemeUtils.setGlobalDefaultTheme(primeTheme)
+
 	provideWorld()
 	provideSettingsTabs()
 
@@ -120,10 +132,6 @@
 	$effect(() => {
 		environment.current.inputBindingsEnabled = inputBindingsEnabled
 		environment.current.isStandalone = !localConfigProps
-	})
-
-	onMount(() => {
-		ThemeUtils.setGlobalDefaultTheme(primeTheme)
 	})
 
 	const selected = useQuery(traits.Selected)
