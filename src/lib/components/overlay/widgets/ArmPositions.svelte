@@ -28,7 +28,7 @@
 	bind:isOpen
 	defaultSize={{ width: 280, height: 300 }}
 >
-	<div class="flex flex-col gap-2 overflow-y-auto p-2 text-xs">
+	<div class="flex h-full flex-col gap-2 overflow-y-auto p-2 text-xs">
 		<Label>
 			Select arm
 			<Select
@@ -53,7 +53,7 @@
 			</thead>
 			<tbody>
 				{#if positions}
-					{#each positions as position, index ([position, index])}
+					{#each positions as position, index (index)}
 						<tr>
 							<th> {index} </th>
 							<th> {formatNumeric(position)} </th>
