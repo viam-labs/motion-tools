@@ -1,20 +1,22 @@
 <script lang="ts">
 	import { draggable } from '@neodrag/svelte'
-	import { Icon, Label, Select } from '@viamrobotics/prime-core'
+	import { Icon } from '@viamrobotics/prime-core'
 
 	import Table from '$lib/components/overlay/Table.svelte'
 	import { formatNumeric } from '$lib/format'
 	import { useArmClient } from '$lib/hooks/useArmClient.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	const { ...rest } = $props()
+	const { name, ...rest } = $props<{ name: string }>()
 
 	let dragElement = $state.raw<HTMLElement>()
 
+	const settings = useSettings()
+	const partID = usePartID()
 	const armClient = useArmClient()
 
-	let selectedArm = $state(armClient.names[0])
-
-	const positions = $derived(armClient.currentPositions[selectedArm])
+	const positions = $derived(armClient.currentPositions[name])
 </script>
 
 <div
@@ -31,26 +33,28 @@
 				<button bind:this={dragElement}>
 					<Icon name="drag" />
 				</button>
-				<h3>Arm positions</h3>
+				<h3 class="min-w-0 truncate">{name}</h3>
+				<div class="flex-1"></div>
+				<button
+					aria-label="close"
+					class="hover:text-default"
+					onclick={() => {
+						const widgets = settings.current.openArmWidgets[partID.current] || []
+						settings.current.openArmWidgets = {
+							...settings.current.openArmWidgets,
+							[partID.current]: widgets.filter((widget) => widget !== name),
+						}
+					}}
+				>
+					<Icon
+						name="close"
+						size="xs"
+					/>
+				</button>
 			</div>
 		</div>
 
 		<div class="flex flex-col gap-2 p-2">
-			<Label>
-				Select arm
-				<Select
-					slot="input"
-					value={selectedArm}
-					name="arm"
-					on:change={(event) => {
-						selectedArm = (event.target as HTMLSelectElement).value
-					}}
-				>
-					{#each armClient.names as name (name)}
-						<option value={name}>{name}</option>
-					{/each}
-				</Select>
-			</Label>
 			<Table>
 				<thead>
 					<tr>
@@ -60,7 +64,7 @@
 				</thead>
 				<tbody>
 					{#if positions}
-						{#each positions as position, index ([position, index])}
+						{#each positions as position, index (index)}
 							<tr>
 								<th> {index} </th>
 								<th> {formatNumeric(position)} </th>
