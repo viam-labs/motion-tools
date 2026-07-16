@@ -22,6 +22,7 @@
 	const selected = useQuery(traits.Selected)
 
 	const mode = $derived(settings.current.transformMode)
+	const isBuildMode = $derived(environment.current.viewerMode === 'build')
 	const entity = $derived(selected.current[0])
 	const transformable = useTrait(() => entity, traits.Transformable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
@@ -74,7 +75,12 @@
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
 	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
 	const transforming = $derived(
-		ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current
+		isBuildMode &&
+			ref &&
+			entity &&
+			activeMode &&
+			!isFragmentComponentWithVariables &&
+			!invisible.current
 	)
 
 	const refPose = createPose()
@@ -119,7 +125,6 @@
 	const onMouseDown = () => {
 		captureScaleStart()
 
-		environment.current.viewerMode = 'build'
 		transformControls.setActive(true)
 	}
 

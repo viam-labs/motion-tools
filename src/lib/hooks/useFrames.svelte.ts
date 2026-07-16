@@ -36,22 +36,6 @@ export const provideFrames = (partID: () => string) => {
 	const machineStatus = useMachineStatus(partID)
 	const logs = useLogs()
 
-	const pendingSaveKey = $derived(`viam-pending-save-revision:${partID()}`)
-
-	let didRecentlyEdit = $state(false)
-
-	let lastPartID: string | undefined
-	$effect.pre(() => {
-		const id = partID()
-		if (lastPartID !== undefined && lastPartID !== id) {
-			// Don't let an edited flag from the previous part bleed into the
-			// new one — the merge condition would otherwise stay forced on for
-			// a freshly-switched part the user hasn't touched.
-			didRecentlyEdit = false
-		}
-		lastPartID = id
-	})
-
 	const isBuildMode = $derived(environment.current.viewerMode === 'build')
 	// Live frame data is only synced onto existing entities while monitoring. In
 	// any tool mode (build today, move next) the active tool owns the entities and
@@ -75,27 +59,21 @@ export const provideFrames = (partID: () => string) => {
 	const frames = $derived.by(() => {
 		const frames: Record<string, Transform> = {}
 
-		if (!partConfig.hasPendingSave) {
-			for (const { frame } of query.data ?? []) {
-				if (frame === undefined) {
-					continue
-				}
-
-				frames[frame.referenceFrame] = frame
+		for (const { frame } of query.data ?? []) {
+			if (frame === undefined) {
+				continue
 			}
+
+			frames[frame.referenceFrame] = frame
 		}
 
-		// Let config frames take priority if the user has made edits, has a
-		// pending save, or we don't have a live robot connection. The latter
+		// Let config frames take priority in build mode (the user is authoring
+		// the scene) or when we don't have a live robot connection. The latter
 		// covers DISCONNECTED, CONNECTING, and the undefined case where the
 		// embedder never provided a dial config (e.g. the Viam app's
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
-		if (
-			didRecentlyEdit ||
-			partConfig.hasPendingSave ||
-			connectionStatus.current !== MachineConnectionEvent.CONNECTED
-		) {
+		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
 			const mergedFrames = {
 				...frames,
 				...configFrames.current,
@@ -129,39 +107,6 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
-	$effect(() => {
-		const key = pendingSaveKey
-		const storedRevision = sessionStorage.getItem(key)
-
-		if (!storedRevision) {
-			return
-		}
-
-		if (!revision) {
-			if (!partConfig.hasPendingSave) {
-				partConfig.setPendingSave()
-			}
-			return
-		}
-
-		if (revision === storedRevision) {
-			if (!partConfig.hasPendingSave) {
-				partConfig.setPendingSave()
-			}
-			return
-		}
-
-		sessionStorage.removeItem(key)
-		partConfig.clearPendingSave()
-		didRecentlyEdit = true
-	})
-
-	$effect(() => {
-		if (partConfig.hasPendingSave && revision) {
-			sessionStorage.setItem(pendingSaveKey, revision)
-		}
-	})
-
 	const componentSubtypeByName = $derived.by(() => {
 		const result: Record<string, string> = {}
 		for (const { name, api } of partConfig.current.components ?? []) {
@@ -173,12 +118,6 @@ export const provideFrames = (partID: () => string) => {
 			}
 		}
 		return result
-	})
-
-	$effect(() => {
-		if (isBuildMode) {
-			didRecentlyEdit = true
-		}
 	})
 
 	$effect.pre(() => {
