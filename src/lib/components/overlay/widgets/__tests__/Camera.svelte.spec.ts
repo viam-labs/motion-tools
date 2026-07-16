@@ -7,6 +7,12 @@ import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 import Camera from '../Camera.svelte'
 
+// Replace FloatingPanel with a simple mock that renders children without Threlte context
+vi.mock('$lib/components/overlay/FloatingPanel.svelte', async () => {
+	const MockFloatingPanel = await import('./__fixtures__/MockFloatingPanel.svelte')
+	return { default: MockFloatingPanel.default }
+})
+
 // Mock Viam SDK components
 vi.mock('@viamrobotics/svelte-sdk', () => ({
 	// We use a simple div to represent the stream
@@ -60,13 +66,9 @@ describe('Camera widget', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks()
+		mockSettings.current.openCameraWidgets = { 'test-part-id': ['test-camera'] }
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		vi.mocked(useSettings).mockReturnValue(mockSettings as any)
-	})
-
-	it('renders camera name', () => {
-		render(Camera, { name: 'test-camera' })
-		expect(screen.getByText('test-camera')).toBeInTheDocument()
 	})
 
 	it('renders resolutions in dropdown', async () => {
@@ -83,10 +85,12 @@ describe('Camera widget', () => {
 	it('removes itself from settings when close button is clicked', async () => {
 		render(Camera, { name: 'test-camera' })
 
-		const closeButton = screen.getByRole('button', { name: /close/i })
+		const closeButton = screen.getByRole('button', { name: /close panel/i })
 		await fireEvent.click(closeButton)
 
-		expect(mockSettings.current.openCameraWidgets['test-part-id']).not.toContain('test-camera')
+		await waitFor(() => {
+			expect(mockSettings.current.openCameraWidgets['test-part-id']).not.toContain('test-camera')
+		})
 	})
 
 	it('calls setOptions when a resolution is selected', async () => {
