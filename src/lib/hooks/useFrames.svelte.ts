@@ -17,10 +17,6 @@ import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 import { useConfigFrames } from '../plugins/FrameEditing/useConfigFrames.svelte'
 import { usePartConfig } from '../plugins/FrameEditing/usePartConfig.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
-<<<<<<< HEAD
-=======
-import { usePartConfig } from './usePartConfig.svelte'
->>>>>>> 339cb677457d4ec082bd36392d3b94eb52935277
 import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {
