@@ -21,7 +21,7 @@ export const provideConfigFrames = () => {
 	const fragmentInfo = useFragmentInfo()
 
 	$effect(() => {
-		environment.current.viewerMode = partConfig.isDirty ? 'edit' : 'monitor'
+		environment.current.viewerMode = partConfig.isDirty ? 'build' : 'monitor'
 	})
 
 	const [configFrames, configUnsetFrameNames] = $derived.by(() => {

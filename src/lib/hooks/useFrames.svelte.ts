@@ -52,14 +52,14 @@ export const provideFrames = (partID: () => string) => {
 		lastPartID = id
 	})
 
-	const isEditMode = $derived(environment.current.viewerMode === 'edit')
+	const isBuildMode = $derived(environment.current.viewerMode === 'build')
 	// Live frame data is only synced onto existing entities while monitoring. In
-	// any tool mode (edit today, move next) the active tool owns the entities and
+	// any tool mode (build today, move next) the active tool owns the entities and
 	// mutates them directly, so we back off to avoid fighting its edits.
 	const isMonitorMode = $derived(environment.current.viewerMode === 'monitor')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
-		enabled: partID() !== '' && !isEditMode,
+		enabled: partID() !== '' && !isBuildMode,
 	}))
 
 	const revision = $derived(machineStatus.current?.config?.revision)
@@ -176,7 +176,7 @@ export const provideFrames = (partID: () => string) => {
 	})
 
 	$effect(() => {
-		if (isEditMode) {
+		if (isBuildMode) {
 			didRecentlyEdit = true
 		}
 	})
@@ -238,8 +238,8 @@ export const provideFrames = (partID: () => string) => {
 					// Freeze the baseline while the user has unsaved edits so the
 					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
 					// edited position rather than amplifying any robot movement.
-					// isDirty is used rather than isEditMode because isDirty is $state
-					// and updates synchronously; isEditMode derives from viewerMode via
+					// isDirty is used rather than isBuildMode because isDirty is $state
+					// and updates synchronously; isBuildMode derives from viewerMode via
 					// a plain $effect and lags by one flush.
 					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)

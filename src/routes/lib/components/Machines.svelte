@@ -2,6 +2,7 @@
 	import { Button, Icon, IconButton, Input, Switch } from '@viamrobotics/prime-core'
 	import { MachineConnectionEvent } from '@viamrobotics/sdk'
 
+	import { WorkspacePortal } from '$lib'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
 	import {
@@ -70,55 +71,57 @@
 
 <svelte:window {onpaste} />
 
-<fieldset>
-	<div class="text-default relative">
-		<div class="flex items-center">
-			{#if machineConnection.isAwaitingRetry}
-				<button
-					aria-label="Machine connection configs"
-					class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
-					onclick={() => {
-						isOpen = !isOpen
-					}}
-				>
-					<Icon name="broadcast-off" />
-					<span class="truncate whitespace-nowrap"
-						>Retry in {machineConnection.secondsUntilRetry}s...</span
+<WorkspacePortal>
+	<fieldset>
+		<div class="text-default relative">
+			<div class="flex items-center">
+				{#if machineConnection.isAwaitingRetry}
+					<button
+						aria-label="Machine connection configs"
+						class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+						onclick={() => {
+							isOpen = !isOpen
+						}}
 					>
-					<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
-				</button>
-				<button
-					aria-label="Reconnect now"
-					class="border-danger-medium bg-danger-light text-danger-dark flex items-center rounded-r border px-2 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
-					onclick={machineConnection.retryNow}
-				>
-					<Icon name="refresh" />
-				</button>
-			{:else}
-				<button
-					aria-label="Machine connection configs"
-					class={[
-						'flex items-center gap-2 rounded border px-2.5 py-1.5 text-xs',
-						{
-							'border-gray-5 bg-white': !connected && !disconnected,
-							'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
-								connected,
-							'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
-								disconnected,
-						},
-					]}
-					onclick={() => {
-						isOpen = !isOpen
-					}}
-				>
-					<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
-					<span class="truncate whitespace-nowrap capitalize">{text}</span>
-					<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
-				</button>
-			{/if}
+						<Icon name="broadcast-off" />
+						<span class="truncate whitespace-nowrap"
+							>Retry in {machineConnection.secondsUntilRetry}s...</span
+						>
+						<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
+					</button>
+					<button
+						aria-label="Reconnect now"
+						class="border-danger-medium bg-danger-light text-danger-dark flex items-center rounded-r border px-2 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
+						onclick={machineConnection.retryNow}
+					>
+						<Icon name="refresh" />
+					</button>
+				{:else}
+					<button
+						aria-label="Machine connection configs"
+						class={[
+							'flex items-center gap-2 rounded border px-2.5 py-1.5 text-xs',
+							{
+								'border-gray-5 bg-white': !connected && !disconnected,
+								'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
+									connected,
+								'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
+									disconnected,
+							},
+						]}
+						onclick={() => {
+							isOpen = !isOpen
+						}}
+					>
+						<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
+						<span class="truncate whitespace-nowrap capitalize">{text}</span>
+						<Icon name="chevron-{isOpen ? 'up' : 'down'}" />
+					</button>
+				{/if}
+			</div>
 		</div>
-	</div>
-</fieldset>
+	</fieldset>
+</WorkspacePortal>
 
 <FloatingPanel
 	title="Connection configurations"

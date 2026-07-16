@@ -16,6 +16,6 @@
 	})
 </script>
 
-<Portal id="dom">
+<Portal id="workspace">
 	<FullscreenButton bind:fullscreen={fullscreen.active} />
 </Portal>

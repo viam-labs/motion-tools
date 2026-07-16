@@ -7,7 +7,7 @@
 	import Button from './Button.svelte'
 	import DropdownPane from './DropdownPane.svelte'
 
-	let { dashboard, ...rest } = $props()
+	let { ...rest } = $props()
 
 	const settings = useSettings()
 </script>
@@ -136,6 +136,4 @@
 	</fieldset>
 
 	<PortalTarget id="dashboard" />
-
-	{@render dashboard?.()}
 </div>

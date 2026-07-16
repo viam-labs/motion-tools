@@ -119,7 +119,7 @@
 	const onMouseDown = () => {
 		captureScaleStart()
 
-		environment.current.viewerMode = 'edit'
+		environment.current.viewerMode = 'build'
 		transformControls.setActive(true)
 	}
 
