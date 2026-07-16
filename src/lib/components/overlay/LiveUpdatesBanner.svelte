@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { Button, Icon } from '@viamrobotics/prime-core'
 
+	import { useWorld } from '$lib/ecs'
+	import { resetStagedEdits } from '$lib/editing/resetStagedEdits'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 	const partConfig = usePartConfig()
+	const world = useWorld()
 
 	const { ...rest } = $props()
+
+	const discard = () => {
+		partConfig.discardChanges()
+		resetStagedEdits(world)
+	}
 
 	const isMacDevice = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
 	const iconName = isMacDevice ? ('apple-keyboard-command' as const) : ('chevron-up' as const)
@@ -41,9 +49,7 @@
 			<div class="flex gap-2">
 				<Button
 					class="cursor-pointer text-blue-600"
-					onclick={() => {
-						partConfig.discardChanges()
-					}}
+					onclick={discard}
 				>
 					Discard
 				</Button>

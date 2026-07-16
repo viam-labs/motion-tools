@@ -36,11 +36,9 @@ export const provideFrames = (partID: () => string) => {
 	const machineStatus = useMachineStatus(partID)
 	const logs = useLogs()
 
+	// In build mode the user authors the scene from the part config, so config
+	// frames win and the live frame-system query is paused (see the merge below).
 	const isBuildMode = $derived(environment.current.viewerMode === 'build')
-	// Live frame data is only synced onto existing entities while monitoring. In
-	// any tool mode (build today, move next) the active tool owns the entities and
-	// mutates them directly, so we back off to avoid fighting its edits.
-	const isMonitorMode = $derived(environment.current.viewerMode === 'monitor')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
 		enabled: partID() !== '' && !isBuildMode,
@@ -151,14 +149,11 @@ export const provideFrames = (partID: () => string) => {
 				const existing = entities.get(entityKey)
 
 				if (existing) {
-					// Outside monitor mode an editing tool owns the entity and drives its
-					// traits directly. Skip the entire re-sync — re-setting Parent would
-					// re-evaluate the <Portal> id and re-mount the group, detaching the
-					// gizmo's drag target mid-stroke.
-					if (!isMonitorMode) {
-						continue
-					}
-
+					// Sync the data-derived traits from config/live. EditedMatrix is
+					// intentionally left untouched: it belongs to the editing layer
+					// (FrameEditor), which creates it on edit and clears it on discard.
+					// useFrames never reads or writes it, so this re-sync can't fight an
+					// in-progress edit.
 					hierarchy.setParent(existing, parent)
 
 					if (color) {
@@ -175,11 +170,8 @@ export const provideFrames = (partID: () => string) => {
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
 					// Freeze the baseline while the user has unsaved edits so the
-					// WorldMatrix formula (live × baseline⁻¹ × edited) previews the
-					// edited position rather than amplifying any robot movement.
-					// isDirty is used rather than isBuildMode because isDirty is $state
-					// and updates synchronously; isBuildMode derives from viewerMode via
-					// a plain $effect and lags by one flush.
+					// WorldMatrix blend (live × baseline⁻¹ × edited) previews the edited
+					// position rather than amplifying live robot movement.
 					if (!partConfig.isDirty) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
@@ -192,21 +184,12 @@ export const provideFrames = (partID: () => string) => {
 						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
 					}
 
-					// Only reached in monitor mode (tool modes skip the whole re-sync
-					// above), so track the live pose into EditedMatrix unconditionally.
-					const edited = existing.get(traits.EditedMatrix)
-					if (edited) {
-						poseToMatrix(pose, edited)
-						existing.changed(traits.EditedMatrix)
-					}
-
 					continue
 				}
 
 				const entityTraits: ConfigurableTrait[] = [
 					traits.Name(name),
 					traits.Matrix(poseToMatrix(pose, new Matrix4())),
-					traits.EditedMatrix(poseToMatrix(pose, new Matrix4())),
 					traits.LiveMatrix(poseToMatrix(pose, new Matrix4())),
 					traits.FramesAPI,
 					traits.Transformable,
