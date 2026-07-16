@@ -8,8 +8,10 @@ import { traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
+import type { PlanReplay } from './plan-to-snapshots'
+
 import { parsePlan, PlanParseError } from './parse-plan'
-import { parsedPlanToSnapshots } from './plan-to-snapshots'
+import { parsedPlanToReplay } from './plan-to-snapshots'
 import * as planRelations from './relations'
 
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
@@ -24,7 +26,7 @@ export interface PlanEntry {
 interface PlanState {
 	name: string
 	content: string
-	status: 'idle' | 'ready' | 'error' | 'no-trajectory'
+	status: 'idle' | 'ready' | 'start-state-only' | 'error' | 'no-trajectory'
 	error: string | null
 	stepCount: number
 }
@@ -34,7 +36,7 @@ export interface MotionPlanReplayerContext {
 	readonly activePlanIndex: number | null
 	readonly currentStep: number
 	readonly totalSteps: number
-	addPlan: (name: string, content: string, precomputedSnapshots?: Snapshot[]) => void
+	addPlan: (name: string, content: string, precomputedReplay?: PlanReplay) => void
 	removePlan: (index: number) => void
 	selectPlan: (index: number) => void
 	setStep: (step: number) => void
@@ -142,14 +144,19 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 		try {
 			const plan = parsePlan(planState.content)
-			const snapshots = parsedPlanToSnapshots(plan)
+			const { snapshots, startStateOnly } = parsedPlanToReplay(plan)
 			if (snapshots.length === 0) {
 				plans[index] = { ...planState, status: 'no-trajectory', stepCount: 0 }
 				activePlanIndex = index
 				return
 			}
 			snapshotStore.set(index, snapshots)
-			plans[index] = { ...planState, status: 'ready', stepCount: snapshots.length, error: null }
+			plans[index] = {
+				...planState,
+				status: startStateOnly ? 'start-state-only' : 'ready',
+				stepCount: snapshots.length,
+				error: null,
+			}
 			activePlanIndex = index
 			currentStep = 0
 			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
@@ -166,19 +173,25 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		loadPlan(index)
 	}
 
-	const addPlan = (name: string, content: string, precomputedSnapshots?: Snapshot[]) => {
+	const addPlan = (name: string, content: string, precomputedReplay?: PlanReplay) => {
 		const index = plans.length
-		if (precomputedSnapshots && precomputedSnapshots.length > 0) {
-			snapshotStore.set(index, precomputedSnapshots)
+		const snapshots = precomputedReplay?.snapshots ?? []
+		if (snapshots.length > 0) {
+			snapshotStore.set(index, snapshots)
 		}
 		plans = [
 			...plans,
 			{
 				name,
 				content,
-				status: precomputedSnapshots && precomputedSnapshots.length > 0 ? 'ready' : 'idle',
+				status:
+					snapshots.length > 0
+						? precomputedReplay?.startStateOnly
+							? 'start-state-only'
+							: 'ready'
+						: 'idle',
 				error: null,
-				stepCount: precomputedSnapshots?.length ?? 0,
+				stepCount: snapshots.length,
 			},
 		]
 		selectPlan(index)

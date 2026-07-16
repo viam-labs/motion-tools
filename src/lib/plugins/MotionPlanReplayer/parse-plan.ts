@@ -10,13 +10,38 @@ const FrameSystemSchema = z.object({
 	parents: z.record(z.string(), z.string()),
 })
 
+const GoalPoseInFrameSchema = z.object({
+	referenceFrame: z.string().optional(),
+	pose: z
+		.object({
+			x: z.number().optional(),
+			y: z.number().optional(),
+			z: z.number().optional(),
+			oX: z.number().optional(),
+			oY: z.number().optional(),
+			oZ: z.number().optional(),
+			theta: z.number().optional(),
+		})
+		.optional(),
+})
+
+const GoalSchema = z.object({
+	poses: z.record(z.string(), GoalPoseInFrameSchema).nullable().optional(),
+})
+
+const StartStateSchema = z.object({
+	configuration: z.record(z.string(), z.array(z.number())).nullable().optional(),
+})
+
 const PlanChunkSchema = z.object({
 	frame_system: FrameSystemSchema.optional(),
-	goals: z.array(z.unknown()).optional(),
+	goals: z.array(GoalSchema).optional(),
+	start_state: StartStateSchema.optional(),
 	trajectory: z.array(z.record(z.string(), z.array(z.number()))).optional(),
 })
 
 export type RawFrame = z.infer<typeof RawFrameSchema>
+export type PlanGoal = z.infer<typeof GoalSchema>
 
 export class PlanParseError extends Error {
 	constructor(message: string) {
@@ -100,7 +125,8 @@ const PlanSchema = z
 		let frames: Record<string, RawFrame> = {}
 		let parents: Record<string, string> = {}
 		let trajectory: Array<Record<string, number[]>> = []
-		let goals: unknown[] = []
+		let goals: PlanGoal[] = []
+		let startConfiguration: Record<string, number[]> | null = null
 		let foundFrameSystem = false
 
 		for (const chunk of chunks) {
@@ -109,6 +135,10 @@ const PlanSchema = z
 				parents = chunk.frame_system.parents
 				goals = chunk.goals ?? []
 				foundFrameSystem = true
+			}
+
+			if (chunk.start_state?.configuration) {
+				startConfiguration = chunk.start_state.configuration
 			}
 
 			if (chunk.trajectory) {
@@ -121,7 +151,7 @@ const PlanSchema = z
 			return z.NEVER
 		}
 
-		return { frames, parents, trajectory, goals }
+		return { frames, parents, trajectory, goals, startConfiguration }
 	})
 
 export type ParsedPlan = z.infer<typeof PlanSchema>

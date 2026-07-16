@@ -39,7 +39,7 @@
 			return
 		}
 
-		ctx.addPlan(result.name, result.content, result.snapshots)
+		ctx.addPlan(result.name, result.content, result.replay)
 		isOpen = true
 	}
 
@@ -125,6 +125,11 @@
 
 			{#if plan.status === 'error'}
 				<div class="pl-5 text-[10px] text-red-600">{plan.error}</div>
+			{/if}
+			{#if plan.status === 'start-state-only'}
+				<div class="pl-5 text-[10px] text-yellow-600">
+					No trajectory — showing start state and goal
+				</div>
 			{/if}
 			{#if plan.status === 'no-trajectory'}
 				<div class="pl-5 text-[10px] text-yellow-600">No trajectory — nothing to replay</div>

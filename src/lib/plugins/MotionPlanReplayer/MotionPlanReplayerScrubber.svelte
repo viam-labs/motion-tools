@@ -74,7 +74,7 @@
 	})
 </script>
 
-{#if ctx.totalSteps > 0}
+{#if ctx.totalSteps > 1}
 	<div class="border-light flex flex-col gap-2 border-t pt-2">
 		<input
 			class="scrubber w-full"

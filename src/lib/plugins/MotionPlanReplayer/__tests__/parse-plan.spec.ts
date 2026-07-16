@@ -30,6 +30,7 @@ describe('parsePlan', () => {
 		const plan = parsePlan(JSON.stringify(REQUEST_OBJ))
 		expect(Object.keys(plan.frames)).toContain('left-arm:waist')
 		expect(plan.trajectory).toHaveLength(0)
+		expect(plan.startConfiguration).toBeNull()
 	})
 
 	it('parses two concatenated JSON objects', () => {
@@ -67,6 +68,18 @@ describe('parsePlan with a captured plan', () => {
 		expect(Object.keys(plan.parents)).toHaveLength(79)
 		expect(plan.goals).toHaveLength(1)
 		expect(plan.trajectory).toHaveLength(2)
+	})
+
+	it('reads the goal pose', () => {
+		const goalPose = plan.goals[0]!.poses!['left-gripper']!
+		expect(goalPose.referenceFrame).toBe('world')
+		expect(goalPose.pose!.x).toBeCloseTo(387.704, 2)
+		expect(goalPose.pose!.theta).toBeCloseTo(-180, 1)
+	})
+
+	it('reads the start configuration', () => {
+		expect(plan.startConfiguration).not.toBeNull()
+		expect(plan.startConfiguration!['left-arm']).toHaveLength(6)
 	})
 
 	it('keeps every frame type the planner emits', () => {

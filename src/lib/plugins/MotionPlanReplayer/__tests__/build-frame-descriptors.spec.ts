@@ -10,6 +10,7 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 	parents,
 	trajectory: [],
 	goals: [],
+	startConfiguration: null,
 })
 
 describe('buildFrameDescriptors', () => {
