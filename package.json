@@ -233,7 +233,7 @@
 			]
 		},
 		"lint:eslint": {
-			"command": "TSESTREE_SINGLE_RUN=true eslint .",
+			"command": "eslint . --concurrency auto",
 			"files": [
 				"**",
 				"!.bin/**",

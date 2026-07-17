@@ -1,49 +1,41 @@
 <script lang="ts">
-	import { Label, Select } from '@viamrobotics/prime-core'
-
 	import Table from '$lib/components/overlay/Table.svelte'
 	import { formatNumeric } from '$lib/format'
 	import { useArmClient } from '$lib/hooks/useArmClient.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
 
-	const armClient = useArmClient()
+	const { name } = $props<{ name: string }>()
+
 	const settings = useSettings()
+	const partID = usePartID()
+	const armClient = useArmClient()
 
 	let isOpen = $state(true)
-	let selectedArm = $state(armClient.names[0])
 
-	const positions = $derived(armClient.currentPositions[selectedArm])
+	const positions = $derived(armClient.currentPositions[name])
 
 	// Sync panel close back to settings
 	$effect(() => {
 		if (isOpen) return
-		settings.current.enableArmPositionsWidget = false
+		const list = settings.current.openArmWidgets[partID.current] ?? []
+		const next = list.filter((widget) => widget !== name)
+		if (next.length === list.length) return
+		settings.current.openArmWidgets = {
+			...settings.current.openArmWidgets,
+			[partID.current]: next,
+		}
 	})
 </script>
 
 <FloatingPanel
-	title="Arm positions"
+	title={name}
 	bind:isOpen
 	defaultSize={{ width: 280, height: 300 }}
 >
 	<div class="flex h-full flex-col gap-2 overflow-y-auto p-2 text-xs">
-		<Label>
-			Select arm
-			<Select
-				slot="input"
-				value={selectedArm}
-				name="arm"
-				on:change={(event) => {
-					selectedArm = (event.target as HTMLSelectElement).value
-				}}
-			>
-				{#each armClient.names as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</Select>
-		</Label>
 		<Table>
 			<thead>
 				<tr>
