@@ -546,7 +546,7 @@
 		"@threlte/rapier": ">=3",
 		"@threlte/xr": ">=1",
 		"@viamrobotics/prime-core": ">=0.1",
-		"@viamrobotics/sdk": ">=0.38",
+		"@zag-js/dialog": ">=1.31",
 		"@viamrobotics/svelte-sdk": ">=0.1",
 		"@zag-js/collapsible": ">=1",
 		"@zag-js/dialog": ">=1",
