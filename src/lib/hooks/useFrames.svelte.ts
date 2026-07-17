@@ -118,7 +118,7 @@ export const provideFrames = (partID: () => string) => {
 		return result
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		const currentResourcesByName = resourceByName.current
 		const currentPartID = partID()
 		const currentComponentSubtypeByName = componentSubtypeByName
