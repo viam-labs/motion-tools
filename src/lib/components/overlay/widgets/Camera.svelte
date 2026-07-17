@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { draggable } from '@neodrag/svelte'
-	import { Icon, Select } from '@viamrobotics/prime-core'
+	import { Select } from '@viamrobotics/prime-core'
 	import { MachineConnectionEvent, StreamClient } from '@viamrobotics/sdk'
 	import { CameraStream, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 
@@ -8,12 +7,14 @@
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
+	import FloatingPanel from '../FloatingPanel.svelte'
+
 	interface Resolution {
 		width: number
 		height: number
 	}
 
-	const { name, ...rest } = $props<{ name: string }>()
+	const { name } = $props<{ name: string }>()
 
 	const settings = useSettings()
 	const partID = usePartID()
@@ -21,7 +22,7 @@
 	const connectionStatus = useConnectionStatus(() => partID.current)
 	const environment = useEnvironment()
 
-	let dragElement = $state.raw<HTMLElement>()
+	let isOpen = $state(true)
 	let aspectRatio = $state.raw<number | undefined>(undefined)
 	let fps = $state(0)
 	let resolutions = $state<Resolution[]>([])
@@ -40,6 +41,18 @@
 	// Cleanup on destroy
 	$effect(() => {
 		return cleanup
+	})
+
+	// Sync panel close back to settings
+	$effect(() => {
+		if (isOpen) return
+		const list = settings.current.openCameraWidgets[partID.current] ?? []
+		const next = list.filter((widget) => widget !== name)
+		if (next.length === list.length) return
+		settings.current.openCameraWidgets = {
+			...settings.current.openCameraWidgets,
+			[partID.current]: next,
+		}
 	})
 
 	const onMediaLoad = (e: Event) => {
@@ -115,62 +128,37 @@
 	}
 </script>
 
-<div
-	class="bg-extralight border-medium absolute top-0 left-0 z-4 m-2 flex resize-x flex-col overflow-hidden border text-xs dark:text-black"
-	style:width="320px"
-	style:height="auto !important"
-	use:draggable={{
-		bounds: 'body',
-		handle: dragElement,
-	}}
-	{...rest}
+<FloatingPanel
+	title={name}
+	bind:isOpen
+	defaultSize={{ width: 320, height: 280 }}
+	minSize={{ width: 160, height: 120 }}
+	resizable
+	bodyClass="bg-black"
 >
-	<div class="flex h-full min-w-0 flex-col">
-		<div class="flex w-full shrink-0 items-center justify-between">
-			<div class="border-medium flex w-full items-center gap-1 border-b p-2">
-				<button bind:this={dragElement}>
-					<Icon name="drag" />
-				</button>
-				<h3 class="min-w-0 truncate">{name}</h3>
-				<div class="flex-1"></div>
-
-				{#if isLoading}
-					<span class="text-subtle mr-2">Loading...</span>
-				{:else if resolutions.length > 0}
-					<div class="mr-2 w-32">
-						<Select
-							bind:value={currentResolution}
-							onchange={handleResolutionChange}
-						>
-							<option value="">Default</option>
-							{#each resolutions as res (`${res.width}x${res.height}`)}
-								<option value={`${res.width}x${res.height}`}>{res.width}x{res.height}</option>
-							{/each}
-						</Select>
-					</div>
-				{/if}
-
-				<button
-					aria-label="close"
-					class="hover:text-default"
-					onclick={() => {
-						const widgets = settings.current.openCameraWidgets[partID.current] || []
-						settings.current.openCameraWidgets = {
-							...settings.current.openCameraWidgets,
-							[partID.current]: widgets.filter((widget) => widget !== name),
-						}
-					}}
-				>
-					<Icon
-						name="close"
-						size="xs"
-					/>
-				</button>
+	<div class="flex h-full flex-col text-xs dark:text-black">
+		{#if isLoading}
+			<div class="border-medium flex items-center justify-end border-b bg-white p-2">
+				<span class="text-subtle">Loading...</span>
 			</div>
-		</div>
+		{:else if resolutions.length > 0}
+			<div class="border-medium flex items-center justify-end border-b bg-white p-2">
+				<div class="w-32">
+					<Select
+						bind:value={currentResolution}
+						onchange={handleResolutionChange}
+					>
+						<option value="">Default</option>
+						{#each resolutions as res (`${res.width}x${res.height}`)}
+							<option value={`${res.width}x${res.height}`}>{res.width}x{res.height}</option>
+						{/each}
+					</Select>
+				</div>
+			</div>
+		{/if}
 
 		<div
-			class="relative min-h-0 w-full flex-1 overflow-hidden bg-black [&_img]:h-full [&_img]:w-full [&_img]:object-fill [&_video]:h-full [&_video]:w-full [&_video]:object-fill"
+			class="relative min-h-0 w-full flex-1 overflow-hidden [&_img]:h-full [&_img]:w-full [&_img]:object-fill [&_video]:h-full [&_video]:w-full [&_video]:object-fill"
 			style:aspect-ratio={aspectRatio}
 		>
 			{#if connectionStatus.current === MachineConnectionEvent.CONNECTED}
@@ -203,4 +191,4 @@
 			{/if}
 		</div>
 	</div>
-</div>
+</FloatingPanel>
