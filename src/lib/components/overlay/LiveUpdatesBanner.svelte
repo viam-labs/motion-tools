@@ -51,12 +51,8 @@
 			{#if environment.current.isStandalone}
 				<div class="flex gap-2">
 					<Button
-						class="cursor-pointer text-blue-600"
-						onclick={discard}
-					<Button
 						onclick={discard}
 						disabled={!partConfig.isDirty}
-					>
 					>
 						Discard
 					</Button>
