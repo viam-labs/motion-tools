@@ -102,6 +102,7 @@
 	const environment = provideEnvironment()
 	const fullscreen = provideFullscreen()
 
+	const currentRobotArmWidgets = $derived(settings.current.openArmWidgets[partID] || [])
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -168,11 +169,11 @@
 
 				<TreeContainer />
 
-				{#if settings.current.enableArmPositionsWidget}
-					<ArmPositions />
-				{/if}
-
 				{#if !$isPresenting}
+					{#each currentRobotArmWidgets as armName (armName)}
+						<ArmPositions name={armName} />
+					{/each}
+
 					{#each currentRobotCameraWidgets as cameraName (cameraName)}
 						<Camera name={cameraName} />
 					{/each}
