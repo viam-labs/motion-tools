@@ -71,7 +71,6 @@
 			>
 				{@render children()}
 
-				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
@@ -79,6 +78,7 @@
 
 				<XR />
 
+				<Logs />
 				<Machines bind:isOpen={isMachinesPageOpen} />
 			</Visualizer>
 		</MachineConnectionProvider>

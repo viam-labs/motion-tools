@@ -48,37 +48,39 @@
 				<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
 			</div>
 
-			<div class="flex gap-2">
-				<Button
-					class="cursor-pointer text-blue-600"
-					onclick={discard}
-					disabled={!partConfig.isDirty}
-				>
-					Discard
-				</Button>
+			{#if environment.current.isStandalone}
+				<div class="flex gap-2">
+					<Button
+						class="cursor-pointer text-blue-600"
+						onclick={discard}
+						disabled={!partConfig.isDirty}
+					>
+						Discard
+					</Button>
 
-				<Button
-					variant="dark"
-					aria-label="Save"
-					class="cursor-pointer text-blue-600"
-					disabled={!partConfig.isDirty}
-					onclick={() => {
-						partConfig.save()
-					}}
-				>
-					<div class="flex gap-2">
-						Save
-						<div class="font-roboto-mono text-disabled flex items-center">
-							<Icon
-								name={iconName}
-								size="xs"
-							/>
-							<span class="sr-only">{iconLabel}</span>
-							<span>S</span>
+					<Button
+						variant="dark"
+						aria-label="Save"
+						class="cursor-pointer text-blue-600"
+						disabled={!partConfig.isDirty}
+						onclick={() => {
+							partConfig.save()
+						}}
+					>
+						<div class="flex gap-2">
+							Save
+							<div class="font-roboto-mono text-disabled flex items-center">
+								<Icon
+									name={iconName}
+									size="xs"
+								/>
+								<span class="sr-only">{iconLabel}</span>
+								<span>S</span>
+							</div>
 						</div>
-					</div>
-				</Button>
-			</div>
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}

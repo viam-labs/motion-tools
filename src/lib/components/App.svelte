@@ -164,9 +164,7 @@
 					/>
 				{/each}
 
-				{#if environment.current.isStandalone}
-					<LiveUpdatesBanner />
-				{/if}
+				<LiveUpdatesBanner />
 
 				<TreeContainer />
 
