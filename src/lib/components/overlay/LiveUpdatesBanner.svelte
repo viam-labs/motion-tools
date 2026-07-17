@@ -3,8 +3,10 @@
 
 	import { useWorld } from '$lib/ecs'
 	import { resetStagedEdits } from '$lib/editing/resetStagedEdits'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
+	const environment = useEnvironment()
 	const partConfig = usePartConfig()
 	const world = useWorld()
 
@@ -30,9 +32,9 @@
 	}}
 />
 
-{#if partConfig.isDirty}
+{#if environment.current.viewerMode === 'build'}
 	<div
-		class="absolute bottom-8 z-4 flex w-full justify-center gap-2"
+		class="absolute bottom-4 z-4 flex w-full justify-center gap-2"
 		{...rest}
 	>
 		<div
@@ -43,13 +45,14 @@
 					<strong>Live updates paused</strong>
 				</p>
 
-				<p class="text-subtle-2 text-sm">You are currently viewing a snapshot while editing.</p>
+				<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
 			</div>
 
 			<div class="flex gap-2">
 				<Button
 					class="cursor-pointer text-blue-600"
 					onclick={discard}
+					disabled={!partConfig.isDirty}
 				>
 					Discard
 				</Button>
@@ -58,6 +61,7 @@
 					variant="dark"
 					aria-label="Save"
 					class="cursor-pointer text-blue-600"
+					disabled={!partConfig.isDirty}
 					onclick={() => {
 						partConfig.save()
 					}}
