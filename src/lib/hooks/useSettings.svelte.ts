@@ -48,7 +48,7 @@ export interface Settings {
 	enableLabels: boolean
 
 	// Widgets
-	enableArmPositionsWidget: boolean
+	openArmWidgets: Record<string, string[]>
 	openCameraWidgets: Record<string, string[]>
 	openFramePovWidgets: Record<string, string[]>
 
@@ -126,7 +126,7 @@ const defaults = (): Settings => ({
 
 	enableLabels: false,
 
-	enableArmPositionsWidget: false,
+	openArmWidgets: {},
 	openCameraWidgets: {},
 	openFramePovWidgets: {},
 
