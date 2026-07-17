@@ -169,10 +169,12 @@ export const provideFrames = (partID: () => string) => {
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
-					// Freeze the baseline while the user has unsaved edits so the
-					// WorldMatrix blend (live × baseline⁻¹ × edited) previews the edited
-					// position rather than amplifying live robot movement.
-					if (!partConfig.isDirty) {
+					// The baseline is the reference the WorldMatrix blend
+					// (live × baseline⁻¹ × edited) composes the staged edit against.
+					// Re-derive it from incoming config only while monitoring and clean:
+					// freezing it in build mode (or with unsaved edits) keeps the blend
+					// previewing the edit instead of collapsing to a stale LiveMatrix.
+					if (!partConfig.isDirty && !isBuildMode) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
 							poseToMatrix(pose, baseline)
