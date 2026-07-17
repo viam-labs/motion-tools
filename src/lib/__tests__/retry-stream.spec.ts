@@ -115,6 +115,48 @@ describe('retryStream', () => {
 		expect(onRetry).not.toHaveBeenCalled()
 	})
 
+	it('caps delay at MAX_DELAY_MS (30s) and does not double beyond it', async () => {
+		vi.useFakeTimers()
+
+		const controller = new AbortController()
+		let callCount = 0
+
+		const run = vi.fn().mockImplementation(async () => {
+			callCount++
+			if (callCount <= 6) throw new Error('stream error')
+			controller.abort()
+		})
+
+		const onRetry = vi.fn()
+		const promise = retryStream(run, controller.signal, onRetry)
+
+		// Advance through each exponential backoff step
+		await vi.advanceTimersByTimeAsync(1_000) // delay: 1000
+		await vi.advanceTimersByTimeAsync(2_000) // delay: 2000
+		await vi.advanceTimersByTimeAsync(4_000) // delay: 4000
+		await vi.advanceTimersByTimeAsync(8_000) // delay: 8000
+		await vi.advanceTimersByTimeAsync(16_000) // delay: 16000
+		await vi.advanceTimersByTimeAsync(30_000) // delay: capped at 30000 (not 32000)
+
+		await promise
+
+		expect(onRetry).toHaveBeenCalledTimes(6)
+		expect(onRetry).toHaveBeenNthCalledWith(5, 16_000)
+		expect(onRetry).toHaveBeenNthCalledWith(6, 30_000)
+
+		vi.useRealTimers()
+	})
+
+	it('does not call run when signal is already aborted before retryStream is called', async () => {
+		const controller = new AbortController()
+		controller.abort()
+
+		const run = vi.fn()
+		await retryStream(run, controller.signal)
+
+		expect(run).not.toHaveBeenCalled()
+	})
+
 	it('resets delay after a successful run', async () => {
 		vi.useFakeTimers()
 
