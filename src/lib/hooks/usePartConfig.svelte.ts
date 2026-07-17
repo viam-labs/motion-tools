@@ -21,21 +21,17 @@ export interface PartConfig {
 
 interface LocalPartConfig {
 	isDirty: boolean
-	hasPendingSave: boolean
 	hasEditPermissions: boolean
 	current: Struct
 
 	set: (config: PartConfig) => void
 	save?: () => void
 	discardChanges?: () => void
-	clearPendingSave: () => void
-	setPendingSave: () => void
 }
 
 interface PartConfigContext {
 	current: PartConfig
 	isDirty: boolean
-	hasPendingSave: boolean
 	hasEditPermissions: boolean
 
 	updateFrame: (
@@ -48,8 +44,6 @@ interface PartConfigContext {
 	createFrame: (componentName: string) => void
 	save: () => void
 	discardChanges: () => void
-	clearPendingSave: () => void
-	setPendingSave: () => void
 }
 
 export const providePartConfig = (
@@ -250,9 +244,6 @@ export const providePartConfig = (
 		get isDirty() {
 			return config.isDirty
 		},
-		get hasPendingSave() {
-			return config.hasPendingSave
-		},
 		get hasEditPermissions() {
 			return config.hasEditPermissions
 		},
@@ -289,8 +280,6 @@ export const providePartConfig = (
 		},
 		save: () => config.save?.(),
 		discardChanges: () => config.discardChanges?.(),
-		clearPendingSave: () => config.clearPendingSave(),
-		setPendingSave: () => config.setPendingSave(),
 	})
 }
 
@@ -306,44 +295,8 @@ interface AppEmbeddedPartConfigProps {
 }
 
 const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConfig => {
-	let hasPendingSave = $state(false)
-	let prevIsDirty = false
-	let cleanSnapshot: string | undefined
-
-	const snapshot = (current: Struct | undefined): string | undefined => {
-		const json = current?.toJson?.()
-		return json === undefined ? undefined : JSON.stringify(json)
-	}
-
-	/**
-	 * The host app owns saving, and we aren't notified directly. Set hasPendingSave
-	 * to watch isDirty: true -> false transitions, representing a save.
-	 *
-	 * `useFrames` clears the flag on the next `revision` change
-	 * once the server reports the new framesystem.
-	 */
-	$effect.pre(() => {
-		const dirty = props.isDirty
-		const current = props.current
-
-		if (prevIsDirty && !dirty) {
-			const next = snapshot(current)
-			if (next !== undefined && cleanSnapshot !== undefined && next !== cleanSnapshot) {
-				hasPendingSave = true
-			}
-			cleanSnapshot = next
-		} else if (!prevIsDirty && !dirty) {
-			cleanSnapshot = snapshot(current)
-		}
-
-		prevIsDirty = dirty
-	})
-
 	return {
 		hasEditPermissions: true,
-		get hasPendingSave() {
-			return hasPendingSave
-		},
 		get isDirty() {
 			return props.isDirty
 		},
@@ -355,13 +308,6 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 		set(config: PartConfig): void {
 			const struct = Struct.fromJson(config as unknown as JsonValue)
 			return props.setLocalPartConfig(struct)
-		},
-
-		clearPendingSave() {
-			hasPendingSave = false
-		},
-		setPendingSave() {
-			hasPendingSave = true
 		},
 	}
 }
@@ -378,7 +324,6 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	let networkPartConfig = $derived(partQuery.data?.part?.robotConfig)
 	let current = $state.raw<Struct>()
 	let isDirty = $state(false)
-	let hasPendingSave = $state(false)
 
 	const hasEditPermissions = $derived(networkPartConfig !== undefined)
 
@@ -386,12 +331,11 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	$effect.pre(() => {
 		const id = partID()
 		if (lastPartID !== undefined && lastPartID !== id) {
-			// Part changed: drop any in-memory edits/pending-save state from the
-			// previous part, and clear `current` so consumers don't keep
-			// rendering the old config's frames while the new part loads
-			// (offline parts may never load, leaving the old frames forever).
+			// Part changed: drop any in-memory edits from the previous part, and
+			// clear `current` so consumers don't keep rendering the old config's
+			// frames while the new part loads (offline parts may never load,
+			// leaving the old frames forever).
 			isDirty = false
-			hasPendingSave = false
 			current = undefined
 		}
 		lastPartID = id
@@ -412,9 +356,6 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		get isDirty() {
 			return isDirty
 		},
-		get hasPendingSave() {
-			return hasPendingSave
-		},
 		get hasEditPermissions() {
 			return hasEditPermissions
 		},
@@ -432,20 +373,11 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 			networkPartConfig = current
 			await updateRobotPartMutation.mutateAsync([partID(), partName, current])
 			isDirty = false
-			hasPendingSave = true
 		},
 
 		discardChanges() {
 			current = networkPartConfig
 			isDirty = false
-		},
-
-		clearPendingSave() {
-			hasPendingSave = false
-		},
-
-		setPendingSave() {
-			hasPendingSave = true
 		},
 	}
 }

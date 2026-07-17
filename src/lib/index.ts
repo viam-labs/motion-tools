@@ -5,6 +5,7 @@ export { default as Visualizer } from './components/App.svelte'
 export { useSettings } from './hooks/useSettings.svelte'
 export { default as SettingsPortal } from './components/overlay/Portals/SettingsPortal.svelte'
 export { default as DashboardPortal } from './components/overlay/Portals/DashboardPortal.svelte'
+export { default as WorkspacePortal } from './components/overlay/Portals/WorkspacePortal.svelte'
 export { default as DetailsPortal } from './components/overlay/Portals/DetailsPortal.svelte'
 
 // Plugins

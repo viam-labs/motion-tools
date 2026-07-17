@@ -3,7 +3,6 @@ import { getContext, setContext } from 'svelte'
 
 import { createTransformFromFrame, type Frame } from '$lib/frame'
 
-import { useEnvironment } from './useEnvironment.svelte'
 import { useFragmentInfo } from './useFragmentInfo.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 
@@ -16,13 +15,8 @@ interface ConfigFramesContext {
 }
 
 export const provideConfigFrames = () => {
-	const environment = useEnvironment()
 	const partConfig = usePartConfig()
 	const fragmentInfo = useFragmentInfo()
-
-	$effect(() => {
-		environment.current.viewerMode = partConfig.isDirty ? 'edit' : 'monitor'
-	})
 
 	const [configFrames, configUnsetFrameNames] = $derived.by(() => {
 		const { components } = partConfig.current

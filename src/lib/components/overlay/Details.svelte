@@ -121,11 +121,12 @@
 	const isFragmentComponentWithVariables = $derived(
 		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
+	const isBuildMode = $derived(environment.current.viewerMode === 'build')
 	const showEditFrameOptions = $derived(
-		isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
+		isBuildMode && isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
 	)
 
-	const showRelationshipOptions = $derived(points.current || arrows.current)
+	const showRelationshipOptions = $derived(isBuildMode && (points.current || arrows.current))
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
 
@@ -252,7 +253,7 @@
 	just the inputs) raises it via `focus-within:z-5`. -->
 	<div
 		id="details-panel"
-		class="border-medium bg-extralight absolute top-0 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
+		class="border-medium bg-extralight absolute top-10 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
 		role="region"
 		aria-label="Details panel"
 		tabindex="-1"

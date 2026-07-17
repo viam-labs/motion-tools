@@ -71,17 +71,15 @@
 			>
 				{@render children()}
 
-				{#snippet dashboard()}
-					<Machines bind:isOpen={isMachinesPageOpen} />
-				{/snippet}
-
-				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
 				<StandaloneLLMWrapper />
 
 				<XR />
+
+				<Logs />
+				<Machines bind:isOpen={isMachinesPageOpen} />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
