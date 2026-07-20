@@ -529,7 +529,7 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 
 	switch (geometryType?.case) {
 		case 'arrows': {
-			const poses = asFloat32Array(geometryType.value.poses, inMeters)
+			const poses = asFloat32Array(geometryType.value.poses)
 			entity.set(traits.Positions, poses)
 			entity.set(traits.Instances, { count: poses.length / STRIDE.ARROWS })
 			setColorTraits(entity, metadata?.colors ?? DEFAULT_ARROWS_COLORS)

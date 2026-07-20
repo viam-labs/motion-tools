@@ -20,7 +20,7 @@
 		"preview": "vite preview",
 		"check": "wireit",
 		"check:watch": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write . && ./scripts/eslint-progress.sh . --fix",
+		"format": "prettier --write . && ./etc/eslint-progress.sh . --fix --concurrency auto",
 		"lint": "wireit",
 		"lint:prettier": "wireit",
 		"lint:eslint": "wireit",
