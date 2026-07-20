@@ -15,6 +15,21 @@ import * as planRelations from './relations'
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
 
+// koota's `set` writes the trait's store slot but will not add an absent trait — the entity's
+// mask is untouched, so `has` stays false and nothing querying the trait ever sees the value.
+// Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
+// happens to be present because `drawTransform` adds it unconditionally. Guard both rather than
+// depend on that.
+const setOrAddColor = (entity: Entity, value: typeof PLAN_COLOR) => {
+	if (entity.has(traits.Color)) entity.set(traits.Color, value)
+	else entity.add(traits.Color(value))
+}
+
+const setOrAddOpacity = (entity: Entity, value: number) => {
+	if (entity.has(traits.Opacity)) entity.set(traits.Opacity, value)
+	else entity.add(traits.Opacity(value))
+}
+
 export interface PlanEntry {
 	name: string
 	content: string
@@ -79,6 +94,22 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const applyStep = (snapshots: Snapshot[], step: number) => {
 		const snap = snapshots[step]!
 
+		// Capture user-adjusted display config before reconcile. reconcile → updateMetadata
+		// resets Opacity to default and removes Invisible/ShowAxesHelper every step, which would
+		// wipe edits made via the Details panel / tree as you scrub. Color survives reconcile
+		// untouched, so it only needs to not be re-forced (see the spawned block below).
+		// Iterate the PartOfPlan relation (not entityMap) so child sub-entities are covered too.
+		const preserved = new Map<Entity, { opacity: number; invisible: boolean; showAxes: boolean }>()
+		if (planEntity) {
+			for (const entity of world.query(planRelations.PartOfPlan(planEntity))) {
+				preserved.set(entity, {
+					opacity: entity.get(traits.Opacity) ?? 1,
+					invisible: entity.has(traits.Invisible),
+					showAxes: entity.has(traits.ShowAxesHelper),
+				})
+			}
+		}
+
 		const result = reconcileSnapshotEntities(world, snap, entityMap)
 
 		// One spawned entry per snapshot message. Plans emit transforms only, and a
@@ -90,33 +121,24 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			const uuid = spawned.entity.get(traits.UUID)
 			if (uuid) relationships.flush(uuid)
 			if (planEntity) spawned.entity.add(planRelations.PartOfPlan(planEntity))
+
+			// Defaults land on first appearance only. Re-forcing them every step is what wiped
+			// the user's Details-panel edits.
+			if (!spawned.entity.has(traits.ReferenceFrame)) setOrAddColor(spawned.entity, PLAN_COLOR)
+			setOrAddOpacity(spawned.entity, PLAN_OPACITY)
 		}
+
+		// Restore captured config onto entities that survived this step.
+		for (const [entity, prev] of preserved) {
+			if (!entity.isAlive()) continue
+			setOrAddOpacity(entity, prev.opacity)
+			if (prev.invisible) entity.add(traits.Invisible)
+			else entity.remove(traits.Invisible)
+			if (prev.showAxes) entity.add(traits.ShowAxesHelper)
+			else entity.remove(traits.ShowAxesHelper)
+		}
+
 		entityMap = result.current
-
-		// `set` writes the trait's store slot but will not add an absent trait — the
-		// entity's mask is untouched, so nothing querying the trait ever sees the value.
-		// Plan transforms carry no color metadata, so `Color` is always absent on spawn;
-		// `Opacity` is always present (drawTransform adds it unconditionally), but guard
-		// both rather than depend on that.
-		if (planEntity) {
-			for (const entity of world.query(planRelations.PartOfPlan(planEntity))) {
-				if (!entity.isAlive()) continue
-				if (entity.has(traits.ReferenceFrame)) continue
-
-				if (entity.has(traits.Color)) {
-					entity.set(traits.Color, PLAN_COLOR)
-				} else {
-					entity.add(traits.Color(PLAN_COLOR))
-				}
-
-				if (entity.has(traits.Opacity)) {
-					entity.set(traits.Opacity, PLAN_OPACITY)
-				} else {
-					entity.add(traits.Opacity(PLAN_OPACITY))
-				}
-			}
-		}
-
 		currentStep = step
 	}
 
