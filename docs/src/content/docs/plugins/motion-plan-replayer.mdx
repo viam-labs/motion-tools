@@ -26,11 +26,12 @@ Mount `<MotionPlanReplayer />` anywhere inside `<Visualizer />`:
 
 Click the upload button in the panel and select a motion plan JSON file. Each uploaded plan is added to the list with a status:
 
+- **idle** — listed but not parsed yet. Plans seeded through the `plans` prop start here; they are parsed on first selection.
 - **ready** — parsed successfully; select it to render and scrub.
 - **no-trajectory** — the plan parsed but has no trajectory steps to replay.
 - **error** — the file could not be parsed as a motion plan.
 
-Selecting a `ready` plan spawns its entities and reveals the scrubber. Removing a plan (or exiting replay) tears the plan's entities back down.
+Selecting a plan parses it if needed, spawns its entities, and reveals the scrubber. Removing the plan — or calling `clearActivePlan` — tears those entities back down.
 
 ## Scrubbing
 
@@ -46,6 +47,8 @@ Each step reconciles the scene against that step's snapshot, moving joints and l
 ## Per-frame display config
 
 Plan entities behave like any other scene entity: select one in the 3D view to open the **Details** panel, where you can change its color, opacity, and axes-helper visibility, or hide it from the left-hand tree. These edits **persist as you scrub** — they are captured before each step's reconcile and restored afterward, so stepping through the trajectory doesn't reset them.
+
+Plan frames render **without axes helpers by default** — including arm origins and end-effectors. Turn them on per frame from the Details panel; the toggle then survives scrubbing like any other display edit.
 
 Display edits are session-only: reloading the plan or refreshing the page restores the defaults.
 
@@ -84,5 +87,11 @@ Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<M
 ```
 
 `addPlan(name, content)` parses the plan, adds it to the list, and selects it. The hook also exposes the current `plans` and `activePlanIndex`, plus `removePlan`, `selectPlan`, `setStep`, and `clearActivePlan` — so a custom panel can drive the replayer as fully as the built-in UI does.
+
+`addPlan` takes an optional third argument, `precomputedSnapshots: Snapshot[]`. Pass it when your app has already converted the plan to snapshots and you want to skip the client-side parse — the plan lands as `ready` immediately. Omit it and the plugin parses `content` itself:
+
+```ts
+replayer.addPlan('from-db', planJson, snapshots)
+```
 
 Calling `useMotionPlanReplayer()` outside a `<MotionPlanReplayer />` throws.
