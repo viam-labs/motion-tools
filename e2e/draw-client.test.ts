@@ -2,7 +2,7 @@ import { Browser, expect, Page, test } from '@playwright/test'
 import { exec, execSync } from 'node:child_process'
 import { promisify } from 'node:util'
 
-import { screenshotCanvas } from './helpers/screenshot'
+import { captureCanvas, screenshotCanvas, waitForCanvasToChange } from './helpers/screenshot'
 
 const execAsync = promisify(exec)
 
@@ -672,6 +672,46 @@ test('draw poses as arrows', async ({ browser }) => {
 	await expect(page.getByText('mySphere', { exact: true })).toBeVisible()
 
 	await assertTestSuccess(page, testPrefix)
+})
+
+const drawArrowsUpdateStep = (step: 'Start' | 'Move' | 'MoveAgain') => {
+	// Anchor the subtest name: an unanchored `.../Move` regex also matches `MoveAgain`,
+	// which would run both draws in one step and coalesce them into a single frame.
+	execSync(
+		`go test -run '^TestDrawPosesAsArrowsUpdating$/^${step}$' github.com/viam-labs/motion-tools/client/api -count=1`,
+		{ encoding: 'utf8' }
+	)
+}
+
+test('draw poses as arrows updating', async ({ browser }) => {
+	const testPrefix = 'DRAW_POSES_AS_ARROWS_UPDATING'
+	const page = await createPage(browser)
+	const failedScreenshots: string[] = []
+
+	// Draw a column of arrows under a stable UUID and let the initial pose render, then
+	// capture the canvas (canvas only — the surrounding UI would make the diff flaky).
+	// screenshotCanvas also commits a reviewable baseline of each rendered step.
+	drawArrowsUpdateStep('Start')
+	await expect(page.getByText('DrawPosesAsArrows updating')).toBeVisible({ timeout: 10000 })
+	await page.waitForTimeout(1000)
+	const initial = await captureCanvas(page)
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_START`))
+
+	// Re-draw the same UUID at a new pose. The rendered scene must change; a frozen
+	// arrow (the regression) leaves the canvas byte-for-byte identical.
+	drawArrowsUpdateStep('Move')
+	const moved = await waitForCanvasToChange(page, initial)
+	expect(moved, 'arrows did not move on the first same-UUID redraw').not.toBeNull()
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_1_MOVED`))
+
+	// Re-draw once more to prove updates keep applying in place, not just the first.
+	drawArrowsUpdateStep('MoveAgain')
+	const movedAgain = await waitForCanvasToChange(page, moved ?? initial)
+	expect(movedAgain, 'arrows did not move on the second same-UUID redraw').not.toBeNull()
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_2_MOVED_AGAIN`))
+
+	await cleanup(page)
+	assertNoFailedScreenshots(failedScreenshots)
 })
 
 test('draw poses as arrows with color palette', async ({ browser }) => {

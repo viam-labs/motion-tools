@@ -108,6 +108,45 @@ func TestDrawPosesAsArrows(t *testing.T) {
 	})
 }
 
+// TestDrawPosesAsArrowsUpdating redraws a single arrows entity under a stable ID at
+// three different positions. The Playwright "draw poses as arrows updating" test runs
+// these subtests one at a time and screenshots the canvas between them, asserting the
+// scene changes on every redraw. The regression this guards against left the arrows
+// frozen at their first-drawn poses because the arrow renderer only reacted to the
+// Arrows trait, never to the Positions buffer the update path rewrites.
+func TestDrawPosesAsArrowsUpdating(t *testing.T) {
+	startTestServer(t)
+
+	// drawColumn redraws the "updating" entity as a vertical column of blue arrows at
+	// the given X. Reusing the same ID exercises the in-place (same-UUID) update path.
+	drawColumn := func(t *testing.T, x float64) {
+		t.Helper()
+
+		const arrows = 8
+		poses := make([]spatialmath.Pose, 0, arrows)
+		for j := range arrows {
+			z := -700.0 + float64(j)*200.0
+			poses = append(poses, spatialmath.NewPose(
+				r3.Vector{X: x, Y: 0, Z: z},
+				&spatialmath.OrientationVectorDegrees{OX: 1, OY: 0, OZ: 0, Theta: 0},
+			))
+		}
+
+		uuid, err := DrawPosesAsArrows(DrawPosesAsArrowsOptions{
+			ID:     "updating",
+			Name:   "DrawPosesAsArrows updating",
+			Poses:  poses,
+			Colors: []draw.Color{draw.ColorFromName("blue")},
+		})
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, uuid, test.ShouldNotBeNil)
+	}
+
+	t.Run("Start", func(t *testing.T) { drawColumn(t, -1500) })
+	t.Run("Move", func(t *testing.T) { drawColumn(t, 0) })
+	t.Run("MoveAgain", func(t *testing.T) { drawColumn(t, 1500) })
+}
+
 func TestPosesAsArrowStress(t *testing.T) {
 	t.Skip("Run only if you want to punish your computer.")
 
