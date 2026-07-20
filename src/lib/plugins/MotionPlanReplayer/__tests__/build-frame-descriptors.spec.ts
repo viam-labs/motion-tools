@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { ParsedPlan } from '../parse-plan'
 
 import { buildFrameDescriptors } from '../build-frame-descriptors'
-import { PlanParseError } from '../parse-plan'
+import { parsePlan } from '../parse-plan'
+import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
 	frames,
@@ -499,21 +500,113 @@ describe('buildFrameDescriptors', () => {
 		if (d.kind === 'static') expect(d.geometry).toBeNull()
 	})
 
-	it('rejects an unsupported geometry type rather than rendering it as a box', () => {
-		const p = plan(
+	const obstacleWith = (geometry: Record<string, unknown>) =>
+		plan(
 			{
 				obstacle: {
 					frame_type: 'static',
 					frame: {
 						translation: { X: 0, Y: 0, Z: 0 },
 						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-						geometry: { type: 'mesh', x: 1, y: 2, z: 3 },
+						geometry,
 					},
 				},
 			},
 			{ obstacle: 'world' }
 		)
-		expect(() => buildFrameDescriptors(p)).toThrow(PlanParseError)
-		expect(() => buildFrameDescriptors(p)).toThrow(/mesh/)
+
+	const obstacleGeometry = (geometry: Record<string, unknown>) => {
+		const d = buildFrameDescriptors(obstacleWith(geometry)).find((x) => x.name === 'obstacle')
+		expect(d).toBeDefined()
+		expect(d!.kind).toBe('static')
+		return d!.kind === 'static' ? d!.geometry : null
+	}
+
+	it('skips an unsupported geometry type but keeps the frame', () => {
+		// Rendering nothing is honest; a stand-in box would lie about the collision volume.
+		expect(obstacleGeometry({ type: 'ellipsoid', x: 1, y: 2, z: 3 })).toBeNull()
+	})
+
+	it('reads a mesh geometry into the proto mesh case', () => {
+		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
+		const geometry = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: 'ply',
+			mesh_data: btoa(ply),
+			Label: 'scoop',
+		})
+
+		expect(geometry).not.toBeNull()
+		expect(geometry!.geometryType.case).toBe('mesh')
+		expect(geometry!.label).toBe('scoop')
+		if (geometry!.geometryType.case === 'mesh') {
+			// A bad base64 swap shows up here and nowhere else.
+			expect(geometry!.geometryType.value.contentType).toBe('ply')
+			expect(geometry!.geometryType.value.mesh).toEqual(new TextEncoder().encode(ply))
+		}
+	})
+
+	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
+	it.each([
+		['a non-PLY content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
+		['a missing content type', { mesh_data: btoa('ply\n') }],
+		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
+		['absent mesh data', { mesh_content_type: 'ply' }],
+	])('skips a mesh with %s', (_label, geometry) => {
+		expect(obstacleGeometry({ type: 'mesh', ...geometry })).toBeNull()
+	})
+})
+
+/**
+ * `salad-plan.json` is an unmodified capture, so these assertions cover the payload shape
+ * RDK actually emits rather than one we invented.
+ */
+describe('buildFrameDescriptors with a captured mesh-geometry plan', () => {
+	const parsed = parsePlan(saladPlan)
+
+	it('builds descriptors without rejecting the plan', () => {
+		expect(() => buildFrameDescriptors(parsed)).not.toThrow()
+		expect(buildFrameDescriptors(parsed).length).toBeGreaterThan(0)
+	})
+
+	it.each([
+		['scoop-gripper:scoop_left', 'scoop_left'],
+		['scoop-gripper:scoop_right', 'scoop_right'],
+	])('resolves %s to a mesh geometry', (name, label) => {
+		const d = buildFrameDescriptors(parsed).find((x) => x.name === name)
+
+		expect(d).toBeDefined()
+		expect(d!.kind).toBe('static')
+		if (d!.kind !== 'static') return
+
+		expect(d!.geometry).not.toBeNull()
+		expect(d!.geometry!.geometryType.case).toBe('mesh')
+		expect(d!.geometry!.label).toBe(label)
+		if (d!.geometry!.geometryType.case !== 'mesh') return
+
+		const { contentType, mesh } = d!.geometry!.geometryType.value
+		expect(contentType).toBe('ply')
+		expect(mesh.length).toBeGreaterThan(0)
+
+		// parsePlyInput sniffs the first 50 bytes for `format ascii` to pick its branch.
+		const header = new TextDecoder().decode(mesh.slice(0, 50))
+		expect(header.startsWith('ply')).toBe(true)
+		expect(header).toContain('format ascii')
+	})
+
+	it('keeps the mesh center frame-relative', () => {
+		const d = buildFrameDescriptors(parsed).find((x) => x.name === 'scoop-gripper:scoop_left')
+
+		// Guards against the mesh branch bypassing geometryCenterInFrame on its way to the bytes.
+		if (d?.kind === 'static') expect(d.geometry!.center!.x).toBeCloseTo(-42.6, 1)
+	})
+
+	it('still resolves geometry for the frames that use supported types', () => {
+		const descriptors = buildFrameDescriptors(parsed)
+		const boxes = descriptors.filter(
+			(d) => d.kind === 'static' && d.geometry?.geometryType.case === 'box'
+		)
+
+		expect(boxes.length).toBeGreaterThan(0)
 	})
 })
