@@ -108,17 +108,9 @@ func TestDrawPosesAsArrows(t *testing.T) {
 	})
 }
 
-// TestDrawPosesAsArrowsUpdating redraws a single arrows entity under a stable ID at
-// three different positions. The Playwright "draw poses as arrows updating" test runs
-// these subtests one at a time and screenshots the canvas between them, asserting the
-// scene changes on every redraw. The regression this guards against left the arrows
-// frozen at their first-drawn poses because the arrow renderer only reacted to the
-// Arrows trait, never to the Positions buffer the update path rewrites.
 func TestDrawPosesAsArrowsUpdating(t *testing.T) {
 	startTestServer(t)
 
-	// drawColumn redraws the "updating" entity as a vertical column of blue arrows at
-	// the given X. Reusing the same ID exercises the in-place (same-UUID) update path.
 	drawColumn := func(t *testing.T, x float64) {
 		t.Helper()
 

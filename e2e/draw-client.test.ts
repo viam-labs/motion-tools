@@ -688,23 +688,17 @@ test('draw poses as arrows updating', async ({ browser }) => {
 	const page = await createPage(browser)
 	const failedScreenshots: string[] = []
 
-	// Draw a column of arrows under a stable UUID and let the initial pose render, then
-	// capture the canvas (canvas only — the surrounding UI would make the diff flaky).
-	// screenshotCanvas also commits a reviewable baseline of each rendered step.
 	drawArrowsUpdateStep('Start')
 	await expect(page.getByText('DrawPosesAsArrows updating')).toBeVisible({ timeout: 10000 })
 	await page.waitForTimeout(1000)
 	const initial = await captureCanvas(page)
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_START`))
 
-	// Re-draw the same UUID at a new pose. The rendered scene must change; a frozen
-	// arrow (the regression) leaves the canvas byte-for-byte identical.
 	drawArrowsUpdateStep('Move')
 	const moved = await waitForCanvasToChange(page, initial)
 	expect(moved, 'arrows did not move on the first same-UUID redraw').not.toBeNull()
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_1_MOVED`))
 
-	// Re-draw once more to prove updates keep applying in place, not just the first.
 	drawArrowsUpdateStep('MoveAgain')
 	const movedAgain = await waitForCanvasToChange(page, moved ?? initial)
 	expect(movedAgain, 'arrows did not move on the second same-UUID redraw').not.toBeNull()

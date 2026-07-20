@@ -1,11 +1,5 @@
 import { expect, type Page } from '@playwright/test'
 
-/**
- * Runs `fn` with every DOM overlay (toolbar, tree, details panel, toasts)
- * hidden, so only the 3D canvas is visible. Restores the overlays afterwards
- * even if `fn` throws. Used by the canvas screenshot helpers so unrelated UI
- * doesn't leak into 3D-rendering assertions.
- */
 const withOverlaysHidden = async <T>(page: Page, fn: () => Promise<T>): Promise<T> => {
 	const canvas = page.locator('canvas').first()
 

@@ -29,15 +29,6 @@ import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 const DRAW_SERVICE_KEY = Symbol('draw-service-context')
 const FLOAT32_SIZE = 4
 
-// DEBUG(draw-event): first arrow origin X (mm) for logging; undefined for non-arrows.
-// Remove alongside the [draw-event] logs once the same-UUID arrow update path is confirmed.
-const arrowFirstPoseXmm = (drawing: Drawing): number | undefined => {
-	const geometry = drawing.physicalObject?.geometryType
-	if (geometry?.case !== 'arrows') return undefined
-	const poses = asFloat32Array(geometry.value.poses)
-	return poses.length > 0 ? poses[0] : undefined
-}
-
 const ConnectionStatus = {
 	CONNECTED: 'connected',
 	DISCONNECTED: 'disconnected',
@@ -211,16 +202,6 @@ export function provideDrawService() {
 	}
 
 	const processDrawingEvent = (drawing: Drawing, changeType: EntityChangeType, uuid: string) => {
-		// DEBUG(draw-event): confirm what arrives over the wire and how it reconciles.
-		// Remove once the same-UUID arrow update path is confirmed.
-		console.info('[draw-event] drawing', {
-			uuid,
-			changeType: EntityChangeType[changeType],
-			shape: drawing.physicalObject?.geometryType?.case,
-			existing: drawingEntities.has(uuid),
-			firstPoseXmm: arrowFirstPoseXmm(drawing),
-		})
-
 		if (changeType === EntityChangeType.ADDED) {
 			if (!drawingEntities.has(uuid)) {
 				const spawned = drawDrawing(world, drawing, traits.DrawServiceAPI)

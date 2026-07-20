@@ -32,19 +32,12 @@
 		const arrows = new InstancedArrows({ count: total, uniformColor })
 		map.set(entity, arrows)
 		arrows.update({ poses, colors, headAtPose })
-
-		// DEBUG(draw-event): remove once the same-UUID arrow update path is confirmed.
-		console.info('[draw-event] arrows.onAdd', { count: total, firstPoseXmm: poses[0] })
 	}
 
 	/**
 	 * Re-drawing an arrows entity in place (same UUID) rewrites its Positions/Colors
 	 * traits. Push the new buffers straight into the already-mounted InstancedArrows so it
-	 * re-renders without a remount — mirroring how points mutate their live BufferGeometry.
-	 * Rebuilding and swapping `<T is={...}>` under the same {#each} key does not re-mount,
-	 * which is why the arrows previously stayed frozen at their first-drawn pose. Only fall
-	 * back to a rebuild when the instance count or color layout changes, since both are
-	 * fixed when the instanced mesh is constructed.
+	 * re-renders without a remount.
 	 */
 	const onChange = (entity: Entity) => {
 		if (!entity.has(traits.Arrows)) return
@@ -63,11 +56,6 @@
 			(colors !== undefined) !== (existing.attributes.instanceColor !== undefined)
 
 		if (countChanged || colorLayoutChanged) {
-			// DEBUG(draw-event): remove once the same-UUID arrow update path is confirmed.
-			console.info('[draw-event] arrows.onChange rebuild', {
-				count: poses.length / STRIDE.ARROWS,
-				firstPoseXmm: poses[0],
-			})
 			onRemove(entity)
 			onAdd(entity)
 			return
@@ -75,12 +63,6 @@
 
 		existing.update({ poses, colors, headAtPose: entity.get(traits.Arrows)?.headAtPose })
 		invalidate()
-
-		// DEBUG(draw-event): remove once the same-UUID arrow update path is confirmed.
-		console.info('[draw-event] arrows.onChange inPlace', {
-			count: existing.count,
-			firstPoseXmm: poses[0],
-		})
 	}
 
 	const onRemove = (entity: Entity) => {
