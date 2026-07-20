@@ -73,9 +73,6 @@
 	$effect(() => {
 		const unsubAdd = world.onAdd(traits.Arrows, onAdd)
 		const unsubRemove = world.onRemove(traits.Arrows, onRemove)
-		// onAdd/onChange read Positions/Color/Colors as well as Arrows, so rebuild when any
-		// of them changes. In-place redraws (same UUID) mutate Positions/Colors without
-		// touching Arrows, so watching Arrows alone leaves the arrows frozen.
 		const unsubArrowsChange = world.onChange(traits.Arrows, onChange)
 		const unsubPositionsChange = world.onChange(traits.Positions, onChange)
 		const unsubColorChange = world.onChange(traits.Color, onChange)

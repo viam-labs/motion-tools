@@ -675,8 +675,6 @@ test('draw poses as arrows', async ({ browser }) => {
 })
 
 const drawArrowsUpdateStep = (step: 'Start' | 'Move' | 'MoveAgain') => {
-	// Anchor the subtest name: an unanchored `.../Move` regex also matches `MoveAgain`,
-	// which would run both draws in one step and coalesce them into a single frame.
 	execSync(
 		`go test -run '^TestDrawPosesAsArrowsUpdating$/^${step}$' github.com/viam-labs/motion-tools/client/api -count=1`,
 		{ encoding: 'utf8' }
