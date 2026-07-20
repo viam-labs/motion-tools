@@ -5,6 +5,20 @@ import { getContext, setContext } from 'svelte'
 
 const key = Symbol('dashboard-context')
 
+/** One open resource-API widget panel: a resource paired with a registry widget id. */
+export interface OpenResourceWidget {
+	resourceName: string
+	widgetId: string
+}
+
+/** Persisted floating-panel rectangle for a resource widget (position + size). */
+export interface WidgetRect {
+	x: number
+	y: number
+	width: number
+	height: number
+}
+
 export interface Settings {
 	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
@@ -48,8 +62,8 @@ export interface Settings {
 	enableLabels: boolean
 
 	// Widgets
-	openArmWidgets: Record<string, string[]>
-	openCameraWidgets: Record<string, string[]>
+	openResourceWidgets: Record<string, OpenResourceWidget[]>
+	resourceWidgetRects: Record<string, WidgetRect>
 	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean
@@ -126,8 +140,8 @@ const defaults = (): Settings => ({
 
 	enableLabels: false,
 
-	openArmWidgets: {},
-	openCameraWidgets: {},
+	openResourceWidgets: {},
+	resourceWidgetRects: {},
 	openFramePovWidgets: {},
 
 	renderStats: false,

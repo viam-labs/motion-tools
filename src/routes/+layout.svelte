@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '@viamrobotics/tailwind-config/fonts'
+
 	import '../app.css'
 
 	import type { DialConf } from '@viamrobotics/sdk'

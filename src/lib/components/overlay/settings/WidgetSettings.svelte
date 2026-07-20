@@ -1,71 +1,60 @@
 <script lang="ts">
-	import { Switch } from '@viamrobotics/prime-core'
+	import type { ResourceName } from '@viamrobotics/sdk'
+
 	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 
+	import { subtypeToColor } from '$lib/color'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
+
+	import ResourceWidgetRow from './ResourceWidgetRow.svelte'
 
 	const partID = usePartID()
-	const arms = useResourceNames(() => partID.current, 'arm')
-	const cameras = useResourceNames(() => partID.current, 'camera')
-	const settings = useSettings()
+	const resources = useResourceNames(() => partID.current)
 
-	const currentRobotArmWidgets = $derived(settings.current.openArmWidgets[partID.current] || [])
-	const currentRobotCameraWidgets = $derived(
-		settings.current.openCameraWidgets[partID.current] || []
-	)
+	const formatSubtype = (subtype: string) =>
+		subtype
+			.split('_')
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+			.join(' ')
+
+	// Group widgetable resources by subtype; resources with no available widget are hidden.
+	const groups = $derived.by(() => {
+		const bySubtype = new Map<string, ResourceName[]>()
+		for (const resource of resources.current) {
+			if (resourceWidgetToggles(resource).length === 0) continue
+			const list = bySubtype.get(resource.subtype) ?? []
+			list.push(resource)
+			bySubtype.set(resource.subtype, list)
+		}
+
+		return [...bySubtype.entries()]
+			.map(([subtype, items]) => ({
+				subtype,
+				resources: items.toSorted((a, b) => a.name.localeCompare(b.name)),
+			}))
+			.toSorted((a, b) => a.subtype.localeCompare(b.subtype))
+	})
 </script>
 
 <div class="text-gray-9 flex flex-col gap-1 text-xs">
-	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Arm widgets</strong></h3>
+	{#each groups as group (group.subtype)}
+		{@const dotColor = subtypeToColor(group.subtype)?.getStyle()}
+		<h3 class="border-gray-3 flex items-center gap-1.5 border-b py-1 text-sm">
+			{#if dotColor}
+				<span
+					class="size-2 shrink-0 rounded-full"
+					style="background-color: {dotColor}"
+					aria-hidden="true"
+				></span>
+			{/if}
+			<strong>{formatSubtype(group.subtype)}</strong>
+		</h3>
 
-	{#each arms.current as arm (arm)}
-		{@const isWidgetOpen = currentRobotArmWidgets.includes(arm.name)}
-		<div class="flex items-center justify-between gap-2 py-0.5">
-			<span class="min-w-0 truncate">{arm.name}</span>
-			<Switch
-				on={isWidgetOpen}
-				on:change={(event) => {
-					settings.current.openArmWidgets = event.detail
-						? {
-								...settings.current.openArmWidgets,
-								[partID.current]: [...currentRobotArmWidgets, arm.name],
-							}
-						: {
-								...settings.current.openArmWidgets,
-								[partID.current]: currentRobotArmWidgets.filter((widget) => widget !== arm.name),
-							}
-				}}
-			/>
-		</div>
+		{#each group.resources as resource (resource.name)}
+			<ResourceWidgetRow {resource} />
+		{/each}
 	{:else}
-		No arms detected
-	{/each}
-
-	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Camera widgets</strong></h3>
-
-	{#each cameras.current as camera (camera)}
-		{@const isWidgetOpen = currentRobotCameraWidgets.includes(camera.name)}
-		<div class="flex items-center justify-between gap-2 py-0.5">
-			<span class="min-w-0 truncate">{camera.name}</span>
-			<Switch
-				on={isWidgetOpen}
-				on:change={(event) => {
-					settings.current.openCameraWidgets = event.detail
-						? {
-								...settings.current.openCameraWidgets,
-								[partID.current]: [...currentRobotCameraWidgets, camera.name],
-							}
-						: {
-								...settings.current.openCameraWidgets,
-								[partID.current]: currentRobotCameraWidgets.filter(
-									(widget) => widget !== camera.name
-								),
-							}
-				}}
-			/>
-		</div>
-	{:else}
-		No cameras detected
+		<p class="text-subtle-2 py-2">No widgets available for this machine.</p>
 	{/each}
 </div>

@@ -1,5 +1,8 @@
 @import 'tailwindcss';
-@config "../tailwind.config.ts";
+@import '@viamrobotics/tailwind-config';
+
+/* Generate the utility classes prime-core's components use; theming comes from tailwind-config. */
+@source '../node_modules/@viamrobotics/prime-core/dist';
 
 @plugin '@tailwindcss/forms';
 
@@ -8,8 +11,6 @@
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
 @import '@skeletonlabs/skeleton/themes/cerberus';
-
-@import '@viamrobotics/prime-core/prime.css';
 
 body {
 	height: 100dvh;

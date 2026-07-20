@@ -1,0 +1,73 @@
+<script lang="ts">
+	import type { ResourceName } from '@viamrobotics/sdk'
+
+	import { Icon, Switch } from '@viamrobotics/prime-core'
+	import { PersistedState } from 'runed'
+
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { addWidget, isWidgetOpen, removeWidget } from '$lib/hooks/useResourceWidgets.svelte'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
+
+	interface Props {
+		resource: ResourceName
+	}
+
+	const { resource }: Props = $props()
+
+	const settings = useSettings()
+	const partID = usePartID()
+
+	const toggles = $derived(resourceWidgetToggles(resource))
+	const openList = $derived(settings.current.openResourceWidgets[partID.current] ?? [])
+	const enabledCount = $derived(
+		toggles.filter((toggle) => isWidgetOpen(openList, resource.name, toggle.id)).length
+	)
+
+	// Part-qualified so the same resource name across parts doesn't share expand state.
+	const expanded = $derived(
+		new PersistedState(`${partID.current}:${resource.name}:widgets-expanded`, false)
+	)
+
+	const setWidget = (widgetId: string, on: boolean) => {
+		const list = settings.current.openResourceWidgets[partID.current] ?? []
+		const next = on
+			? addWidget(list, resource.name, widgetId)
+			: removeWidget(list, resource.name, widgetId)
+		settings.current.openResourceWidgets = {
+			...settings.current.openResourceWidgets,
+			[partID.current]: next,
+		}
+	}
+</script>
+
+<div class="border-gray-3 border-b last:border-b-0">
+	<button
+		type="button"
+		class="hover:bg-light flex w-full items-center gap-1.5 py-1 text-left"
+		aria-expanded={expanded.current}
+		onclick={() => (expanded.current = !expanded.current)}
+	>
+		<Icon
+			name={expanded.current ? 'unfold-more-horizontal' : 'unfold-less-horizontal'}
+			cx="text-subtle-1 size-5 shrink-0"
+			aria-hidden="true"
+		/>
+		<span class="min-w-0 flex-1 truncate">{resource.name}</span>
+		<span class="text-subtle-2 shrink-0 tabular-nums">{enabledCount}/{toggles.length}</span>
+	</button>
+
+	{#if expanded.current}
+		<div class="flex flex-col gap-0.5 pb-1 pl-6">
+			{#each toggles as toggle (toggle.id)}
+				<div class="flex items-center justify-between gap-2 py-0.5">
+					<span class="min-w-0 truncate">{toggle.label}</span>
+					<Switch
+						on={isWidgetOpen(openList, resource.name, toggle.id)}
+						on:change={(event) => setWidget(toggle.id, event.detail)}
+					/>
+				</div>
+			{/each}
+		</div>
+	{/if}
+</div>

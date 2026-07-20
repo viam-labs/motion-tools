@@ -19,7 +19,11 @@
 		isOpen?: boolean
 		bodyClass?: ClassValue
 		onPositionChange?: (details: floatingPanel.PositionChangeDetails) => void
+		onPositionChangeEnd?: (details: floatingPanel.PositionChangeDetails) => void
 		onSizeChange?: (details: floatingPanel.SizeChangeDetails) => void
+		onSizeChangeEnd?: (details: floatingPanel.SizeChangeDetails) => void
+		/** Rendered in the header before the title — e.g. a resource-type badge. */
+		headerPrefix?: Snippet
 		children: Snippet
 	}
 
@@ -32,6 +36,7 @@
 		persistRect = true,
 		isOpen = $bindable(false),
 		bodyClass = 'bg-white',
+		headerPrefix,
 		children,
 		...props
 	}: Props = $props()
@@ -72,14 +77,17 @@
 			>
 				<div
 					{...api.getHeaderProps()}
-					class="border-medium flex items-center justify-between border-b bg-white p-2"
+					class="border-medium flex items-center justify-between gap-2 border-b bg-white p-2"
 				>
-					<h3
-						{...api.getTitleProps()}
-						class="text-gray-7 text-xs"
-					>
-						{title}
-					</h3>
+					<div class="flex min-w-0 items-center gap-1.5">
+						{@render headerPrefix?.()}
+						<h3
+							{...api.getTitleProps()}
+							class="text-gray-7 truncate text-xs"
+						>
+							{title}
+						</h3>
+					</div>
 
 					{#if exitable}
 						<div

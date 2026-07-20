@@ -6,6 +6,7 @@
 
 	import { SettingsPortal } from '$lib'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import CameraFeed from './CameraFeed.svelte'
@@ -30,14 +31,20 @@
 	const { isPresenting } = useXR()
 	const settings = useSettings()
 	const partID = usePartID()
+	const resourceByName = useResourceByName()
 
 	const enableXR = $derived(settings.current.enableXR)
 
-	// Get all enabled camera widgets for the current part
+	// Cameras enabled as widgets for the current part (camera resources use a single card toggle).
 	const enabledCameras = $derived.by(() => {
-		const openWidgets = settings.current.openCameraWidgets
-		const currentPartID = partID.current
-		return openWidgets[currentPartID] || []
+		const entries = settings.current.openResourceWidgets[partID.current] ?? []
+		const names = new Set<string>()
+		for (const entry of entries) {
+			if (resourceByName.current[entry.resourceName]?.subtype === 'camera') {
+				names.add(entry.resourceName)
+			}
+		}
+		return [...names]
 	})
 
 	// Track camera aspect ratios to compute proper spacing
