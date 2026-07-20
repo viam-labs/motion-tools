@@ -1,9 +1,11 @@
+import { protoBase64 } from '@bufbuild/protobuf'
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
 
 import {
 	Capsule,
 	Geometry,
+	Mesh,
 	Pose,
 	RectangularPrism,
 	Sphere,
@@ -13,8 +15,6 @@ import { OrientationVector } from '$lib/three/OrientationVector'
 import { quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
-
-import { PlanParseError } from './parse-plan'
 
 /**
  * Split from joints because a trajectory step only carries joint angles: every other frame's
@@ -217,10 +217,41 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 			})
 		}
 
-		// A stand-in shape would lie about where the collision volume is. PlanParseError
-		// specifically: `planDropper` only surfaces the message for that class.
+		// Bytes pass through unscaled: PLY vertices are already metres, and only the center
+		// pose is millimetres (converted downstream by poseToVector3).
+		case 'mesh': {
+			const contentType = (g.mesh_content_type as string | undefined) ?? ''
+			const meshData = g.mesh_data as string | undefined
+
+			// parsePlyInput is PLY-only; other formats throw at render time, far from here.
+			if (contentType !== 'ply' || !meshData) {
+				console.warn(`[MotionPlanReplayer] skipping mesh geometry (content type "${contentType}")`)
+				return null
+			}
+
+			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
+			// report as an unparseable plan — the whole failure mode this branch avoids.
+			let mesh: Uint8Array<ArrayBuffer>
+			try {
+				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
+				mesh = Uint8Array.from(protoBase64.dec(meshData))
+			} catch {
+				console.warn(`[MotionPlanReplayer] skipping mesh geometry with undecodable mesh_data`)
+				return null
+			}
+
+			return new Geometry({
+				center,
+				geometryType: { case: 'mesh', value: new Mesh({ contentType, mesh }) },
+				label,
+			})
+		}
+
+		// Skip rather than substitute: a stand-in shape would lie about where the collision
+		// volume is, and one unrenderable shape shouldn't cost the whole trajectory.
 		default: {
-			throw new PlanParseError(`plan has an unsupported geometry type "${type}"`)
+			console.warn(`[MotionPlanReplayer] skipping unsupported geometry type "${type}"`)
+			return null
 		}
 	}
 }
