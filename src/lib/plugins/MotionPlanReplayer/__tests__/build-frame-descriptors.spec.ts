@@ -547,13 +547,44 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
+	// Undecodable data must skip too: protoBase64 throws, and an escaping error would fail
+	// the entire plan rather than the one shape.
 	it.each([
 		['a non-PLY content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
 		['a missing content type', { mesh_data: btoa('ply\n') }],
 		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
 		['absent mesh data', { mesh_content_type: 'ply' }],
+		['undecodable mesh data', { mesh_content_type: 'ply', mesh_data: '!!!not base64!!!' }],
 	])('skips a mesh with %s', (_label, geometry) => {
 		expect(obstacleGeometry({ type: 'mesh', ...geometry })).toBeNull()
+	})
+
+	it('keeps the rest of the plan when one mesh fails to decode', () => {
+		const p = plan(
+			{
+				obstacle: {
+					frame_type: 'static',
+					frame: {
+						translation: { X: 0, Y: 0, Z: 0 },
+						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+						geometry: { type: 'mesh', mesh_content_type: 'ply', mesh_data: 'not base64' },
+					},
+				},
+				table: {
+					frame_type: 'static',
+					frame: {
+						translation: { X: 0, Y: 0, Z: 0 },
+						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+						geometry: { type: 'box', x: 1, y: 2, z: 3 },
+					},
+				},
+			},
+			{ obstacle: 'world', table: 'world' }
+		)
+
+		expect(() => buildFrameDescriptors(p)).not.toThrow()
+		const table = buildFrameDescriptors(p).find((d) => d.name === 'table')
+		expect(table?.kind === 'static' && table.geometry?.geometryType.case).toBe('box')
 	})
 })
 

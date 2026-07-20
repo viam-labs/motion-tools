@@ -229,13 +229,20 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 				return null
 			}
 
+			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
+			// report as an unparseable plan — the whole failure mode this branch avoids.
+			let mesh: Uint8Array<ArrayBuffer>
+			try {
+				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
+				mesh = Uint8Array.from(protoBase64.dec(meshData))
+			} catch {
+				console.warn(`[MotionPlanReplayer] skipping mesh geometry with undecodable mesh_data`)
+				return null
+			}
+
 			return new Geometry({
 				center,
-				geometryType: {
-					case: 'mesh',
-					// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
-					value: new Mesh({ contentType, mesh: Uint8Array.from(protoBase64.dec(meshData)) }),
-				},
+				geometryType: { case: 'mesh', value: new Mesh({ contentType, mesh }) },
 				label,
 			})
 		}
