@@ -8,6 +8,7 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
+	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
 	import { planDropper } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
@@ -130,7 +131,9 @@
 			{/if}
 		{/each}
 
-		<div class="mt-auto pt-1">
+		<div class="mt-auto flex flex-col gap-2 pt-1">
+			<MotionPlanReplayerScrubber {ctx} />
+
 			{@render children?.()}
 			<input
 				bind:this={fileInput}
