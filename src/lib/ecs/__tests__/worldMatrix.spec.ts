@@ -63,6 +63,21 @@ describe('worldMatrix system', () => {
 		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.042)
 	})
 
+	it('renders LiveMatrix when no edit is staged', async () => {
+		world = createWorld()
+		unsub = installWorldMatrixListeners(world)
+
+		// baseline at +10 mm, live at +30 mm, no EditedMatrix — the frame follows
+		// live kinematics rather than the saved baseline.
+		const entity = world.spawn(
+			traits.Matrix(matrixOf({ x: 10 })),
+			traits.LiveMatrix(matrixOf({ x: 30 }))
+		)
+		await tick()
+
+		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.03)
+	})
+
 	it('blends live × baseline⁻¹ × edited when all three are present', async () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)

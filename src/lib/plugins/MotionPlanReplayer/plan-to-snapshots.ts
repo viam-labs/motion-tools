@@ -1,0 +1,72 @@
+import { Quaternion, Vector3 } from 'three'
+import { UuidTool } from 'uuid-tool'
+
+import { Pose, PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
+import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
+import { quaternionToPose } from '$lib/transform'
+
+import type { ParsedPlan } from './parse-plan'
+
+import {
+	buildFrameDescriptors,
+	type FrameDescriptor,
+	type JointFrameDescriptor,
+} from './build-frame-descriptors'
+
+// Shared scratch objects — safe in single-threaded JS
+const tmpQ = new Quaternion()
+const tmpVec = new Vector3()
+
+const computeJointPose = (descriptor: JointFrameDescriptor, angleRad: number): Pose => {
+	tmpQ.setFromAxisAngle(
+		tmpVec.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize(),
+		angleRad
+	)
+	const pose = new Pose()
+	quaternionToPose(tmpQ, pose)
+	return pose
+}
+
+const descriptorToTransform = (
+	descriptor: FrameDescriptor,
+	stepInputs: Record<string, number[]>
+): Transform => {
+	if (descriptor.kind === 'static') {
+		return new Transform({
+			referenceFrame: descriptor.name,
+			poseInObserverFrame: new PoseInFrame({
+				referenceFrame: descriptor.parent,
+				pose: descriptor.localPose,
+			}),
+			physicalObject: descriptor.geometry ?? undefined,
+			uuid: descriptor.uuid,
+		})
+	}
+
+	const angleRad = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
+	return new Transform({
+		referenceFrame: descriptor.name,
+		poseInObserverFrame: new PoseInFrame({
+			referenceFrame: descriptor.parent,
+			pose: computeJointPose(descriptor, angleRad),
+		}),
+		uuid: descriptor.uuid,
+	})
+}
+
+const planToSnapshots = (
+	descriptors: FrameDescriptor[],
+	trajectory: Array<Record<string, number[]>>
+): Snapshot[] =>
+	trajectory.map((stepInputs) => {
+		const transforms = descriptors.map((d) => descriptorToTransform(d, stepInputs))
+		return new Snapshot({
+			transforms,
+			uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
+		})
+	})
+
+export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
+	const descriptors = buildFrameDescriptors(plan)
+	return planToSnapshots(descriptors, plan.trajectory)
+}

@@ -17,6 +17,7 @@
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
+	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
@@ -67,11 +68,6 @@
 		children?: Snippet
 
 		/**
-		 * Snippet to inject items in the top middle dashboard
-		 */
-		dashboard?: Snippet
-
-		/**
 		 * Snippet to inject items into the details panel
 		 */
 		details?: Snippet<[{ entity: Entity }]>
@@ -84,7 +80,6 @@
 		componentNameToFragmentInfo,
 		cameraPose,
 		children: appChildren,
-		dashboard,
 		details,
 	}: Props = $props()
 
@@ -107,6 +102,7 @@
 	const environment = provideEnvironment()
 	const fullscreen = provideFullscreen()
 
+	const currentRobotArmWidgets = $derived(settings.current.openArmWidgets[partID] || [])
 	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
@@ -157,7 +153,8 @@
 			<!-- Overlays that need Threlte context -->
 			<div {@attach domPortal(root)}>
 				<FileDrop />
-				<Dashboard {dashboard} />
+				<Dashboard />
+				<Workspace />
 				<Controls />
 
 				{#each selected.current as entity, index (entity)}
@@ -168,17 +165,15 @@
 					/>
 				{/each}
 
-				{#if environment.current.isStandalone}
-					<LiveUpdatesBanner />
-				{/if}
+				<LiveUpdatesBanner />
 
 				<TreeContainer />
 
-				{#if settings.current.enableArmPositionsWidget}
-					<ArmPositions />
-				{/if}
-
 				{#if !$isPresenting}
+					{#each currentRobotArmWidgets as armName (armName)}
+						<ArmPositions name={armName} />
+					{/each}
+
 					{#each currentRobotCameraWidgets as cameraName (cameraName)}
 						<Camera name={cameraName} />
 					{/each}

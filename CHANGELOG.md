@@ -1,5 +1,27 @@
 # motion-tools
 
+## 1.37.0
+
+### Minor Changes
+
+- f563895: Toggle independent arm position widgets with per-arm switches
+- 04f4e2e: Motion plan replayer + docs
+- 2c86fdd: Dedicated edit mode
+
+### Patch Changes
+
+- 339cb67: Refactor frame editing for plugin extraction
+- 76b5ae0: Migrate camera and arm position widgets to use FloatingPanel
+- f563895: Add individual switches for arm widgets, similar to cameras
+- fec460a: Fix tweakpane styling race condition
+- 27b41ec: Add the motion plan JSON parser (`parsePlan`) for the Motion Plan Replayer: validates and normalizes plan JSON into a `ParsedPlan` (frames, parents, trajectory, goals).
+- 2da1274: Add frame-descriptor derivation for the Motion Plan Replayer: converts a `ParsedPlan` into static and jointed `FrameDescriptor`s (geometry, orientation conversion, joint-index mapping, end-effector reparenting).
+- 0f42c63: Add per-step snapshot generation (`parsedPlanToSnapshots`) and the `PartOfPlan` ECS relation for the Motion Plan Replayer, turning frame descriptors into renderable snapshots grouped under a plan entity.
+- 7292c08: Add the Motion Plan Replayer plugin shell: a dashboard-mounted floating panel that uploads plan JSON files, parses them into snapshots, and lists them with ready/error/no-trajectory status. Exposes an `extraSource` snippet receiving `addPlan` so an embedding app can inject its own plan source (e.g. a DB picker) without escaping the plugin's context.
+- ddfa766: Render Motion Plan Replayer plans in 3D and add the timeline scrubber. Selecting a plan spawns its snapshot entities under a plan entity, and a bottom scrubber (play/pause, step, seek) resolves each slider position to the corresponding snapshot via `reconcileSnapshotEntities`. Plan entities are tinted and torn down as a group through the `PartOfPlan` relation.
+- a388301: Add persistent per-frame display config to the Motion Plan Replayer. Per-frame color, opacity, visibility, and axes edits made via the scene Details panel and tree now persist across scrubbing instead of being reset each step. Also fixes the Details panel "show axes helper" toggle, which previously had no effect because the batched axes renderer never reacted to the trait being added or removed at runtime.
+- 3f4bd3b: Render mesh geometry in the Motion Plan Replayer.
+
 ## 1.36.2
 
 ### Patch Changes
