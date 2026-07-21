@@ -11,8 +11,10 @@ import {
 import {
 	createResourceClient,
 	createResourceQuery,
+	useMachineStatus,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
+import { untrack } from 'svelte'
 import { Matrix4 } from 'three'
 
 import { asFloat32Array, inMeters } from '$lib/buffer'
@@ -20,6 +22,7 @@ import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { drawTransform, updateMetadata } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
+import { reconcileWorldState } from '$lib/hooks/reconcileWorldState'
 import { metadataFromStruct } from '$lib/metadata'
 import { createPose, poseToMatrix } from '$lib/transform'
 
@@ -32,6 +35,8 @@ type TransformEvent = TransformChangeEvent & {
 
 export const provideWorldStates = () => {
 	const partID = usePartID()
+	const machineStatus = useMachineStatus(() => partID.current)
+	const revision = $derived(machineStatus.current?.config?.revision)
 	const resourceNames = useResourceNames(() => partID.current, 'world_state_store')
 	const clients = $derived(
 		resourceNames.current.map(({ name }) =>
@@ -47,7 +52,7 @@ export const provideWorldStates = () => {
 		const cleanups: (() => void)[] = []
 
 		for (const client of clients) {
-			cleanups.push(createWorldState(client))
+			cleanups.push(createWorldState(client, () => revision))
 		}
 
 		return () => {
@@ -127,10 +132,15 @@ const decodeWorldStateChunk = (response: unknown, fallbackStart: number): Entity
 	return { start, positions, colors, opacities, done }
 }
 
-const createWorldState = (client: { current: WorldStateStoreClient | undefined }) => {
+const createWorldState = (
+	client: { current: WorldStateStoreClient | undefined },
+	revision: () => string | undefined
+) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
 	const relationships = useRelationships()
+
+	const UNRECONCILED = Symbol('unreconciled')
 
 	const entities = new Map<string, Entity>()
 	// UUIDs the stream has removed; guards against a stale initial snapshot or a
@@ -253,7 +263,10 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		}
 	}
 
-	let initialized = false
+	// Tracks which config revision the snapshot has been reconciled against, so the
+	// snapshot effect runs once per revision (initial mount + each reconfigure) rather
+	// than on every incidental query settle.
+	let reconciledRevision: string | undefined | typeof UNRECONCILED = UNRECONCILED
 	let flushScheduled = false
 	let rafId = 0
 	let pendingEvents: TransformEvent[] = []
@@ -269,6 +282,17 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			)
 		})
 	)
+
+	// Force a fresh snapshot on reconfigure. The createResourceQuery key omits the
+	// config revision, so a same-name rebuild would otherwise be served stale cache.
+	$effect(() => {
+		const rev = revision()
+		if (rev === undefined) return
+		if (reconciledRevision === UNRECONCILED) return // initial mount handled below
+		untrack(() => {
+			void listUUIDs.refetch()
+		})
+	})
 
 	const applyEvents = (events: TransformEvent[]) => {
 		for (const event of events) {
@@ -302,19 +326,33 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 
 	$effect(() => {
 		if (!getTransformQueries) return
-		if (initialized) return
 		if (getTransformQueries.some((query) => query?.isLoading)) return
+
+		const rev = revision()
+		if (reconciledRevision === rev) return
 
 		const transforms = getTransformQueries
 			.flatMap((query) => query?.data)
 			.filter((transform) => transform !== undefined)
 
-		for (const transform of transforms) {
+		const byUUID = new Map(transforms.map((t) => [t.uuidString, t]))
+		const { toAdd, toRemove } = reconcileWorldState(byUUID.keys(), entities.keys())
+
+		for (const uuid of toRemove) {
+			destroyEntity(uuid)
+		}
+
+		for (const uuid of toAdd) {
+			const transform = byUUID.get(uuid)
+			if (!transform) continue
+			// The fresh snapshot is authoritative: a UUID it reports as present must not
+			// stay tombstoned from an earlier removal, or spawnEntity would refuse it.
+			removedUUIDs.delete(uuid)
 			spawnEntity(transform)
 		}
 
 		invalidate()
-		initialized = true
+		reconciledRevision = rev
 	})
 
 	/**
@@ -343,6 +381,12 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	}
 
 	$effect(() => {
+		// Re-subscribe on a config-revision change: an AlwaysRebuild reconfigure
+		// swaps the backing resource instance under the same name, ending the old
+		// gRPC stream cleanly. `client.current` is a stable reference so this effect
+		// would not otherwise re-fire; reading `revision()` gives it that dependency.
+		revision()
+
 		if (!client.current) return
 
 		const controller = new AbortController()
