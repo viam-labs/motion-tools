@@ -25,6 +25,22 @@ const fillFrameInputs = async (page: Page, groupLabel: string, values: string[])
 	}
 }
 
+// Frame editing is only available in Build mode; the workspace toggle defaults
+// to Monitor and resets to it on reload. Switch to Build before any edit.
+const enterBuildMode = async (page: Page) => {
+	const build = page.getByRole('radio', { name: 'Build the scene' })
+	await build.click()
+	await expect(build).toHaveAttribute('aria-checked', 'true')
+}
+
+// The "Live updates paused" banner stays visible throughout Build mode; Save and
+// Discard enable only when there are unsaved edits. Use the Save button's
+// disabled state as the dirty signal rather than the banner's visibility.
+const expectHasEdits = (page: Page) =>
+	expect(page.getByLabel('Save')).not.toHaveAttribute('aria-disabled', 'true')
+const expectNoEdits = (page: Page) =>
+	expect(page.getByLabel('Save')).toHaveAttribute('aria-disabled', 'true')
+
 const fragmentIdsToDelete: string[] = []
 
 let viamClient: ViamClient
@@ -86,8 +102,9 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
 
-	// OPEN A WORLD OBJECT AND EDIT THE FRAME
+	// ENTER BUILD MODE, THEN OPEN A WORLD OBJECT AND EDIT THE FRAME
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible({ timeout: 15_000 })
+	await enterBuildMode(page)
 	await page.getByText('base-1', { exact: true }).click()
 
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
@@ -108,7 +125,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByLabel('mutable box dimensions')).toBeAttached()
 	await fillFrameInputs(page, 'mutable geometry', ['400', '500', '600'])
 
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-0-edited.png`, {
 			fullPage: true,
@@ -121,7 +138,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 
 	// SAVE THE CHANGES
 	await page.getByLabel('Save').click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, {
 			fullPage: true,
@@ -155,7 +172,8 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-2-reloaded.png`)
 	}
 
-	// REPARENT THE OBJECT
+	// REPARENT THE OBJECT (reload reset the toggle to Monitor, so re-enter Build)
+	await enterBuildMode(page)
 	await expect(page.getByLabel('mutable parent frame')).toBeAttached()
 	await page.getByLabel('mutable parent frame').locator('select').selectOption('parent')
 
@@ -167,9 +185,9 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	}
 
 	// DISCARD CHANGES
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-4-discarded.png`, { fullPage: true })
 	} catch (error) {
@@ -185,9 +203,9 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await fillFrameInputs(page, 'mutable local position', ['0', '0', '0'])
 
 	// SAVE THE CHANGES
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-5-restored.png`, { fullPage: true })
 	} catch (error) {
@@ -248,6 +266,7 @@ withRobot('create and delete frame', async ({ browser }) => {
 	})
 
 	// ADD A FRAME & SAVE
+	await enterBuildMode(page)
 	await expect(page.getByLabel('Add frames', { exact: true })).toBeVisible()
 	page.getByLabel('Add frames', { exact: true }).click()
 
@@ -261,9 +280,9 @@ withRobot('create and delete frame', async ({ browser }) => {
 		failedScreenshots.push(`${testPrefix}-0-added.png`)
 	}
 
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 
 	// DELETE A FRAME
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible()
@@ -279,9 +298,9 @@ withRobot('create and delete frame', async ({ browser }) => {
 	}
 
 	// DISCARD CHANGES
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-2-discarded.png`, { fullPage: true })
 	} catch (error) {
@@ -399,6 +418,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 		failedScreenshots.push(`${testPrefix}-0-setup.png`)
 	}
 
+	await enterBuildMode(page)
 	await page.getByText('frag-base-1', { exact: true }).click()
 
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
@@ -413,9 +433,9 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	await fillFrameInputs(page, 'mutable geometry', ['400'])
 
 	// SAVE THE CHANGES
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeVisible()
+	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
-	await expect(page.getByText('Live updates paused', { exact: true })).toBeHidden()
+	await expectNoEdits(page)
 
 	try {
 		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, {

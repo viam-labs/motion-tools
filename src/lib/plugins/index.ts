@@ -33,3 +33,11 @@ export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'
 
 // XR
 export { default as XR } from './XR/XR.svelte'
+
+// MotionPlanReplayer
+export { default as MotionPlanReplayer } from './MotionPlanReplayer/MotionPlanReplayer.svelte'
+export { useMotionPlanReplayer } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
+export type {
+	MotionPlanReplayerContext,
+	PlanEntry,
+} from './MotionPlanReplayer/useMotionPlanReplayer.svelte'

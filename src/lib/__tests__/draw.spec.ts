@@ -26,7 +26,24 @@ import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { traits } from '$lib/ecs'
 import { createPose } from '$lib/transform'
 
-import { drawDrawing, drawTransform, updateMetadata, updateTransform } from '../draw'
+import { drawDrawing, drawTransform, updateDrawing, updateMetadata, updateTransform } from '../draw'
+
+/** Packs a flat list of float32 pose components into the proto's little-endian byte layout. */
+const packPoses = (...values: number[]): Uint8Array<ArrayBuffer> => {
+	const floats = new Float32Array(values)
+	return new Uint8Array(floats.buffer as ArrayBuffer)
+}
+
+/** Builds an arrows Drawing carrying the given packed poses under a stable UUID. */
+const arrowsDrawing = (poses: number[], uuid = 1) =>
+	new Drawing({
+		referenceFrame: 'arrows-update',
+		uuid: fakeUuidBytes(uuid),
+		physicalObject: new Shape({
+			geometryType: { case: 'arrows', value: new Arrows({ poses: packPoses(...poses) }) },
+		}),
+		metadata: new Metadata({ colors: new Uint8Array([0, 0, 255]) }),
+	})
 
 const fakeUuidBytes = (n: number) => {
 	const bytes = new Uint8Array(16)
@@ -420,6 +437,51 @@ describe('updateTransform', () => {
 		} as Transform)
 
 		expect(hierarchy.getParentName(entity)).toBe('base')
+	})
+})
+
+describe('updateDrawing arrows', () => {
+	let world: World
+	afterEach(() => world?.destroy())
+
+	it('rewrites the Positions buffer to the new poses when re-drawn under the same UUID', () => {
+		world = createWorld()
+
+		const { entity } = drawDrawing(world, arrowsDrawing([100, 0, 0, 0, 0, 1]), traits.SnapshotAPI)
+		expect([...(entity.get(traits.Positions) ?? [])]).toEqual([100, 0, 0, 0, 0, 1])
+
+		updateDrawing(world, entity, arrowsDrawing([500, 200, 0, 1, 0, 0]))
+
+		expect([...(entity.get(traits.Positions) ?? [])]).toEqual([500, 200, 0, 1, 0, 0])
+	})
+
+	it('keeps arrow poses in raw millimeters on update (mm->m conversion happens downstream, not twice)', () => {
+		world = createWorld()
+
+		// The ADD path stores poses verbatim in mm; the shader/raycast/hover scale by 0.001.
+		const { entity } = drawDrawing(world, arrowsDrawing([100, 0, 0, 0, 0, 1]), traits.SnapshotAPI)
+		expect(entity.get(traits.Positions)?.[0]).toBe(100)
+
+		// The UPDATE path must not re-apply inMeters — that double-converts and collapses
+		// arrows toward the origin (0.5mm instead of 500mm) once the update actually re-renders.
+		updateDrawing(world, entity, arrowsDrawing([500, 0, 0, 0, 0, 1]))
+		expect(entity.get(traits.Positions)?.[0]).toBe(500)
+	})
+
+	it('notifies renderers watching Positions so the arrows re-render in place', () => {
+		world = createWorld()
+
+		const { entity } = drawDrawing(world, arrowsDrawing([100, 0, 0, 0, 0, 1]), traits.SnapshotAPI)
+
+		let notified: Float32Array | undefined
+		const unsubscribe = world.onChange(traits.Positions, (changed) => {
+			notified = changed.get(traits.Positions)
+		})
+
+		updateDrawing(world, entity, arrowsDrawing([500, 0, 0, 0, 0, 1]))
+		unsubscribe()
+
+		expect(notified?.[0]).toBe(500)
 	})
 })
 

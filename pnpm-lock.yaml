@@ -22,9 +22,6 @@ importers:
       '@viamrobotics/prime-core':
         specifier: file:../app/prime/viamrobotics-prime-core-0.1.23.tgz
         version: file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1)
-      '@zag-js/dialog':
-        specifier: '>=1.31'
-        version: 1.32.0
       d3-force:
         specifier: ^3.0.0
         version: 3.0.0
@@ -178,7 +175,7 @@ importers:
         version: 1.1.0(tailwindcss@4.3.1)
       '@viamrobotics/test-widgets':
         specifier: 0.9.1
-        version: 0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
+        version: 0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
       '@viamrobotics/tweakpane-config':
         specifier: 0.1.1
         version: 0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)
@@ -189,6 +186,9 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@vitest/browser@4.1.9)(vitest@4.1.9)
       '@zag-js/collapsible':
+        specifier: 1.22.1
+        version: 1.22.1
+      '@zag-js/dialog':
         specifier: 1.22.1
         version: 1.22.1
       '@zag-js/floating-panel':
@@ -588,14 +588,8 @@ packages:
   '@codemirror/state@6.6.0':
     resolution: {integrity: sha512-4nbvra5R5EtiCzr9BTHiTLc+MLXK2QGiAVYMyi8PkQd3SR+6ixar/Q/01Fa21TBIDOZXgeWV4WppsQolSreAPQ==}
 
-  '@codemirror/state@6.7.1':
-    resolution: {integrity: sha512-9QzNDgE4EYDnAHfrTlR2lwiPciiOymLtwKK+8yHQzCc7GXhAP9xdEbEJFy2IWB1j9UGUl9BsgMmTo/ImA02T7A==}
-
   '@codemirror/view@6.43.1':
     resolution: {integrity: sha512-+BIjw/AG3tDQ4pJgTLPYdAW25eDE66YsvM4LKyVPgGzVgZ4a9Wj1SRX8kPVKgBDdPt8oHtZ15F0qx7p0oOHdHw==}
-
-  '@codemirror/view@6.43.6':
-    resolution: {integrity: sha512-EVunGSYN1wz1p75WY1s3Xg7t3i8Yol0kGZGizNdX9BUFgMFILYVe8/u6EVpo7Ff5PwbZuILb4QAq7IZoKzIEQA==}
 
   '@connectrpc/connect-web@1.7.0':
     resolution: {integrity: sha512-qyP0YOnUPRWwCc/VfsoydMJvkb7EyUPr2q9sHgBuJzbADjiqck1gKH5V5ZPzPhTLBvmz5UvG+wiZ5sMRQHU1MQ==}
@@ -2185,6 +2179,11 @@ packages:
       maplibre-gl:
         optional: true
 
+  '@viamrobotics/three@0.0.9':
+    resolution: {integrity: sha512-j9uAwmwIQrRVYADalB5vRwj4739f14MU+LISpX/qBoLErcJrVsbJEVHQU39Lin4FYWmPSKDOHvTKgDbHwPvNqQ==}
+    peerDependencies:
+      three: '*'
+
   '@viamrobotics/tweakpane-config@0.1.1':
     resolution: {integrity: sha512-oIRkTIjE+c5MLlwETi5l0WbpNrZa/qXcntjO2Aa5eBJSUsAIvdPrBR0mj6xJSgY5B0qGKymEmfZuSng1uF0v2A==}
     peerDependencies:
@@ -2252,9 +2251,6 @@ packages:
   '@zag-js/anatomy@1.27.1':
     resolution: {integrity: sha512-vAgZ9RFm9wSucTMpbV1ZY2soZ6ZHQ9JAMOkLy1EPkWyE7+68VxzDh8rKc3Gq3LAjowgF2yR8tIe05njP9KFRjg==}
 
-  '@zag-js/anatomy@1.32.0':
-    resolution: {integrity: sha512-99u8VBSt5wkP9ZluIV6lR06Pvyt0AQaTGnvhZkvSmbz5U5+1XwCU0Db7Q+dcQRpM7d0p1ViWFxNVHDuuwY25Fw==}
-
   '@zag-js/anatomy@1.40.0':
     resolution: {integrity: sha512-oiB4uAaV//L38JluLVPtOHO3xvqambrfrXVOoq4kmNrBv1LLlCmFvrXA2HOR9lakn4ExK27XSUrKhUN7YlKjfQ==}
 
@@ -2263,9 +2259,6 @@ packages:
 
   '@zag-js/aria-hidden@1.27.1':
     resolution: {integrity: sha512-8ax2IG0jOJnvNMb20INgxa5OS7jvr14dxuc8vgaNR9a0yfWzIuINp/O0FrN+8GNzaJzGMODwqGb0I7AOOIOAbw==}
-
-  '@zag-js/aria-hidden@1.32.0':
-    resolution: {integrity: sha512-rgOSWjFMbeFwGPCdUWaSFbb4GM0Ovdr6sM0ilHmGQeXsrYkfg56R/o7I4/8P0kDIi/hDoE5TwBMUiGvKwWMLgA==}
 
   '@zag-js/auto-resize@1.27.1':
     resolution: {integrity: sha512-1hfHePSLs2AcESHUTzZhizn6lCCUeqwsWB4MsJwUzEqpGoW7DOKfOy27mfX50YlU7ttJOjlpYJ+Fp2g5FnzWWA==}
@@ -2294,9 +2287,6 @@ packages:
   '@zag-js/core@1.27.1':
     resolution: {integrity: sha512-C35SJO7O5fyzgk+mhTSRWiApz0QP2MngT/qgCrSEDHss0ESd1scQylpDK8LrKDGHyYObJLLJhOAoeHWKALBTPA==}
 
-  '@zag-js/core@1.32.0':
-    resolution: {integrity: sha512-aibBwyqw3saAzYBf2YHfuyOGt9kdNc4+ile3D1jbUsXiccLvGuFPP3+Ox7fULcILIiQhR0X6M+sTF17IyEMrYA==}
-
   '@zag-js/core@1.40.0':
     resolution: {integrity: sha512-0YcqCh7TmhSonkbKM/7NWolxlaQgvvXgqedocW9oeRYiDJIpBZyRqnHPoGAS2XwbBPkCnrqSosxSF5yBjhZpgw==}
 
@@ -2310,17 +2300,14 @@ packages:
     peerDependencies:
       '@internationalized/date': '>=3.0.0'
 
-  '@zag-js/dialog@1.32.0':
-    resolution: {integrity: sha512-aIrui9Wfxqags3jBsnAPBN7Af2U3icfbrHUXgAJ7cxsfsj58b7amM6Y42Ro7t1lBmpH86+3IxqfDkdBH1VQU7A==}
+  '@zag-js/dialog@1.22.1':
+    resolution: {integrity: sha512-b5KwMPYKc9RenZwxrAAHu6aHPz7tqPy4Mxa/YR5zo1pXBV4amA7u2xnqyncRaK65Z7y5QKmpmDuBp+0PnXxNIA==}
 
   '@zag-js/dismissable@1.22.1':
     resolution: {integrity: sha512-0DzbykJu9QoXYw4Zcjte69Mtk6ThNRCXWxxCKBf930V8Bw3Ha7vfY5bgdb4RFT5K+BQP3E8vLT+PzIaDINn2Xw==}
 
   '@zag-js/dismissable@1.27.1':
     resolution: {integrity: sha512-EZ9xq47m50scGV8JHYTAIL1DjnoFYChBC68cE9XNsqZO2vOINdYAfzsH73otx/CQ6RkhSk7eymP4fIzZVtRTVw==}
-
-  '@zag-js/dismissable@1.32.0':
-    resolution: {integrity: sha512-AUjajoaj2/3GfQvYJ5cdVwnov/dqAuS2N2dHRwxxSe/ktD4FbN/t0AcJ5Q2ojOuT6nBScEZQNd2vOrVgxLEiwQ==}
 
   '@zag-js/dismissable@1.40.0':
     resolution: {integrity: sha512-bBkFvPg/zbYn31ZgEfx8not6s2Ekx7zU2sO8tGXb8rYPnHBfGDYEzVQansUStJn0Atzw+y7XR7B3G3u5AFQJKw==}
@@ -2330,9 +2317,6 @@ packages:
 
   '@zag-js/dom-query@1.27.1':
     resolution: {integrity: sha512-+oyhPQ6of1zCCK8iTaxxQc2FMFEJz1mr+1571vaSRdoxG31GhNkq/QDfUvQQnRR+2HV9yNiFk4hcjCDGqdXDTQ==}
-
-  '@zag-js/dom-query@1.32.0':
-    resolution: {integrity: sha512-12XCCV1bchIFC7wjtYim5sEqUrAddzt0eysMTbBrCuK5r6TmLecwLtxUNKIRQ8adkCn0jqecUiuNyXojaArP3g==}
 
   '@zag-js/dom-query@1.40.0':
     resolution: {integrity: sha512-4J3EO2gHpZ1VZiGLuMlH6G1Tsp4gKB8PPt2yKeNQWYGEXyrHUXrvMhRUzv7Z4/2I1s1tnxlFG4F8ovB3kTpz/Q==}
@@ -2349,9 +2333,6 @@ packages:
   '@zag-js/focus-trap@1.22.1':
     resolution: {integrity: sha512-6W9cG0LEVICt0srVfWSpamKzsnRxXMdl3gV+GQ5HvkCCk1Sw6Io4tc3QvSSvaWcfyhM07feerOsa2ah7qiT/ig==}
 
-  '@zag-js/focus-trap@1.32.0':
-    resolution: {integrity: sha512-irzYMaz1ycAnHOGLr4r6+3MwhfKnA67N9jPft9ejnE2QoTp40W+xp07K2KQNf6xN7Boe6xGlw8SwLBnGZw2eCQ==}
-
   '@zag-js/focus-visible@1.27.1':
     resolution: {integrity: sha512-KGQAoiEejkEi0NMS33Q8mc7kedB0Y4g8WyKNaVlMgnqCEpi39cHkszgyZEvX1SYWfv4+RezQGfYOKo0Y6ze4uQ==}
 
@@ -2363,9 +2344,6 @@ packages:
 
   '@zag-js/interact-outside@1.27.1':
     resolution: {integrity: sha512-MfZobJhDWSiS9SzF35FJd/R+/ksvwzgjXl51p1sjaqVQoTIfKAe/pK8Hcky7NWX9NsVx77x/YidJpb/Bwf3f6g==}
-
-  '@zag-js/interact-outside@1.32.0':
-    resolution: {integrity: sha512-OwQgBxijmv9ZXFu6WzhLRULJh0FoixuP6DJV9B2CGBKJZz4hbQAqVrW9PFaPiBuWOILZpZ/iI6ZDjkGSKZ0WHw==}
 
   '@zag-js/interact-outside@1.40.0':
     resolution: {integrity: sha512-Fws+O4uD9vS0I5KVcf3U2tNjLKvqlv+RExFbTywckDLOCJ145M/pMQWTr1FHil04jk5PFyM1iGfsbom8tozHpQ==}
@@ -2405,9 +2383,6 @@ packages:
 
   '@zag-js/remove-scroll@1.22.1':
     resolution: {integrity: sha512-2TrS8ljp8SADX5xRB/+KGBCBYbYTeH0k5IEalG2rt8ReNyNAW1JfCrm53KCVoCg9YmxKF3MrxPgPT83MNFsJhQ==}
-
-  '@zag-js/remove-scroll@1.32.0':
-    resolution: {integrity: sha512-gWx8z/8ayNo624ibET4cNWbdVLc8A0Vyy9L9t67KT/slrBjcOA/zp9JL3Ngw/TZKgtR+wDh7P8ZoNAe0euaLSQ==}
 
   '@zag-js/slider@1.27.1':
     resolution: {integrity: sha512-p6zyMLU6cBtubk5673q2wk9JqCHf0l8my7nWY16KWqLWd68IFBSp7wrOyTYa0ifZ9CvmZZSjdL/w2TFJ4SHVKQ==}
@@ -2452,9 +2427,6 @@ packages:
   '@zag-js/types@1.27.1':
     resolution: {integrity: sha512-t7AtcXElKEjvvRlC1gcDmKgtIeiOtCL3vWf8K8kq7nVhq29q7PHtXB5ywn+R+CWnqJOmIDezKZjC1emXZKF0OA==}
 
-  '@zag-js/types@1.32.0':
-    resolution: {integrity: sha512-9UV5mFnTgJRyFCCH9g/TIqtxxfw6FUphpe7E0AHK9+WSq3PRvflMeaRT/O6HgdWo0Rc+JN9vVwkFYyGD81uAbw==}
-
   '@zag-js/types@1.40.0':
     resolution: {integrity: sha512-LVvxEyqFv/u9SEe5xdivvG2vYb9cCmbkD+5r6s+IGljpDLaRgv4BYyxEh40ri1ai070tL08ZKmoLfx2/xfvY/A==}
 
@@ -2463,9 +2435,6 @@ packages:
 
   '@zag-js/utils@1.27.1':
     resolution: {integrity: sha512-AHSd3VeiBvVoa8lAUe7YsCzk37X9zn2jKiYv13k5Ac+NnbYRbpWzZZZUfNGbFAsu5cSE4X1HUw38H1GTuBeWNQ==}
-
-  '@zag-js/utils@1.32.0':
-    resolution: {integrity: sha512-IRe1yFbMXBp8Q1Xp916Lq9P91s65K5KRNFZIv2EdQHRynLaT+QrPp5hmzkWoXJn8oOYd6PZeNb7K6v7vk8+k1g==}
 
   '@zag-js/utils@1.40.0':
     resolution: {integrity: sha512-XUpqDtXfHe7CySjOhLPLj9H8rxbiFUJAGgmBzNdpsGPP4wx12cpOXrpSjRXZ2kMwooMPz/P7RPDBteto8sqhAQ==}
@@ -5035,22 +5004,22 @@ snapshots:
   '@codemirror/autocomplete@6.20.3':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
 
   '@codemirror/commands@6.3.0':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
 
   '@codemirror/lang-go@6.0.1':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/go': 1.0.1
 
@@ -5063,7 +5032,7 @@ snapshots:
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/python': 1.1.19
 
@@ -5071,15 +5040,15 @@ snapshots:
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
 
   '@codemirror/language@6.12.3':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
@@ -5087,42 +5056,31 @@ snapshots:
 
   '@codemirror/lint@6.9.7':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       crelt: 1.0.7
 
   '@codemirror/merge@6.11.2':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/highlight': 1.2.3
       style-mod: 4.1.3
 
   '@codemirror/search@6.7.1':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       crelt: 1.0.7
 
   '@codemirror/state@6.6.0':
     dependencies:
       '@marijn/find-cluster-break': 1.0.3
 
-  '@codemirror/state@6.7.1':
-    dependencies:
-      '@marijn/find-cluster-break': 1.0.3
-
   '@codemirror/view@6.43.1':
     dependencies:
-      '@codemirror/state': 6.7.1
-      crelt: 1.0.7
-      style-mod: 4.1.3
-      w3c-keyname: 2.2.8
-
-  '@codemirror/view@6.43.6':
-    dependencies:
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       crelt: 1.0.7
       style-mod: 4.1.3
       w3c-keyname: 2.2.8
@@ -6214,7 +6172,7 @@ snapshots:
       '@zag-js/accordion': 1.27.1
       '@zag-js/avatar': 1.27.1
       '@zag-js/combobox': 1.27.1
-      '@zag-js/dialog': 1.32.0
+      '@zag-js/dialog': 1.22.1
       '@zag-js/file-upload': 1.27.1
       '@zag-js/pagination': 1.27.1
       '@zag-js/popover': 1.22.1
@@ -6708,7 +6666,7 @@ snapshots:
       '@fontsource-variable/space-grotesk': 5.2.10
       tailwindcss: 4.3.1
 
-  '@viamrobotics/test-widgets@0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
+  '@viamrobotics/test-widgets@0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
     dependencies:
       '@sentry/svelte': 10.10.0(svelte@5.55.7)
       '@threlte/core': 8.5.14(svelte@5.55.7)(three@0.183.2)
@@ -6723,7 +6681,13 @@ snapshots:
       three: 0.183.2
       threlte-uikit: 2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2)
     optionalDependencies:
+      '@viamrobotics/three': 0.0.9(three@0.183.2)
       maplibre-gl: 5.24.0
+
+  '@viamrobotics/three@0.0.9(three@0.183.2)':
+    dependencies:
+      three: 0.183.2
+    optional: true
 
   '@viamrobotics/tweakpane-config@0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)':
     dependencies:
@@ -6831,8 +6795,6 @@ snapshots:
 
   '@zag-js/anatomy@1.27.1': {}
 
-  '@zag-js/anatomy@1.32.0': {}
-
   '@zag-js/anatomy@1.40.0': {}
 
   '@zag-js/aria-hidden@1.22.1': {}
@@ -6840,10 +6802,6 @@ snapshots:
   '@zag-js/aria-hidden@1.27.1':
     dependencies:
       '@zag-js/dom-query': 1.27.1
-
-  '@zag-js/aria-hidden@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
 
   '@zag-js/auto-resize@1.27.1':
     dependencies:
@@ -6903,11 +6861,6 @@ snapshots:
       '@zag-js/dom-query': 1.27.1
       '@zag-js/utils': 1.27.1
 
-  '@zag-js/core@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
-      '@zag-js/utils': 1.32.0
-
   '@zag-js/core@1.40.0':
     dependencies:
       '@zag-js/dom-query': 1.40.0
@@ -6930,17 +6883,17 @@ snapshots:
     dependencies:
       '@internationalized/date': 3.12.2
 
-  '@zag-js/dialog@1.32.0':
+  '@zag-js/dialog@1.22.1':
     dependencies:
-      '@zag-js/anatomy': 1.32.0
-      '@zag-js/aria-hidden': 1.32.0
-      '@zag-js/core': 1.32.0
-      '@zag-js/dismissable': 1.32.0
-      '@zag-js/dom-query': 1.32.0
-      '@zag-js/focus-trap': 1.32.0
-      '@zag-js/remove-scroll': 1.32.0
-      '@zag-js/types': 1.32.0
-      '@zag-js/utils': 1.32.0
+      '@zag-js/anatomy': 1.22.1
+      '@zag-js/aria-hidden': 1.22.1
+      '@zag-js/core': 1.22.1
+      '@zag-js/dismissable': 1.22.1
+      '@zag-js/dom-query': 1.22.1
+      '@zag-js/focus-trap': 1.22.1
+      '@zag-js/remove-scroll': 1.22.1
+      '@zag-js/types': 1.22.1
+      '@zag-js/utils': 1.22.1
 
   '@zag-js/dismissable@1.22.1':
     dependencies:
@@ -6953,12 +6906,6 @@ snapshots:
       '@zag-js/dom-query': 1.27.1
       '@zag-js/interact-outside': 1.27.1
       '@zag-js/utils': 1.27.1
-
-  '@zag-js/dismissable@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
-      '@zag-js/interact-outside': 1.32.0
-      '@zag-js/utils': 1.32.0
 
   '@zag-js/dismissable@1.40.0':
     dependencies:
@@ -6973,10 +6920,6 @@ snapshots:
   '@zag-js/dom-query@1.27.1':
     dependencies:
       '@zag-js/types': 1.27.1
-
-  '@zag-js/dom-query@1.32.0':
-    dependencies:
-      '@zag-js/types': 1.32.0
 
   '@zag-js/dom-query@1.40.0':
     dependencies:
@@ -7012,10 +6955,6 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 1.22.1
 
-  '@zag-js/focus-trap@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
-
   '@zag-js/focus-visible@1.27.1':
     dependencies:
       '@zag-js/dom-query': 1.27.1
@@ -7033,11 +6972,6 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 1.27.1
       '@zag-js/utils': 1.27.1
-
-  '@zag-js/interact-outside@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
-      '@zag-js/utils': 1.32.0
 
   '@zag-js/interact-outside@1.40.0':
     dependencies:
@@ -7117,10 +7051,6 @@ snapshots:
   '@zag-js/remove-scroll@1.22.1':
     dependencies:
       '@zag-js/dom-query': 1.22.1
-
-  '@zag-js/remove-scroll@1.32.0':
-    dependencies:
-      '@zag-js/dom-query': 1.32.0
 
   '@zag-js/slider@1.27.1':
     dependencies:
@@ -7220,10 +7150,6 @@ snapshots:
     dependencies:
       csstype: 3.1.3
 
-  '@zag-js/types@1.32.0':
-    dependencies:
-      csstype: 3.2.3
-
   '@zag-js/types@1.40.0':
     dependencies:
       csstype: 3.2.3
@@ -7231,8 +7157,6 @@ snapshots:
   '@zag-js/utils@1.22.1': {}
 
   '@zag-js/utils@1.27.1': {}
-
-  '@zag-js/utils@1.32.0': {}
 
   '@zag-js/utils@1.40.0': {}
 
@@ -7453,8 +7377,8 @@ snapshots:
   codemirror-json5@1.0.3:
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       json5: 2.2.3
@@ -7467,8 +7391,8 @@ snapshots:
       '@codemirror/language': 6.12.3
       '@codemirror/lint': 6.9.7
       '@codemirror/search': 6.7.1
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
 
   color-convert@2.0.1:
     dependencies:

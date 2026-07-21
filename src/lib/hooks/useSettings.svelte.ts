@@ -62,8 +62,13 @@ export interface Settings {
 	enableLabels: boolean
 
 	// Widgets
+<<<<<<< HEAD
 	openResourceWidgets: Record<string, OpenResourceWidget[]>
 	resourceWidgetRects: Record<string, WidgetRect>
+=======
+	openArmWidgets: Record<string, string[]>
+	openCameraWidgets: Record<string, string[]>
+>>>>>>> 8627748b8cf2953ceeac6f61e4ba2e32d6353a4c
 	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean

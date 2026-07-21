@@ -9,7 +9,7 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService, Focus, Logs, MeasureTool, XR } from '$lib/plugins'
+	import { DrawService, Focus, Logs, MeasureTool, MotionPlanReplayer, XR } from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -73,17 +73,16 @@
 			>
 				{@render children()}
 
-				{#snippet dashboard()}
-					<Machines bind:isOpen={isMachinesPageOpen} />
-				{/snippet}
-
-				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
 				<StandaloneLLMWrapper />
+				<MotionPlanReplayer />
 
 				<XR />
+
+				<Logs />
+				<Machines bind:isOpen={isMachinesPageOpen} />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
