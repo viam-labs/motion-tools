@@ -33,6 +33,8 @@ type TransformEvent = TransformChangeEvent & {
 	transform: TransformWithUUID
 }
 
+const UNRECONCILED = Symbol('unreconciled')
+
 export const provideWorldStates = () => {
 	const partID = usePartID()
 	const machineStatus = useMachineStatus(() => partID.current)
@@ -139,8 +141,6 @@ const createWorldState = (
 	const { invalidate } = useThrelte()
 	const world = useWorld()
 	const relationships = useRelationships()
-
-	const UNRECONCILED = Symbol('unreconciled')
 
 	const entities = new Map<string, Entity>()
 	// UUIDs the stream has removed; guards against a stale initial snapshot or a
@@ -285,6 +285,13 @@ const createWorldState = (
 
 	// Force a fresh snapshot on reconfigure. The createResourceQuery key omits the
 	// config revision, so a same-name rebuild would otherwise be served stale cache.
+	// This effect owns the revision edge (reads it tracked); the reconcile effect
+	// below deliberately reads revision untracked so it reacts to the snapshot
+	// settling instead of racing this refetch.
+	//
+	// A rare mount ordering (snapshot settles before machineStatus loads) can cause
+	// one redundant, idempotent refetch on the first real revision; accepted over a
+	// guard that would risk skipping a genuine reconfigure.
 	$effect(() => {
 		const rev = revision()
 		if (rev === undefined) return
@@ -328,7 +335,12 @@ const createWorldState = (
 		if (!getTransformQueries) return
 		if (getTransformQueries.some((query) => query?.isLoading)) return
 
-		const rev = revision()
+		// Read revision untracked: the refetch effect owns the revision edge and kicks
+		// off listUUIDs.refetch(); this effect must fire on the FRESH snapshot settling
+		// (getTransformQueries recomputing), not on the revision flip — otherwise it
+		// reconciles against the pre-refetch snapshot and latches the revision, blocking
+		// the real snapshot when it lands.
+		const rev = untrack(() => revision())
 		if (reconciledRevision === rev) return
 
 		const transforms = getTransformQueries
@@ -345,8 +357,10 @@ const createWorldState = (
 		for (const uuid of toAdd) {
 			const transform = byUUID.get(uuid)
 			if (!transform) continue
-			// The fresh snapshot is authoritative: a UUID it reports as present must not
-			// stay tombstoned from an earlier removal, or spawnEntity would refuse it.
+			// The fresh snapshot is authoritative for presence: a UUID it reports as
+			// present must not stay tombstoned, or spawnEntity would refuse it. Note this
+			// can override a newer stream REMOVED for the same UUID (snapshot wins) — an
+			// accepted MVP boundary; see the design doc's snapshot-vs-stream race note.
 			removedUUIDs.delete(uuid)
 			spawnEntity(transform)
 		}
