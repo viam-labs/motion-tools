@@ -105,8 +105,10 @@ export const resourceColors = {
 	webcam: oklchToHex(twColors.sky[darkness]),
 } as const
 
-// Name tokens that map to a `resourceColors` subtype; `cam` is the short spelling used in plan
-// frame names (`left-cam`, `cam-merged-cup`).
+// Plan JSON carries no standardized API/subtype, only the component name, so this hinges on the
+// user's naming convention: we assume an arm is named like `left-arm`, embedding the `arm`
+// keyword. Tokens map such a keyword to a `resourceColors` subtype; `cam` is the short spelling
+// seen in plan frame names (`left-cam`, `cam-merged-cup`).
 const subtypeByToken: Record<string, keyof typeof resourceColors> = {
 	arm: 'arm',
 	base: 'base',
