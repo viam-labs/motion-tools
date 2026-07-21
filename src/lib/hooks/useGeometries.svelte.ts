@@ -86,6 +86,60 @@ export const provideGeometries = (partID: () => string) => {
 				[client.current?.name, createResourceQuery(client, 'getGeometries', () => options)] as const
 		)
 	)
+
+	// Instrumentation: log per-fetch latency and rolling payload throughput
+	// for arm getGeometries calls, since arms are typically polled at high frequency.
+	const ARM_STATS_LOG_INTERVAL = 30
+	const armQueryStats = new Map<
+		string,
+		{ fetchStart?: number; count: number; totalLatency: number; totalBytes: number; windowStart: number }
+	>()
+
+	$effect(() => {
+		for (const [name, query] of armQueries) {
+			if (!name) {
+				continue
+			}
+
+			untrack(() => {
+				$effect(() => {
+					const stats = armQueryStats.get(name) ?? {
+						count: 0,
+						totalLatency: 0,
+						totalBytes: 0,
+						windowStart: performance.now(),
+					}
+					armQueryStats.set(name, stats)
+
+					if (query.isFetching) {
+						stats.fetchStart = performance.now()
+						return
+					}
+
+					if (stats.fetchStart === undefined) {
+						return
+					}
+
+					const latency = performance.now() - stats.fetchStart
+					stats.fetchStart = undefined
+					stats.count += 1
+					stats.totalLatency += latency
+					stats.totalBytes +=
+						query.data?.reduce((sum, geometry) => sum + geometry.toBinary().byteLength, 0) ?? 0
+
+					if (stats.count % ARM_STATS_LOG_INTERVAL === 0) {
+						const elapsedSeconds = (performance.now() - stats.windowStart) / 1000
+						const avgLatency = stats.totalLatency / stats.count
+						const throughputKBps = stats.totalBytes / 1024 / elapsedSeconds
+
+						console.log(
+							`[🦾 ${name}] getGeometries — avg latency ${avgLatency.toFixed(1)}ms, throughput ${throughputKBps.toFixed(2)} KB/s (n=${stats.count})`
+						)
+					}
+				})
+			})
+		}
+	})
 	const baseQueries = $derived(
 		baseClients.map(
 			(client) =>
