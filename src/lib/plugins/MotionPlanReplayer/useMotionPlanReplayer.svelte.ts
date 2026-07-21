@@ -4,6 +4,7 @@ import { getContext, setContext } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
+import { subtypeColorFromName } from '$lib/color'
 import { traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
@@ -12,15 +13,16 @@ import { parsePlan, PlanParseError } from './parse-plan'
 import { parsedPlanToSnapshots } from './plan-to-snapshots'
 import * as planRelations from './relations'
 
-const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
-const PLAN_OPACITY = 0.6
+// The renderer default for geometry with no Opacity trait (Boxes/Capsules/Mesh/Line `?? 0.7`),
+// so replay matches live geometry. Re-applied because `drawTransform` forces Opacity(1) each step.
+const PLAN_OPACITY = 0.7
 
 // koota's `set` writes the trait's store slot but will not add an absent trait — the entity's
 // mask is untouched, so `has` stays false and nothing querying the trait ever sees the value.
 // Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
 // happens to be present because `drawTransform` adds it unconditionally. Guard both rather than
 // depend on that.
-const setOrAddColor = (entity: Entity, value: typeof PLAN_COLOR) => {
+const setOrAddColor = (entity: Entity, value: { r: number; g: number; b: number }) => {
 	if (entity.has(traits.Color)) entity.set(traits.Color, value)
 	else entity.add(traits.Color(value))
 }
@@ -122,9 +124,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			if (uuid) relationships.flush(uuid)
 			if (planEntity) spawned.entity.add(planRelations.PartOfPlan(planEntity))
 
-			// Defaults land on first appearance only. Re-forcing them every step is what wiped
-			// the user's Details-panel edits.
-			if (!spawned.entity.has(traits.ReferenceFrame)) setOrAddColor(spawned.entity, PLAN_COLOR)
+			// First appearance only: re-forcing every step wiped Details-panel edits (Color
+			// survives reconcile). Same per-subtype color as the live scene, inferred from the
+			// frame name since plans carry no subtype. Frame-only nodes and no-match geometry
+			// (obstacles) stay uncolored → renderer default, like untyped live geometry.
+			if (!spawned.entity.has(traits.ReferenceFrame)) {
+				const name = spawned.entity.get(traits.Name)
+				const color = name ? subtypeColorFromName(name) : undefined
+				if (color) setOrAddColor(spawned.entity, color)
+			}
 			setOrAddOpacity(spawned.entity, PLAN_OPACITY)
 		}
 

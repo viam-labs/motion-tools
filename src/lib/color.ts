@@ -105,6 +105,43 @@ export const resourceColors = {
 	webcam: oklchToHex(twColors.sky[darkness]),
 } as const
 
+// Name tokens that map to a `resourceColors` subtype; `cam` is the short spelling used in plan
+// frame names (`left-cam`, `cam-merged-cup`).
+const subtypeByToken: Record<string, keyof typeof resourceColors> = {
+	arm: 'arm',
+	base: 'base',
+	board: 'board',
+	button: 'button',
+	cam: 'camera',
+	camera: 'camera',
+	encoder: 'encoder',
+	gantry: 'gantry',
+	gripper: 'gripper',
+	motor: 'motor',
+	sensor: 'sensor',
+	servo: 'servo',
+	switch: 'switch',
+	webcam: 'webcam',
+}
+
+// Win over a later subtype token in the same name — `obstacle-arm-left-cord` is not an arm.
+const noColorTokens = new Set(['obstacle', 'obstacles', 'bound', 'world'])
+
+/**
+ * Infer a resource-subtype color from a frame/component name, for contexts with no subtype
+ * metadata (motion-plan replay; the live scene has real subtypes — use {@link subtypeToColor}).
+ * First matching token wins left-to-right, so the leading component segment decides
+ * (`left-arm:upper_arm` → arm). Unrecognized names (`table`) return undefined → `colors.default`.
+ */
+export const subtypeColorFromName = (name: string): Color | undefined => {
+	for (const token of name.toLowerCase().split(/[^a-z0-9]+/)) {
+		if (noColorTokens.has(token)) return undefined
+		const subtype = subtypeByToken[token]
+		if (subtype) return subtypeToColor(subtype)
+	}
+	return undefined
+}
+
 export const isColorRepresentation = (color: unknown): color is ColorRepresentation => {
 	if (!color) return false
 	if (isColorString(color)) return true
