@@ -1,10 +1,10 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 
 import {
-	componentApiWidgets,
-	componentWidgetForResource,
+	apiWidgetsForResource,
 	type ResourceAPIWidget,
-} from '@viamrobotics/test-widgets/component-registry'
+	widgetForResource,
+} from '@viamrobotics/test-widgets/registry'
 
 /**
  * Reserved widget id for a resource's composite "card" widget. Used as the
@@ -29,17 +29,16 @@ export const resourceWidgetToggles = (resource: ResourceName): ResourceAPIWidget
 		return []
 	}
 
-	const apis = componentApiWidgets(resource)
+	const apis = apiWidgetsForResource(resource)
 	if (apis.length > 0) {
 		return apis
 	}
 
 	// A component with a card but no per-API widgets (camera, sensor, …) gets one
-	// "Overview" toggle. `rdk-internal` resources are never surfaced — this mirrors the
-	// component-relevant clause of the registry's `showResourceWidget`, inlined so we can
-	// import from the service-free `/component-registry` entry and keep maplibre/navigation
-	// out of the build.
-	const card = componentWidgetForResource(resource)
+	// "Overview" toggle. `rdk-internal` resources are never surfaced — this inlines the
+	// component-relevant clause of the registry's `showResourceWidget` (a one-line
+	// namespace check) so this module needs only the registry's widget lookups.
+	const card = widgetForResource(resource)
 	if (card && resource.namespace !== 'rdk-internal') {
 		return [{ id: CARD_WIDGET_ID, label: 'Overview', widgets: [card] }]
 	}

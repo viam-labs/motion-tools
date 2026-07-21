@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { addWidget, isWidgetOpen, removeWidget } from '$lib/hooks/useResourceWidgets.svelte'
 
 // Stub the registry so importing the hook module doesn't pull in the real widget package.
-vi.mock('@viamrobotics/test-widgets/component-registry', () => ({
-	componentApiWidgets: vi.fn(() => []),
-	componentWidgetForResource: vi.fn(),
+vi.mock('@viamrobotics/test-widgets/registry', () => ({
+	apiWidgetsForResource: vi.fn(() => []),
+	widgetForResource: vi.fn(),
 }))
 
 describe('open resource-widget list helpers', () => {

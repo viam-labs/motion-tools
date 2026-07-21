@@ -1,17 +1,14 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 import type { Component } from 'svelte'
 
-import {
-	componentApiWidgets,
-	componentWidgetForResource,
-} from '@viamrobotics/test-widgets/component-registry'
+import { apiWidgetsForResource, widgetForResource } from '@viamrobotics/test-widgets/registry'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CARD_WIDGET_ID, resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
 
-vi.mock('@viamrobotics/test-widgets/component-registry', () => ({
-	componentApiWidgets: vi.fn(),
-	componentWidgetForResource: vi.fn(),
+vi.mock('@viamrobotics/test-widgets/registry', () => ({
+	apiWidgetsForResource: vi.fn(),
+	widgetForResource: vi.fn(),
 }))
 
 const widget = (() => undefined) as unknown as Component<{ partID: string; resourceName: string }>
@@ -20,16 +17,16 @@ const resource = (subtype: string, type = 'component', namespace = 'rdk'): Resou
 	({ namespace, type, subtype, name: `my-${subtype}` }) as ResourceName
 
 beforeEach(() => {
-	vi.mocked(componentApiWidgets).mockReturnValue([])
-	vi.mocked(componentWidgetForResource).mockReturnValue(undefined)
+	vi.mocked(apiWidgetsForResource).mockReturnValue([])
+	vi.mocked(widgetForResource).mockReturnValue(undefined)
 })
 
 describe('resourceWidgetToggles', () => {
 	it('returns the per-API widgets (and no card) when the resource has APIs', () => {
 		const apis = [{ id: 'get-joint-positions', label: 'GetJointPositions', widgets: [widget] }]
-		vi.mocked(componentApiWidgets).mockReturnValue(apis)
+		vi.mocked(apiWidgetsForResource).mockReturnValue(apis)
 		// Even if a card exists, a resource with APIs must not surface it.
-		vi.mocked(componentWidgetForResource).mockReturnValue(widget)
+		vi.mocked(widgetForResource).mockReturnValue(widget)
 
 		const result = resourceWidgetToggles(resource('arm'))
 
@@ -38,7 +35,7 @@ describe('resourceWidgetToggles', () => {
 	})
 
 	it('falls back to a single card toggle when the resource has no APIs', () => {
-		vi.mocked(componentWidgetForResource).mockReturnValue(widget)
+		vi.mocked(widgetForResource).mockReturnValue(widget)
 
 		const result = resourceWidgetToggles(resource('camera'))
 
@@ -52,19 +49,19 @@ describe('resourceWidgetToggles', () => {
 	})
 
 	it('does not surface a card for rdk-internal resources', () => {
-		vi.mocked(componentWidgetForResource).mockReturnValue(widget)
+		vi.mocked(widgetForResource).mockReturnValue(widget)
 
 		expect(resourceWidgetToggles(resource('sensor', 'component', 'rdk-internal'))).toEqual([])
 	})
 
 	it('excludes non-component (service) resources without consulting the registry', () => {
 		// Services (motion, slam, navigation, …) are not represented in the visualizer.
-		vi.mocked(componentApiWidgets).mockReturnValue([
+		vi.mocked(apiWidgetsForResource).mockReturnValue([
 			{ id: 'get-position', label: 'GetPosition', widgets: [widget] },
 		])
-		vi.mocked(componentWidgetForResource).mockReturnValue(widget)
+		vi.mocked(widgetForResource).mockReturnValue(widget)
 
 		expect(resourceWidgetToggles(resource('slam', 'service'))).toEqual([])
-		expect(componentApiWidgets).not.toHaveBeenCalled()
+		expect(apiWidgetsForResource).not.toHaveBeenCalled()
 	})
 })

@@ -17,9 +17,9 @@ vi.mock('$lib/components/overlay/FloatingPanel.svelte', async () => {
 })
 
 // Avoid loading the real widget package via the close-sync helper's transitive import.
-vi.mock('@viamrobotics/test-widgets/component-registry', () => ({
-	componentApiWidgets: vi.fn(() => []),
-	componentWidgetForResource: vi.fn(),
+vi.mock('@viamrobotics/test-widgets/registry', () => ({
+	apiWidgetsForResource: vi.fn(() => []),
+	widgetForResource: vi.fn(),
 }))
 
 vi.mock('@threlte/core', () => ({

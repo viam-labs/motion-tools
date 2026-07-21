@@ -1,5 +1,5 @@
 import type { ResourceName } from '@viamrobotics/sdk'
-import type { ResourceAPIWidget } from '@viamrobotics/test-widgets/component-registry'
+import type { ResourceAPIWidget } from '@viamrobotics/test-widgets/registry'
 
 import type { OpenResourceWidget } from '$lib/hooks/useSettings.svelte'
 
