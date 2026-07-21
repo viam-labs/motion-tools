@@ -8,6 +8,9 @@ overrides:
   js-yaml@^3: 3.14.2
   uuid: '>=14.0.0'
   '@viamrobotics/prime-core': file:../app/prime/viamrobotics-prime-core-0.1.23.tgz
+  '@codemirror/state': 6.6.0
+  '@codemirror/view': 6.43.1
+  '@codemirror/language': 6.12.3
 
 importers:
 
@@ -178,7 +181,10 @@ importers:
         version: 1.1.0(tailwindcss@4.3.1)
       '@viamrobotics/test-widgets':
         specifier: 0.9.1
-        version: 0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
+        version: 0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
+      '@viamrobotics/three':
+        specifier: ^0.0.9
+        version: 0.0.9(three@0.183.2)
       '@viamrobotics/tweakpane-config':
         specifier: 0.1.1
         version: 0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)
@@ -588,14 +594,8 @@ packages:
   '@codemirror/state@6.6.0':
     resolution: {integrity: sha512-4nbvra5R5EtiCzr9BTHiTLc+MLXK2QGiAVYMyi8PkQd3SR+6ixar/Q/01Fa21TBIDOZXgeWV4WppsQolSreAPQ==}
 
-  '@codemirror/state@6.7.1':
-    resolution: {integrity: sha512-9QzNDgE4EYDnAHfrTlR2lwiPciiOymLtwKK+8yHQzCc7GXhAP9xdEbEJFy2IWB1j9UGUl9BsgMmTo/ImA02T7A==}
-
   '@codemirror/view@6.43.1':
     resolution: {integrity: sha512-+BIjw/AG3tDQ4pJgTLPYdAW25eDE66YsvM4LKyVPgGzVgZ4a9Wj1SRX8kPVKgBDdPt8oHtZ15F0qx7p0oOHdHw==}
-
-  '@codemirror/view@6.43.6':
-    resolution: {integrity: sha512-EVunGSYN1wz1p75WY1s3Xg7t3i8Yol0kGZGizNdX9BUFgMFILYVe8/u6EVpo7Ff5PwbZuILb4QAq7IZoKzIEQA==}
 
   '@connectrpc/connect-web@1.7.0':
     resolution: {integrity: sha512-qyP0YOnUPRWwCc/VfsoydMJvkb7EyUPr2q9sHgBuJzbADjiqck1gKH5V5ZPzPhTLBvmz5UvG+wiZ5sMRQHU1MQ==}
@@ -2184,6 +2184,11 @@ packages:
         optional: true
       maplibre-gl:
         optional: true
+
+  '@viamrobotics/three@0.0.9':
+    resolution: {integrity: sha512-j9uAwmwIQrRVYADalB5vRwj4739f14MU+LISpX/qBoLErcJrVsbJEVHQU39Lin4FYWmPSKDOHvTKgDbHwPvNqQ==}
+    peerDependencies:
+      three: '*'
 
   '@viamrobotics/tweakpane-config@0.1.1':
     resolution: {integrity: sha512-oIRkTIjE+c5MLlwETi5l0WbpNrZa/qXcntjO2Aa5eBJSUsAIvdPrBR0mj6xJSgY5B0qGKymEmfZuSng1uF0v2A==}
@@ -5035,22 +5040,22 @@ snapshots:
   '@codemirror/autocomplete@6.20.3':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
 
   '@codemirror/commands@6.3.0':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
 
   '@codemirror/lang-go@6.0.1':
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/go': 1.0.1
 
@@ -5063,7 +5068,7 @@ snapshots:
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/python': 1.1.19
 
@@ -5071,15 +5076,15 @@ snapshots:
     dependencies:
       '@codemirror/autocomplete': 6.20.3
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
 
   '@codemirror/language@6.12.3':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.10
@@ -5087,42 +5092,31 @@ snapshots:
 
   '@codemirror/lint@6.9.7':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       crelt: 1.0.7
 
   '@codemirror/merge@6.11.2':
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/highlight': 1.2.3
       style-mod: 4.1.3
 
   '@codemirror/search@6.7.1':
     dependencies:
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       crelt: 1.0.7
 
   '@codemirror/state@6.6.0':
     dependencies:
       '@marijn/find-cluster-break': 1.0.3
 
-  '@codemirror/state@6.7.1':
-    dependencies:
-      '@marijn/find-cluster-break': 1.0.3
-
   '@codemirror/view@6.43.1':
     dependencies:
-      '@codemirror/state': 6.7.1
-      crelt: 1.0.7
-      style-mod: 4.1.3
-      w3c-keyname: 2.2.8
-
-  '@codemirror/view@6.43.6':
-    dependencies:
-      '@codemirror/state': 6.7.1
+      '@codemirror/state': 6.6.0
       crelt: 1.0.7
       style-mod: 4.1.3
       w3c-keyname: 2.2.8
@@ -6708,7 +6702,7 @@ snapshots:
       '@fontsource-variable/space-grotesk': 5.2.10
       tailwindcss: 4.3.1
 
-  '@viamrobotics/test-widgets@0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
+  '@viamrobotics/test-widgets@0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@file:../app/prime/viamrobotics-prime-core-0.1.23.tgz(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
     dependencies:
       '@sentry/svelte': 10.10.0(svelte@5.55.7)
       '@threlte/core': 8.5.14(svelte@5.55.7)(three@0.183.2)
@@ -6723,7 +6717,12 @@ snapshots:
       three: 0.183.2
       threlte-uikit: 2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2)
     optionalDependencies:
+      '@viamrobotics/three': 0.0.9(three@0.183.2)
       maplibre-gl: 5.24.0
+
+  '@viamrobotics/three@0.0.9(three@0.183.2)':
+    dependencies:
+      three: 0.183.2
 
   '@viamrobotics/tweakpane-config@0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)':
     dependencies:
@@ -7453,8 +7452,8 @@ snapshots:
   codemirror-json5@1.0.3:
     dependencies:
       '@codemirror/language': 6.12.3
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
       '@lezer/common': 1.5.2
       '@lezer/highlight': 1.2.3
       json5: 2.2.3
@@ -7467,8 +7466,8 @@ snapshots:
       '@codemirror/language': 6.12.3
       '@codemirror/lint': 6.9.7
       '@codemirror/search': 6.7.1
-      '@codemirror/state': 6.7.1
-      '@codemirror/view': 6.43.6
+      '@codemirror/state': 6.6.0
+      '@codemirror/view': 6.43.1
 
   color-convert@2.0.1:
     dependencies:

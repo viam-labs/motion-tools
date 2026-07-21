@@ -7,6 +7,9 @@ export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 export { default as MeasureTool } from './MeasureTool/MeasureTool.svelte'
 export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 
+// MoveFrame
+export { default as MoveFrame } from './MoveFrame/MoveFrame.svelte'
+
 // DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'
 

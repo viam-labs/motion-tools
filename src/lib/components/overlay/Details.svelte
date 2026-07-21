@@ -339,6 +339,8 @@
 				</Tooltip>
 			{/if}
 
+			<PortalTarget id="details-header-actions" />
+
 			{#if removable.current}
 				<Tooltip
 					let:tooltipID
