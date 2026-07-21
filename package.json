@@ -490,7 +490,7 @@
 		"@viamrobotics/sdk": "0.69.0",
 		"@viamrobotics/svelte-sdk": "1.2.2",
 		"@viamrobotics/tailwind-config": "1.1.0",
-		"@viamrobotics/test-widgets": "0.8.0",
+		"@viamrobotics/test-widgets": "0.9.1",
 		"@viamrobotics/tweakpane-config": "0.1.1",
 		"@vitest/browser-playwright": "4.1.9",
 		"@vitest/coverage-v8": "4.1.9",
@@ -554,7 +554,7 @@
 		"@viamrobotics/prime-core": ">=0.1",
 		"@viamrobotics/sdk": ">=0.38",
 		"@viamrobotics/svelte-sdk": ">=0.1",
-		"@viamrobotics/test-widgets": ">=0.8",
+		"@viamrobotics/test-widgets": ">=0.9",
 		"@zag-js/collapsible": ">=1",
 		"@zag-js/dialog": ">=1.31",
 		"@zag-js/floating-panel": ">=1",
@@ -601,8 +601,7 @@
 		"overrides": {
 			"js-yaml@^3": "3.14.2",
 			"uuid": ">=14.0.0",
-			"@viamrobotics/prime-core": "file:../app/prime/viamrobotics-prime-core-0.1.23.tgz",
-			"@viamrobotics/test-widgets": "file:../test-widgets/viamrobotics-test-widgets-0.8.0.tgz"
+			"@viamrobotics/prime-core": "file:../app/prime/viamrobotics-prime-core-0.1.23.tgz"
 		}
 	},
 	"packageManager": "pnpm@10.18.0",
