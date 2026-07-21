@@ -16,8 +16,7 @@ describe('transformsToSnapshot', () => {
 })
 
 describe('transformBytesToSnapshots', () => {
-	// Serialized here with the same proto (buf-es) a host would send over the wire; the
-	// point is that fromBinary reconstructs the fields the renderer reads.
+	// Same wire encoding a host sends; asserts fromBinary yields renderer fields.
 	const frameUUID = new Uint8Array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2, 3, 4, 5, 6])
 	const encode = (frame: string): Uint8Array =>
 		new Transform({

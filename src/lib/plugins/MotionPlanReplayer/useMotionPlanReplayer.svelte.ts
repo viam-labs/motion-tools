@@ -50,11 +50,7 @@ export interface MotionPlanReplayerContext {
 	readonly currentStep: number
 	readonly totalSteps: number
 	addPlan: (name: string, content: string, precomputedSnapshots?: Snapshot[]) => void
-	/**
-	 * Add a plan from transforms computed outside this package (e.g. app running RDK FK
-	 * server-side). Each inner array is one trajectory step's serialized
-	 * `common.v1.Transform` bytes; the wire format bridges the protobuf toolchains.
-	 */
+	/** Host FK / precomputed transforms as `common.v1.Transform` bytes — bridges protobuf toolchains. */
 	addPlanFromTransforms: (name: string, transformsPerStep: Uint8Array[][]) => void
 	removePlan: (index: number) => void
 	selectPlan: (index: number) => void

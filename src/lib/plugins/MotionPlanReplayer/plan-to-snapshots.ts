@@ -54,20 +54,16 @@ const descriptorToTransform = (
 	})
 }
 
-// The snapshot-level uuid is random per step; reconcile ignores it (per-frame identity
-// lives on each Transform's uuid). Kept as a helper so every Snapshot is built one way.
+// Reconcile keys on Transform.uuid; snapshot uuid is unused. Helper keeps one construction path.
 const snapshotUuid = (): Uint8Array<ArrayBuffer> =>
 	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
 
-/** Wrap one trajectory step's transforms into a Snapshot. */
 export const transformsToSnapshot = (transforms: Transform[]): Snapshot =>
 	new Snapshot({ transforms, uuid: snapshotUuid() })
 
 /**
- * Decode host-supplied serialized `common.v1.Transform` bytes — one array per trajectory
- * step — into Snapshots. Bytes let a host (e.g. app computing FK server-side with RDK)
- * hand transforms across the protobuf-es / protobuf-ts boundary without depending on this
- * package's proto types; the wire format is the shared contract.
+ * Bytes bridge protobuf-es (this package) and protobuf-ts (host) without sharing generated types.
+ * One inner array = one trajectory step.
  */
 export const transformBytesToSnapshots = (transformsPerStep: Uint8Array[][]): Snapshot[] =>
 	transformsPerStep.map((step) =>

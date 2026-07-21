@@ -11,13 +11,11 @@
 	} from './useMotionPlanReplayer.svelte'
 
 	interface Props {
-		/** Pass plans to seed the list on mount (e.g. from app DB fetch). */
+		/** Seed the list on mount (e.g. app DB fetch). */
 		plans?: PlanEntry[]
 		/**
-		 * Rendered inside the plan panel's action area, and passed the replayer
-		 * context as its snippet argument. Use that argument, not
-		 * `useMotionPlanReplayer()`: the panel is portaled out of this component's
-		 * subtree, so host children resolve context at their own call site, not here.
+		 * Plan-panel action slot. Use the snippet's `replayer` arg, not
+		 * `useMotionPlanReplayer()` — the panel is portaled out of this subtree.
 		 */
 		children?: Snippet<[MotionPlanReplayerContext]>
 	}
