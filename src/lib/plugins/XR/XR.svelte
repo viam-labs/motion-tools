@@ -9,6 +9,7 @@
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
+	import { useControlWidgets } from '../ControlWidgets/useControlWidgets.svelte'
 	import CameraFeed from './CameraFeed.svelte'
 	import DebugPanel from './DebugPanel.svelte'
 	import FrameConfigureControllers from './frame-configure/Controllers.svelte'
@@ -32,12 +33,13 @@
 	const settings = useSettings()
 	const partID = usePartID()
 	const resourceByName = useResourceByName()
+	const controlWidgets = useControlWidgets()
 
 	const enableXR = $derived(settings.current.enableXR)
 
-	// Cameras enabled as widgets for the current part (camera resources use a single card toggle).
+	// Cameras enabled as open control-widget panels for the current part (camera cards).
 	const enabledCameras = $derived.by(() => {
-		const entries = settings.current.openResourceWidgets[partID.current] ?? []
+		const entries = controlWidgets.openFor(partID.current)
 		const names = new Set<string>()
 		for (const entry of entries) {
 			if (resourceByName.current[entry.resourceName]?.subtype === 'camera') {

@@ -86,7 +86,7 @@
 				active={enabled}
 				class="rounded-r-none"
 				icon="ruler"
-				description="{enabled ? 'Disable' : 'Enable'} measurement"
+				description="Measurement"
 				onclick={() => {
 					settings.current.interactionMode = enabled ? 'navigate' : 'measure'
 				}}
@@ -94,7 +94,7 @@
 			<DropdownPane
 				title="Measurement"
 				active={enabled}
-				description="Measurement axes"
+				description="Measurement settings"
 			>
 				<Element>
 					<div class="font-public-sans text-subtle-1 flex items-center gap-2 text-xs">

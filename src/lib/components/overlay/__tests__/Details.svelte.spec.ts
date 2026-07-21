@@ -44,9 +44,6 @@ describe('Details component', () => {
 			current: { components: [] },
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
@@ -64,6 +61,7 @@ describe('Details component', () => {
 			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
+				[ENVIRONMENT_CONTEXT_KEY, createEnvironment()],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})
@@ -127,6 +125,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		environmentContext.current.viewerMode = 'build'
 
 		entity.add(traits.FramesAPI)
 
@@ -136,9 +135,6 @@ describe('Details component', () => {
 			},
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
@@ -170,6 +166,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		environmentContext.current.viewerMode = 'build'
 
 		entity.add(traits.FramesAPI)
 
@@ -179,9 +176,6 @@ describe('Details component', () => {
 			},
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),

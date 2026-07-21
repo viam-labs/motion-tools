@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PersistedState } from 'runed'
 
-	import { DashboardPortal } from '$lib'
+	import { WorkspacePortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
@@ -18,7 +18,7 @@
 	})
 </script>
 
-<DashboardPortal>
+<WorkspacePortal>
 	<fieldset class="relative">
 		<DashboardButton
 			active={isOpen.current}
@@ -44,7 +44,7 @@
 			</span>
 		{/if}
 	</fieldset>
-</DashboardPortal>
+</WorkspacePortal>
 
 <FloatingPanel
 	title="Logs"

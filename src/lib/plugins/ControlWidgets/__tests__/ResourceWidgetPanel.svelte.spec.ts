@@ -5,9 +5,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePartID } from '$lib/hooks/usePartID.svelte'
-import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 import ResourceWidgetPanel from '../ResourceWidgetPanel.svelte'
+import { useControlWidgets } from '../useControlWidgets.svelte'
 import DummyWidget from './__fixtures__/DummyWidget.svelte'
 
 // Render children without Threlte context.
@@ -16,18 +16,12 @@ vi.mock('$lib/components/overlay/FloatingPanel.svelte', async () => {
 	return { default: MockFloatingPanel.default }
 })
 
-// Avoid loading the real widget package via the close-sync helper's transitive import.
-vi.mock('@viamrobotics/test-widgets/registry', () => ({
-	apiWidgetsForResource: vi.fn(() => []),
-	widgetForResource: vi.fn(),
-}))
-
 vi.mock('@threlte/core', () => ({
 	useThrelte: () => ({ dom: { clientWidth: 1000, clientHeight: 800 } }),
 }))
 
 vi.mock('$lib/hooks/usePartID.svelte', () => ({ usePartID: vi.fn() }))
-vi.mock('$lib/hooks/useSettings.svelte', () => ({ useSettings: vi.fn() }))
+vi.mock('../useControlWidgets.svelte', () => ({ useControlWidgets: vi.fn() }))
 
 describe('ResourceWidgetPanel', () => {
 	const partID = 'part1'
@@ -38,23 +32,19 @@ describe('ResourceWidgetPanel', () => {
 		name: 'arm1',
 	} as ResourceName
 
-	const mockSettings = {
-		current: {
-			openResourceWidgets: {} as Record<string, { resourceName: string; widgetId: string }[]>,
-			resourceWidgetRects: {} as Record<string, unknown>,
-		},
-	}
 	const mockPartID = { current: partID }
+	const setOpen = vi.fn()
+	const store = {
+		openFor: vi.fn(() => []),
+		isOpen: vi.fn(() => false),
+		setOpen,
+		rectFor: vi.fn(() => undefined),
+		saveRect: vi.fn(),
+	}
 
 	beforeEach(() => {
 		vi.clearAllMocks()
-		mockSettings.current.openResourceWidgets = {
-			[partID]: [
-				{ resourceName: 'arm1', widgetId: 'is-moving' },
-				{ resourceName: 'arm1', widgetId: 'get-joint-positions' },
-			],
-		}
-		vi.mocked(useSettings).mockReturnValue(mockSettings as never)
+		vi.mocked(useControlWidgets).mockReturnValue(store as never)
 		vi.mocked(usePartID).mockReturnValue(mockPartID as never)
 	})
 
@@ -72,7 +62,7 @@ describe('ResourceWidgetPanel', () => {
 		expect(screen.getByText('dummy:part1:arm1')).toBeInTheDocument()
 	})
 
-	it('removes only its own (resource, widget) entry on close', async () => {
+	it('closes by removing its own (resource, widget) entry from the store', async () => {
 		render(ResourceWidgetPanel, {
 			props: {
 				resource,
@@ -86,9 +76,7 @@ describe('ResourceWidgetPanel', () => {
 		await fireEvent.click(screen.getByRole('button', { name: /close panel/i }))
 
 		await waitFor(() => {
-			expect(mockSettings.current.openResourceWidgets[partID]).toEqual([
-				{ resourceName: 'arm1', widgetId: 'get-joint-positions' },
-			])
+			expect(setOpen).toHaveBeenCalledWith(partID, 'arm1', 'is-moving', false)
 		})
 	})
 })

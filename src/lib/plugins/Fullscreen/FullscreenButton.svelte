@@ -26,32 +26,30 @@
 	})
 </script>
 
-<div class="absolute top-2 right-2 z-4">
-	<Tooltip
-		let:tooltipID
-		location="left"
+<Tooltip
+	let:tooltipID
+	location="left"
+>
+	<button
+		class="border-gray-5 text-gray-8 hover:bg-light active:bg-medium block rounded-md border bg-white p-1.5"
+		aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+		aria-pressed={fullscreen}
+		aria-describedby={tooltipID}
+		onclick={() => (fullscreen = !fullscreen)}
 	>
-		<button
-			class="border-gray-5 text-gray-8 hover:bg-light active:bg-medium block rounded-md border bg-white p-1.5"
-			aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-			aria-pressed={fullscreen}
-			aria-describedby={tooltipID}
-			onclick={() => (fullscreen = !fullscreen)}
-		>
-			{#if fullscreen}
-				<Minimize2
-					size="16"
-					aria-hidden="true"
-				/>
-			{:else}
-				<Maximize2
-					size="16"
-					aria-hidden="true"
-				/>
-			{/if}
-		</button>
-		<p slot="description">
-			{fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-		</p>
-	</Tooltip>
-</div>
+		{#if fullscreen}
+			<Minimize2
+				size="16"
+				aria-hidden="true"
+			/>
+		{:else}
+			<Maximize2
+				size="16"
+				aria-hidden="true"
+			/>
+		{/if}
+	</button>
+	<p slot="description">
+		{fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+	</p>
+</Tooltip>

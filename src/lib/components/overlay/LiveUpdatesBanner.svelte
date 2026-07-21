@@ -1,11 +1,21 @@
 <script lang="ts">
 	import { Button, Icon } from '@viamrobotics/prime-core'
 
+	import { useWorld } from '$lib/ecs'
+	import { resetStagedEdits } from '$lib/editing/resetStagedEdits'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
+	const environment = useEnvironment()
 	const partConfig = usePartConfig()
+	const world = useWorld()
 
 	const { ...rest } = $props()
+
+	const discard = () => {
+		partConfig.discardChanges()
+		resetStagedEdits(world)
+	}
 
 	const isMacDevice = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
 	const iconName = isMacDevice ? ('apple-keyboard-command' as const) : ('chevron-up' as const)
@@ -22,9 +32,9 @@
 	}}
 />
 
-{#if partConfig.isDirty}
+{#if environment.current.viewerMode === 'build'}
 	<div
-		class="absolute bottom-8 z-4 flex w-full justify-center gap-2"
+		class="absolute bottom-4 z-4 flex w-full justify-center gap-2"
 		{...rest}
 	>
 		<div
@@ -35,40 +45,41 @@
 					<strong>Live updates paused</strong>
 				</p>
 
-				<p class="text-subtle-2 text-sm">You are currently viewing a snapshot while editing.</p>
+				<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
 			</div>
 
-			<div class="flex gap-2">
-				<Button
-					class="cursor-pointer text-blue-600"
-					onclick={() => {
-						partConfig.discardChanges()
-					}}
-				>
-					Discard
-				</Button>
+			{#if environment.current.isStandalone}
+				<div class="flex gap-2">
+					<Button
+						onclick={discard}
+						disabled={!partConfig.isDirty}
+					>
+						Discard
+					</Button>
 
-				<Button
-					variant="dark"
-					aria-label="Save"
-					class="cursor-pointer text-blue-600"
-					onclick={() => {
-						partConfig.save()
-					}}
-				>
-					<div class="flex gap-2">
-						Save
-						<div class="font-roboto-mono text-disabled flex items-center">
-							<Icon
-								name={iconName}
-								size="xs"
-							/>
-							<span class="sr-only">{iconLabel}</span>
-							<span>S</span>
+					<Button
+						variant="dark"
+						aria-label="Save"
+						class="cursor-pointer text-blue-600"
+						disabled={!partConfig.isDirty}
+						onclick={() => {
+							partConfig.save()
+						}}
+					>
+						<div class="flex gap-2">
+							Save
+							<div class="font-roboto-mono text-disabled flex items-center">
+								<Icon
+									name={iconName}
+									size="xs"
+								/>
+								<span class="sr-only">{iconLabel}</span>
+								<span>S</span>
+							</div>
 						</div>
-					</div>
-				</Button>
-			</div>
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}

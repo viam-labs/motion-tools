@@ -5,9 +5,9 @@
 	import { PersistedState } from 'runed'
 
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { addWidget, isWidgetOpen, removeWidget } from '$lib/hooks/useResourceWidgets.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
+
+	import { resourceWidgetToggles } from './resourceWidgetToggles'
+	import { useControlWidgets } from './useControlWidgets.svelte'
 
 	interface Props {
 		resource: ResourceName
@@ -15,13 +15,12 @@
 
 	const { resource }: Props = $props()
 
-	const settings = useSettings()
+	const store = useControlWidgets()
 	const partID = usePartID()
 
 	const toggles = $derived(resourceWidgetToggles(resource))
-	const openList = $derived(settings.current.openResourceWidgets[partID.current] ?? [])
 	const enabledCount = $derived(
-		toggles.filter((toggle) => isWidgetOpen(openList, resource.name, toggle.id)).length
+		toggles.filter((toggle) => store.isOpen(partID.current, resource.name, toggle.id)).length
 	)
 
 	// Part-qualified so the same resource name across parts doesn't share expand state.
@@ -30,14 +29,7 @@
 	)
 
 	const setWidget = (widgetId: string, on: boolean) => {
-		const list = settings.current.openResourceWidgets[partID.current] ?? []
-		const next = on
-			? addWidget(list, resource.name, widgetId)
-			: removeWidget(list, resource.name, widgetId)
-		settings.current.openResourceWidgets = {
-			...settings.current.openResourceWidgets,
-			[partID.current]: next,
-		}
+		store.setOpen(partID.current, resource.name, widgetId, on)
 	}
 </script>
 
@@ -63,7 +55,7 @@
 				<div class="flex items-center justify-between gap-2 py-0.5">
 					<span class="min-w-0 truncate">{toggle.label}</span>
 					<Switch
-						on={isWidgetOpen(openList, resource.name, toggle.id)}
+						on={store.isOpen(partID.current, resource.name, toggle.id)}
 						on:change={(event) => setWidget(toggle.id, event.detail)}
 					/>
 				</div>

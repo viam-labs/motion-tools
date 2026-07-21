@@ -17,6 +17,7 @@
 	import Details from '$lib/components/overlay/Details.svelte'
 	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
+	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
@@ -34,7 +35,6 @@
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
-	import ResourceWidgets from './overlay/widgets/ResourceWidgets.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
@@ -66,11 +66,6 @@
 		children?: Snippet
 
 		/**
-		 * Snippet to inject items in the top middle dashboard
-		 */
-		dashboard?: Snippet
-
-		/**
 		 * Snippet to inject items into the details panel
 		 */
 		details?: Snippet<[{ entity: Entity }]>
@@ -83,7 +78,6 @@
 		componentNameToFragmentInfo,
 		cameraPose,
 		children: appChildren,
-		dashboard,
 		details,
 	}: Props = $props()
 
@@ -155,7 +149,8 @@
 			<!-- Overlays that need Threlte context -->
 			<div {@attach domPortal(root)}>
 				<FileDrop />
-				<Dashboard {dashboard} />
+				<Dashboard />
+				<Workspace />
 				<Controls />
 
 				{#each selected.current as entity, index (entity)}
@@ -166,15 +161,11 @@
 					/>
 				{/each}
 
-				{#if environment.current.isStandalone}
-					<LiveUpdatesBanner />
-				{/if}
+				<LiveUpdatesBanner />
 
 				<TreeContainer />
 
 				{#if !$isPresenting}
-					<ResourceWidgets />
-
 					{#each currentFramePovWidgets as povFrameName (povFrameName)}
 						<FramePov frameName={povFrameName} />
 					{/each}
