@@ -486,7 +486,7 @@
 		"@types/three": "0.183.1",
 		"@typescript-eslint/eslint-plugin": "8.56.1",
 		"@typescript-eslint/parser": "8.56.1",
-		"@viamrobotics/prime-core": "0.1.22",
+		"@viamrobotics/prime-core": "0.1.23",
 		"@viamrobotics/sdk": "0.69.0",
 		"@viamrobotics/svelte-sdk": "1.2.2",
 		"@viamrobotics/tailwind-config": "1.1.0",
@@ -554,10 +554,10 @@
 		"@threlte/rapier": ">=3",
 		"@threlte/xr": ">=1",
 		"@viamrobotics/prime-core": ">=0.1",
-		"@zag-js/dialog": ">=1",
 		"@viamrobotics/svelte-sdk": ">=0.1",
 		"@viamrobotics/test-widgets": ">=0.9",
 		"@zag-js/collapsible": ">=1",
+		"@zag-js/dialog": ">=1",
 		"@zag-js/floating-panel": ">=1",
 		"@zag-js/popover": ">=1",
 		"@zag-js/svelte": ">=1",
@@ -602,7 +602,6 @@
 		"overrides": {
 			"js-yaml@^3": "3.14.2",
 			"uuid": ">=14.0.0",
-			"@viamrobotics/prime-core": "file:../app/prime/viamrobotics-prime-core-0.1.23.tgz",
 			"@codemirror/state": "6.6.0",
 			"@codemirror/view": "6.43.1",
 			"@codemirror/language": "6.12.3"
