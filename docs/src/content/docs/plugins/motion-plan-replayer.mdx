@@ -106,4 +106,21 @@ non-portaled subtree as `<MotionPlanReplayer />` itself. For anything you pass a
 replayer.addPlan('from-db', planJson, snapshots)
 ```
 
+### Adding a plan from server-computed transforms
+
+`addPlanFromTransforms(name, transformsPerStep)` renders transforms your app computed
+elsewhere — e.g. running RDK forward kinematics server-side — with no client-side parsing.
+Each inner array is one trajectory step's **serialized `common.v1.Transform` bytes**. Passing
+bytes lets your app hand over transforms without sharing this package's protobuf types; the
+wire format is the shared contract. Serialize on your side with your own `common.v1.Transform`
+(e.g. protobuf-ts `Transform.toBinary(t)`):
+
+```ts
+// transformsPerStep: Uint8Array[][] — one Uint8Array per transform, one array per step
+replayer.addPlanFromTransforms('from-server', transformsPerStep)
+```
+
+Each transform's `uuid` must be **stable across steps** (same frame → same uuid every step) so
+the renderer updates entities in place rather than respawning them on each scrub.
+
 Calling `useMotionPlanReplayer()` outside a `<MotionPlanReplayer />` throws.
