@@ -65,20 +65,28 @@ Display edits are session-only: reloading the plan or refreshing the page restor
 
 ## Adding plans from your own source
 
-Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<MotionPlanReplayer />`. Rendering your component as a child puts it inside the plugin's context, so it can call `addPlan` directly — no props to thread:
+Use the `children` snippet argument. The panel is portaled out of the
+`<MotionPlanReplayer />` subtree, so `useMotionPlanReplayer()` will not find the
+context from a host's children — the snippet hands you the context directly instead:
 
 ```svelte
 <MotionPlanReplayer>
-	<PlanDatabasePicker />
+	{#snippet children(replayer)}
+		<PlanDatabasePicker {replayer} />
+	{/snippet}
 </MotionPlanReplayer>
 ```
 
 ```svelte
 <!-- PlanDatabasePicker.svelte — your component, your data fetching -->
 <script lang="ts">
-	import { useMotionPlanReplayer } from '@viamrobotics/motion-tools/plugins'
+	import type { MotionPlanReplayerContext } from '@viamrobotics/motion-tools/plugins'
 
-	const replayer = useMotionPlanReplayer()
+	interface Props {
+		replayer: MotionPlanReplayerContext
+	}
+
+	const { replayer }: Props = $props()
 </script>
 
 <button onclick={async () => replayer.addPlan('from-db', await fetchPlan())}>
@@ -86,7 +94,11 @@ Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<M
 </button>
 ```
 
-`addPlan(name, content)` parses the plan, adds it to the list, and selects it. The hook also exposes the current `plans` and `activePlanIndex`, plus `removePlan`, `selectPlan`, `setStep`, and `clearActivePlan` — so a custom panel can drive the replayer as fully as the built-in UI does.
+`useMotionPlanReplayer()` only resolves for components mounted in the same
+non-portaled subtree as `<MotionPlanReplayer />` itself. For anything you pass as
+`children`, use the snippet argument — it is the only reliable path across the portal.
+
+`addPlan(name, content)` parses the plan, adds it to the list, and selects it. The context also exposes the current `plans` and `activePlanIndex`, plus `removePlan`, `selectPlan`, `setStep`, and `clearActivePlan` — so a custom panel can drive the replayer as fully as the built-in UI does.
 
 `addPlan` takes an optional third argument, `precomputedSnapshots: Snapshot[]`. Pass it when your app has already converted the plan to snapshots and you want to skip the client-side parse — the plan lands as `ready` immediately. Omit it and the plugin parses `content` itself:
 
