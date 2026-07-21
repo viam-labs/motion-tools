@@ -5,9 +5,9 @@
 
 	import { subtypeToColor } from '$lib/color'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
 
 	import ResourceWidgetRow from './ResourceWidgetRow.svelte'
+	import { resourceWidgetToggles } from './resourceWidgetToggles'
 
 	const partID = usePartID()
 	const resources = useResourceNames(() => partID.current)

@@ -1,12 +1,11 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 import type { ResourceAPIWidget } from '@viamrobotics/test-widgets/registry'
 
-import type { OpenResourceWidget } from '$lib/hooks/useSettings.svelte'
-
 import { usePartID } from '$lib/hooks/usePartID.svelte'
 import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
-import { useSettings } from '$lib/hooks/useSettings.svelte'
-import { resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
+
+import { resourceWidgetToggles } from './resourceWidgetToggles'
+import { useControlWidgets } from './useControlWidgets.svelte'
 
 export interface ResolvedResourceWidget {
 	key: string
@@ -16,47 +15,23 @@ export interface ResolvedResourceWidget {
 	widgets: ResourceAPIWidget['widgets']
 }
 
-/** Stable, unambiguous each-key for an open widget (resource names may contain ':'). */
 const widgetKey = (resourceName: string, widgetId: string) => `${resourceName}__${widgetId}`
 
-/** Whether a specific (resource, widget) toggle is present in the open list. */
-export const isWidgetOpen = (
-	list: OpenResourceWidget[],
-	resourceName: string,
-	widgetId: string
-): boolean => list.some((w) => w.resourceName === resourceName && w.widgetId === widgetId)
-
-/** Add a toggle to the open list (no-op if already present). */
-export const addWidget = (
-	list: OpenResourceWidget[],
-	resourceName: string,
-	widgetId: string
-): OpenResourceWidget[] =>
-	isWidgetOpen(list, resourceName, widgetId) ? list : [...list, { resourceName, widgetId }]
-
-/** Remove a toggle from the open list. */
-export const removeWidget = (
-	list: OpenResourceWidget[],
-	resourceName: string,
-	widgetId: string
-): OpenResourceWidget[] =>
-	list.filter((w) => !(w.resourceName === resourceName && w.widgetId === widgetId))
-
 /**
- * Resolves the persisted open-widget list for the current part into renderable
+ * Resolves the plugin's open-widget list for the current part into renderable
  * registry components. Entries whose resource is momentarily absent (reconnect) or
- * whose widget id no longer exists are skipped from rendering but kept in settings,
+ * whose widget id no longer exists are skipped from rendering but kept in the store,
  * so panels reappear when the resource returns.
  *
  * Must be called inside `<SceneProviders>`, where `provideResourceByName` runs.
  */
 export const useResourceWidgets = () => {
-	const settings = useSettings()
+	const store = useControlWidgets()
 	const partID = usePartID()
 	const resourceByName = useResourceByName()
 
 	const current = $derived.by(() => {
-		const open = settings.current.openResourceWidgets[partID.current] ?? []
+		const open = store.openFor(partID.current)
 		const resolved: ResolvedResourceWidget[] = []
 
 		for (const entry of open) {

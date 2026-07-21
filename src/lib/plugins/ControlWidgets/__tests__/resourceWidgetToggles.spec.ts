@@ -1,14 +1,19 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 import type { Component } from 'svelte'
 
+import { showResourceWidget } from '@viamrobotics/test-widgets'
 import { apiWidgetsForResource, widgetForResource } from '@viamrobotics/test-widgets/registry'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CARD_WIDGET_ID, resourceWidgetToggles } from '$lib/widgets/resourceWidgetToggles'
+import { CARD_WIDGET_ID, resourceWidgetToggles } from '../resourceWidgetToggles'
 
 vi.mock('@viamrobotics/test-widgets/registry', () => ({
 	apiWidgetsForResource: vi.fn(),
 	widgetForResource: vi.fn(),
+}))
+
+vi.mock('@viamrobotics/test-widgets', () => ({
+	showResourceWidget: vi.fn(),
 }))
 
 const widget = (() => undefined) as unknown as Component<{ partID: string; resourceName: string }>
@@ -19,6 +24,7 @@ const resource = (subtype: string, type = 'component', namespace = 'rdk'): Resou
 beforeEach(() => {
 	vi.mocked(apiWidgetsForResource).mockReturnValue([])
 	vi.mocked(widgetForResource).mockReturnValue(undefined)
+	vi.mocked(showResourceWidget).mockReturnValue(true)
 })
 
 describe('resourceWidgetToggles', () => {
@@ -48,20 +54,26 @@ describe('resourceWidgetToggles', () => {
 		expect(resourceWidgetToggles(resource('generic'))).toEqual([])
 	})
 
-	it('does not surface a card for rdk-internal resources', () => {
+	it('does not surface a card when the registry hides the resource', () => {
 		vi.mocked(widgetForResource).mockReturnValue(widget)
+		vi.mocked(showResourceWidget).mockReturnValue(false)
 
 		expect(resourceWidgetToggles(resource('sensor', 'component', 'rdk-internal'))).toEqual([])
 	})
 
-	it('excludes non-component (service) resources without consulting the registry', () => {
-		// Services (motion, slam, navigation, …) are not represented in the visualizer.
-		vi.mocked(apiWidgetsForResource).mockReturnValue([
-			{ id: 'get-position', label: 'GetPosition', widgets: [widget] },
-		])
+	it('includes services that expose per-API widgets (e.g. the motion move widget)', () => {
+		const apis = [{ id: 'move', label: 'Move', widgets: [widget] }]
+		vi.mocked(apiWidgetsForResource).mockReturnValue(apis)
+
+		expect(resourceWidgetToggles(resource('motion', 'service'))).toBe(apis)
+	})
+
+	it('includes a service card when the registry surfaces one', () => {
 		vi.mocked(widgetForResource).mockReturnValue(widget)
 
-		expect(resourceWidgetToggles(resource('slam', 'service'))).toEqual([])
-		expect(apiWidgetsForResource).not.toHaveBeenCalled()
+		const result = resourceWidgetToggles(resource('navigation', 'service'))
+
+		expect(result).toHaveLength(1)
+		expect(result[0]?.id).toBe(CARD_WIDGET_ID)
 	})
 })

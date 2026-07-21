@@ -35,7 +35,6 @@
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
-	import ResourceWidgets from './overlay/widgets/ResourceWidgets.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
@@ -167,8 +166,6 @@
 				<TreeContainer />
 
 				{#if !$isPresenting}
-					<ResourceWidgets />
-
 					{#each currentFramePovWidgets as povFrameName (povFrameName)}
 						<FramePov frameName={povFrameName} />
 					{/each}
