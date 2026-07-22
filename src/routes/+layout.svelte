@@ -51,6 +51,7 @@
 			},
 		},
 	}}
+	options={{ resetQueriesOnDisconnect: false }}
 	{dialConfigs}
 >
 	<ViamAppProvider
