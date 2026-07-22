@@ -7,7 +7,6 @@ import {
 	frameParent,
 	isMotionService,
 	motionServiceNames,
-	referenceFrameOptions,
 } from '../moveControls'
 
 const resource = (subtype: string, type = 'service', name = `${subtype}-1`): ResourceName =>
@@ -69,20 +68,5 @@ describe('frameParent', () => {
 
 	it('falls back to world when the frame is absent', () => {
 		expect(frameParent([frame('base', 'world')], 'arm')).toBe('world')
-	})
-})
-
-describe('referenceFrameOptions', () => {
-	it('lists world first, then the other frames sorted', () => {
-		expect(referenceFrameOptions([frame('gripper'), frame('arm'), frame('base')])).toEqual([
-			'world',
-			'arm',
-			'base',
-			'gripper',
-		])
-	})
-
-	it('does not duplicate the world frame', () => {
-		expect(referenceFrameOptions([frame('world'), frame('arm')])).toEqual(['world', 'arm'])
 	})
 })

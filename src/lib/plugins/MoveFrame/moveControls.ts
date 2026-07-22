@@ -23,16 +23,3 @@ export const defaultMotionService = (services: string[]): string =>
 export const frameParent = (frames: Transform[], frameName: string): string =>
 	frames.find((frame) => frame.referenceFrame === frameName)?.poseInObserverFrame?.referenceFrame ||
 	'world'
-
-/**
- * The reference frames a move destination can be expressed in: the root `'world'`
- * frame first, then every other frame in the machine's frame system, sorted.
- */
-export const referenceFrameOptions = (frames: Transform[]): string[] => {
-	const others = frames
-		.map((frame) => frame.referenceFrame)
-		.filter((name) => name !== '' && name !== 'world')
-		.toSorted((a, b) => a.localeCompare(b))
-
-	return ['world', ...others]
-}

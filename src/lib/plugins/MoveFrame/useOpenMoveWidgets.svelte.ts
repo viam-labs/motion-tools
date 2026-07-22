@@ -1,11 +1,8 @@
 import { PersistedState } from 'runed'
 
 export interface OpenMoveWidgets {
-	/** Frames with an open move panel for the current part. */
 	readonly current: string[]
-	/** Open a move panel for a frame (no-op if already open). */
 	open: (frameName: string) => void
-	/** Close a frame's move panel (no-op if not open). */
 	close: (frameName: string) => void
 }
 
