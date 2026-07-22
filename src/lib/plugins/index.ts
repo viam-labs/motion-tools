@@ -36,6 +36,7 @@ export type {
 	MotionPlanReplayerContext,
 	PlanEntry,
 } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
+export { transformBytesToSnapshots } from './MotionPlanReplayer/plan-to-snapshots'
 
 // MoveFrame
 export { default as MoveFrame } from './MoveFrame/MoveFrame.svelte'
@@ -51,3 +52,5 @@ export { default as Skybox } from './Skybox/Skybox.svelte'
 
 // XR
 export { default as XR } from './XR/XR.svelte'
+// Builds snapshots from host-computed `common.v1.Transform` bytes (e.g. RDK FK), for
+// `addPlan(name, content, snapshots)`. Bytes bridge protobuf-es (here) and protobuf-ts (host).

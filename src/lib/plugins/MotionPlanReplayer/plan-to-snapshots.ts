@@ -54,17 +54,29 @@ const descriptorToTransform = (
 	})
 }
 
+// Reconcile keys on Transform.uuid; snapshot uuid is unused. Helper keeps one construction path.
+const snapshotUuid = (): Uint8Array<ArrayBuffer> =>
+	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
+
+export const transformsToSnapshot = (transforms: Transform[]): Snapshot =>
+	new Snapshot({ transforms, uuid: snapshotUuid() })
+
+/**
+ * Bytes bridge protobuf-es (this package) and protobuf-ts (host) without sharing generated types.
+ * One inner array = one trajectory step.
+ */
+export const transformBytesToSnapshots = (transformsPerStep: Uint8Array[][]): Snapshot[] =>
+	transformsPerStep.map((step) =>
+		transformsToSnapshot(step.map((bytes) => Transform.fromBinary(bytes)))
+	)
+
 const planToSnapshots = (
 	descriptors: FrameDescriptor[],
 	trajectory: Array<Record<string, number[]>>
 ): Snapshot[] =>
-	trajectory.map((stepInputs) => {
-		const transforms = descriptors.map((d) => descriptorToTransform(d, stepInputs))
-		return new Snapshot({
-			transforms,
-			uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
-		})
-	})
+	trajectory.map((stepInputs) =>
+		transformsToSnapshot(descriptors.map((d) => descriptorToTransform(d, stepInputs)))
+	)
 
 export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
 	const descriptors = buildFrameDescriptors(plan)

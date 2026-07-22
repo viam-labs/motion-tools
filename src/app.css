@@ -6,12 +6,6 @@
 
 @plugin '@tailwindcss/forms';
 
-@source '../node_modules/@skeletonlabs/skeleton-svelte';
-
-@import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/cerberus';
-
 body {
 	height: 100dvh;
 	font-family: system-ui;
@@ -56,7 +50,7 @@ select {
 	@apply border-light bg-light border;
 }
 .motion-tools-table thead th {
-	@apply border-light text-subtle-1 border px-2.5 py-1 text-xs font-normal whitespace-nowrap;
+	@apply border-light text-subtle-1 whitespace-nowrap border px-2.5 py-1 text-xs font-normal;
 }
 .motion-tools-table thead th abbr {
 	@apply text-disabled;
