@@ -53,6 +53,7 @@ export default defineConfig({
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
 						{ label: '<Fullscreen />', link: '/plugins/fullscreen/' },
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },
+						{ label: '<MotionPlanReplayer />', link: '/plugins/motion-plan-replayer/' },
 						{ label: '<SelectionTool />', link: '/plugins/selection/' },
 						{ label: '<Skybox />', link: '/plugins/skybox/' },
 						{ label: '<LLMSceneBuilder />', link: '/plugins/llm-scene-builder/' },

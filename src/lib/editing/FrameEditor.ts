@@ -113,10 +113,27 @@ export class FrameEditor {
 		this.#deleteFrame = deleteFrame
 	}
 
+	/**
+	 * The frame's staged-edit local pose. `EditedMatrix` exists only while an edit
+	 * is staged, so create it lazily from the saved baseline (`Matrix`) on first
+	 * edit. Seeding from the baseline keeps the frame at its current pose until the
+	 * caller writes an actual change.
+	 */
+	#stagedMatrix = (entity: Entity) => {
+		const existing = entity.get(traits.EditedMatrix)
+		if (existing) return existing
+
+		const baseline = entity.get(traits.Matrix)
+		if (!baseline) return undefined
+
+		entity.add(traits.EditedMatrix(baseline.clone()))
+		return entity.get(traits.EditedMatrix)
+	}
+
 	/** Merge a partial local pose (position and/or orientation) into the frame. */
 	setPose = (entity: Entity, pose: Partial<Pose>): void => {
 		const name = entity.get(traits.Name)
-		const matrix = entity.get(traits.EditedMatrix)
+		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
 
 		matrixToPose(matrix, this.#tempPose)
@@ -143,7 +160,7 @@ export class FrameEditor {
 
 	#writeGeometry = (entity: Entity, geometry: Geometry): void => {
 		const name = entity.get(traits.Name)
-		const matrix = entity.get(traits.EditedMatrix)
+		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
 
 		applyGeometryTrait(entity, geometry)
@@ -153,7 +170,7 @@ export class FrameEditor {
 
 	setParent = (entity: Entity, parent: string): void => {
 		const name = entity.get(traits.Name)
-		const matrix = entity.get(traits.EditedMatrix)
+		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
 
 		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
