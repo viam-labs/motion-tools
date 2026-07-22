@@ -10,20 +10,17 @@ import {
 /**
  * Reserved widget id for a resource's composite "card" widget. Used as the
  * {@link ResourceAPIWidget.id} for the fallback toggle shown when a resource has
- * no per-API widgets (e.g. camera, sensor).
+ * no per-API widgets.
  */
 export const CARD_WIDGET_ID = '__resource_card__'
 
 /**
- * The widget toggles to offer for a resource — the single source of truth shared
- * by the switch list and the rendered panels so they never drift.
+ * The widget toggles to offer for a resource:
  *
- * Components and services alike are offered: a resource with per-API widgets shows
- * those (and no card); a resource without falls back to a single composite card
- * toggle when the registry says to surface one ({@link showResourceWidget} hides
- * `rdk-internal` resources and cardless services like data manager / shell). The
- * motion service still appears via its per-API move widget. Anything unwidgetable
- * returns `[]` (and is hidden from the list).
+ *  - A resource with per-API widgets shows those.
+ *  - A resource without falls back to a single composite card toggle when the
+ *    registry says to surface one.
+ *  - Anything unwidgetable returns `[]` and is hidden from the list.
  */
 export const resourceWidgetToggles = (resource: ResourceName): ResourceAPIWidget[] => {
 	const apis = apiWidgetsForResource(resource)

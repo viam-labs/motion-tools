@@ -47,7 +47,7 @@ export interface Settings {
 
 	enableLabels: boolean
 
-	// Frame POV widgets (opened per-frame from the details panel)
+	// Frame POV widgets
 	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean

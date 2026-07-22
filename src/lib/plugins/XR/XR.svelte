@@ -37,7 +37,7 @@
 
 	const enableXR = $derived(settings.current.enableXR)
 
-	// Cameras enabled as open control-widget panels for the current part (camera cards).
+	// Cameras enabled as open control-widget panels for the current part.
 	const enabledCameras = $derived.by(() => {
 		const entries = controlWidgets.openFor(partID.current)
 		const names = new Set<string>()

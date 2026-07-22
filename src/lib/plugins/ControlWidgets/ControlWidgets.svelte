@@ -19,7 +19,7 @@
 	<fieldset>
 		<DashboardButton
 			active={isOpen.current}
-			icon="toggle-switch"
+			icon="joystick"
 			description="Control widgets"
 			onclick={() => {
 				isOpen.current = !isOpen.current
@@ -33,13 +33,12 @@
 	bind:isOpen={isOpen.current}
 	defaultSize={{ width: 320, height: 480 }}
 	resizable
+	bodyClass="overflow-y-auto overscroll-contain bg-white p-2"
 >
-	<div class="h-full overflow-y-auto p-2">
-		<ResourceWidgetList />
-	</div>
+	<ResourceWidgetList />
 </FloatingPanel>
 
-<!-- Registry widget panels render only outside XR — they're 2D DOM overlays. -->
+<!-- Registry widget panels render only outside XR. -->
 {#if !$isPresenting}
 	{#each resolved.current as widget, stackIndex (widget.key)}
 		<ResourceWidgetPanel

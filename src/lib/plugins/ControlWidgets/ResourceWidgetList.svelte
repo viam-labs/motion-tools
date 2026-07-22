@@ -18,7 +18,6 @@
 			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
 			.join(' ')
 
-	// Group widgetable resources by subtype; resources with no available widget are hidden.
 	const groups = $derived.by(() => {
 		const bySubtype = new Map<string, ResourceName[]>()
 		for (const resource of resources.current) {
