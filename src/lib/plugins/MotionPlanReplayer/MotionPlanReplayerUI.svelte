@@ -10,13 +10,10 @@
 
 	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
 	import { planDropper } from './plan-dropper'
-	import {
-		type MotionPlanReplayerContext,
-		useMotionPlanReplayer,
-	} from './useMotionPlanReplayer.svelte'
+	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	interface Props {
-		children?: Snippet<[MotionPlanReplayerContext]>
+		children?: Snippet
 	}
 
 	const { children }: Props = $props()
@@ -135,9 +132,9 @@
 		{/each}
 
 		<div class="mt-auto flex flex-col gap-2 pt-1">
-			<MotionPlanReplayerScrubber {ctx} />
+			<MotionPlanReplayerScrubber />
 
-			{@render children?.(ctx)}
+			{@render children?.()}
 			<input
 				bind:this={fileInput}
 				type="file"
