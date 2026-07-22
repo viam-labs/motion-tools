@@ -8,17 +8,9 @@
 		Play,
 	} from 'lucide-svelte'
 
-	import type { MotionPlanReplayerContext } from './useMotionPlanReplayer.svelte'
+	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
-	interface Props {
-		/**
-		 * Passed in rather than pulled from context: this renders
-		 * inside `<FloatingPanel>`, whose body is a `<Portal>` snippet.
-		 */
-		ctx: MotionPlanReplayerContext
-	}
-
-	const { ctx }: Props = $props()
+	const ctx = useMotionPlanReplayer()
 
 	const STEP_INTERVAL_MS = 100
 

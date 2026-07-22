@@ -132,7 +132,7 @@
 		{/each}
 
 		<div class="mt-auto flex flex-col gap-2 pt-1">
-			<MotionPlanReplayerScrubber {ctx} />
+			<MotionPlanReplayerScrubber />
 
 			{@render children?.()}
 			<input

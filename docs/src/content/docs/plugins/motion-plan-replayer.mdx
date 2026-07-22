@@ -65,20 +65,28 @@ Display edits are session-only: reloading the plan or refreshing the page restor
 
 ## Adding plans from your own source
 
-Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<MotionPlanReplayer />`. Rendering your component as a child puts it inside the plugin's context, so it can call `addPlan` directly — no props to thread:
+The panel is portaled out of `<MotionPlanReplayer />`, so host children can't
+reach context via `useMotionPlanReplayer()`. Pass `replayer` through the
+`children` snippet instead:
 
 ```svelte
 <MotionPlanReplayer>
-	<PlanDatabasePicker />
+	{#snippet children(replayer)}
+		<PlanDatabasePicker {replayer} />
+	{/snippet}
 </MotionPlanReplayer>
 ```
 
 ```svelte
 <!-- PlanDatabasePicker.svelte — your component, your data fetching -->
 <script lang="ts">
-	import { useMotionPlanReplayer } from '@viamrobotics/motion-tools/plugins'
+	import type { MotionPlanReplayerContext } from '@viamrobotics/motion-tools/plugins'
 
-	const replayer = useMotionPlanReplayer()
+	interface Props {
+		replayer: MotionPlanReplayerContext
+	}
+
+	const { replayer }: Props = $props()
 </script>
 
 <button onclick={async () => replayer.addPlan('from-db', await fetchPlan())}>
@@ -86,12 +94,33 @@ Use `useMotionPlanReplayer` to reach the plugin's state from anywhere inside `<M
 </button>
 ```
 
-`addPlan(name, content)` parses the plan, adds it to the list, and selects it. The hook also exposes the current `plans` and `activePlanIndex`, plus `removePlan`, `selectPlan`, `setStep`, and `clearActivePlan` — so a custom panel can drive the replayer as fully as the built-in UI does.
+`addPlan(name, content)` parses, appends, and selects. The context also exposes
+`plans`, `activePlanIndex`, `removePlan`, `selectPlan`, `setStep`, and
+`clearActivePlan`.
 
-`addPlan` takes an optional third argument, `precomputedSnapshots: Snapshot[]`. Pass it when your app has already converted the plan to snapshots and you want to skip the client-side parse — the plan lands as `ready` immediately. Omit it and the plugin parses `content` itself:
+Optional third arg `precomputedSnapshots` skips client parse (status `ready`
+immediately):
 
 ```ts
 replayer.addPlan('from-db', planJson, snapshots)
 ```
+
+### Adding a plan from server-computed transforms
+
+Use when transforms are computed outside this package (e.g. RDK FK server-side).
+Bytes avoid sharing this package's protobuf types — wire format is the contract.
+Serialize with your own `common.v1.Transform` (e.g. protobuf-ts `Transform.toBinary(t)`),
+then build snapshots with the exported `transformBytesToSnapshots` helper and hand them
+to `addPlan`:
+
+```ts
+import { transformBytesToSnapshots } from '@viamrobotics/motion-tools/plugins'
+
+// transformsPerStep: Uint8Array[][] — one Uint8Array per transform, one array per step
+replayer.addPlan('from-server', '', transformBytesToSnapshots(transformsPerStep))
+```
+
+Keep each frame's `uuid` stable across steps so reconcile updates in place
+instead of respawning on scrub.
 
 Calling `useMotionPlanReplayer()` outside a `<MotionPlanReplayer />` throws.
