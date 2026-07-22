@@ -455,6 +455,9 @@
 		"@dimforge/rapier3d-compat": "0.18.2",
 		"@eslint/compat": "2.0.2",
 		"@eslint/js": "10.0.1",
+		"@fontsource-variable/public-sans": "^5.2.7",
+		"@fontsource-variable/roboto-mono": "^5.2.9",
+		"@fontsource-variable/space-grotesk": "^5.2.10",
 		"@langchain/anthropic": "^1.4.0",
 		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
@@ -481,9 +484,11 @@
 		"@types/three": "0.183.1",
 		"@typescript-eslint/eslint-plugin": "8.56.1",
 		"@typescript-eslint/parser": "8.56.1",
-		"@viamrobotics/prime-core": "0.1.5",
+		"@viamrobotics/prime-core": "0.1.23",
 		"@viamrobotics/sdk": "0.69.0",
 		"@viamrobotics/svelte-sdk": "1.2.2",
+		"@viamrobotics/tailwind-config": "1.2.0",
+		"@viamrobotics/test-widgets": "0.9.1",
 		"@viamrobotics/tweakpane-config": "0.1.1",
 		"@vitest/browser-playwright": "4.1.9",
 		"@vitest/coverage-v8": "4.1.9",
@@ -507,6 +512,7 @@
 		"globals": "16.3.0",
 		"idb-keyval": "6.2.2",
 		"lucide-svelte": "0.542.0",
+		"maplibre-gl": "^5.24.0",
 		"prettier": "3.6.2",
 		"prettier-plugin-svelte": "3.4.0",
 		"prettier-plugin-tailwindcss": "0.6.14",
@@ -516,6 +522,7 @@
 		"svelte-check": "4.4.5",
 		"svelte-tweakpane-ui": "^1.5.16",
 		"svelte-virtuallists": "1.4.2",
+		"tailwind-merge": "^3.6.0",
 		"tailwindcss": "4.3.1",
 		"three": "0.183.2",
 		"threlte-uikit": "^2.0.0",
@@ -545,6 +552,7 @@
 		"@threlte/xr": ">=1",
 		"@viamrobotics/prime-core": ">=0.1",
 		"@viamrobotics/svelte-sdk": ">=0.1",
+		"@viamrobotics/test-widgets": ">=0.9",
 		"@zag-js/collapsible": ">=1",
 		"@zag-js/dialog": ">=1",
 		"@zag-js/floating-panel": ">=1",
@@ -587,10 +595,6 @@
 			"allowedVersions": {
 				"vite-plugin-devtools-json>vite": "8"
 			}
-		},
-		"overrides": {
-			"js-yaml@^3": "3.14.2",
-			"uuid": ">=14.0.0"
 		}
 	},
 	"packageManager": "pnpm@10.18.0",

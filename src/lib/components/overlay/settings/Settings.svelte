@@ -15,7 +15,6 @@
 	import Tabs from './Tabs.svelte'
 	import VisionSettings from './VisionSettings.svelte'
 	import WeblabSettings from './WeblabSettings.svelte'
-	import WidgetSettings from './WidgetSettings.svelte'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
@@ -60,7 +59,6 @@
 			{ label: 'Scene', component: SceneSettings },
 			{ label: 'Pointclouds', component: PointcloudSettings },
 			{ label: 'Vision', component: VisionSettings },
-			{ label: 'Widgets', component: WidgetSettings },
 			{ label: 'Debug', component: DebugSettings },
 			{ label: 'Weblabs', component: WeblabSettings },
 			...settingsTabs.current,

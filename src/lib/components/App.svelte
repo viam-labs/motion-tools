@@ -34,8 +34,6 @@
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
-	import ArmPositions from './overlay/widgets/ArmPositions.svelte'
-	import Camera from './overlay/widgets/Camera.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
@@ -102,8 +100,6 @@
 	const environment = provideEnvironment()
 	const fullscreen = provideFullscreen()
 
-	const currentRobotArmWidgets = $derived(settings.current.openArmWidgets[partID] || [])
-	const currentRobotCameraWidgets = $derived(settings.current.openCameraWidgets[partID] || [])
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
 	const { isPresenting } = useXR()
 
@@ -170,14 +166,6 @@
 				<TreeContainer />
 
 				{#if !$isPresenting}
-					{#each currentRobotArmWidgets as armName (armName)}
-						<ArmPositions name={armName} />
-					{/each}
-
-					{#each currentRobotCameraWidgets as cameraName (cameraName)}
-						<Camera name={cameraName} />
-					{/each}
-
 					{#each currentFramePovWidgets as povFrameName (povFrameName)}
 						<FramePov frameName={povFrameName} />
 					{/each}
