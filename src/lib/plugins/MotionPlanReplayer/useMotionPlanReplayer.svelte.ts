@@ -237,8 +237,10 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		clearActivePlan,
 	}
 
+	// Only clear if we still own the singleton
+	const instance = context
 	onDestroy(() => {
-		context = undefined
+		if (context === instance) context = undefined
 	})
 
 	return context
