@@ -109,11 +109,15 @@ replayer.addPlan('from-db', planJson, snapshots)
 
 Use when transforms are computed outside this package (e.g. RDK FK server-side).
 Bytes avoid sharing this package's protobuf types — wire format is the contract.
-Serialize with your own `common.v1.Transform` (e.g. protobuf-ts `Transform.toBinary(t)`):
+Serialize with your own `common.v1.Transform` (e.g. protobuf-ts `Transform.toBinary(t)`),
+then build snapshots with the exported `transformBytesToSnapshots` helper and hand them
+to `addPlan`:
 
 ```ts
+import { transformBytesToSnapshots } from '@viamrobotics/motion-tools/plugins'
+
 // transformsPerStep: Uint8Array[][] — one Uint8Array per transform, one array per step
-replayer.addPlanFromTransforms('from-server', transformsPerStep)
+replayer.addPlan('from-server', '', transformBytesToSnapshots(transformsPerStep))
 ```
 
 Keep each frame's `uuid` stable across steps so reconcile updates in place

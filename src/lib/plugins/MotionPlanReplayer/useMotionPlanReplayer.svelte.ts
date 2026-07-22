@@ -9,7 +9,7 @@ import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
 import { parsePlan, PlanParseError } from './parse-plan'
-import { parsedPlanToSnapshots, transformBytesToSnapshots } from './plan-to-snapshots'
+import { parsedPlanToSnapshots } from './plan-to-snapshots'
 import * as planRelations from './relations'
 
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
@@ -50,8 +50,6 @@ export interface MotionPlanReplayerContext {
 	readonly currentStep: number
 	readonly totalSteps: number
 	addPlan: (name: string, content: string, precomputedSnapshots?: Snapshot[]) => void
-	/** Host FK / precomputed transforms as `common.v1.Transform` bytes — bridges protobuf toolchains. */
-	addPlanFromTransforms: (name: string, transformsPerStep: Uint8Array[][]) => void
 	removePlan: (index: number) => void
 	selectPlan: (index: number) => void
 	setStep: (step: number) => void
@@ -208,10 +206,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		selectPlan(index)
 	}
 
-	const addPlanFromTransforms = (name: string, transformsPerStep: Uint8Array[][]) => {
-		addPlan(name, '', transformBytesToSnapshots(transformsPerStep))
-	}
-
 	const removePlan = (index: number) => {
 		if (activePlanIndex === index) clearActivePlan()
 		snapshotStore.delete(index)
@@ -235,7 +229,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			return totalSteps
 		},
 		addPlan,
-		addPlanFromTransforms,
 		removePlan,
 		selectPlan,
 		setStep,
