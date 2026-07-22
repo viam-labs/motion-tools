@@ -489,7 +489,7 @@
 		"@viamrobotics/prime-core": "0.1.23",
 		"@viamrobotics/sdk": "0.69.0",
 		"@viamrobotics/svelte-sdk": "1.2.2",
-		"@viamrobotics/tailwind-config": "1.1.0",
+		"@viamrobotics/tailwind-config": "1.2.0",
 		"@viamrobotics/test-widgets": "0.9.1",
 		"@viamrobotics/tweakpane-config": "0.1.1",
 		"@vitest/browser-playwright": "4.1.9",
