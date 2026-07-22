@@ -1,9 +1,10 @@
 @import 'tailwindcss';
-@config "../tailwind.config.ts";
+@import '@viamrobotics/tailwind-config';
+
+@source '../node_modules/@viamrobotics/prime-core/dist';
+@source '../node_modules/@viamrobotics/test-widgets/dist';
 
 @plugin '@tailwindcss/forms';
-
-@import '@viamrobotics/prime-core/prime.css';
 
 body {
 	height: 100dvh;

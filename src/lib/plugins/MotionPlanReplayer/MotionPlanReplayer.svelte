@@ -7,13 +7,8 @@
 	import { type PlanEntry, provideMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	interface Props {
-		/** Pass plans to seed the list on mount (e.g. from app DB fetch). */
+		/** Seed the list on mount (e.g. app DB fetch). */
 		plans?: PlanEntry[]
-		/**
-		 * Rendered inside the plan panel's action area. Components here can call
-		 * `useMotionPlanReplayer()` to reach `addPlan` and the rest of the context,
-		 * so a custom source (DB picker, fetch button) stays app-side.
-		 */
 		children?: Snippet
 	}
 

@@ -7,6 +7,10 @@ export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 export { default as MeasureTool } from './MeasureTool/MeasureTool.svelte'
 export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 
+// ControlWidgets
+export { default as ControlWidgets } from './ControlWidgets/ControlWidgets.svelte'
+export { useControlWidgets } from './ControlWidgets/useControlWidgets.svelte'
+
 // DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'
 
@@ -41,3 +45,6 @@ export type {
 	MotionPlanReplayerContext,
 	PlanEntry,
 } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
+// Builds snapshots from host-computed `common.v1.Transform` bytes (e.g. RDK FK), for
+// `addPlan(name, content, snapshots)`. Bytes bridge protobuf-es (here) and protobuf-ts (host).
+export { transformBytesToSnapshots } from './MotionPlanReplayer/plan-to-snapshots'
