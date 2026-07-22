@@ -3,12 +3,6 @@
 
 @plugin '@tailwindcss/forms';
 
-@source '../node_modules/@skeletonlabs/skeleton-svelte';
-
-@import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/cerberus';
-
 @import '@viamrobotics/prime-core/prime.css';
 
 body {
