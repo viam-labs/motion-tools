@@ -23,7 +23,6 @@
 		toggles.filter((toggle) => store.isOpen(partID.current, resource.name, toggle.id)).length
 	)
 
-	// Part-qualified so the same resource name across parts doesn't share expand state.
 	const expanded = $derived(
 		new PersistedState(`${partID.current}:${resource.name}:widgets-expanded`, false)
 	)

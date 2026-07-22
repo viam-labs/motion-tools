@@ -7,7 +7,6 @@
 
 	const { subtype }: Props = $props()
 
-	// Same domain color as the resource dots in the control-widgets list.
 	const color = $derived(subtypeToColor(subtype)?.getStyle())
 	const label = $derived(subtype.replaceAll('_', ' '))
 </script>

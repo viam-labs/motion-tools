@@ -18,6 +18,7 @@
 
 <button
 	class="border-medium w-full border-t p-2 text-left"
+	aria-expanded={expanded.current}
 	onclick={() => (expanded.current = !expanded.current)}
 >
 	<h3 class="text-default flex items-center gap-1.5">

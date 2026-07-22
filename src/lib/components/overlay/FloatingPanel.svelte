@@ -18,13 +18,12 @@
 		persistRect?: boolean
 		isOpen?: boolean
 		bodyClass?: ClassValue
+		children: Snippet
+		headerPrefix?: Snippet
 		onPositionChange?: (details: floatingPanel.PositionChangeDetails) => void
 		onPositionChangeEnd?: (details: floatingPanel.PositionChangeDetails) => void
 		onSizeChange?: (details: floatingPanel.SizeChangeDetails) => void
 		onSizeChangeEnd?: (details: floatingPanel.SizeChangeDetails) => void
-		/** Rendered in the header before the title — e.g. a resource-type badge. */
-		headerPrefix?: Snippet
-		children: Snippet
 	}
 
 	let {

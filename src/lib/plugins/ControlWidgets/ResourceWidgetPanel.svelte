@@ -45,7 +45,6 @@
 
 	let isOpen = $state(true)
 
-	// Sync panel close back to the plugin store (removes this widget from the open list).
 	$effect(() => {
 		if (isOpen) return
 		store.setOpen(partID.current, resource.name, widgetId, false)
@@ -57,11 +56,11 @@
 </script>
 
 <FloatingPanel
-	{title}
 	bind:isOpen
-	resizable
+	{title}
 	{defaultPosition}
 	{defaultSize}
+	resizable
 	onPositionChangeEnd={(details) =>
 		saveRect({ ...currentRect, x: details.position.x, y: details.position.y })}
 	onSizeChangeEnd={(details) =>
