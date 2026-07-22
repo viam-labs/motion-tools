@@ -1,6 +1,6 @@
 import type { Entity } from 'koota'
 
-import { getContext, setContext } from 'svelte'
+import { onDestroy } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
@@ -56,7 +56,9 @@ export interface MotionPlanReplayerContext {
 	clearActivePlan: () => void
 }
 
-const KEY = Symbol('motion-plan-replayer')
+// One replayer per app, so we publish the context to a module-level variable like the Logs
+// plugin instead of Svelte context.
+let context: MotionPlanReplayerContext | undefined
 
 export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const world = useWorld()
@@ -215,7 +217,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 	}
 
-	const context: MotionPlanReplayerContext = {
+	context = {
 		get plans() {
 			return plans
 		},
@@ -235,15 +237,16 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		clearActivePlan,
 	}
 
-	setContext<MotionPlanReplayerContext>(KEY, context)
+	onDestroy(() => {
+		context = undefined
+	})
+
 	return context
 }
 
 export const useMotionPlanReplayer = (): MotionPlanReplayerContext => {
-	const context = getContext<MotionPlanReplayerContext | undefined>(KEY)
-
 	if (context === undefined) {
-		throw new Error('useMotionPlanReplayer must be called within a <MotionPlanReplayer>')
+		throw new Error('useMotionPlanReplayer must be used with a mounted <MotionPlanReplayer>')
 	}
 
 	return context
