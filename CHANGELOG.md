@@ -1,5 +1,13 @@
 # motion-tools
 
+## 1.37.1
+
+### Patch Changes
+
+- 8627748: Fix updating arrows
+- b476aaa: Fix motion plan replayer provider surface for app
+- 7dce2eb: Remove skeletonlabs dependency and uses badges for logs chips
+
 ## 1.37.0
 
 ### Minor Changes
