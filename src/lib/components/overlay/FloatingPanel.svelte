@@ -68,11 +68,11 @@
 	>
 		<div
 			{...api.getContentProps()}
-			class="border-medium border dark:text-black"
+			class="border-medium flex flex-col border dark:text-black"
 		>
 			<div
 				{...api.getDragTriggerProps()}
-				class="sticky"
+				class="sticky shrink-0"
 			>
 				<div
 					{...api.getHeaderProps()}
@@ -112,7 +112,7 @@
 		-->
 			<div
 				{...api.getBodyProps()}
-				class={['relative h-[calc(100%-33px)]', bodyClass]}
+				class={['relative min-h-0 flex-1', bodyClass]}
 			>
 				{#if isOpen}
 					{@render children()}

@@ -61,6 +61,7 @@
 	{defaultPosition}
 	{defaultSize}
 	resizable
+	bodyClass="overflow-y-auto overscroll-contain bg-white p-2"
 	onPositionChangeEnd={(details) =>
 		saveRect({ ...currentRect, x: details.position.x, y: details.position.y })}
 	onSizeChangeEnd={(details) =>
@@ -70,7 +71,7 @@
 		<ResourceTypeBadge subtype={resource.subtype} />
 	{/snippet}
 
-	<div class="flex h-full flex-col gap-2 overflow-y-auto p-2 text-xs">
+	<div class="flex flex-col gap-2 text-xs">
 		{#each widgets as Widget, index (index)}
 			<Widget
 				partID={partID.current}
