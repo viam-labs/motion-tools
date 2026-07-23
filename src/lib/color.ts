@@ -87,6 +87,7 @@ export const colors = {
 } as const
 
 export const resourceColors = {
+	// components
 	arm: oklchToHex(twColors.amber[darkness]),
 	camera: oklchToHex(twColors.blue[darkness]),
 	base: oklchToHex(twColors.slate[darkness]),
@@ -103,6 +104,13 @@ export const resourceColors = {
 	servo: oklchToHex(twColors.yellow[darkness]),
 	switch: oklchToHex(twColors.stone[darkness]),
 	webcam: oklchToHex(twColors.sky[darkness]),
+	// services
+	motion: oklchToHex(twColors.green[darkness]),
+	navigation: oklchToHex(twColors.red[darkness]),
+	slam: oklchToHex(twColors.pink[darkness]),
+	vision: oklchToHex(twColors.fuchsia[darkness]),
+	mlmodel: oklchToHex(twColors.neutral[darkness]),
+	discovery: oklchToHex(twColors.zinc[darkness]),
 } as const
 
 export const isColorRepresentation = (color: unknown): color is ColorRepresentation => {

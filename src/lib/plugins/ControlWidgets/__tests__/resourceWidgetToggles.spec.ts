@@ -1,12 +1,17 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 import type { Component } from 'svelte'
 
-import { showResourceWidget } from '@viamrobotics/test-widgets'
+import {
+	ResourceDoCommandWidget,
+	showResourceWidget,
+	supportsDoCommand,
+} from '@viamrobotics/test-widgets'
 import { apiWidgetsForResource, widgetForResource } from '@viamrobotics/test-widgets/registry'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
 	CARD_WIDGET_ID,
+	DO_COMMAND_WIDGET_ID,
 	MOTION_MOVE_WIDGET_ID,
 	resourceWidgetToggles,
 } from '../resourceWidgetToggles'
@@ -20,8 +25,10 @@ vi.mock('@viamrobotics/test-widgets/registry', () => ({
 // bail-out is exercised against the authoritative `rdk:service:motion` key.
 vi.mock('@viamrobotics/test-widgets', () => ({
 	showResourceWidget: vi.fn(),
+	supportsDoCommand: vi.fn(),
 	getResourceAPI: ({ namespace, type, subtype }: ResourceName) => `${namespace}:${type}:${subtype}`,
 	ResourceTriplets: { Motion: 'rdk:service:motion' },
+	ResourceDoCommandWidget: () => undefined,
 }))
 
 const widget = (() => undefined) as unknown as Component<{ partID: string; resourceName: string }>
@@ -33,6 +40,8 @@ beforeEach(() => {
 	vi.mocked(apiWidgetsForResource).mockReturnValue([])
 	vi.mocked(widgetForResource).mockReturnValue(undefined)
 	vi.mocked(showResourceWidget).mockReturnValue(true)
+	// Default off so the base-toggle cases below stay focused; the DoCommand suite opts in.
+	vi.mocked(supportsDoCommand).mockReturnValue(false)
 })
 
 describe('resourceWidgetToggles', () => {
@@ -44,7 +53,7 @@ describe('resourceWidgetToggles', () => {
 
 		const result = resourceWidgetToggles(resource('arm'))
 
-		expect(result).toBe(apis)
+		expect(result).toEqual(apis)
 		expect(result.some((toggle) => toggle.id === CARD_WIDGET_ID)).toBe(false)
 	})
 
@@ -88,7 +97,7 @@ describe('resourceWidgetToggles', () => {
 		vi.mocked(apiWidgetsForResource).mockReturnValue(apis)
 		vi.mocked(widgetForResource).mockReturnValue(widget)
 
-		expect(resourceWidgetToggles(resource('motion', 'service'))).toBe(apis)
+		expect(resourceWidgetToggles(resource('motion', 'service'))).toEqual(apis)
 	})
 
 	it('includes a service card when the registry surfaces one', () => {
@@ -98,5 +107,67 @@ describe('resourceWidgetToggles', () => {
 
 		expect(result).toHaveLength(1)
 		expect(result[0]?.id).toBe(CARD_WIDGET_ID)
+	})
+})
+
+describe('resourceWidgetToggles — DoCommand', () => {
+	beforeEach(() => {
+		vi.mocked(supportsDoCommand).mockReturnValue(true)
+	})
+
+	it('appends a DoCommand toggle after the per-API widgets', () => {
+		const apis = [{ id: 'get-joint-positions', label: 'GetJointPositions', widgets: [widget] }]
+		vi.mocked(apiWidgetsForResource).mockReturnValue(apis)
+
+		const result = resourceWidgetToggles(resource('arm'))
+
+		expect(result).toHaveLength(2)
+		expect(result[0]).toEqual(apis[0])
+		expect(result.at(-1)).toEqual({
+			id: DO_COMMAND_WIDGET_ID,
+			label: 'DoCommand',
+			widgets: [ResourceDoCommandWidget],
+		})
+	})
+
+	it('appends a DoCommand toggle after the composite card', () => {
+		vi.mocked(widgetForResource).mockReturnValue(widget)
+
+		const result = resourceWidgetToggles(resource('camera'))
+
+		expect(result.map((toggle) => toggle.id)).toEqual([CARD_WIDGET_ID, DO_COMMAND_WIDGET_ID])
+	})
+
+	it('offers only DoCommand for a capable resource with no card or APIs (generic)', () => {
+		const result = resourceWidgetToggles(resource('generic'))
+
+		expect(result).toHaveLength(1)
+		expect(result[0]?.id).toBe(DO_COMMAND_WIDGET_ID)
+		expect(result[0]?.widgets).toEqual([ResourceDoCommandWidget])
+	})
+
+	it('offers DoCommand for the motion service alongside its Move control', () => {
+		// The registry hides motion, but the plugin re-surfaces it, so DoCommand rides along.
+		vi.mocked(widgetForResource).mockReturnValue(widget)
+		vi.mocked(showResourceWidget).mockReturnValue(false)
+
+		const result = resourceWidgetToggles(resource('motion', 'service'))
+
+		expect(result.map((toggle) => toggle.id)).toEqual([MOTION_MOVE_WIDGET_ID, DO_COMMAND_WIDGET_ID])
+	})
+
+	it('omits DoCommand for an unsupported resource', () => {
+		vi.mocked(supportsDoCommand).mockReturnValue(false)
+		vi.mocked(widgetForResource).mockReturnValue(widget)
+
+		const result = resourceWidgetToggles(resource('ml_model', 'service'))
+
+		expect(result.map((toggle) => toggle.id)).toEqual([CARD_WIDGET_ID])
+	})
+
+	it('omits DoCommand for a hidden resource even when it is capable', () => {
+		vi.mocked(showResourceWidget).mockReturnValue(false)
+
+		expect(resourceWidgetToggles(resource('sensor', 'component', 'rdk-internal'))).toEqual([])
 	})
 })
