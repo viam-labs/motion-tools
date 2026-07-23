@@ -1,6 +1,6 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 
-import { showResourceWidget } from '@viamrobotics/test-widgets'
+import { getResourceAPI, ResourceTriplets, showResourceWidget } from '@viamrobotics/test-widgets'
 import {
 	apiWidgetsForResource,
 	type ResourceAPIWidget,
@@ -14,12 +14,27 @@ import {
  */
 export const CARD_WIDGET_ID = '__resource_card__'
 
+/** Widget id for the motion service's Move control. */
+export const MOTION_MOVE_WIDGET_ID = 'move'
+
+/**
+ * The registry (`showResourceWidget`) hides the built-in motion service to match the
+ * Viam app's control page, which omits it so users aren't confused by a control for a
+ * service they never added to their config. In these tools the motion service is a
+ * first-class control, so we surface it despite that filter.
+ */
+const isMotionService = (resource: ResourceName): boolean =>
+	getResourceAPI(resource) === ResourceTriplets.Motion
+
 /**
  * The widget toggles to offer for a resource:
  *
  *  - A resource with per-API widgets shows those.
- *  - A resource without falls back to a single composite card toggle when the
- *    registry says to surface one.
+ *  - The motion service surfaces its Move control. The registry lists no per-API
+ *    widgets for motion, but its card is the frame-aware Move widget the MoveFrame
+ *    plugin also uses, so we offer it here as a "Move" option (see {@link isMotionService}).
+ *  - Any other resource falls back to a single composite card toggle when the registry
+ *    says to surface one.
  *  - Anything unwidgetable returns `[]` and is hidden from the list.
  */
 export const resourceWidgetToggles = (resource: ResourceName): ResourceAPIWidget[] => {
@@ -29,7 +44,15 @@ export const resourceWidgetToggles = (resource: ResourceName): ResourceAPIWidget
 	}
 
 	const card = widgetForResource(resource)
-	if (card && showResourceWidget(resource)) {
+	if (!card) {
+		return []
+	}
+
+	if (isMotionService(resource)) {
+		return [{ id: MOTION_MOVE_WIDGET_ID, label: 'Move', widgets: [card] }]
+	}
+
+	if (showResourceWidget(resource)) {
 		return [{ id: CARD_WIDGET_ID, label: 'Overview', widgets: [card] }]
 	}
 
