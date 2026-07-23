@@ -16,6 +16,7 @@
 		Logs,
 		MeasureTool,
 		MotionPlanReplayer,
+		MoveFrame,
 		XR,
 	} from '$lib/plugins'
 
@@ -84,6 +85,7 @@
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
+				<MoveFrame />
 				<StandaloneLLMWrapper />
 				<MotionPlanReplayer />
 

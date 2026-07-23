@@ -60,5 +60,5 @@ select {
 	@apply border-light border;
 }
 .motion-tools-table tbody th {
-	@apply border-light font-roboto-mono text-default h-[40px] gap-2 border px-1.5 text-center text-xs font-normal;
+	@apply border-light font-roboto-mono text-default h-10 gap-2 border px-1.5 text-center text-xs font-normal;
 }
