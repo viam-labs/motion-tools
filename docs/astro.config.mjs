@@ -49,6 +49,7 @@ export default defineConfig({
 				{
 					label: 'Plugins',
 					items: [
+						{ label: 'Authoring plugins', link: '/plugins/authoring/' },
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
 						{ label: '<Fullscreen />', link: '/plugins/fullscreen/' },
