@@ -19,7 +19,7 @@
 	}
 
 	const handleKeydown = (event: KeyboardEvent) => {
-		if (environment.current.viewerMode !== 'build') return
+		if (environment.current.mode !== 'build') return
 
 		const modifier = event.metaKey || event.ctrlKey
 		const key = event.key.toLowerCase()
