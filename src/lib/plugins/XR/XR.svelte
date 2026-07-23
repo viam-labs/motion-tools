@@ -5,11 +5,9 @@
 	import { Quaternion } from 'three'
 
 	import { SettingsPortal } from '$lib'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import { useControlWidgets } from '../ControlWidgets/useControlWidgets.svelte'
 	import CameraFeed from './CameraFeed.svelte'
 	import DebugPanel from './DebugPanel.svelte'
 	import FrameConfigureControllers from './frame-configure/Controllers.svelte'
@@ -31,19 +29,17 @@
 	const { renderer } = useThrelte()
 	const { isPresenting } = useXR()
 	const settings = useSettings()
-	const partID = usePartID()
 	const resourceByName = useResourceByName()
-	const controlWidgets = useControlWidgets()
 
 	const enableXR = $derived(settings.current.enableXR)
 
-	// Cameras enabled as open control-widget panels for the current part.
+	// Cameras chosen for in-headset display in the AR settings panel. Guard against
+	// stale names — a selected camera that was removed or is no longer a camera.
 	const enabledCameras = $derived.by(() => {
-		const entries = controlWidgets.openFor(partID.current)
 		const names = new Set<string>()
-		for (const entry of entries) {
-			if (resourceByName.current[entry.resourceName]?.subtype === 'camera') {
-				names.add(entry.resourceName)
+		for (const name of settings.current.xrCameras) {
+			if (resourceByName.current[name]?.subtype === 'camera') {
+				names.add(name)
 			}
 		}
 		return [...names]

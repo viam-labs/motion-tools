@@ -29,7 +29,8 @@ Mount `<XR />` inside `<Visualizer />`:
 `<XR />` adds an **AR** section to the visualizer's settings panel. From there you:
 
 1. **Enable VR / AR mode** — turns on the session button.
-2. **Assign arms and grippers** to the left and right controllers, and set per-controller motion **scale** and **rotation** behavior.
+2. **Choose cameras** — pick which of the machine's cameras appear as floating feeds in the headset.
+3. **Assign arms and grippers** to the left and right controllers, and set per-controller motion **scale** and **rotation** behavior.
 
 The active interaction mode determines what the controllers do in-session:
 
@@ -45,5 +46,5 @@ Put the headset on, open the machine's page, and tap **AR** to enter. Exiting th
 ## Dependencies
 
 - **External packages:** `@threlte/xr` and `@viamrobotics/svelte-sdk` — both required peers of `@viamrobotics/motion-tools`, installed alongside it.
-- **Plugins:** `<ControlWidgets />` (soft). In-headset camera feeds are driven by the camera widgets you've opened in `<ControlWidgets />`; without it no camera feeds appear, but the rest of XR works normally. See [Plugin dependencies](../dependencies/).
+- **Plugins:** none. Camera feeds, controller arm/gripper assignments, and other session options are all configured in the plugin's own **AR** settings panel. See [Plugin dependencies](../dependencies/).
 - **Runtime:** a WebXR-capable device to enter a session, and a live machine connection for teleoperation (the assigned arms and grippers).

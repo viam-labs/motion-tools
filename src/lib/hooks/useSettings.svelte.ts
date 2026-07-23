@@ -57,6 +57,7 @@ export interface Settings {
 	// Webxr
 	enableXR: boolean
 	xrMode: 'frame-configure' | 'arm-teleop'
+	xrCameras: string[]
 	xrController: {
 		left: {
 			armName?: string
@@ -132,6 +133,7 @@ const defaults = (): Settings => ({
 
 	enableXR: false,
 	xrMode: 'frame-configure',
+	xrCameras: [],
 	xrController: {
 		left: {
 			scaleFactor: 1,
