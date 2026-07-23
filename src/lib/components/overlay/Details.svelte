@@ -121,7 +121,7 @@
 	const isFragmentComponentWithVariables = $derived(
 		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 	const showEditFrameOptions = $derived(
 		isBuildMode && isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
 	)

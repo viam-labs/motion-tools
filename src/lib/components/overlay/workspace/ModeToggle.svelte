@@ -17,18 +17,18 @@
 	// Leaving build mode with staged edits would silently hide them, so confirm
 	// first. Switching without unsaved edits (or into build) is unguarded.
 	const requestMonitor = () => {
-		if (environment.current.viewerMode === 'build' && partConfig.isDirty) {
+		if (environment.current.mode === 'build' && partConfig.isDirty) {
 			confirmOpen = true
 			return
 		}
 
-		environment.current.viewerMode = 'monitor'
+		environment.current.mode = 'monitor'
 	}
 
 	const discardAndMonitor = () => {
 		partConfig.discardChanges()
 		resetStagedEdits(world)
-		environment.current.viewerMode = 'monitor'
+		environment.current.mode = 'monitor'
 		confirmOpen = false
 	}
 </script>
@@ -37,17 +37,17 @@
 	<Button
 		class="rounded-r-none"
 		icon="eye-outline"
-		active={environment.current.viewerMode === 'monitor'}
+		active={environment.current.mode === 'monitor'}
 		description="Monitor live machine data"
 		onclick={requestMonitor}
 	/>
 	<Button
 		class="-ml-px rounded-l-none"
 		icon="hammer"
-		active={environment.current.viewerMode === 'build'}
+		active={environment.current.mode === 'build'}
 		description="Build the scene"
 		onclick={() => {
-			environment.current.viewerMode = 'build'
+			environment.current.mode = 'build'
 		}}
 	/>
 </fieldset>

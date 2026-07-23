@@ -38,7 +38,7 @@ export const provideFrames = (partID: () => string) => {
 
 	// In build mode the user authors the scene from the part config, so config
 	// frames win and the live frame-system query is paused (see the merge below).
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
 		enabled: partID() !== '' && !isBuildMode,

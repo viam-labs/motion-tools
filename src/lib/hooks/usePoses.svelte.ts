@@ -48,7 +48,7 @@ export const providePoses = (partID: () => string) => {
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF && environment.current.viewerMode === 'monitor',
+		enabled: interval !== RefetchRates.OFF && environment.current.mode === 'monitor',
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -157,7 +157,7 @@ export const providePoses = (partID: () => string) => {
 	// Kick an initial fetch for every frame once connected in monitor mode.
 	$effect(() => {
 		if (
-			environment.current.viewerMode === 'monitor' &&
+			environment.current.mode === 'monitor' &&
 			frames.current &&
 			connectionStatus.current === MachineConnectionEvent.CONNECTED
 		) {
@@ -201,7 +201,7 @@ export const providePoses = (partID: () => string) => {
 		for (const { entity, query } of entries) {
 			untrack(() => {
 				$effect(() => {
-					if (environment.current.viewerMode !== 'monitor') return
+					if (environment.current.mode !== 'monitor') return
 
 					const pose = query.data?.pose
 					if (!pose || !entity.isAlive()) return

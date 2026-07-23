@@ -15,7 +15,7 @@
 	const partConfig = usePartConfig()
 	const environment = useEnvironment()
 
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 
 	let selectedComponent = $derived(framelessComponents.current[0] ?? '')
 
