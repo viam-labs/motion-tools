@@ -19,14 +19,34 @@ vi.mock('@viamrobotics/test-widgets', async () => {
 	const MockMoveWidget = await import('./__fixtures__/MockMoveWidget.svelte')
 	return { MotionMoveWidget: MockMoveWidget.default }
 })
+// The scene-side components need a Threlte context (and import @threlte/extras);
+// stub them out for the panel-body test.
+vi.mock('../MoveTargetPicker.svelte', async () => {
+	const MockScene = await import('./__fixtures__/MockMoveTargetPicker.svelte')
+	return { default: MockScene.default }
+})
+vi.mock('../MoveTargetMarker.svelte', async () => {
+	const MockScene = await import('./__fixtures__/MockMoveTargetPicker.svelte')
+	return { default: MockScene.default }
+})
+
+// New MoveControls dependencies that the panel-body test does not exercise.
+vi.mock('$lib/hooks/useSettings.svelte', () => ({
+	useSettings: () => ({ current: { interactionMode: 'navigate' } }),
+}))
+vi.mock('@viamrobotics/prime-core', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@viamrobotics/prime-core')>()),
+	useToast: () => vi.fn(),
+}))
 
 // The frame the panel targets must resolve as present via the ECS name query, else the
 // panel auto-closes. `useQuery` reads from a mutable holder the tests populate.
 const ecs = vi.hoisted(() => ({ names: [] as string[] }))
 vi.mock('$lib/ecs', () => {
 	const Name = Symbol('Name')
+	const WorldMatrix = Symbol('WorldMatrix')
 	return {
-		traits: { Name },
+		traits: { Name, WorldMatrix },
 		useQuery: () => ({
 			get current() {
 				return ecs.names.map((name) => ({ get: () => name }))
@@ -35,7 +55,10 @@ vi.mock('$lib/ecs', () => {
 	}
 })
 
-vi.mock('@viamrobotics/svelte-sdk', () => ({ useResourceNames: vi.fn() }))
+vi.mock('@viamrobotics/svelte-sdk', () => ({
+	useResourceNames: vi.fn(),
+	createResourceClient: vi.fn(() => ({ current: undefined })),
+}))
 vi.mock('$lib/hooks/usePartID.svelte', () => ({ usePartID: vi.fn() }))
 vi.mock('$lib/hooks/useFrames.svelte', () => ({ useFrames: vi.fn() }))
 

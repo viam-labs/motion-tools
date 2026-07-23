@@ -170,11 +170,8 @@ importers:
         specifier: 1.2.0
         version: 1.2.0(tailwindcss@4.3.1)
       '@viamrobotics/test-widgets':
-        specifier: 0.9.1
-        version: 0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@0.1.23(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
-      '@viamrobotics/three':
-        specifier: ^0.0.9
-        version: 0.0.9(three@0.183.2)
+        specifier: 0.9.2
+        version: 0.9.2(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@0.1.23(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))
       '@viamrobotics/tweakpane-config':
         specifier: 0.1.1
         version: 0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)
@@ -2143,8 +2140,8 @@ packages:
     peerDependencies:
       tailwindcss: '>=4 <5'
 
-  '@viamrobotics/test-widgets@0.9.1':
-    resolution: {integrity: sha512-grQacYkShLj6ZZayn74tVUWb61bkUjVymdu446+J953UF7OyTZ2BY1VuPVjkdKo4yyfDBGXUYDWUitTU4yJkog==}
+  '@viamrobotics/test-widgets@0.9.2':
+    resolution: {integrity: sha512-/0Drp9yT9CT2f1rsuyhj0HdWfjYn19BYZJZUXoDX2USsgwXXKGLNBpUW0Mdf8/3ab6DNTFI5r+hXX4T1SlNx5Q==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
       '@sentry/svelte': '>=8'
@@ -2153,7 +2150,6 @@ packages:
       '@viamrobotics/prime-core': '>=0.1'
       '@viamrobotics/sdk': '>=0.68'
       '@viamrobotics/svelte-sdk': '>=1.1'
-      '@viamrobotics/three': '>=0.0.9'
       lodash-es: '>=4'
       maplibre-gl: '>=5'
       runed: '>=0.28'
@@ -2161,15 +2157,8 @@ packages:
       three: '>=0.178'
       threlte-uikit: '>=2'
     peerDependenciesMeta:
-      '@viamrobotics/three':
-        optional: true
       maplibre-gl:
         optional: true
-
-  '@viamrobotics/three@0.0.9':
-    resolution: {integrity: sha512-j9uAwmwIQrRVYADalB5vRwj4739f14MU+LISpX/qBoLErcJrVsbJEVHQU39Lin4FYWmPSKDOHvTKgDbHwPvNqQ==}
-    peerDependencies:
-      three: '*'
 
   '@viamrobotics/tweakpane-config@0.1.1':
     resolution: {integrity: sha512-oIRkTIjE+c5MLlwETi5l0WbpNrZa/qXcntjO2Aa5eBJSUsAIvdPrBR0mj6xJSgY5B0qGKymEmfZuSng1uF0v2A==}
@@ -6544,7 +6533,7 @@ snapshots:
       '@fontsource-variable/space-grotesk': 5.2.10
       tailwindcss: 4.3.1
 
-  '@viamrobotics/test-widgets@0.9.1(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@0.1.23(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(@viamrobotics/three@0.0.9(three@0.183.2))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
+  '@viamrobotics/test-widgets@0.9.2(@sentry/svelte@10.10.0(svelte@5.55.7))(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(@threlte/extras@9.21.0(@types/three@0.183.1)(svelte@5.55.7)(three@0.183.2))(@viamrobotics/prime-core@0.1.23(@internationalized/date@3.12.2)(svelte@5.55.7)(tailwindcss@4.3.1))(@viamrobotics/sdk@0.69.0)(@viamrobotics/svelte-sdk@1.2.2(@viamrobotics/sdk@0.69.0)(svelte@5.55.7))(lodash-es@4.18.1)(maplibre-gl@5.24.0)(runed@0.31.1(svelte@5.55.7))(svelte@5.55.7)(three@0.183.2)(threlte-uikit@2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2))':
     dependencies:
       '@sentry/svelte': 10.10.0(svelte@5.55.7)
       '@threlte/core': 8.5.14(svelte@5.55.7)(three@0.183.2)
@@ -6559,12 +6548,7 @@ snapshots:
       three: 0.183.2
       threlte-uikit: 2.0.0(@threlte/core@8.5.14(svelte@5.55.7)(three@0.183.2))(svelte@5.55.7)(three@0.183.2)
     optionalDependencies:
-      '@viamrobotics/three': 0.0.9(three@0.183.2)
       maplibre-gl: 5.24.0
-
-  '@viamrobotics/three@0.0.9(three@0.183.2)':
-    dependencies:
-      three: 0.183.2
 
   '@viamrobotics/tweakpane-config@0.1.1(svelte-tweakpane-ui@1.5.16(svelte@5.55.7))(svelte@5.55.7)':
     dependencies:
