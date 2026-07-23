@@ -9,14 +9,15 @@
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
 	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
-	import { planDropper } from './plan-dropper'
+	import { planDropper, type ResolvePlanSnapshots } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
 	interface Props {
 		children?: Snippet
+		resolvePlanSnapshots?: ResolvePlanSnapshots
 	}
 
-	const { children }: Props = $props()
+	const { children, resolvePlanSnapshots }: Props = $props()
 
 	const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
@@ -25,6 +26,8 @@
 
 	let isOpen = $state(false)
 	let fileInput: HTMLInputElement | undefined = $state()
+	// resolvePlanSnapshots may round-trip to a server, so uploads are no longer instant.
+	let uploadsInFlight = $state(0)
 
 	const handlePlanFile = async (name: string, content: string) => {
 		if (ctx.plans.some((p) => p.name === name)) {
@@ -32,15 +35,20 @@
 			return
 		}
 
-		const result = await planDropper({ name, content })
+		uploadsInFlight += 1
+		try {
+			const result = await planDropper({ name, content, resolvePlanSnapshots })
 
-		if (!result.success) {
-			toast({ message: result.error.message, variant: ToastVariant.Danger })
-			return
+			if (!result.success) {
+				toast({ message: result.error.message, variant: ToastVariant.Danger })
+				return
+			}
+
+			ctx.addPlan(result.name, result.content, result.snapshots)
+			isOpen = true
+		} finally {
+			uploadsInFlight -= 1
 		}
-
-		ctx.addPlan(result.name, result.content, result.snapshots)
-		isOpen = true
 	}
 
 	const readAndHandle = (file: File) => {
@@ -144,10 +152,11 @@
 			/>
 			<button
 				type="button"
-				class="border-light text-subtle-1 hover:bg-light w-full rounded border px-2 py-1"
-				onclick={() => fileInput?.click()}
+				class="border-light text-subtle-1 hover:bg-light w-full rounded border px-2 py-1 aria-disabled:opacity-50"
+				aria-disabled={uploadsInFlight > 0}
+				onclick={() => uploadsInFlight === 0 && fileInput?.click()}
 			>
-				Upload plan JSON
+				{uploadsInFlight > 0 ? 'Uploading…' : 'Upload plan JSON'}
 			</button>
 		</div>
 	</div>
