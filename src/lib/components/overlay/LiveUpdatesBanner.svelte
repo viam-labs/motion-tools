@@ -24,7 +24,7 @@
 		const modifier = event.metaKey || event.ctrlKey
 		const key = event.key.toLowerCase()
 
-		if (modifier && key === 's') {
+		if (modifier && key === 's' && environment.current.isStandalone) {
 			event.preventDefault()
 			event.stopImmediatePropagation()
 			partConfig.save()
@@ -34,11 +34,11 @@
 		const redo = modifier && (key === 'y' || (key === 'z' && event.shiftKey))
 		const undo = modifier && key === 'z' && !event.shiftKey
 
-		if (redo) {
+		if (redo && partConfig.canRedoFrameEdit) {
 			event.preventDefault()
 			event.stopImmediatePropagation()
 			partConfig.redoFrameEdit()
-		} else if (undo) {
+		} else if (undo && partConfig.canUndoFrameEdit) {
 			event.preventDefault()
 			event.stopImmediatePropagation()
 			partConfig.undoFrameEdit()
@@ -68,30 +68,30 @@
 				<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
 			</div>
 
-			{#if environment.current.isStandalone}
-				<div class="flex gap-2">
-					<Button
-						aria-label="Undo frame edit"
-						disabled={!partConfig.canUndoFrameEdit}
-						onclick={() => partConfig.undoFrameEdit()}
-					>
-						<div class="flex items-center gap-2">
-							<Undo2 size={14} />
-							Undo
-						</div>
-					</Button>
+			<div class="flex gap-2">
+				<Button
+					aria-label="Undo frame edit"
+					disabled={!partConfig.canUndoFrameEdit}
+					onclick={() => partConfig.undoFrameEdit()}
+				>
+					<div class="flex items-center gap-2">
+						<Undo2 size={14} />
+						Undo
+					</div>
+				</Button>
 
-					<Button
-						aria-label="Redo frame edit"
-						disabled={!partConfig.canRedoFrameEdit}
-						onclick={() => partConfig.redoFrameEdit()}
-					>
-						<div class="flex items-center gap-2">
-							<Redo2 size={14} />
-							Redo
-						</div>
-					</Button>
+				<Button
+					aria-label="Redo frame edit"
+					disabled={!partConfig.canRedoFrameEdit}
+					onclick={() => partConfig.redoFrameEdit()}
+				>
+					<div class="flex items-center gap-2">
+						<Redo2 size={14} />
+						Redo
+					</div>
+				</Button>
 
+				{#if environment.current.isStandalone}
 					<Button
 						onclick={discard}
 						disabled={!partConfig.isDirty}
@@ -120,8 +120,8 @@
 							</div>
 						</div>
 					</Button>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
 	</div>
 {/if}

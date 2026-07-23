@@ -1,4 +1,5 @@
 import type { Entity, World } from 'koota'
+
 import { Matrix4 } from 'three'
 
 import type { Frame } from '$lib/frame'
@@ -27,12 +28,12 @@ const emptyPartConfig = { components: [] }
 
 const toJsonValue = (value: unknown): unknown => {
 	if (Array.isArray(value)) {
-		return value.map(toJsonValue)
+		return value.map((item) => toJsonValue(item))
 	}
 
 	if (value && typeof value === 'object') {
 		const sorted: JsonObject = {}
-		for (const key of Object.keys(value as JsonObject).sort()) {
+		for (const key of Object.keys(value as JsonObject).toSorted()) {
 			sorted[key] = toJsonValue((value as JsonObject)[key])
 		}
 		return sorted

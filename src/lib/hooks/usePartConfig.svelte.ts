@@ -106,6 +106,7 @@ export const providePartConfig = (
 	const applyHistorySnapshot = (snapshot: string) => {
 		applyingHistory = true
 		try {
+			historySnapshot = snapshot
 			const nextConfig = parsePartConfigSnapshot(snapshot) as PartConfig
 			const isClean = snapshot === cleanSnapshot
 			config.set(nextConfig, { dirty: !isClean })
@@ -119,21 +120,11 @@ export const providePartConfig = (
 
 	const history = new StateHistory(() => historySnapshot, applyHistorySnapshot)
 
-	const lastHistorySnapshot = () => history.log.at(-1)?.snapshot
-
-	const pushHistorySnapshot = (snapshot: string) => {
-		if (lastHistorySnapshot() === snapshot) return
-		history.log.push({ snapshot, timestamp: Date.now() })
-	}
-
 	const markHistoryActive = () => {
 		if (applyingHistory) {
 			return
 		}
 
-		if (!historyActive) {
-			history.log = [{ snapshot: currentSnapshot, timestamp: Date.now() }]
-		}
 		historyActive = true
 	}
 
@@ -144,11 +135,10 @@ export const providePartConfig = (
 		historySnapshot = currentSnapshot
 	}
 
-	const hasUnloggedCurrentSnapshot = () =>
-		historyTransactionDepth === 0 &&
-		historyActive &&
-		config.isDirty &&
-		lastHistorySnapshot() !== currentSnapshot
+	const hasSettledHistorySnapshot = () => historySnapshot === currentSnapshot
+
+	const canUseHistory = () =>
+		historyTransactionDepth === 0 && historyActive && hasSettledHistorySnapshot()
 
 	const beginFrameEditHistoryEntry = () => {
 		if (applyingHistory) {
@@ -158,7 +148,9 @@ export const providePartConfig = (
 		markHistoryActive()
 		if (historyTransactionDepth === 0) {
 			transactionStartSnapshot = currentSnapshot
-			historySnapshot = currentSnapshot
+			if (historySnapshot !== currentSnapshot) {
+				historySnapshot = currentSnapshot
+			}
 		}
 		historyTransactionDepth += 1
 	}
@@ -410,38 +402,20 @@ export const providePartConfig = (
 			config.discardChanges?.()
 		},
 		get canUndoFrameEdit() {
-			return (
-				historyTransactionDepth === 0 &&
-				historyActive &&
-				config.isDirty &&
-				(history.canUndo || hasUnloggedCurrentSnapshot())
-			)
+			return canUseHistory() && config.isDirty && history.canUndo
 		},
 		get canRedoFrameEdit() {
-			return (
-				historyTransactionDepth === 0 &&
-				historyActive &&
-				!hasUnloggedCurrentSnapshot() &&
-				history.canRedo
-			)
+			return canUseHistory() && history.canRedo
 		},
 		undoFrameEdit: () => {
-			if (!historyActive || !config.isDirty || historyTransactionDepth > 0) {
+			if (!canUseHistory() || !config.isDirty || !history.canUndo) {
 				return
 			}
 
-			pushHistorySnapshot(currentSnapshot)
-			if (history.canUndo) {
-				history.undo()
-			}
+			history.undo()
 		},
 		redoFrameEdit: () => {
-			if (
-				historyTransactionDepth === 0 &&
-				historyActive &&
-				!hasUnloggedCurrentSnapshot() &&
-				history.canRedo
-			) {
+			if (canUseHistory() && history.canRedo) {
 				history.redo()
 			}
 		},
