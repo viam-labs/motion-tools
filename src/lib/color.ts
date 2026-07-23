@@ -80,37 +80,45 @@ export const subtypeToColor = (subtype?: string) => {
 	return new Color(colorValue)
 }
 
-const darkness = '600'
+const darker = '600'
+const lighter = '400'
 
 export const colors = {
-	default: oklchToHex(twColors.gray[darkness]),
+	default: oklchToHex(twColors.gray[darker]),
 } as const
 
 export const resourceColors = {
 	// components
-	arm: oklchToHex(twColors.amber[darkness]),
-	camera: oklchToHex(twColors.blue[darkness]),
-	base: oklchToHex(twColors.slate[darkness]),
-	board: oklchToHex(twColors.emerald[darkness]),
-	button: oklchToHex(twColors.gray[darkness]),
-	encoder: oklchToHex(twColors.lime[darkness]),
-	gantry: oklchToHex(twColors.purple[darkness]),
-	gripper: oklchToHex(twColors.cyan[darkness]),
-	motor: oklchToHex(twColors.orange[darkness]),
-	movement_sensor: oklchToHex(twColors.indigo[darkness]),
-	pose_tracker: oklchToHex(twColors.rose[darkness]),
-	power_sensor: oklchToHex(twColors.violet[darkness]),
-	sensor: oklchToHex(twColors.teal[darkness]),
-	servo: oklchToHex(twColors.yellow[darkness]),
-	switch: oklchToHex(twColors.stone[darkness]),
-	webcam: oklchToHex(twColors.sky[darkness]),
+	arm: oklchToHex(twColors.amber[darker]),
+	camera: oklchToHex(twColors.blue[darker]),
+	base: oklchToHex(twColors.slate[darker]),
+	board: oklchToHex(twColors.emerald[darker]),
+	button: oklchToHex(twColors.gray[darker]),
+	encoder: oklchToHex(twColors.lime[darker]),
+	gantry: oklchToHex(twColors.purple[darker]),
+	gripper: oklchToHex(twColors.cyan[darker]),
+	motor: oklchToHex(twColors.orange[darker]),
+	movement_sensor: oklchToHex(twColors.indigo[darker]),
+	pose_tracker: oklchToHex(twColors.rose[darker]),
+	power_sensor: oklchToHex(twColors.violet[darker]),
+	sensor: oklchToHex(twColors.teal[darker]),
+	servo: oklchToHex(twColors.yellow[darker]),
+	switch: oklchToHex(twColors.stone[darker]),
+	webcam: oklchToHex(twColors.sky[darker]),
+	audio_in: oklchToHex(twColors.sky[lighter]),
+	audio_out: oklchToHex(twColors.violet[lighter]),
+	generic: oklchToHex(twColors.gray[lighter]),
+	input_controller: oklchToHex(twColors.fuchsia[lighter]),
 	// services
-	motion: oklchToHex(twColors.green[darkness]),
-	navigation: oklchToHex(twColors.red[darkness]),
-	slam: oklchToHex(twColors.pink[darkness]),
-	vision: oklchToHex(twColors.fuchsia[darkness]),
-	mlmodel: oklchToHex(twColors.neutral[darkness]),
-	discovery: oklchToHex(twColors.zinc[darkness]),
+	motion: oklchToHex(twColors.green[darker]),
+	navigation: oklchToHex(twColors.red[darker]),
+	slam: oklchToHex(twColors.pink[darker]),
+	vision: oklchToHex(twColors.fuchsia[darker]),
+	mlmodel: oklchToHex(twColors.neutral[darker]),
+	discovery: oklchToHex(twColors.zinc[darker]),
+	data_manager: oklchToHex(twColors.emerald[lighter]),
+	video: oklchToHex(twColors.rose[lighter]),
+	world_state_store: oklchToHex(twColors.amber[lighter]),
 } as const
 
 export const isColorRepresentation = (color: unknown): color is ColorRepresentation => {
