@@ -32,7 +32,7 @@
 	}}
 />
 
-{#if environment.current.viewerMode === 'build'}
+{#if environment.current.mode === 'build'}
 	<div
 		class="absolute bottom-4 z-4 flex w-full justify-center gap-2"
 		{...rest}

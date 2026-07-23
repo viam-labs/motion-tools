@@ -125,7 +125,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
-		environmentContext.current.viewerMode = 'build'
+		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
 
@@ -166,7 +166,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
-		environmentContext.current.viewerMode = 'build'
+		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
 

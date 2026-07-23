@@ -3,6 +3,8 @@
 
 	import { untrack } from 'svelte'
 
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+
 	import MotionPlanReplayerUI from './MotionPlanReplayerUI.svelte'
 	import { type PlanEntry, provideMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
@@ -15,6 +17,10 @@
 	const { plans, children }: Props = $props()
 
 	provideMotionPlanReplayer(untrack(() => plans))
+
+	const environment = useEnvironment()
 </script>
 
-<MotionPlanReplayerUI {children} />
+{#if environment.current.mode === 'monitor'}
+	<MotionPlanReplayerUI {children} />
+{/if}
