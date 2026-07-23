@@ -8,6 +8,7 @@
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import ResourceTypeBadge from './ResourceTypeBadge.svelte'
+	import { DO_COMMAND_WIDGET_ID } from './resourceWidgetToggles'
 	import { useControlWidgets, type WidgetRect } from './useControlWidgets.svelte'
 
 	interface Props {
@@ -24,21 +25,26 @@
 	const partID = usePartID()
 	const { dom } = useThrelte()
 
-	const DEFAULT_SIZE = { width: 340, height: 420 }
 	const CASCADE_STEP = 40
+
+	// The DoCommand widget lays out two side-by-side JSON editors, so it needs more room
+	// than the single-column control widgets. Saved geometry still wins over this default.
+	const baseSize = $derived(
+		widgetId === DO_COMMAND_WIDGET_ID ? { width: 600, height: 460 } : { width: 340, height: 420 }
+	)
 
 	const savedRect = $derived(store.rectFor(partID.current, resource.name, widgetId))
 	const defaultPosition = $derived(
 		savedRect
 			? { x: savedRect.x, y: savedRect.y }
 			: {
-					x: Math.max(16, dom.clientWidth - DEFAULT_SIZE.width - 16),
+					x: Math.max(16, dom.clientWidth - baseSize.width - 16),
 					y: 48 + (stackIndex % 8) * CASCADE_STEP,
 				}
 	)
 
 	const defaultSize = $derived(
-		savedRect ? { width: savedRect.width, height: savedRect.height } : DEFAULT_SIZE
+		savedRect ? { width: savedRect.width, height: savedRect.height } : baseSize
 	)
 
 	const currentRect = $derived(savedRect ?? { ...defaultPosition, ...defaultSize })
