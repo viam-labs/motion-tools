@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements'
 
-	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
+	import { ToastVariant, useNotify, useToast } from '@viamrobotics/prime-core'
 
 	import { createBufferGeometry } from '$lib/attribute'
 	import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
@@ -19,6 +19,7 @@
 
 	const world = useWorld()
 	const toast = useToast()
+	const notify = useNotify()
 	const cameraControls = useCameraControls()
 	const relationships = useRelationships()
 
@@ -75,7 +76,7 @@
 
 			toast({ message: `${result.name} loaded.`, variant: ToastVariant.Success })
 		},
-		(message) => toast({ message, variant: ToastVariant.Danger })
+		(message) => notify.danger('Failed to load file.', message, { persist: true })
 	)
 </script>
 

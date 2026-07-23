@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
+	import { useNotify } from '@viamrobotics/prime-core'
 	import { Eye, EyeOff } from 'lucide-svelte'
 
 	import { DashboardPortal } from '$lib'
@@ -21,21 +21,23 @@
 	const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
 	const ctx = useMotionPlanReplayer()
-	const toast = useToast()
+	const notify = useNotify()
 
 	let isOpen = $state(false)
 	let fileInput: HTMLInputElement | undefined = $state()
 
 	const handlePlanFile = async (name: string, content: string) => {
 		if (ctx.plans.some((p) => p.name === name)) {
-			toast({ message: `"${truncate(name, 24)}" already loaded.`, variant: ToastVariant.Warning })
+			notify.warn(`"${truncate(name, 24)}" already loaded.`)
 			return
 		}
 
 		const result = await planDropper({ name, content })
 
 		if (!result.success) {
-			toast({ message: result.error.message, variant: ToastVariant.Danger })
+			notify.danger(`"${truncate(name, 24)}" failed to load.`, result.error.message, {
+				persist: true,
+			})
 			return
 		}
 
@@ -50,10 +52,7 @@
 			if (typeof content === 'string') await handlePlanFile(file.name, content)
 		})
 		reader.addEventListener('error', () => {
-			toast({
-				message: `"${truncate(file.name, 24)}" failed to load.`,
-				variant: ToastVariant.Danger,
-			})
+			notify.danger(`"${truncate(file.name, 24)}" failed to load.`)
 		})
 		reader.readAsText(file)
 	}

@@ -2,7 +2,14 @@
 	import type { Pose } from '@viamrobotics/sdk'
 	import type { Vector3 } from 'three'
 
-	import { Button, Select, Switch, ToastVariant, useToast } from '@viamrobotics/prime-core'
+	import {
+		Button,
+		Select,
+		Switch,
+		ToastVariant,
+		useNotify,
+		useToast,
+	} from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { MotionMoveWidget } from '@viamrobotics/test-widgets'
@@ -36,6 +43,7 @@
 	const named = useQuery(traits.Name)
 	const settings = useSettings()
 	const toast = useToast()
+	const notify = useNotify()
 	const motionResources = useResourceNames(() => partID.current, 'motion')
 
 	const motionServices = $derived(motionServiceNames(motionResources.current))
@@ -132,18 +140,21 @@
 				{ referenceFrame: destination, pose: pickedPose },
 				frameName
 			)
-			toast({
-				message: success
-					? `Moved "${frameName}" to the destination.`
-					: `Move for "${frameName}" did not complete.`,
-				variant: success ? ToastVariant.Success : ToastVariant.Warning,
-			})
-			if (success) resetToPick()
+			if (success) {
+				toast({
+					message: `Moved "${frameName}" to the destination.`,
+					variant: ToastVariant.Success,
+				})
+				resetToPick()
+			} else {
+				notify.warn(`Move for "${frameName}" did not complete.`)
+			}
 		} catch (error) {
-			toast({
-				message: error instanceof Error ? error.message : `Failed to move "${frameName}".`,
-				variant: ToastVariant.Danger,
-			})
+			notify.danger(
+				`Failed to move "${frameName}".`,
+				error instanceof Error ? error.message : undefined,
+				{ persist: true }
+			)
 		} finally {
 			executing = false
 		}
