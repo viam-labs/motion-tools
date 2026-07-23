@@ -5,6 +5,8 @@ description: Drive a connected machine's resources from inside a motion-tools vi
 
 `<ControlWidgets />` adds a **Control widgets** button and floating panel that lists the connected machine's resources and lets you open interactive controls for them — the resource widgets from `@viamrobotics/test-widgets` used to exercise component and service APIs (jog a motor, move an arm, view a camera, and so on). Each widget you open becomes its own resizable panel.
 
+Every resource that supports the generic **DoCommand** API also offers a **DoCommand** control — a JSON editor to send a raw command and inspect the response. For generic components and services, whose only API is DoCommand, it's the sole control.
+
 Which widgets are open, and where their panels sit, is remembered per machine part across reloads.
 
 ## Usage

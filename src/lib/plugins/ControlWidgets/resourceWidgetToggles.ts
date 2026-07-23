@@ -1,6 +1,12 @@
 import type { ResourceName } from '@viamrobotics/sdk'
 
-import { getResourceAPI, ResourceTriplets, showResourceWidget } from '@viamrobotics/test-widgets'
+import {
+	getResourceAPI,
+	ResourceDoCommandWidget,
+	ResourceTriplets,
+	showResourceWidget,
+	supportsDoCommand,
+} from '@viamrobotics/test-widgets'
 import {
 	apiWidgetsForResource,
 	type ResourceAPIWidget,
@@ -16,6 +22,12 @@ export const CARD_WIDGET_ID = '__resource_card__'
 
 /** Widget id for the motion service's Move control. */
 export const MOTION_MOVE_WIDGET_ID = 'move'
+
+/**
+ * Widget id for a resource's generic DoCommand control. Offered for every
+ * DoCommand-capable resource we surface (see {@link resourceWidgetToggles}).
+ */
+export const DO_COMMAND_WIDGET_ID = 'do-command'
 
 /**
  * The registry (`showResourceWidget`) hides the built-in motion service to match the
@@ -35,26 +47,36 @@ const isMotionService = (resource: ResourceName): boolean =>
  *    plugin also uses, so we offer it here as a "Move" option (see {@link isMotionService}).
  *  - Any other resource falls back to a single composite card toggle when the registry
  *    says to surface one.
+ *  - Every DoCommand-capable resource we surface also gets a generic DoCommand control,
+ *    appended last. For generic components/services (which have no card) this is the only
+ *    toggle, matching the Viam app control page. It stays hidden for resources the registry
+ *    hides (data manager, sensors service, shell, internal) and for ML Model.
  *  - Anything unwidgetable returns `[]` and is hidden from the list.
  */
 export const resourceWidgetToggles = (resource: ResourceName): ResourceAPIWidget[] => {
+	const toggles: ResourceAPIWidget[] = []
+
 	const apis = apiWidgetsForResource(resource)
 	if (apis.length > 0) {
-		return apis
+		toggles.push(...apis)
+	} else {
+		const card = widgetForResource(resource)
+		if (card) {
+			if (isMotionService(resource)) {
+				toggles.push({ id: MOTION_MOVE_WIDGET_ID, label: 'Move', widgets: [card] })
+			} else if (showResourceWidget(resource)) {
+				toggles.push({ id: CARD_WIDGET_ID, label: 'Overview', widgets: [card] })
+			}
+		}
 	}
 
-	const card = widgetForResource(resource)
-	if (!card) {
-		return []
+	if (supportsDoCommand(resource) && (showResourceWidget(resource) || isMotionService(resource))) {
+		toggles.push({
+			id: DO_COMMAND_WIDGET_ID,
+			label: 'DoCommand',
+			widgets: [ResourceDoCommandWidget],
+		})
 	}
 
-	if (isMotionService(resource)) {
-		return [{ id: MOTION_MOVE_WIDGET_ID, label: 'Move', widgets: [card] }]
-	}
-
-	if (showResourceWidget(resource)) {
-		return [{ id: CARD_WIDGET_ID, label: 'Overview', widgets: [card] }]
-	}
-
-	return []
+	return toggles
 }

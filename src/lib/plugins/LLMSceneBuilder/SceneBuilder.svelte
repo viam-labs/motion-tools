@@ -12,7 +12,7 @@
 	const sceneBuilder = useSceneBuilder()
 	const environment = useEnvironment()
 
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 
 	let isOpen = $state(false)
 	let prompt = $state('')

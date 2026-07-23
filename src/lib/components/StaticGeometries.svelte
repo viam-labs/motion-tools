@@ -18,7 +18,7 @@
 	const selected = useQuery(traits.Selected)
 	const environment = useEnvironment()
 
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 
 	const entities = new SvelteSet<Entity>()
 	const selectedCustomGeometry = $derived(

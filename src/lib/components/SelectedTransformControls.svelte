@@ -23,7 +23,7 @@
 	const selected = useQuery(traits.Selected)
 
 	const mode = $derived(settings.current.transformMode)
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 	const entity = $derived(selected.current[0])
 	const transformable = useTrait(() => entity, traits.Transformable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)

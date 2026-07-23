@@ -13,7 +13,7 @@
 	const settings = useSettings()
 	const environment = useEnvironment()
 
-	const isBuildMode = $derived(environment.current.viewerMode === 'build')
+	const isBuildMode = $derived(environment.current.mode === 'build')
 </script>
 
 <div

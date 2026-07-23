@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PortalTarget } from '@threlte/extras'
 
-	import ViewerModeToggle from './ViewerModeToggle.svelte'
+	import ModeToggle from './ModeToggle.svelte'
 
 	let { ...rest } = $props()
 </script>
@@ -10,7 +10,7 @@
 	class="absolute top-2 right-2 z-4 flex items-center gap-2"
 	{...rest}
 >
-	<ViewerModeToggle />
+	<ModeToggle />
 
 	<PortalTarget id="workspace" />
 </div>
