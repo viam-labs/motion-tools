@@ -38,6 +38,10 @@ pnpm add @connectrpc/connect @connectrpc/connect-web
 
 The `config` prop is reactive — change it and the plugin reconnects to the new endpoint.
 
+## Connection logs
+
+`<DrawService />` reports connection lifecycle events — connecting, connected, disconnected, reconnecting, and parse or socket errors — through the `useLogs` hook. Mount [`<Logs />`](../logs/) alongside it to see them in a panel; without it the messages are dropped.
+
 ## Running a draw server
 
 `<DrawService />` is a client — it needs a draw server to talk to. You have three options:
