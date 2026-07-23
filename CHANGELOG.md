@@ -1,5 +1,17 @@
 # motion-tools
 
+## 1.38.0
+
+### Minor Changes
+
+- d34e066: Add control widgets for all resource types through a new ControlWidgets plugin, including a Move control for the built-in motion service
+- 9f08bcf: Add `MoveFrame` plugin to easily move entities with a motion service
+- c33ca6b: Select in-headset AR cameras from the XR settings panel instead of the control widgets plugin
+
+### Patch Changes
+
+- 8afe4a4: Add do command widgets to ControlWidgets plugin
+
 ## 1.37.1
 
 ### Patch Changes
