@@ -44,18 +44,20 @@ Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude 
 
 <!-- claude-config:rules-table start -->
 
-| Rule                    | Loads when                                             |
-| ----------------------- | ------------------------------------------------------ |
-| `svelte.md`             | editing `.svelte`, `.svelte.ts`, `.svelte.js`          |
-| `three.md`              | editing Three.js code (`**/three/**`, `**/*.three.ts`) |
-| `testing-frontend.md`   | editing test files (`**/*.spec.ts`)                    |
-| `pr-description.md`     | editing files under `.changeset/`                      |
-| `changesets.md`         | editing files under `.changeset/` or `CHANGELOG.md`    |
-| `go.md`                 | editing `.go`                                          |
-| `testing-go.md`         | editing Go tests (`**/*_test.go`)                      |
-| `code-comments.md`      | editing any code file                                  |
-| `editing-discipline.md` | every session (edit from current state, in scope)      |
-| `verification.md`       | every session (verify before reporting done)           |
-| `design-system.md`      | every session (design system context)                  |
+| Rule                     | Loads when                                             |
+| ------------------------ | ------------------------------------------------------ |
+| `svelte.md`              | editing `.svelte`, `.svelte.ts`, `.svelte.js`          |
+| `frontend-aesthetics.md` | editing `.svelte` or `.css`                            |
+| `three.md`               | editing Three.js code (`**/three/**`, `**/*.three.ts`) |
+| `testing-frontend.md`    | editing test files (`**/*.spec.ts`)                    |
+| `pr-description.md`      | editing files under `.changeset/`                      |
+| `changesets.md`          | editing files under `.changeset/` or `CHANGELOG.md`    |
+| `go.md`                  | editing `.go`                                          |
+| `testing-go.md`          | editing Go tests (`**/*_test.go`)                      |
+| `viam-context.md`        | every session (Viam API and SDK sources)               |
+| `code-comments.md`       | editing any code file                                  |
+| `editing-discipline.md`  | every session (edit from current state, in scope)      |
+| `verification.md`        | every session (verify before reporting done)           |
+| `design-system.md`       | every session (design system context)                  |
 
 <!-- claude-config:rules-table end -->
