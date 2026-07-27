@@ -19,7 +19,7 @@ export const applyEulerDeltaToPose = (
 	if (delta.yaw !== undefined) euler.z = MathUtils.degToRad(delta.yaw)
 
 	quaternion.setFromEuler(euler)
-	out.toQuaternion(quaternion)
+	out.setFromQuaternion(quaternion)
 }
 
 export const composeLocalMatrix = (

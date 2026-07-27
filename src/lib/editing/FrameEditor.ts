@@ -2,8 +2,9 @@ import type { Entity } from 'koota'
 
 import type { Frame } from '$lib/frame'
 
+import { Pose, type PosePatch } from '$lib/math'
+
 import { hierarchy, traits } from '$lib/ecs'
-import { Pose } from '$lib/math'
 
 export type UpdateFrameFn = (
 	componentName: string,
@@ -130,14 +131,14 @@ export class FrameEditor {
 	}
 
 	/** Merge a partial local pose (position and/or orientation) into the frame. */
-	setPose = (entity: Entity, pose: Partial<Pose>): void => {
+	setPose = (entity: Entity, pose: PosePatch): void => {
 		const name = entity.get(traits.Name)
 		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
 
-		this.#tempPose.toMatrix4(matrix)
+		this.#tempPose.setFromMatrix4(matrix)
 
-		const next = new Pose().copy(this.#tempPose).copy(pose)
+		const next = this.#tempPose.clone().merge(pose)
 
 		// Guard against a degenerate gizmo solve producing NaN/∞ — leave the frame
 		// at its last good pose rather than writing garbage into the config.

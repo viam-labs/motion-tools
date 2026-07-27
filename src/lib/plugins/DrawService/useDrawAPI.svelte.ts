@@ -209,15 +209,7 @@ export const provideDrawAPI = () => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const drawGeometry = (data: any, color: string, parent?: string) => {
 		const name = data.label ?? `geometry ${++geometryIndex}`
-		const pose = new Pose(
-			data.center.x,
-			data.center.y,
-			data.center.z,
-			data.center.oX,
-			data.center.oY,
-			data.center.oZ,
-			data.center.theta
-		)
+		const pose = new Pose().copy(data.center)
 		const existing = entities.get(name)
 
 		if (existing) {

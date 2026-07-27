@@ -50,11 +50,11 @@ Renders a Viam Geometry object
 		invalidate()
 	})
 
-	const pose = new Pose()
+	const tempPose = new Pose()
 
 	$effect(() => {
 		if (model && center.current) {
-			pose.copy(center.current).toObject3D(model)
+			tempPose.copy(center.current).toObject3D(model)
 			invalidate()
 		}
 	})

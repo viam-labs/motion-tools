@@ -5,6 +5,7 @@ import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { frameGeometryFromTransform } from '$lib/geometry'
+import { Pose } from '$lib/math'
 import { applyEulerDeltaToPose } from '$lib/transform'
 
 /**
@@ -32,7 +33,7 @@ export function resolveFragmentCurrentFrames(
 		const observed = transform?.poseInObserverFrame
 		if (!observed) continue
 
-		const pose = new Pose(observed.pose)
+		const pose = new Pose().copy(observed.pose)
 
 		result[name] = {
 			id: meta.id,
@@ -283,15 +284,15 @@ export function validateProposedFrameDeltas(
 		}
 
 		const newParent = delta.parent ?? previousParent
-		const newPose: Pose = {
-			x: delta.translation?.x ?? previousPose.x,
-			y: delta.translation?.y ?? previousPose.y,
-			z: delta.translation?.z ?? previousPose.z,
-			oX: previousPose.oX,
-			oY: previousPose.oY,
-			oZ: previousPose.oZ,
-			theta: previousPose.theta,
-		}
+		const newPose = new Pose(
+			delta.translation?.x ?? previousPose.x,
+			delta.translation?.y ?? previousPose.y,
+			delta.translation?.z ?? previousPose.z,
+			previousPose.oX,
+			previousPose.oY,
+			previousPose.oZ,
+			previousPose.theta
+		)
 
 		if (delta.orientation) {
 			applyEulerDeltaToPose(previousPose, delta.orientation, newPose)

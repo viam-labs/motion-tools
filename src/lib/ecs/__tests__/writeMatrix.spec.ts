@@ -19,7 +19,7 @@ describe('writeMatrix', () => {
 		const world = createWorld()
 		const entity = world.spawn(traits.Matrix(matrix()))
 		writeMatrix(entity, { x: 99 })
-		const pose = new Pose().setFromMatrix4(entity.get(traits.Matrix)!).scale(1000)
+		const pose = new Pose().setFromMatrix4(entity.get(traits.Matrix)!)
 		expect(pose.x).toBeCloseTo(99)
 		expect(pose.y).toBeCloseTo(20)
 		expect(pose.z).toBeCloseTo(30)

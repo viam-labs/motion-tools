@@ -24,7 +24,7 @@ describe('worldMatrix system', () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const entity = world.spawn(traits.Matrix(new Pose(100, 200, 300).scale(0.001).toMatrix4()))
+		const entity = world.spawn(traits.Matrix(new Pose(100, 200, 300).toMatrix4()))
 		await tick()
 
 		const worldMat = entity.get(traits.WorldMatrix)
@@ -38,10 +38,7 @@ describe('worldMatrix system', () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const parent = world.spawn(
-			traits.Name('arm'),
-			traits.Matrix(new Pose(100, 0, 0).scale(0.001).toMatrix4())
-		)
+		const parent = world.spawn(traits.Name('arm'), traits.Matrix(new Pose(100, 0, 0).toMatrix4()))
 		const child = world.spawn(
 			relations.ChildOf(parent),
 			traits.Matrix(new Pose(50, 0, 0).toMatrix4())
@@ -56,7 +53,7 @@ describe('worldMatrix system', () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const entity = world.spawn(traits.EditedMatrix(new Pose(42, 0, 0).scale(0.001).toMatrix4()))
+		const entity = world.spawn(traits.EditedMatrix(new Pose(42, 0, 0).toMatrix4()))
 		await tick()
 
 		expect(entity.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.042)
@@ -69,8 +66,8 @@ describe('worldMatrix system', () => {
 		// baseline at +10 mm, live at +30 mm, no EditedMatrix — the frame follows
 		// live kinematics rather than the saved baseline.
 		const entity = world.spawn(
-			traits.Matrix(new Pose(10).scale(0.001).toMatrix4()),
-			traits.LiveMatrix(new Pose(30).scale(0.001).toMatrix4())
+			traits.Matrix(new Pose(10).toMatrix4()),
+			traits.LiveMatrix(new Pose(30).toMatrix4())
 		)
 		await tick()
 
@@ -85,9 +82,9 @@ describe('worldMatrix system', () => {
 		// edited at +10 mm — same as baseline, no user delta
 		// rendered = live × baseline⁻¹ × edited = +30 mm = +0.030 m
 		const entity = world.spawn(
-			traits.Matrix(new Pose(10).scale(0.001).toMatrix4()),
-			traits.LiveMatrix(new Pose(30).scale(0.001).toMatrix4()),
-			traits.EditedMatrix(new Pose(10).scale(0.001).toMatrix4())
+			traits.Matrix(new Pose(10).toMatrix4()),
+			traits.LiveMatrix(new Pose(30).toMatrix4()),
+			traits.EditedMatrix(new Pose(10).toMatrix4())
 		)
 		await tick()
 
@@ -98,21 +95,15 @@ describe('worldMatrix system', () => {
 		world = createWorld()
 		unsub = installWorldMatrixListeners(world)
 
-		const parent = world.spawn(
-			traits.Name('arm'),
-			traits.Matrix(new Pose(100).scale(0.001).toMatrix4())
-		)
-		const child = world.spawn(
-			relations.ChildOf(parent),
-			traits.Matrix(new Pose(50).scale(0.001).toMatrix4())
-		)
+		const parent = world.spawn(traits.Name('arm'), traits.Matrix(new Pose(100).toMatrix4()))
+		const child = world.spawn(relations.ChildOf(parent), traits.Matrix(new Pose(50).toMatrix4()))
 		await tick()
 		expect(child.get(traits.WorldMatrix)?.elements[12]).toBeCloseTo(0.15)
 
 		// Mutate parent.Matrix in place + entity.changed — same idiom call sites use.
 		const parentMatrix = parent.get(traits.Matrix)
 		assertExists(parentMatrix, 'Parent matrix is undefined')
-		new Pose(200).scale(0.001).toMatrix4(parentMatrix)
+		new Pose(200).toMatrix4(parentMatrix)
 		parent.changed(traits.Matrix)
 		await tick()
 
@@ -126,11 +117,11 @@ describe('worldMatrix system', () => {
 		const entity = world.spawn(traits.Matrix())
 		const matrix = entity.get(traits.Matrix)!
 
-		new Pose(1).scale(0.001).toMatrix4(matrix)
+		new Pose(1).toMatrix4(matrix)
 		entity.changed(traits.Matrix)
-		new Pose(2).scale(0.001).toMatrix4(matrix)
+		new Pose(2).toMatrix4(matrix)
 		entity.changed(traits.Matrix)
-		new Pose(3).scale(0.001).toMatrix4(matrix)
+		new Pose(3).toMatrix4(matrix)
 		entity.changed(traits.Matrix)
 		await tick()
 

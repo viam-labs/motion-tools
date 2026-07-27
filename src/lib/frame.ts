@@ -4,8 +4,8 @@ import type { Transform } from '@viamrobotics/sdk'
 
 import { UuidTool } from 'uuid-tool'
 
-import { createGeometryFromFrame } from './geometry'
-import { createPoseFromFrame } from './transform'
+import { createGeometryFromFrame } from '$lib/geometry'
+import { Pose } from '$lib/math'
 
 type FrameGeometryMap = {
 	none: { type: 'none' }
@@ -66,7 +66,7 @@ export const createTransformFromFrame = (name: string, frame: Partial<Frame>): T
 		referenceFrame: name,
 		poseInObserverFrame: {
 			referenceFrame: frame.parent ?? 'world',
-			pose: createPoseFromFrame(frame),
+			pose: new Pose().setFromFrame(frame),
 		},
 		physicalObject: createGeometryFromFrame(frame),
 	} satisfies Transform

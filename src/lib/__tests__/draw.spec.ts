@@ -391,7 +391,8 @@ describe('drawDrawing', () => {
 
 		const { entity } = drawDrawing(world, drawing, traits.SnapshotAPI)
 
-		expect(entity.get(traits.Center)).toStrictEqual(center)
+		// Center holds the decoded wire object, not a Pose instance — compare fields only.
+		expect(entity.get(traits.Center)).toEqual(center)
 		expect(entity.has(traits.BufferGeometry)).toBe(true)
 		expect(entity.has(traits.Points)).toBe(true)
 		expect(entity.get(traits.PointSize)).toBe(8)
@@ -408,14 +409,14 @@ describe('updateTransform', () => {
 
 		const initial = new Transform({
 			referenceFrame: 'child',
-			poseInObserverFrame: { referenceFrame: 'arm', pose: new Pose() },
+			poseInObserverFrame: { referenceFrame: 'arm', pose: {} },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
 		expect(hierarchy.getParentName(entity)).toBe('arm')
 
 		updateTransform(entity, {
 			...initial,
-			poseInObserverFrame: { referenceFrame: 'world', pose: { x: 0, y: 0, z: 0 } },
+			poseInObserverFrame: { referenceFrame: 'world', pose: {} },
 		} as Transform)
 
 		expect(hierarchy.getParentName(entity)).toBeUndefined()

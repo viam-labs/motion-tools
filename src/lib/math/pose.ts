@@ -1,4 +1,5 @@
-import { Pose as ViamPose } from '@viamrobotics/sdk'
+import type { Pose as ViamPose } from '@viamrobotics/sdk'
+
 import { Euler, MathUtils, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
 
 import type { Frame } from '../frame'
@@ -11,6 +12,26 @@ const translation = new Vector3()
 const scale = new Vector3()
 const euler = new Euler()
 
+/**
+ * A `Pose` is always in millimetres with `theta` in degrees — the units the
+ * Viam APIs and the machine config speak. Three.js scene graph objects
+ * (`Matrix4`, `Vector3`, `Object3D`) are always in metres, so every method
+ * that crosses that boundary converts. Callers never scale by hand.
+ */
+const MM_TO_M = 0.001
+const M_TO_MM = 1000
+
+/** Every field optional — the shape of a partial or wire-decoded pose. */
+export interface PosePatch {
+	x?: number
+	y?: number
+	z?: number
+	oX?: number
+	oY?: number
+	oZ?: number
+	theta?: number
+}
+
 export class Pose implements ViamPose {
 	x: number
 	y: number
@@ -20,27 +41,20 @@ export class Pose implements ViamPose {
 	oZ: number
 	theta: number
 
-	constructor(x = 0, y = 0, z = 0, oX = 0, oY = 0, oZ = 1, theta = 0) {
+	constructor(x = 0, y = 0, z = 0, oX?: number, oY?: number, oZ?: number, theta = 0) {
 		this.x = x
 		this.y = y
 		this.z = z
-		this.oX = oX
-		this.oY = oY
+		this.oX = oX ?? 0
+		this.oY = oY ?? 0
 		this.theta = theta
 
-		// We should only default to the 0,0,1,0 orientation vector if the entire vector component is missing
+		// Only default to the 0,0,1,0 orientation vector if the entire vector component
+		// is missing — a caller who supplies any axis means the omitted ones to be zero.
 		this.oZ = oX === undefined && oY === undefined && oZ === undefined ? 1 : (oZ ?? 0)
 	}
 
-	equals(pose?: {
-		x?: number
-		y?: number
-		z?: number
-		oX?: number
-		oY?: number
-		oZ?: number
-		theta?: number
-	}) {
+	equals(pose?: PosePatch) {
 		if (pose === this) return true
 		if (!pose) return false
 
@@ -59,34 +73,38 @@ export class Pose implements ViamPose {
 		return new Pose(this.x, this.y, this.z, this.oX, this.oY, this.oZ, this.theta)
 	}
 
-	copy(pose?: {
-		x?: number
-		y?: number
-		z?: number
-		oX?: number
-		oY?: number
-		oZ?: number
-		theta?: number
-	}) {
-		if (!pose) return this
-
-		this.x = pose.x ?? 0
-		this.y = pose.y ?? 0
-		this.z = pose.z ?? 0
-		this.oX = pose.oX ?? 0
-		this.oY = pose.oY ?? 0
-		this.theta = pose.theta ?? 0
+	/**
+	 * Overwrite every field from `pose`, defaulting the ones it omits. Passing
+	 * `undefined` resets to the identity pose rather than leaving the previous
+	 * values in place — call sites copy from optional wire fields
+	 * (`poseInObserverFrame?.pose`) into reused scratch poses, and a no-op would
+	 * silently carry the last entity's pose forward. Use `merge` to patch.
+	 */
+	copy(pose?: PosePatch) {
+		this.x = pose?.x ?? 0
+		this.y = pose?.y ?? 0
+		this.z = pose?.z ?? 0
+		this.oX = pose?.oX ?? 0
+		this.oY = pose?.oY ?? 0
+		this.theta = pose?.theta ?? 0
 
 		this.oZ =
-			pose.oX === undefined && pose.oY === undefined && pose.oZ === undefined ? 1 : (pose.oZ ?? 0)
+			pose?.oX === undefined && pose?.oY === undefined && pose?.oZ === undefined
+				? 1
+				: (pose?.oZ ?? 0)
 
 		return this
 	}
 
-	scale(x: number) {
-		this.x *= x
-		this.y *= x
-		this.z *= x
+	/** Overwrite only the fields `patch` defines, leaving the rest untouched. */
+	merge(patch: PosePatch) {
+		if (patch.x !== undefined) this.x = patch.x
+		if (patch.y !== undefined) this.y = patch.y
+		if (patch.z !== undefined) this.z = patch.z
+		if (patch.oX !== undefined) this.oX = patch.oX
+		if (patch.oY !== undefined) this.oY = patch.oY
+		if (patch.oZ !== undefined) this.oZ = patch.oZ
+		if (patch.theta !== undefined) this.theta = patch.theta
 
 		return this
 	}
@@ -125,6 +143,7 @@ export class Pose implements ViamPose {
 			ov.set(0, 0, 1, 0)
 		}
 
+		// Frame translations come from the machine config, already in millimetres.
 		this.x = frame.translation?.x ?? 0
 		this.y = frame.translation?.y ?? 0
 		this.z = frame.translation?.z ?? 0
@@ -146,10 +165,11 @@ export class Pose implements ViamPose {
 		return this
 	}
 
+	/** Read a position from a `Vector3` (m), storing it as millimetres. */
 	setFromVector3(vector3: Vector3) {
-		this.x = vector3.x
-		this.y = vector3.y
-		this.z = vector3.z
+		this.x = vector3.x * M_TO_MM
+		this.y = vector3.y * M_TO_MM
+		this.z = vector3.z * M_TO_MM
 
 		return this
 	}
@@ -161,11 +181,12 @@ export class Pose implements ViamPose {
 		return this
 	}
 
+	/** Decompose a `Matrix4` (m) into this pose (mm). */
 	setFromMatrix4(matrix4: Matrix4) {
 		matrix4.decompose(translation, quaternion, scale)
-		this.x = translation.x
-		this.y = translation.y
-		this.z = translation.z
+		this.x = translation.x * M_TO_MM
+		this.y = translation.y * M_TO_MM
+		this.z = translation.z * M_TO_MM
 
 		ov.setFromQuaternion(quaternion)
 		this.oX = ov.x
@@ -176,20 +197,19 @@ export class Pose implements ViamPose {
 		return this
 	}
 
+	/** Build a TR `Matrix4` (m) from this pose (mm). */
 	toMatrix4(matrix4 = new Matrix4()) {
 		ov.set(this.oX, this.oY, this.oZ, MathUtils.degToRad(this.theta))
 		ov.toQuaternion(quaternion)
 		matrix4.makeRotationFromQuaternion(quaternion)
-		matrix4.setPosition(this.x, this.y, this.z)
+		matrix4.setPosition(this.x * MM_TO_M, this.y * MM_TO_M, this.z * MM_TO_M)
 		return matrix4
 	}
 
 	toQuaternion(quaternion = new Quaternion()) {
-		const th = MathUtils.degToRad(this.theta ?? 0)
-		ov.set(this.oX, this.oY, this.oZ, th)
-		if (quaternion) {
-			ov.toQuaternion(quaternion)
-		}
+		ov.set(this.oX, this.oY, this.oZ, MathUtils.degToRad(this.theta))
+		ov.toQuaternion(quaternion)
+		return quaternion
 	}
 
 	toEulerDegrees() {
@@ -202,8 +222,9 @@ export class Pose implements ViamPose {
 		}
 	}
 
+	/** Write this pose's position (mm) into a `Vector3` (m). */
 	toVector3(vector3 = new Vector3()) {
-		vector3.set(this.x, this.y, this.z)
+		vector3.set(this.x * MM_TO_M, this.y * MM_TO_M, this.z * MM_TO_M)
 		return vector3
 	}
 

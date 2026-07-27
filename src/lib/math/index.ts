@@ -1,1 +1,1 @@
-export { Pose } from './pose'
+export { Pose, type PosePatch } from './pose'
