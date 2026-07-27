@@ -15,7 +15,8 @@ export type UpdateFrameFn = (
 
 export type DeleteFrameFn = (componentName: string) => void
 
-type Geometry = NonNullable<Frame['geometry']>
+export type EditableFrameGeometry = NonNullable<Frame['geometry']>
+type Geometry = EditableFrameGeometry
 type GeometryType = Geometry['type']
 
 const defaultGeometry = (type: GeometryType): Geometry => {
@@ -71,7 +72,7 @@ const resolveGeometry = (entity: Entity, geometry: Partial<Geometry>): Geometry 
 }
 
 /** Write a resolved geometry onto the entity's geometry trait, dropping the others. */
-const applyGeometryTrait = (entity: Entity, geometry: Geometry): void => {
+export const applyGeometryTrait = (entity: Entity, geometry: Geometry): void => {
 	if (geometry.type === 'box') {
 		entity.remove(traits.Sphere, traits.Capsule)
 		const value = { x: geometry.x, y: geometry.y, z: geometry.z }

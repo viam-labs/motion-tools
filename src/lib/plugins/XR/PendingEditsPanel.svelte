@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Text } from 'threlte-uikit'
-	import { Button, ButtonLabel, Panel } from 'threlte-uikit/horizon'
+	import { Button, ButtonIcon, ButtonLabel, Panel } from 'threlte-uikit/horizon'
+	import { Icon, Redo2, Undo2 } from 'threlte-uikit/lucide'
 
 	import { useWorld } from '$lib/ecs'
 	import { resetStagedEdits } from '$lib/editing/resetStagedEdits'
@@ -36,6 +37,28 @@
 				flexDirection="row"
 				gap={8}
 			>
+				<Button
+					icon
+					variant="tertiary"
+					size="sm"
+					disabled={!partConfig.canUndoFrameEdit}
+					onclick={() => partConfig.undoFrameEdit()}
+				>
+					<ButtonIcon>
+						<Icon is={Undo2} />
+					</ButtonIcon>
+				</Button>
+				<Button
+					icon
+					variant="tertiary"
+					size="sm"
+					disabled={!partConfig.canRedoFrameEdit}
+					onclick={() => partConfig.redoFrameEdit()}
+				>
+					<ButtonIcon>
+						<Icon is={Redo2} />
+					</ButtonIcon>
+				</Button>
 				<Button
 					variant="tertiary"
 					size="sm"

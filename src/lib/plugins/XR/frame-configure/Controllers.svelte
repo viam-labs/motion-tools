@@ -90,6 +90,19 @@
 	// Snapshot of the geometry dims at drag start. Used in scale mode to compute
 	// `newDims = base * absoluteScaleFactor` each frame; cleared on drag end.
 	let geometryBase: GeometryBase | undefined
+	let frameHistoryEntryOpen = false
+
+	const beginFrameHistoryEntry = () => {
+		if (!selectedEntity?.has(traits.FramesAPI)) return
+		partConfig.beginFrameEditHistoryEntry()
+		frameHistoryEntryOpen = true
+	}
+
+	const endFrameHistoryEntry = () => {
+		if (!frameHistoryEntryOpen) return
+		partConfig.endFrameEditHistoryEntry()
+		frameHistoryEntryOpen = false
+	}
 
 	const getRay = (handedness: Handedness | undefined): XRTargetRaySpace | undefined => {
 		if (handedness === 'left') return leftController.current?.targetRay
@@ -224,6 +237,7 @@
 	// baseline, and clear the snapshot on drag end.
 	controls.addEventListener('mouseDown', () => {
 		transformControls.setActive(true)
+		beginFrameHistoryEntry()
 		if (mode !== 'scale') return
 		if (box.current) {
 			geometryBase = { type: 'box', x: box.current.x, y: box.current.y, z: box.current.z }
@@ -239,6 +253,7 @@
 	controls.addEventListener('mouseUp', () => {
 		transformControls.setActive(false)
 		geometryBase = undefined
+		endFrameHistoryEntry()
 	})
 
 	controls.addEventListener('objectChange', () => {
@@ -291,6 +306,7 @@
 	})
 
 	onDestroy(() => {
+		endFrameHistoryEntry()
 		transformControls.setActive(false)
 		controls.detach()
 		controls.dispose()
