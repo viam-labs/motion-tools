@@ -7,13 +7,13 @@ import type {
 	Transform,
 } from '@viamrobotics/sdk'
 
-import type { Frame } from './frame'
+import { Pose } from '$lib/math'
 
-import { createPose } from './transform'
+import type { Frame } from './frame'
 
 export const createGeometry = (geometryType?: Geometry['geometryType'], label = ''): Geometry => {
 	return {
-		center: createPose(),
+		center: new Pose(),
 		label,
 		geometryType: geometryType ?? { case: undefined, value: undefined },
 	}

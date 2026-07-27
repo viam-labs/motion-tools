@@ -1,12 +1,12 @@
 import type { JsonValue } from '@viamrobotics/sdk'
 
-import { Pose, Struct } from '@viamrobotics/sdk'
+import { Struct } from '@viamrobotics/sdk'
 import { createAppMutation, createAppQuery } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 
 import { createFrame, type Frame } from '$lib/frame'
 import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-import { createPoseFromFrame } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 const key = Symbol('part-config-context')
 
@@ -173,7 +173,7 @@ export const providePartConfig = (
 		}
 
 		if (component.frame) {
-			const currentPose = createPoseFromFrame(component.frame)
+			const currentPose = new Pose().setFromFrame(component.frame)
 
 			component.frame.parent = referenceFrame
 			component.frame.translation = {

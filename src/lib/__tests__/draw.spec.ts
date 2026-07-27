@@ -24,7 +24,7 @@ import { ColorFormat, Metadata, Relationship } from '$lib/buf/draw/v1/metadata_p
 import { STRIDE } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { traits } from '$lib/ecs'
-import { createPose } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import { drawDrawing, drawTransform, updateDrawing, updateMetadata, updateTransform } from '../draw'
 
@@ -61,7 +61,7 @@ describe('drawTransform', () => {
 			referenceFrame: 'box-frame',
 			poseInObserverFrame: {
 				referenceFrame: 'arm',
-				pose: createPose({ x: 100, y: 200, z: 300 }),
+				pose: new Pose(100, 200, 300),
 			},
 			physicalObject: new Geometry({
 				geometryType: { case: 'box', value: { dimsMm: { x: 10, y: 20, z: 30 } } },
@@ -138,7 +138,7 @@ describe('drawTransform', () => {
 		world = createWorld()
 		const transform = new Transform({
 			referenceFrame: 'arm',
-			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'world', pose: new Pose() },
 		})
 
 		const { entity } = drawTransform(world, transform, traits.SnapshotAPI)
@@ -212,7 +212,7 @@ describe('drawDrawing', () => {
 		world = createWorld()
 		const drawing = new Drawing({
 			referenceFrame: 'line-1',
-			poseInObserverFrame: { referenceFrame: 'base', pose: createPose({ x: 5, y: 6, z: 7 }) },
+			poseInObserverFrame: { referenceFrame: 'base', pose: new Pose(5, 6, 7) },
 			physicalObject: new Shape({
 				geometryType: {
 					case: 'line',
@@ -289,7 +289,7 @@ describe('drawDrawing', () => {
 		world = createWorld()
 		const drawing = new Drawing({
 			referenceFrame: 'robot-invisible',
-			poseInObserverFrame: { referenceFrame: 'arm', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'arm', pose: new Pose() },
 			physicalObject: new Shape({
 				geometryType: {
 					case: 'model',
@@ -340,7 +340,7 @@ describe('drawDrawing', () => {
 		world = createWorld()
 		const drawing = new Drawing({
 			referenceFrame: 'robot-model',
-			poseInObserverFrame: { referenceFrame: 'arm', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'arm', pose: new Pose() },
 			physicalObject: new Shape({
 				geometryType: {
 					case: 'model',
@@ -376,7 +376,7 @@ describe('drawDrawing', () => {
 
 	it('adds point-specific traits for points drawings', () => {
 		world = createWorld()
-		const center = createPose({ x: 10, y: 20, z: 30 })
+		const center = new Pose(10, 20, 30)
 		const drawing = new Drawing({
 			referenceFrame: 'points-1',
 			physicalObject: new Shape({
@@ -408,14 +408,14 @@ describe('updateTransform', () => {
 
 		const initial = new Transform({
 			referenceFrame: 'child',
-			poseInObserverFrame: { referenceFrame: 'arm', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'arm', pose: new Pose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
 		expect(hierarchy.getParentName(entity)).toBe('arm')
 
 		updateTransform(entity, {
 			...initial,
-			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'world', pose: { x: 0, y: 0, z: 0 } },
 		} as Transform)
 
 		expect(hierarchy.getParentName(entity)).toBeUndefined()
@@ -426,14 +426,14 @@ describe('updateTransform', () => {
 
 		const initial = new Transform({
 			referenceFrame: 'child',
-			poseInObserverFrame: { referenceFrame: 'world', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'world', pose: new Pose() },
 		})
 		const { entity } = drawTransform(world, initial, traits.SnapshotAPI)
 		expect(hierarchy.getParentName(entity)).toBeUndefined()
 
 		updateTransform(entity, {
 			...initial,
-			poseInObserverFrame: { referenceFrame: 'base', pose: createPose() },
+			poseInObserverFrame: { referenceFrame: 'base', pose: {} },
 		} as Transform)
 
 		expect(hierarchy.getParentName(entity)).toBe('base')

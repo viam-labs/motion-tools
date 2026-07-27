@@ -12,7 +12,7 @@ Renders a Viam Geometry object
 	import { traits, useTrait } from '$lib/ecs'
 	import { matchModel, use3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { poseToObject3d } from '$lib/transform'
+	import { Pose } from '$lib/math'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
@@ -50,9 +50,11 @@ Renders a Viam Geometry object
 		invalidate()
 	})
 
+	const pose = new Pose()
+
 	$effect(() => {
 		if (model && center.current) {
-			poseToObject3d(center.current, model)
+			pose.copy(center.current).toObject3D(model)
 			invalidate()
 		}
 	})

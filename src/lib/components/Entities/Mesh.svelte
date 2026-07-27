@@ -8,7 +8,7 @@
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useTag, useTrait } from '$lib/ecs'
-	import { poseToObject3d } from '$lib/transform'
+	import { Pose } from '$lib/math'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
@@ -85,10 +85,11 @@
 	})
 
 	const mesh = new Mesh()
+	const tempPose = new Pose()
 
 	$effect(() => {
 		if (center.current) {
-			poseToObject3d(center.current, mesh)
+			tempPose.copy(center.current).toObject3D(mesh)
 			invalidate()
 		}
 	})

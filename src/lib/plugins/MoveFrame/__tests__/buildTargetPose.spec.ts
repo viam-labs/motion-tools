@@ -1,8 +1,7 @@
 import { Matrix4, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { createPose } from '$lib/transform'
-import { poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import { buildTargetPose, worldNormalFromFace } from '../buildTargetPose'
 
@@ -45,7 +44,7 @@ describe('buildTargetPose — keep orientation', () => {
 
 	it('reproduces the current frame orientation, replacing only position', () => {
 		// A frame whose +Z points along world +X.
-		const current = poseToMatrix(createPose({ oX: 1, oY: 0, oZ: 0, theta: 0 }), new Matrix4())
+		const current = new Pose(0, 0, 0, 1, 0, 0, 0).toMatrix4()
 		const pose = buildTargetPose({
 			worldPoint: new Vector3(0, 0, 0.5),
 			currentWorldMatrix: current,
@@ -82,7 +81,7 @@ describe('buildTargetPose — align into surface', () => {
 	})
 
 	it('falls back to keep when align is requested but no normal is available', () => {
-		const current = poseToMatrix(createPose({ oX: 1, oY: 0, oZ: 0, theta: 0 }), new Matrix4())
+		const current = new Pose(0, 0, 0, 1, 0, 0, 0).toMatrix4()
 		const pose = buildTargetPose({
 			worldPoint: new Vector3(0, 0, 0),
 			currentWorldMatrix: current,

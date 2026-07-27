@@ -10,7 +10,8 @@
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
+	import { Pose } from '$lib/math'
+	import { solveEditedMatrix } from '$lib/transform'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
@@ -83,11 +84,11 @@
 			!invisible.current
 	)
 
-	const refPose = createPose()
+	const refPose = new Pose()
 	const tempRefMatrix = new Matrix4()
 	const tempEditedMatrix = new Matrix4()
 	const tempParentInverse = new Matrix4()
-	const tempPose = createPose()
+	const tempPose = new Pose()
 
 	let scaleStart:
 		| { type: 'box'; x: number; y: number; z: number }
@@ -222,7 +223,7 @@
 		if (!ref || !entity) return
 
 		computeLocalDragTarget(tempRefMatrix)
-		matrixToPose(tempRefMatrix, refPose)
+		refPose.setFromMatrix4(tempRefMatrix)
 
 		const live = liveMatrix.current
 		const config = configMatrix.current
@@ -246,7 +247,9 @@
 		}
 
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
-		matrixToPose(tempEditedMatrix, tempPose)
+
+		tempPose.setFromMatrix4(tempEditedMatrix)
+
 		frameEditor.setPose(entity, { ...tempPose })
 	}
 
@@ -265,8 +268,9 @@
 		computeLocalDragTarget(tempRefMatrix)
 
 		// update only the dragged component
-		matrixToPose(matrix, tempPose)
-		matrixToPose(tempRefMatrix, refPose)
+		tempPose.setFromMatrix4(matrix)
+		refPose.setFromMatrix4(tempRefMatrix)
+
 		if (activeMode === 'translate') {
 			tempPose.x = refPose.x
 			tempPose.y = refPose.y
@@ -278,7 +282,7 @@
 			tempPose.theta = refPose.theta
 		}
 
-		poseToMatrix(tempPose, matrix)
+		tempPose.toMatrix4(matrix)
 		entity.changed(traits.Matrix)
 	}
 </script>

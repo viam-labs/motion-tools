@@ -1,6 +1,6 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { type Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
+import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
@@ -8,8 +8,8 @@ import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
+import { Pose } from '$lib/math'
 import { parsePlyInput } from '$lib/ply'
-import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -322,13 +322,13 @@ export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
 	const matrix = entity.get(Matrix)
 	if (!matrix) return
 
-	const pose = matrixToPose(matrix, createPose())
+	const pose = new Pose().setFromMatrix4(matrix)
 	const filtered = Object.fromEntries(
 		Object.entries(patch).filter(([, v]) => v !== undefined)
 	) as Partial<Pose>
 	if (Object.keys(filtered).length === 0) return
 	Object.assign(pose, filtered)
-	poseToMatrix(pose, matrix)
+	pose.toMatrix4(matrix)
 	entity.changed(Matrix)
 }
 

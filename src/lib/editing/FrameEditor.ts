@@ -1,10 +1,9 @@
-import type { Pose } from '@viamrobotics/sdk'
 import type { Entity } from 'koota'
 
 import type { Frame } from '$lib/frame'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPose, isFinitePose, matrixToPose, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 export type UpdateFrameFn = (
 	componentName: string,
@@ -106,7 +105,7 @@ export class FrameEditor {
 	#deleteFrame: DeleteFrameFn
 	// Per-instance scratch pose so a synchronous Koota subscriber firing on a
 	// trait change can't clobber it mid-method from another FrameEditor.
-	#tempPose = createPose()
+	#tempPose = new Pose()
 
 	constructor(updateFrame: UpdateFrameFn, deleteFrame: DeleteFrameFn) {
 		this.#updateFrame = updateFrame
@@ -136,13 +135,15 @@ export class FrameEditor {
 		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
 
-		matrixToPose(matrix, this.#tempPose)
-		const next: Pose = { ...this.#tempPose, ...pose }
+		this.#tempPose.toMatrix4(matrix)
+
+		const next = new Pose().copy(this.#tempPose).copy(pose)
+
 		// Guard against a degenerate gizmo solve producing NaN/∞ — leave the frame
 		// at its last good pose rather than writing garbage into the config.
-		if (!isFinitePose(next)) return
+		if (!next.isFinite()) return
 
-		poseToMatrix(next, matrix)
+		next.toMatrix4(matrix)
 		entity.changed(traits.EditedMatrix)
 		this.#updateFrame(name, parentName(entity), next)
 	}
@@ -164,8 +165,8 @@ export class FrameEditor {
 		if (!name || !matrix) return
 
 		applyGeometryTrait(entity, geometry)
-		matrixToPose(matrix, this.#tempPose)
-		this.#updateFrame(name, parentName(entity), { ...this.#tempPose }, geometry)
+		this.#tempPose.setFromMatrix4(matrix)
+		this.#updateFrame(name, parentName(entity), this.#tempPose.clone(), geometry)
 	}
 
 	setParent = (entity: Entity, parent: string): void => {
@@ -174,8 +175,8 @@ export class FrameEditor {
 		if (!name || !matrix) return
 
 		hierarchy.setParent(entity, parent === 'world' ? undefined : parent)
-		matrixToPose(matrix, this.#tempPose)
-		this.#updateFrame(name, parent, { ...this.#tempPose })
+		this.#tempPose.setFromMatrix4(matrix)
+		this.#updateFrame(name, parent, this.#tempPose.clone())
 	}
 
 	deleteFrame = (entity: Entity): void => {

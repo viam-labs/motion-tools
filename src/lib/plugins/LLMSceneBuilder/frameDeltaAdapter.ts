@@ -1,11 +1,11 @@
-import type { Pose, Transform } from '@viamrobotics/sdk'
+import type { Transform } from '@viamrobotics/sdk'
 
 import type { Frame, FrameGeometry } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { frameGeometryFromTransform } from '$lib/geometry'
-import { applyEulerDeltaToPose, createPose, createPoseFromFrame } from '$lib/transform'
+import { applyEulerDeltaToPose } from '$lib/transform'
 
 /**
  * Resolves current frames for fragment-defined components from live framesystem
@@ -32,7 +32,7 @@ export function resolveFragmentCurrentFrames(
 		const observed = transform?.poseInObserverFrame
 		if (!observed) continue
 
-		const pose = createPose(observed.pose)
+		const pose = new Pose(observed.pose)
 
 		result[name] = {
 			id: meta.id,
@@ -268,7 +268,7 @@ export function validateProposedFrameDeltas(
 			continue
 		}
 
-		const previousPose = createPoseFromFrame(frame)
+		const previousPose = new Pose().setFromFrame(frame)
 		const previousParent = frame.parent
 		const previousGeometry = frame.geometry
 
