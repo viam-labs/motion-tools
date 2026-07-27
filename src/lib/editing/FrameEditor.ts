@@ -2,9 +2,8 @@ import type { Entity } from 'koota'
 
 import type { Frame } from '$lib/frame'
 
-import { Pose, type PosePatch } from '$lib/math'
-
 import { hierarchy, traits } from '$lib/ecs'
+import { Pose, type PosePatch } from '$lib/math'
 
 export type UpdateFrameFn = (
 	componentName: string,
