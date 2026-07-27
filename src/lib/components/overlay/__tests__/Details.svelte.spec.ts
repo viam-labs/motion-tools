@@ -49,6 +49,12 @@ describe('Details component', () => {
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 		vi.mocked(useLinkedEntities.useLinkedEntities).mockReturnValue({
 			current: [],
@@ -140,6 +146,12 @@ describe('Details component', () => {
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 
 		const context = new Map<symbol, unknown>([
@@ -181,6 +193,12 @@ describe('Details component', () => {
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 
 		const { container } = render(Details, {
