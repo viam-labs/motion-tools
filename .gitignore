@@ -66,3 +66,9 @@ e2e/.env.e2e
 
 # IDE
 .cursor
+
+# >>> claude-config (managed) >>>
+# Claude Code
+.claude/worktrees
+.claude/settings.local.json
+# <<< claude-config (managed) <<<

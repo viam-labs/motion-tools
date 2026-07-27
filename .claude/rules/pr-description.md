@@ -1,63 +1,50 @@
 ---
 paths:
-  - '.changeset/**'
+  - ".changeset/**"
 ---
 
 # PR Description Format
 
 Follow the structure and tone used in this repository. PR descriptions are technical documents aimed at reviewers who already know the codebase — be precise, not verbose. Do not use em dashes. Use American English.
 
+## Output
+
+By default, return the finished PR description to the user as raw markdown so it can be pasted straight into the GitHub PR body, rather than as rendered prose. Wrap it in a fenced code block; if the description itself contains code fences, use a longer outer fence (four or more backticks) so the nested fences survive.
+
+Only create or update the PR yourself when the user explicitly asks (for example with `gh pr create`); then pass the markdown as the PR body instead of printing it.
+
 ## Opening Paragraph
 
 One to two sentences summarizing **what** the PR adds or changes and **why** it matters. Mention the user-facing capability, not implementation details.
 
 ```
-Adds progressive/chunked delivery of large point clouds and point sets so they can be
-streamed incrementally instead of sent as a single payload.
+Adds a `ghost` variant to Button so consumers can use a tertiary button style
+that matches the design system's low-emphasis treatment.
 ```
-
-## Stacked PRs
-
-When a PR is part of a multi-PR stack, follow the opening paragraph with a `### Stack` section that lists every PR in the chain from bottom (base) to top (tip). This lets a reviewer who lands in the middle of the stack navigate to neighboring PRs without hunting through GitHub.
-
-For each entry, link the PR by number, give a short phrase naming the scope, and mark the current PR in bold (without a self-link). Example:
-
-```markdown
-### Stack
-
-1. Shared ECS traits and helpers (#735)
-2. Details refactor (#736)
-3. Component tweaks (#737)
-4. **This PR**: Gizmos plugin
-5. Gizmos plugin docs (#739)
-```
-
-The opening paragraph should still name the immediate parent PR; the `### Stack` block exists so reviewers can jump anywhere in the chain.
 
 ## Layer-by-Layer Breakdown
 
-Break changes into sections that match the architecture layers they touch. Use the exact heading names below (singular or plural depending on scope). Omit any section with no changes.
+Break changes into sections that match the architecture layers they touch. Use headings that match the actual layers in the affected package(s); common ones below. Omit any section with no changes.
 
-| Heading           | What it covers                                                      |
-| ----------------- | ------------------------------------------------------------------- |
-| **Proto(s)**      | New/changed messages, fields, RPCs, reserved tags in `.proto` files |
-| **Go Draw API**   | Changes in the `draw/` package (server-side drawing logic)          |
-| **Go Client API** | Changes in `client/` (the Go client library consumers use)          |
-| **Frontend**      | Changes in `src/` (Svelte/Threlte/Koota/TypeScript)                 |
+| Heading        | What it covers                                           |
+| -------------- | -------------------------------------------------------- |
+| **Components** | Changes to `.svelte` components in `packages/<pkg>/src/` |
+| **Primitives** | Changes to headless primitives or shared building blocks |
+| **Types**      | New or changed exported types in a package's public API  |
+| **Tests**      | New or changed test files                                |
 
 Within each section:
 
 - Use a bulleted list.
-- Each bullet starts with the symbol being changed (function, field, struct, file) in backticks or bold, then describes **what** changed.
-- Be specific: name the new field, the new function, the new RPC — don't just say "updated metadata".
+- Each bullet starts with the symbol being changed (component, primitive, prop, type) in backticks or bold, then describes **what** changed.
+- Be specific: name the new component, the new export, the changed prop — don't just say "updated the package".
 - Keep bullets to one or two sentences.
 
 ```markdown
-### Go Draw API
+### Components
 
-- `AddEntity` detects `Chunks` metadata and creates a chunked entity.
-- `UpdateEntity` appends data to it via `accumulateChunk`.
-- `GetEntityChunk` reads a slice from disk, returns with a `done` flag.
+- `Button` adds a `variant="ghost"` value and updates focus styles for it.
+- `IconButton` re-exports the new variant through its `variant` prop.
 ```
 
 ## Why?
@@ -67,14 +54,9 @@ Include a **Why?** section when the PR involves non-obvious design decisions. Fo
 ```markdown
 ### Why?
 
-**Why not use actual streaming for this?**
+**Why a new variant instead of a `subtle` prop?**
 
-We want the frontend to acknowledge that it has received and finished processing
-a chunk of data before receiving the next one. ...
-
-**Why use the disk buffer?**
-
-So I tested this with an actual PCD (~700 MB) that came from a production machine. ...
+The design system treats variant as a single closed enum so that visual treatments stay consistent across the library. ...
 ```
 
 Skip this section for straightforward PRs where the "what" is self-explanatory.
@@ -86,12 +68,10 @@ End with a **Testing** section listing which test suites were run and any new te
 ```markdown
 ### Testing
 
-Ran the `draw-client`, `go-client`, and `snapshot` e2e tests.
-
-There are two new tests specifically for drawing chunked data.
+Ran `pnpm --filter @viamrobotics/<pkg> test` and `pnpm lint`. Added a new spec for the ghost variant focus state.
 ```
 
-Name the specific test commands or e2e test names — don't just say "tests pass".
+Name the specific test commands — don't just say "tests pass".
 
 ## Style Rules
 
@@ -99,6 +79,6 @@ Name the specific test commands or e2e test names — don't just say "tests pass
 - Use GitHub-flavoured Markdown — backtick-fenced code, bullet lists, bold.
 - Do **not** add a `## Summary` or `## Description` wrapper heading; the opening paragraph stands on its own.
 - Do **not** include auto-generated changelogs, file lists, or diff stats — reviewers can see those in the Files tab.
-- Keep the tone direct and technical. Write in first person when explaining rationale ("I tested this with..."). Use present tense for describing behaviour ("`AddEntity` detects...").
+- Keep the tone direct and technical. Write in first person when explaining rationale ("I tested this with..."). Use present tense for describing behaviour ("`Button` adds...").
 - When renaming or deprecating something, call out both the old and new names explicitly.
 - If the PR depends on or stacks on another PR, note the base branch and link the parent PR in the opening paragraph.

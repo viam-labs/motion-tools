@@ -26,3 +26,9 @@ src/lib/plugins/MotionPlanReplayer/__tests__/__fixtures__/salad-plan.json
 
 # IDE
 .cursor
+
+# >>> claude-config (managed) >>>
+# Claude Code (managed by claude-config; byte-diffed by `claude-config doctor`)
+.claude/
+.mcp.json
+# <<< claude-config (managed) <<<

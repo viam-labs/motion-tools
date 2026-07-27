@@ -1,11 +1,42 @@
 ---
 paths:
-  - '**/*.svelte'
-  - '**/*.svelte.ts'
-  - '**/*.svelte.js'
+  - "**/*.svelte"
+  - "**/*.svelte.ts"
+  - "**/*.svelte.js"
 ---
 
-# Svelte 5
+# Svelte 5 Best Practices
+
+We use Svelte 5 with runes. See the [Svelte 5 Documentation](https://svelte.dev/docs/svelte) and [Runes Guide](https://svelte.dev/docs/svelte/what-are-runes).
+
+## Component Structure
+
+```svelte
+<script lang="ts">
+import type { HTMLButtonAttributes } from 'svelte/elements';
+
+interface Props extends HTMLButtonAttributes {
+  /** Visual variant */
+  variant?: 'primary' | 'secondary' | 'danger';
+}
+
+const {
+  variant = 'primary',
+  disabled = false,
+  children,
+  ...restProps
+}: Props = $props();
+const classes = $derived(['btn', `btn-${variant}`, disabled && 'btn-disabled']);
+</script>
+
+<button
+  {...restProps}
+  aria-disabled={disabled || undefined}
+  class={classes}
+>
+  {@render children?.()}
+</button>
+```
 
 We use Svelte 5 runes throughout — no Svelte 4 syntax. See the [Svelte 5 docs](https://svelte.dev/docs/svelte).
 
@@ -15,40 +46,44 @@ Use `$state.raw` for values without deep reactivity (large arrays replaced whole
 
 **Never use `$effect` to derive state** — use `$derived`. `$effect` is for side effects only (DOM mutations, subscriptions).
 
-## State Management with Koota ECS
-
-This project uses [Koota](https://github.com/pmndrs/koota) (Entity Component System) for shared scene state — not Svelte stores or TanStack Query.
-
-- **Traits** are defined in `src/lib/ecs/traits.ts`. Marker traits return `() => true`; data traits return a default value factory.
-- **World** is injected via Svelte context: call `provideWorld()` at the root, `useWorld()` to consume.
-- **Reactive queries** via `useQuery` from `$lib/ecs`: `const meshEntities = useQuery(traits.Mesh)`
-- **Trait access** on a specific entity via `useTrait` from `$lib/ecs`: `const pose = useTrait(entity, traits.Pose)`
-- **Relations** (`ChildOf`, `SubEntityLink`) are in `src/lib/ecs/relations.ts`.
-
-Default to local component state (`$state`, `$derived`) for UI-only values. Use Koota ECS for shared scene/entity data. Use Svelte context for shared service/config objects.
-
 ## Context Providers
 
-Use `.svelte.ts` files with `getContext`/`setContext` for reactive shared state:
+Use `.svelte.ts` files with `getContext`/`setContext` for reactive shared state. **ALWAYS** use `Symbol` keys.
 
-- Always use `Symbol()` keys — prevents accidental collisions
-- Return objects with **getters**, not plain properties, to preserve reactivity across context boundaries
-- Naming: `provide*` to inject into context, `use*` to consume
+```typescript
+// theme-context.svelte.ts
+import { getContext, setContext } from "svelte";
 
-## 3D Rendering with Threlte
+const key = Symbol("theme");
 
-This project renders a 3D scene using [Threlte](https://threlte.xyz/llms-full.txt) (Svelte bindings for Three.js). All 3D components live inside a Threlte `<Canvas>` context. Custom Three.js extensions live in `src/lib/three/` and are mounted with `<T is={obj} />`.
+interface ThemeContext {
+  readonly current: "light" | "dark";
+  toggle: () => void;
+}
 
-**Rendering is on-demand, not continuous.** Call `invalidate()` (from `useThrelte()`) after mutating scene objects to trigger a re-render. Use `useTask` for continuous per-frame updates — never `$effect`, which does not participate in Threlte's task scheduler.
+export const provideTheme = () => {
+  let theme = $state<"light" | "dark">("light");
+  const context: ThemeContext = {
+    get current() {
+      return theme;
+    },
+    toggle: () => {
+      theme = theme === "light" ? "dark" : "light";
+    },
+  };
+  setContext(key, context);
+  return context;
+};
 
-**`$effect.pre`** — runs before the DOM updates (and before child effects in the same flush).  
-**`$effect`** —runs after the DOM updates.
+export const useTheme = (): ThemeContext => getContext(key);
+```
 
-The right question to ask for when to use `$effect` vs `$effect.pre` is "does anything downstream in the same flush need to read this before render/DOM-commit?" If yes,`.pre`; if it's a pure side-effect with nothing observing the result inside the same flush, plain $effect is correct.
+**Key conventions:**
 
-**`dispose={false}`** — pass when you manage the Three.js object's lifecycle yourself (pooled or shared instances).
-
-**BVH / raycasting** — opt out objects that don't need hit-testing: `bvh={{ enabled: false }}` or `raycast={() => null}` for display-only geometry.
+- `.svelte.ts` extension for files using runes outside `.svelte` components
+- `Symbol()` for context keys — prevents accidental collisions
+- Return objects with **getters**, not plain properties, to preserve reactivity
+- Naming: `provide*` to inject into context, `use*` or `create*` to consume
 
 ## Accessibility
 
@@ -68,18 +103,9 @@ Use array/object syntax for conditional classes:
 ]}>
 ```
 
-## Svelte MCP Server
-
-Use the Svelte MCP server for authoritative Svelte 5 / SvelteKit docs and validation. Delegate to the `svelte-file-editor` agent when creating or editing `.svelte`, `.svelte.ts`, or `.svelte.js` files — it handles MCP calls efficiently.
-
-- `list-sections` — call FIRST on any Svelte/SvelteKit question to discover relevant docs (returns titles, use_cases, paths).
-- `get-documentation` — fetch every section whose `use_cases` matches the task. Batch multiple sections in one call.
-- `svelte-autofixer` — run on any Svelte code you write before handing it to the user. Keep iterating until it returns no issues or suggestions.
-- `playground-link` — only offer after code is complete AND the user confirms. NEVER call it for code written to files in the project.
-
 ## Verify Your Work
 
 ```
-pnpm check    # svelte-check + go vet
-pnpm lint     # prettier + eslint + golangci-lint
+pnpm check    # svelte-check across the workspace
+pnpm lint     # prettier + eslint
 ```
