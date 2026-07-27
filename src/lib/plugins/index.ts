@@ -37,6 +37,7 @@ export type {
 	PlanEntry,
 } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
 export { transformBytesToSnapshots } from './MotionPlanReplayer/plan-to-snapshots'
+export type { ResolvePlanSnapshots } from './MotionPlanReplayer/plan-dropper'
 
 // MoveFrame
 export { default as MoveFrame } from './MoveFrame/MoveFrame.svelte'

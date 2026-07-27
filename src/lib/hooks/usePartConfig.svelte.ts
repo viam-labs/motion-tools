@@ -2,8 +2,15 @@ import type { JsonValue } from '@viamrobotics/sdk'
 
 import { Struct } from '@viamrobotics/sdk'
 import { createAppMutation, createAppQuery } from '@viamrobotics/svelte-sdk'
+import { StateHistory } from 'runed'
 import { getContext, setContext } from 'svelte'
 
+import { useWorld } from '$lib/ecs'
+import {
+	applyFrameHistorySnapshotToWorld,
+	parsePartConfigSnapshot,
+	serializePartConfig,
+} from '$lib/editing/frameHistory'
 import { createFrame, type Frame } from '$lib/frame'
 import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import { Pose } from '$lib/math'
@@ -24,7 +31,7 @@ interface LocalPartConfig {
 	hasEditPermissions: boolean
 	current: Struct
 
-	set: (config: PartConfig) => void
+	set: (config: PartConfig, options?: { dirty?: boolean }) => void
 	save?: () => void
 	discardChanges?: () => void
 }
@@ -44,6 +51,12 @@ interface PartConfigContext {
 	createFrame: (componentName: string) => void
 	save: () => void
 	discardChanges: () => void
+	canUndoFrameEdit: boolean
+	canRedoFrameEdit: boolean
+	undoFrameEdit: () => void
+	redoFrameEdit: () => void
+	beginFrameEditHistoryEntry: () => void
+	endFrameEditHistoryEntry: () => void
 }
 
 export const providePartConfig = (
@@ -53,12 +66,111 @@ export const providePartConfig = (
 	const props = $derived(params())
 	const config = $derived(props ? useEmbeddedPartConfig(props) : useStandalonePartConfig(partID))
 	const fragmentInfo = useFragmentInfo()
+	const world = useWorld()
 
 	const getCurrent = () => {
 		return (config.current?.toJson?.() ?? { components: [] }) as unknown as PartConfig
 	}
 
 	const current = $derived(getCurrent())
+	const currentSnapshot = $derived(serializePartConfig(current))
+	let historySnapshot = $state(currentSnapshot)
+
+	let cleanSnapshot = $state(serializePartConfig(undefined))
+	let historyActive = $state(false)
+	let historyTransactionDepth = $state(0)
+	let transactionStartSnapshot = $state<string | undefined>()
+	let applyingHistory = false
+
+	$effect(() => {
+		if (historyTransactionDepth === 0 && historySnapshot !== currentSnapshot) {
+			historySnapshot = currentSnapshot
+		}
+	})
+
+	$effect(() => {
+		if (!config.isDirty) {
+			cleanSnapshot = currentSnapshot
+		}
+	})
+
+	let historyPartID: string | undefined
+	$effect(() => {
+		const id = partID()
+		if (historyPartID !== undefined && historyPartID !== id) {
+			historyActive = false
+		}
+		historyPartID = id
+	})
+
+	const applyHistorySnapshot = (snapshot: string) => {
+		applyingHistory = true
+		try {
+			historySnapshot = snapshot
+			const nextConfig = parsePartConfigSnapshot(snapshot) as PartConfig
+			const isClean = snapshot === cleanSnapshot
+			config.set(nextConfig, { dirty: !isClean })
+			applyFrameHistorySnapshotToWorld(world, nextConfig, fragmentInfo.current, {
+				keepEditedMatrices: !isClean,
+			})
+		} finally {
+			applyingHistory = false
+		}
+	}
+
+	const history = new StateHistory(() => historySnapshot, applyHistorySnapshot)
+
+	const markHistoryActive = () => {
+		if (applyingHistory) {
+			return
+		}
+
+		historyActive = true
+	}
+
+	const deactivateHistory = () => {
+		historyActive = false
+		historyTransactionDepth = 0
+		transactionStartSnapshot = undefined
+		historySnapshot = currentSnapshot
+	}
+
+	const hasSettledHistorySnapshot = () => historySnapshot === currentSnapshot
+
+	const canUseHistory = () =>
+		historyTransactionDepth === 0 && historyActive && hasSettledHistorySnapshot()
+
+	const beginFrameEditHistoryEntry = () => {
+		if (applyingHistory) {
+			return
+		}
+
+		markHistoryActive()
+		if (historyTransactionDepth === 0) {
+			transactionStartSnapshot = currentSnapshot
+			if (historySnapshot !== currentSnapshot) {
+				historySnapshot = currentSnapshot
+			}
+		}
+		historyTransactionDepth += 1
+	}
+
+	const endFrameEditHistoryEntry = () => {
+		if (historyTransactionDepth === 0) {
+			return
+		}
+
+		historyTransactionDepth -= 1
+		if (historyTransactionDepth > 0) {
+			return
+		}
+
+		const start = transactionStartSnapshot
+		transactionStartSnapshot = undefined
+		if (start !== currentSnapshot) {
+			historySnapshot = currentSnapshot
+		}
+	}
 
 	const createFragmentFrame = (fragmentId: string, componentName: string) => {
 		const newConfig = getCurrent()
@@ -254,6 +366,7 @@ export const providePartConfig = (
 			framePosition: Pose,
 			frameGeometry?: Frame['geometry']
 		) => {
+			markHistoryActive()
 			const fragmentId = fragmentInfo.current[componentName]?.id
 			if (fragmentId === undefined) {
 				updatePartFrame(componentName, referenceFrame, framePosition, frameGeometry)
@@ -263,6 +376,7 @@ export const providePartConfig = (
 		},
 
 		deleteFrame: (componentName: string) => {
+			markHistoryActive()
 			const fragmentId = fragmentInfo.current[componentName]?.id
 			if (fragmentId === undefined) {
 				deletePartFrame(componentName)
@@ -271,6 +385,7 @@ export const providePartConfig = (
 			}
 		},
 		createFrame: (componentName: string) => {
+			markHistoryActive()
 			const fragmentId = fragmentInfo.current[componentName]?.id
 			if (fragmentId === undefined) {
 				createPartFrame(componentName)
@@ -278,8 +393,34 @@ export const providePartConfig = (
 				createFragmentFrame(fragmentId, componentName)
 			}
 		},
-		save: () => config.save?.(),
-		discardChanges: () => config.discardChanges?.(),
+		save: () => {
+			deactivateHistory()
+			config.save?.()
+		},
+		discardChanges: () => {
+			deactivateHistory()
+			config.discardChanges?.()
+		},
+		get canUndoFrameEdit() {
+			return canUseHistory() && config.isDirty && history.canUndo
+		},
+		get canRedoFrameEdit() {
+			return canUseHistory() && history.canRedo
+		},
+		undoFrameEdit: () => {
+			if (!canUseHistory() || !config.isDirty || !history.canUndo) {
+				return
+			}
+
+			history.undo()
+		},
+		redoFrameEdit: () => {
+			if (canUseHistory() && history.canRedo) {
+				history.redo()
+			}
+		},
+		beginFrameEditHistoryEntry,
+		endFrameEditHistoryEntry,
 	})
 }
 
@@ -360,9 +501,9 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 			return hasEditPermissions
 		},
 
-		set(config: PartConfig): void {
+		set(config: PartConfig, options?: { dirty?: boolean }): void {
 			current = Struct.fromJson(config as unknown as JsonValue)
-			isDirty = true
+			isDirty = options?.dirty ?? true
 		},
 
 		async save() {

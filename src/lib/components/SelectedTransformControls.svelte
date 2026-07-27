@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
+	import { onDestroy } from 'svelte'
 	import { Group, MathUtils, Matrix4 } from 'three'
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
@@ -95,6 +96,21 @@
 		| { type: 'sphere'; r: number }
 		| { type: 'capsule'; r: number; l: number }
 		| undefined
+	let frameHistoryEntryOpen = false
+
+	const beginFrameHistoryEntry = () => {
+		if (!entity?.has(traits.FramesAPI)) return
+		partConfig.beginFrameEditHistoryEntry()
+		frameHistoryEntryOpen = true
+	}
+
+	const endFrameHistoryEntry = () => {
+		if (!frameHistoryEntryOpen) return
+		partConfig.endFrameEditHistoryEntry()
+		frameHistoryEntryOpen = false
+	}
+
+	onDestroy(endFrameHistoryEntry)
 
 	const captureScaleStart = () => {
 		if (!entity || activeMode !== 'scale') {
@@ -125,6 +141,7 @@
 
 	const onMouseDown = () => {
 		captureScaleStart()
+		beginFrameHistoryEntry()
 
 		transformControls.setActive(true)
 	}
@@ -186,6 +203,7 @@
 	const onMouseUp = () => {
 		scaleStart = undefined
 		transformControls.setActive(false)
+		endFrameHistoryEntry()
 	}
 
 	/**

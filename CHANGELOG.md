@@ -1,5 +1,16 @@
 # motion-tools
 
+## 1.39.0
+
+### Minor Changes
+
+- 51ea2d8: Add frame edit undo / redo
+
+### Patch Changes
+
+- 79c4bfc: make upload motion plan callback usable via server RDK path
+- ff3e614: Restrict motion plan replayer to monitor mode
+
 ## 1.38.0
 
 ### Minor Changes
