@@ -36,6 +36,8 @@ export const useMoveGhosts = (
 		const unsubscribe = world.onChange(traits.WorldMatrix, (entity) => {
 			// Ghosts write their own `WorldMatrix` in the sync below; only a source
 			// moving is worth a resync.
+			// `ghosts` is keyed by source entity; a ghost updating its own WorldMatrix
+			// is not a key, so this guard filters out self-triggered updates.
 			if (scheduled || !ghosts.has(entity)) return
 			scheduled = true
 			queueMicrotask(() => {
