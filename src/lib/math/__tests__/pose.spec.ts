@@ -345,6 +345,8 @@ describe('setFromFrame', () => {
 	})
 
 	it('reads euler angles as radians', () => {
+		// RDK's spatialmath.EulerAngles documents radians, and ParseConfig unmarshals
+		// them with no conversion — unlike ov_degrees, which gets its own type.
 		const pose = new Pose().setFromFrame({
 			orientation: { type: 'euler_angles', value: { roll: 0, pitch: 0, yaw: Math.PI / 2 } },
 		})
@@ -361,7 +363,7 @@ describe('setFromFrame', () => {
 	})
 
 	it('composes euler angles in ZYX order', () => {
-		// Matches the convention in `build-frame-descriptors.ts`; the two must not drift.
+		// RDK uses the z-y′-x″ sequence; `build-frame-descriptors.ts` decodes to match.
 		const pose = new Pose().setFromFrame({
 			orientation: {
 				type: 'euler_angles',
