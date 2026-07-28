@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Matrix4 } from 'three'
+
 	import { Button, Select, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
@@ -14,7 +16,6 @@
 		TabGroup,
 		TabPage,
 	} from 'svelte-tweakpane-ui'
-	import type { Matrix4 } from 'three'
 
 	import type { Pose } from '$lib/math'
 
