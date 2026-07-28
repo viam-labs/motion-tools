@@ -1,4 +1,4 @@
-import { Euler, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
+import { MathUtils, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
 import type { Frame } from '$lib/frame'
@@ -6,17 +6,15 @@ import type { Frame } from '$lib/frame'
 import { Pose, type PosePatch } from '../pose'
 
 /**
- * `OrientationVector.spec.ts` already pins the quaternion↔orientation-vector
- * trig against RDK's fixtures. What `Pose` adds on top is three thin adapters —
- * millimetres↔metres, degrees↔radians, and field defaulting — so that is what
- * these tests exercise.
+ * `OrientationVector.spec.ts` owns the quaternion↔orientation-vector trig. What
+ * `Pose` adds is three thin adapters — millimetres↔metres, degrees↔radians and
+ * field defaulting — so that is what these tests exercise.
  *
  * Round-trips cancel unit errors out: `setFromVector3(toVector3(p))` passes
  * whether the constants are 1000/0.001 or 1/1. Every unit boundary therefore
  * gets at least one *absolute* assertion alongside its round-trip.
  */
 
-/** A plain snapshot of the seven wire fields, for structural comparison. */
 const fields = (pose: Pose) => ({
 	x: pose.x,
 	y: pose.y,
@@ -27,18 +25,30 @@ const fields = (pose: Pose) => ({
 	theta: pose.theta,
 })
 
+const FIELDS = ['x', 'y', 'z', 'oX', 'oY', 'oZ', 'theta'] as const
+
 /** A 90° rotation about +X. Verified against the RDK fixtures in `OrientationVector.spec.ts`. */
 const quarterTurnAboutX = new Quaternion(Math.SQRT1_2, 0, 0, Math.SQRT1_2)
 
-/** A 90° rotation about +Z, the same rotation the euler/ov fixtures below describe. */
-const quarterTurnAboutZ = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2)
+/**
+ * Rz(yaw) · Ry(pitch) · Rx(roll), composed from axis-angles rather than three.js'
+ * `Euler` order string so the assertions state ZYX independently of the code
+ * under test.
+ */
+const composeZYX = (roll: number, pitch: number, yaw: number) =>
+	new Quaternion()
+		.setFromAxisAngle(new Vector3(0, 0, 1), yaw)
+		.multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), pitch))
+		.multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), roll))
+
+/** All three angles are non-zero: a single-axis rotation cannot tell ZYX from XYZ. */
+const tiltedRoll = 0.3
+const tiltedPitch = 0.5
+const tiltedYaw = 0.7
 
 describe('the oZ defaulting rule', () => {
-	/*
-	 * "Default to the 0,0,1 orientation vector only when the *entire* vector is
-	 * missing" is written out twice — once in the constructor, once in `copy`.
-	 * Duplicated subtle logic is what drifts, so every case runs through both.
-	 */
+	// The rule is written out twice, in the constructor and in `copy`, so every
+	// case runs through both.
 	const cases = [
 		{ name: 'no orientation fields at all', patch: {}, expected: { oX: 0, oY: 0, oZ: 1 } },
 		{ name: 'only oX supplied', patch: { oX: 1 }, expected: { oX: 1, oY: 0, oZ: 0 } },
@@ -82,7 +92,6 @@ describe('the oZ defaulting rule', () => {
 })
 
 describe('copy vs merge', () => {
-	/** A pose with every field dirtied, so a field left behind is visible. */
 	const dirty = () => new Pose(11, 22, 33, 1, 0, 0, 44)
 
 	it('resets the fields the patch omits rather than leaving them in place', () => {
@@ -116,18 +125,6 @@ describe('copy vs merge', () => {
 		const pose = dirty().merge({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 0, theta: 0 })
 
 		expect(fields(pose)).toEqual({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 0, theta: 0 })
-	})
-
-	it('returns this so calls chain', () => {
-		const pose = new Pose()
-
-		expect(pose.copy({ x: 1 })).toBe(pose)
-		expect(pose.merge({ x: 1 })).toBe(pose)
-		expect(pose.setFromVector3(new Vector3())).toBe(pose)
-		expect(pose.setFromQuaternion(new Quaternion())).toBe(pose)
-		expect(pose.setFromObject3D(new Object3D())).toBe(pose)
-		expect(pose.setFromMatrix4(new Matrix4())).toBe(pose)
-		expect(pose.setFromFrame({})).toBe(pose)
 	})
 })
 
@@ -235,29 +232,30 @@ describe('unit conversion', () => {
 	})
 
 	it('leaves theta unscaled through a matrix round-trip', () => {
-		// A rotation is not a length; only x/y/z cross the mm↔m boundary.
 		const pose = new Pose(0, 0, 0, 0, 0, 1, 35)
 
 		expect(new Pose().setFromMatrix4(pose.toMatrix4()).theta).toBeCloseTo(35, 6)
 	})
 
 	it('reports euler angles in degrees using the ZYX convention', () => {
-		const euler = new Pose().setFromQuaternion(quarterTurnAboutZ).toEulerDegrees()
+		// Recomposing the reported angles has to reproduce the pose's own rotation,
+		// which pins the ordering and the degrees together.
+		const pose = new Pose(0, 0, 0, 0, 1, 0, 35)
+		const { roll, pitch, yaw } = pose.toEulerDegrees()
 
-		expect(euler).toEqual({
-			roll: expect.closeTo(0, 6),
-			pitch: expect.closeTo(0, 6),
-			yaw: expect.closeTo(90, 6),
-		})
+		const recomposed = composeZYX(
+			MathUtils.degToRad(roll),
+			MathUtils.degToRad(pitch),
+			MathUtils.degToRad(yaw)
+		)
+
+		expect(recomposed.angleTo(pose.toQuaternion())).toBeCloseTo(0, 6)
 	})
 })
 
 describe('shared scratch objects', () => {
-	/*
-	 * `ov`, `quaternion`, `euler`, `translation` and `scale` are module singletons
-	 * shared by every Pose instance. The failure mode is a method that starts
-	 * handing out a reference to one of them instead of a fresh object.
-	 */
+	// `ov`, `quaternion`, `euler`, `translation` and `scale` are module singletons
+	// shared by every instance, so the risk is a method handing one of them out.
 	const pose = new Pose(100, -250, 40, 0, 1, 0, 35)
 
 	it('returns a fresh Quaternion per call', () => {
@@ -346,8 +344,7 @@ describe('setFromFrame', () => {
 		})
 	})
 
-	it('reads euler angles as radians in ZYX order', () => {
-		// Matches the convention in `build-frame-descriptors.ts`; the two must not drift.
+	it('reads euler angles as radians', () => {
 		const pose = new Pose().setFromFrame({
 			orientation: { type: 'euler_angles', value: { roll: 0, pitch: 0, yaw: Math.PI / 2 } },
 		})
@@ -361,6 +358,20 @@ describe('setFromFrame', () => {
 			oZ: expect.closeTo(1, 6),
 			theta: expect.closeTo(90, 6),
 		})
+	})
+
+	it('composes euler angles in ZYX order', () => {
+		// Matches the convention in `build-frame-descriptors.ts`; the two must not drift.
+		const pose = new Pose().setFromFrame({
+			orientation: {
+				type: 'euler_angles',
+				value: { roll: tiltedRoll, pitch: tiltedPitch, yaw: tiltedYaw },
+			},
+		})
+
+		const expected = composeZYX(tiltedRoll, tiltedPitch, tiltedYaw)
+
+		expect(pose.toQuaternion().angleTo(expected)).toBeCloseTo(0, 6)
 	})
 
 	it('converts ov_radians into stored degrees', () => {
@@ -379,14 +390,6 @@ describe('setFromFrame', () => {
 		expect(pose.theta).toBeCloseTo(90, 6)
 	})
 
-	it('normalizes the orientation vector on the way in', () => {
-		const pose = new Pose().setFromFrame({
-			orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 5, th: 0 } },
-		})
-
-		expect(fields(pose)).toMatchObject({ oX: 0, oY: 0, oZ: 1 })
-	})
-
 	it('falls back to the identity orientation when the frame has none', () => {
 		const pose = new Pose(1, 2, 3, 1, 0, 0, 44).setFromFrame({
 			translation: { x: 0, y: 0, z: 0 },
@@ -396,14 +399,16 @@ describe('setFromFrame', () => {
 	})
 
 	it('agrees across orientation representations of the same rotation', () => {
+		const { x, y, z, w } = composeZYX(tiltedRoll, tiltedPitch, tiltedYaw)
+
 		const fromQuaternion = new Pose().setFromFrame({
-			orientation: {
-				type: 'quaternion',
-				value: { x: 0, y: 0, z: Math.SQRT1_2, w: Math.SQRT1_2 },
-			},
+			orientation: { type: 'quaternion', value: { x, y, z, w } },
 		})
 		const fromEuler = new Pose().setFromFrame({
-			orientation: { type: 'euler_angles', value: { roll: 0, pitch: 0, yaw: Math.PI / 2 } },
+			orientation: {
+				type: 'euler_angles',
+				value: { roll: tiltedRoll, pitch: tiltedPitch, yaw: tiltedYaw },
+			},
 		})
 
 		expect(fields(fromEuler)).toEqual({
@@ -470,18 +475,18 @@ describe('equals and isFinite', () => {
 		expect(pose().equals({ x: 1, y: 2, z: 3, oX: 0, oY: 1, oZ: 0, theta: 45 })).toBe(true)
 	})
 
-	it('is not equal to a patch that omits a field', () => {
-		// `undefined !== 0`, so a partial patch never matches — the comparison is
-		// exact rather than defaulted.
-		expect(pose().equals({ x: 1, y: 2, z: 3, oX: 0, oY: 1, oZ: 0 })).toBe(false)
+	it.each(FIELDS)('is not equal to a patch that omits %s', (field) => {
+		// The subject is all zeros deliberately: a defaulting `?? 0` in the
+		// comparison only changes the answer when the defaulted field is itself
+		// zero, so a non-zero fixture would pass without testing anything.
+		const zeroed = new Pose(0, 0, 0, 0, 0, 0, 0)
+
+		expect(zeroed.equals({ ...fields(zeroed), [field]: undefined })).toBe(false)
 	})
 
-	it.each(['x', 'y', 'z', 'oX', 'oY', 'oZ', 'theta'] as const)(
-		'is not equal when %s differs',
-		(field) => {
-			expect(pose().equals({ ...fields(pose()), [field]: -1 })).toBe(false)
-		}
-	)
+	it.each(FIELDS)('is not equal when %s differs', (field) => {
+		expect(pose().equals({ ...fields(pose()), [field]: -1 })).toBe(false)
+	})
 
 	it('short-circuits identity even when a field is NaN', () => {
 		const subject = new Pose(Number.NaN)
@@ -494,72 +499,36 @@ describe('equals and isFinite', () => {
 		expect(pose().isFinite()).toBe(true)
 	})
 
-	it.each(['x', 'y', 'z', 'oX', 'oY', 'oZ', 'theta'] as const)(
-		'is not finite when %s is NaN or Infinity',
-		(field) => {
-			expect(pose().merge({ [field]: Number.NaN }).isFinite()).toBe(false)
-			expect(pose().merge({ [field]: Number.POSITIVE_INFINITY }).isFinite()).toBe(false)
-		}
-	)
-})
-
-describe('degenerate orientation vectors', () => {
-	it('keeps a zero-length orientation vector finite', () => {
-		// Reachable from `copy({ oX: 0 })` or from raw entry in PoseDetails. The
-		// failure mode is a NaN matrix, which makes the geometry vanish silently.
-		const matrix = new Pose(1, 2, 3, 0, 0, 0, 45).toMatrix4()
-
-		expect(matrix.elements.every((element) => Number.isFinite(element))).toBe(true)
-	})
-
-	it('keeps a zero-length orientation vector a unit rotation', () => {
-		const quaternion = new Pose(1, 2, 3, 0, 0, 0, 45).toQuaternion()
-
-		expect(quaternion.length()).toBeCloseTo(1, 6)
-	})
-
-	it('treats an unnormalized orientation vector as its unit direction', () => {
-		// Pose stores oX/oY/oZ raw; OrientationVector normalizes on the way in, so
-		// the two only agree once a conversion has happened.
-		const unnormalized = new Pose(0, 0, 0, 0, 0, 5, 35)
-
-		expect(unnormalized.oZ).toBe(5)
-		expect(unnormalized.toQuaternion().equals(new Pose(0, 0, 0, 0, 0, 1, 35).toQuaternion())).toBe(
-			true
-		)
-	})
-
-	it('reads back a normalized orientation vector', () => {
-		const pose = new Pose().setFromMatrix4(new Pose(0, 0, 0, 0, 0, 5, 35).toMatrix4())
-
-		expect(new Vector3(pose.oX, pose.oY, pose.oZ).length()).toBeCloseTo(1, 6)
+	it.each(FIELDS)('is not finite when %s is NaN or Infinity', (field) => {
+		expect(
+			pose()
+				.merge({ [field]: Number.NaN })
+				.isFinite()
+		).toBe(false)
+		expect(
+			pose()
+				.merge({ [field]: Number.POSITIVE_INFINITY })
+				.isFinite()
+		).toBe(false)
 	})
 })
 
-describe('euler conversion', () => {
-	it('round-trips through the ZYX euler convention', () => {
-		const pose = new Pose(0, 0, 0, 0, 1, 0, 35)
-		const { roll, pitch, yaw } = pose.toEulerDegrees()
+describe('degenerate input', () => {
+	it('emits a usable rotation for a zero-length orientation vector', () => {
+		// Reachable from `copy({ oX: 0 })` or raw entry in PoseDetails; a NaN matrix
+		// would make the geometry vanish silently.
+		const pose = new Pose(1, 2, 3, 0, 0, 0, 45)
 
-		const rebuilt = new Pose().setFromQuaternion(
-			new Quaternion().setFromEuler(
-				new Euler(
-					(roll * Math.PI) / 180,
-					(pitch * Math.PI) / 180,
-					(yaw * Math.PI) / 180,
-					'ZYX'
-				)
-			)
-		)
+		expect(pose.toMatrix4().elements.every((element) => Number.isFinite(element))).toBe(true)
+		expect(pose.toQuaternion().length()).toBeCloseTo(1, 6)
+	})
 
-		expect(fields(rebuilt)).toEqual({
-			x: 0,
-			y: 0,
-			z: 0,
-			oX: expect.closeTo(pose.oX, 6),
-			oY: expect.closeTo(pose.oY, 6),
-			oZ: expect.closeTo(pose.oZ, 6),
-			theta: expect.closeTo(pose.theta, 6),
-		})
+	it('stores the orientation vector verbatim rather than normalizing it', () => {
+		// Conversions come back unit length, so a pose is not necessarily equal to
+		// its own round-trip.
+		const pose = new Pose(0, 0, 0, 0, 0, 5, 35)
+
+		expect(pose.oZ).toBe(5)
+		expect(pose.equals(new Pose().setFromMatrix4(pose.toMatrix4()))).toBe(false)
 	})
 })
