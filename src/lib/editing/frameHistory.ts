@@ -1,12 +1,10 @@
 import type { Entity, World } from 'koota'
 
-import { Matrix4 } from 'three'
-
 import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPoseFromFrame, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import { applyGeometryTrait, type EditableFrameGeometry } from './FrameEditor'
 
@@ -128,16 +126,16 @@ const writeMatrixTrait = (
 	trait: typeof traits.Matrix | typeof traits.LiveMatrix | typeof traits.EditedMatrix,
 	frame: Frame
 ): void => {
-	const pose = createPoseFromFrame(frame)
+	const pose = new Pose().setFromFrame(frame)
 	const current = entity.get(trait)
 
 	if (current) {
-		poseToMatrix(pose, current)
+		pose.toMatrix4(current)
 		entity.changed(trait)
 		return
 	}
 
-	entity.add(trait(poseToMatrix(pose, new Matrix4())))
+	entity.add(trait(pose.toMatrix4()))
 }
 
 export const applyFrameHistorySnapshotToWorld = (

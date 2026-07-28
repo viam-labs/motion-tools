@@ -1,5 +1,4 @@
 import { createWorld, type World } from 'koota'
-import { Matrix4 } from 'three'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('$lib/loaders/pcd', () => ({
@@ -7,15 +6,13 @@ vi.mock('$lib/loaders/pcd', () => ({
 }))
 
 import { hierarchy, traits } from '$lib/ecs'
-import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import {
 	applyFrameHistorySnapshotToWorld,
 	collectFrameHistoryFrames,
 	type FrameHistoryPartConfig,
 } from '../frameHistory'
-
-const matrixOf = (x: number) => poseToMatrix(createPose({ x }), new Matrix4())
 
 describe('frame history replay', () => {
 	let world: World
@@ -29,8 +26,8 @@ describe('frame history replay', () => {
 		const entity = world.spawn(
 			traits.Name('arm'),
 			traits.FramesAPI,
-			traits.Matrix(matrixOf(0)),
-			traits.LiveMatrix(matrixOf(10)),
+			traits.Matrix(),
+			traits.LiveMatrix(new Pose(10, 0, 0).toMatrix4()),
 			traits.Box({ x: 1, y: 2, z: 3 })
 		)
 
@@ -55,7 +52,7 @@ describe('frame history replay', () => {
 
 		const edited = entity.get(traits.EditedMatrix)
 		expect(edited).toBeDefined()
-		expect(matrixToPose(edited!, createPose()).x).toBe(100)
+		expect(new Pose().setFromMatrix4(edited!).x).toBe(100)
 		expect(hierarchy.getParentName(entity)).toBe('base')
 		expect(entity.has(traits.Box)).toBe(false)
 		expect(entity.get(traits.Sphere)).toStrictEqual({ r: 42 })
@@ -66,9 +63,9 @@ describe('frame history replay', () => {
 		const entity = world.spawn(
 			traits.Name('arm'),
 			traits.FramesAPI,
-			traits.Matrix(matrixOf(0)),
-			traits.LiveMatrix(matrixOf(10)),
-			traits.EditedMatrix(matrixOf(20)),
+			traits.Matrix(),
+			traits.LiveMatrix(new Pose(10, 0, 0).toMatrix4()),
+			traits.EditedMatrix(new Pose(20, 0, 0).toMatrix4()),
 			traits.Sphere({ r: 5 })
 		)
 
@@ -91,8 +88,8 @@ describe('frame history replay', () => {
 		)
 
 		expect(entity.has(traits.EditedMatrix)).toBe(false)
-		expect(matrixToPose(entity.get(traits.Matrix)!, createPose()).x).toBe(300)
-		expect(matrixToPose(entity.get(traits.LiveMatrix)!, createPose()).x).toBe(300)
+		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(300)
+		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(300)
 		expect(hierarchy.getParentName(entity)).toBeUndefined()
 		expect(entity.has(traits.Sphere)).toBe(false)
 	})

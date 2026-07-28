@@ -1,6 +1,6 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { type Pose, Geometry as ViamGeometry } from '@viamrobotics/sdk'
+import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
@@ -8,8 +8,8 @@ import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
+import { Pose, type PosePatch } from '$lib/math'
 import { parsePlyInput } from '$lib/ply'
-import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -315,20 +315,18 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 
 /**
  * Patches an entity's `Matrix` trait in-place via the `Pose` round-trip
- * (`matrixToPose` → merge → `poseToMatrix`), then signals `entity.changed(Matrix)`.
- * No-ops silently if the entity has no `Matrix` trait.
+ * (`setFromMatrix4` → `merge` → `toMatrix4`), then signals `entity.changed(Matrix)`.
+ * No-ops silently if the entity has no `Matrix` trait, or if the patch would
+ * change nothing.
  */
-export const writeMatrix = (entity: Entity, patch: Partial<Pose>) => {
+export const writeMatrix = (entity: Entity, patch: PosePatch) => {
 	const matrix = entity.get(Matrix)
 	if (!matrix) return
 
-	const pose = matrixToPose(matrix, createPose())
-	const filtered = Object.fromEntries(
-		Object.entries(patch).filter(([, v]) => v !== undefined)
-	) as Partial<Pose>
-	if (Object.keys(filtered).length === 0) return
-	Object.assign(pose, filtered)
-	poseToMatrix(pose, matrix)
+	const defined = Object.values(patch).some((value) => value !== undefined)
+	if (!defined) return
+
+	new Pose().setFromMatrix4(matrix).merge(patch).toMatrix4(matrix)
 	entity.changed(Matrix)
 }
 

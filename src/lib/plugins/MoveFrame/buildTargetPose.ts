@@ -1,8 +1,6 @@
-import type { Pose } from '@viamrobotics/sdk'
-
 import { Matrix3, Matrix4, Quaternion, Vector3 } from 'three'
 
-import { createPose, quaternionToPose, vector3ToPose } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 /** How the destination orientation is derived from a clicked surface. */
 export type OrientationMode = 'keep' | 'align'
@@ -80,8 +78,7 @@ export const buildTargetPose = ({
 		.addScaledVector(offsetDir, standoff / 1000)
 		.applyMatrix4(invDest)
 
-	const pose = createPose()
-	vector3ToPose(localPoint, pose)
+	const pose = new Pose().setFromVector3(localPoint)
 
 	if (orientation === 'align' && worldNormal) {
 		axis.copy(approachAxis).normalize()
@@ -94,11 +91,11 @@ export const buildTargetPose = ({
 		}
 
 		rotation.premultiply(destRotation.invert())
-		quaternionToPose(rotation, pose)
+		pose.setFromQuaternion(rotation)
 	} else if (currentWorldMatrix) {
 		localMatrix.copy(invDest).multiply(currentWorldMatrix)
 		localMatrix.decompose(scratchPosition, rotation, scratchScale)
-		quaternionToPose(rotation, pose)
+		pose.setFromQuaternion(rotation)
 	}
 
 	return pose
