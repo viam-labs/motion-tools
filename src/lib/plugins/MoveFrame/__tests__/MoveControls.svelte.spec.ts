@@ -31,10 +31,9 @@ vi.mock('../MoveTargetGhost.svelte', async () => {
 	const MockScene = await import('./__fixtures__/MockSceneComponent.svelte')
 	return { default: MockScene.default }
 })
-vi.mock('../MoveChildGhosts.svelte', async () => {
-	const MockScene = await import('./__fixtures__/MockSceneComponent.svelte')
-	return { default: MockScene.default }
-})
+
+// Ghosts are entities in the real world; the panel-body test has no ECS.
+vi.mock('../useMoveGhosts.svelte', () => ({ useMoveGhosts: () => undefined }))
 
 // The frame's live world transform normally comes from a robot `getPose` poll; hand
 // the panel a fixed one so the pose inputs have something to seed from.

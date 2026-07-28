@@ -187,6 +187,12 @@
 			: undefined
 	)
 
+	// Ghosts are entities, drawn by the scene's own renderers — see `moveGhosts`.
+	useMoveGhosts(
+		() => (wantsGizmo && armed ? movedEntity : undefined),
+		() => ghostDelta
+	)
+
 	const onDrag = (matrix: Matrix4) => (targetWorldMatrix = matrix)
 
 	/**
@@ -445,14 +451,4 @@
 		currentWorldMatrix={currentWorldMatrix.current}
 		{targetWorldMatrix}
 	/>
-{/if}
-
-{#if wantsGizmo && armed && ghostDelta && movedEntity}
-	{#key movedEntity}
-		<MoveChildGhosts
-			entity={movedEntity}
-			delta={ghostDelta}
-			framesOnly
-		/>
-	{/key}
 {/if}
