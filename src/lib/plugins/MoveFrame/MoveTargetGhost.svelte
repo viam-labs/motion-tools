@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { LineBasicMaterial } from 'three'
 
-	import { T } from '@threlte/core'
+	import { T, useThrelte } from '@threlte/core'
 	import { MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
-	import { Matrix4, Quaternion, Vector3 } from 'three'
+	import { Group, Matrix4, Vector3 } from 'three'
 
 	interface Props {
 		/** Where the frame is right now — world space, metres. */
@@ -14,23 +14,40 @@
 
 	const { currentWorldMatrix, targetWorldMatrix }: Props = $props()
 
+	const { invalidate } = useThrelte()
+
 	const GHOST_COLOR = '#37a06f'
 	const AXES_LENGTH = 0.08
 	/** Below this the travel line degenerates, so only the triad is worth drawing. */
 	const MIN_TRAVEL = 0.001
 
-	const scratchScale = new Vector3()
+	// Both ends of the travel line, reused across drag frames. The array the
+	// derived returns is what tells the geometry to rebuild — a mutated `Vector3`
+	// on its own is `===` its old self, so nothing downstream would see it.
+	const origin = new Vector3()
+	const end = new Vector3()
 
-	const origin = $derived(new Vector3().setFromMatrixPosition(currentWorldMatrix))
-
-	const target = $derived.by(() => {
-		const position = new Vector3()
-		const quaternion = new Quaternion()
-		targetWorldMatrix.decompose(position, quaternion, scratchScale)
-		return { position, quaternion }
+	const points = $derived.by(() => {
+		origin.setFromMatrixPosition(currentWorldMatrix)
+		end.setFromMatrixPosition(targetWorldMatrix)
+		return [origin, end]
 	})
 
-	const travel = $derived(origin.distanceTo(target.position))
+	/** Read through `points` so the distance can never go stale against it. */
+	const travel = $derived(points[0].distanceTo(points[1]))
+
+	/**
+	 * The staged pose is a rigid world transform, so the triad takes the matrix
+	 * whole — no decompose, and no position/quaternion arrays per drag frame.
+	 */
+	const anchor = new Group()
+	anchor.matrixAutoUpdate = false
+
+	$effect.pre(() => {
+		anchor.matrix.copy(targetWorldMatrix)
+		anchor.updateMatrixWorld()
+		invalidate()
+	})
 
 	/** Draw the ghost through occluding geometry — the goal is usually behind something. */
 	const seeThrough = (material: LineBasicMaterial) => {
@@ -47,7 +64,7 @@
 		bvh={{ enabled: false }}
 		renderOrder={1}
 	>
-		<MeshLineGeometry points={[origin, target.position]} />
+		<MeshLineGeometry {points} />
 		<MeshLineMaterial
 			width={2}
 			color={GHOST_COLOR}
@@ -62,10 +79,7 @@
 {/if}
 
 <!-- The staged pose. The triad reads the orientation the gizmo can't in world space. -->
-<T.Group
-	position={target.position.toArray()}
-	quaternion={target.quaternion.toArray()}
->
+<T is={anchor}>
 	<T.AxesHelper
 		args={[AXES_LENGTH]}
 		raycast={() => null}
@@ -87,4 +101,4 @@
 			opacity={0.5}
 		/>
 	</T.Mesh>
-</T.Group>
+</T>

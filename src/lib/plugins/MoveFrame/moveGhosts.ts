@@ -37,6 +37,22 @@ export type MoveGhosts = Map<Entity, Entity>
 
 export const createMoveGhosts = (): MoveGhosts => new Map()
 
+const delta = new Matrix4()
+const inverseCurrent = new Matrix4()
+
+/**
+ * The rigid world-space motion a staged drag represents — `target × current⁻¹`.
+ * Frames attached below the moved one travel with it, so ghosting the subtree
+ * is this delta applied to each descendant's world transform.
+ *
+ * Returns module scratch, rewritten on every call: hand it straight to
+ * `syncMoveGhosts`, which reads it synchronously, and never hold it across
+ * drag frames. Scratch rather than a fresh `Matrix4` because a live gizmo
+ * recomputes this at frame rate.
+ */
+export const rigidMoveDelta = (currentWorldMatrix: Matrix4, targetWorldMatrix: Matrix4): Matrix4 =>
+	delta.multiplyMatrices(targetWorldMatrix, inverseCurrent.copy(currentWorldMatrix).invert())
+
 /**
  * Every descendant a rigid move carries with it, depth-first.
  *

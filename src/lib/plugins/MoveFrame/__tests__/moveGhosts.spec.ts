@@ -4,13 +4,32 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { relations, traits } from '$lib/ecs'
 
-import { clearMoveGhosts, createMoveGhosts, syncMoveGhosts } from '../moveGhosts'
+import { clearMoveGhosts, createMoveGhosts, rigidMoveDelta, syncMoveGhosts } from '../moveGhosts'
 
 /** A metre along +x — enough to tell a ghost's transform from its source's. */
 const delta = new Matrix4().makeTranslation(1, 0, 0)
 
 const position = (entity: Entity) =>
 	new Vector3().setFromMatrixPosition(entity.get(traits.WorldMatrix) ?? new Matrix4())
+
+describe('rigidMoveDelta', () => {
+	it('is the motion that carries the current pose onto the staged one', () => {
+		const current = new Matrix4().makeTranslation(1, 2, 3)
+		const target = new Matrix4().makeTranslation(4, 2, 3)
+
+		const moved = current.clone().premultiply(rigidMoveDelta(current, target))
+
+		expect(moved.elements).toEqual(target.elements)
+	})
+
+	it('reuses one matrix, so callers must consume it before the next call', () => {
+		const first = rigidMoveDelta(new Matrix4(), new Matrix4().makeTranslation(1, 0, 0))
+		const second = rigidMoveDelta(new Matrix4(), new Matrix4().makeTranslation(9, 0, 0))
+
+		expect(first).toBe(second)
+		expect(second.elements[12]).toBe(9)
+	})
+})
 
 describe('syncMoveGhosts', () => {
 	let world: World

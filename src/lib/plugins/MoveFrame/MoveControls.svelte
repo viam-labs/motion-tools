@@ -14,7 +14,7 @@
 		TabGroup,
 		TabPage,
 	} from 'svelte-tweakpane-ui'
-	import { Matrix4 } from 'three'
+	import type { Matrix4 } from 'three'
 
 	import type { Pose } from '$lib/math'
 
@@ -24,7 +24,7 @@
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { applyEulerDeltaToPose } from '$lib/transform'
+	import { setOrientationFromEuler } from '$lib/transform'
 
 	import { defaultMotionService, frameParent, motionServiceNames } from './moveControls'
 	import MoveGizmo from './MoveGizmo.svelte'
@@ -173,24 +173,13 @@
 	/** Numbers render as an em dash until the frame's pose has resolved. */
 	const num = (value: number | undefined, digits: number) => value?.toFixed(digits) ?? '—'
 
-	/**
-	 * The rigid world-space motion the drag represents. Frames attached below the
-	 * moved one travel with it, so ghosting the subtree is this delta applied to
-	 * each descendant's world transform.
-	 */
-	const ghostDelta = $derived(
-		targetWorldMatrix && currentWorldMatrix.current
-			? new Matrix4().multiplyMatrices(
-					targetWorldMatrix,
-					new Matrix4().copy(currentWorldMatrix.current).invert()
-				)
-			: undefined
-	)
-
 	// Ghosts are entities, drawn by the scene's own renderers — see `moveGhosts`.
+	// The subtree rides the delta between these two matrices, which the hook
+	// composes itself so a live gizmo isn't allocating one per frame.
 	useMoveGhosts(
 		() => (wantsGizmo && armed ? movedEntity : undefined),
-		() => ghostDelta
+		() => currentWorldMatrix.current,
+		() => targetWorldMatrix
 	)
 
 	const onDrag = (matrix: Matrix4) => (targetWorldMatrix = matrix)
@@ -218,7 +207,7 @@
 		if (event.detail.origin !== 'internal' || !targetPose) return
 		const next = event.detail.value as RotationEulerValueObject
 		const pose = targetPose.clone()
-		applyEulerDeltaToPose(targetPose, { roll: next.x, pitch: next.y, yaw: next.z }, pose)
+		setOrientationFromEuler(targetPose, { roll: next.x, pitch: next.y, yaw: next.z }, pose)
 		stagePose(pose)
 	}
 
