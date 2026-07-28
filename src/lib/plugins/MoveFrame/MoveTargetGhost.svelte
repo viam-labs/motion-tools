@@ -1,0 +1,90 @@
+<script lang="ts">
+	import type { LineBasicMaterial } from 'three'
+
+	import { T } from '@threlte/core'
+	import { MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
+	import { Matrix4, Quaternion, Vector3 } from 'three'
+
+	interface Props {
+		/** Where the frame is right now — world space, metres. */
+		currentWorldMatrix: Matrix4
+		/** Where the gizmo has staged it — world space, metres. */
+		targetWorldMatrix: Matrix4
+	}
+
+	const { currentWorldMatrix, targetWorldMatrix }: Props = $props()
+
+	const GHOST_COLOR = '#37a06f'
+	const AXES_LENGTH = 0.08
+	/** Below this the travel line degenerates, so only the triad is worth drawing. */
+	const MIN_TRAVEL = 0.001
+
+	const scratchScale = new Vector3()
+
+	const origin = $derived(new Vector3().setFromMatrixPosition(currentWorldMatrix))
+
+	const target = $derived.by(() => {
+		const position = new Vector3()
+		const quaternion = new Quaternion()
+		targetWorldMatrix.decompose(position, quaternion, scratchScale)
+		return { position, quaternion }
+	})
+
+	const travel = $derived(origin.distanceTo(target.position))
+
+	/** Draw the ghost through occluding geometry — the goal is usually behind something. */
+	const seeThrough = (material: LineBasicMaterial) => {
+		material.depthTest = false
+		material.transparent = true
+		material.opacity = 0.9
+	}
+</script>
+
+{#if travel > MIN_TRAVEL}
+	<!-- The path from where the frame is to where it has been staged. -->
+	<T.Mesh
+		raycast={() => null}
+		bvh={{ enabled: false }}
+		renderOrder={1}
+	>
+		<MeshLineGeometry points={[origin, target.position]} />
+		<MeshLineMaterial
+			width={2}
+			color={GHOST_COLOR}
+			depthTest={false}
+			attenuate={false}
+			dashArray={0.05}
+			dashRatio={0.4}
+			transparent
+			opacity={0.7}
+		/>
+	</T.Mesh>
+{/if}
+
+<!-- The staged pose. The triad reads the orientation the gizmo can't in world space. -->
+<T.Group
+	position={target.position.toArray()}
+	quaternion={target.quaternion.toArray()}
+>
+	<T.AxesHelper
+		args={[AXES_LENGTH]}
+		raycast={() => null}
+		bvh={{ enabled: false }}
+		renderOrder={1}
+		oncreate={(ref) => seeThrough(ref.material as LineBasicMaterial)}
+	/>
+
+	<T.Mesh
+		raycast={() => null}
+		bvh={{ enabled: false }}
+		renderOrder={1}
+	>
+		<T.SphereGeometry args={[0.008]} />
+		<T.MeshBasicMaterial
+			color={GHOST_COLOR}
+			depthTest={false}
+			transparent
+			opacity={0.5}
+		/>
+	</T.Mesh>
+</T.Group>

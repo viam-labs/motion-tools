@@ -243,6 +243,14 @@ export type InteractionLayerValue = 'selectTool'
 export const SelectToolInteractionLayer = trait(() => true)
 
 /**
+ * Marker for entities that exist to be looked at, not interacted with — move
+ * ghosts, previews, and other transient display-only geometry. Pointer events
+ * that land on one are ignored and left to propagate, so whatever sits behind
+ * it hovers and selects as if the entity weren't there.
+ */
+export const NonSelectable = trait(() => true)
+
+/**
  * This entity is selected by the user
  */
 export const Selected = trait()

@@ -33,6 +33,15 @@ const createEntityEvents = (
 
 	const world = useWorld()
 
+	/**
+	 * A hit on a `NonSelectable` entity is treated as if the object weren't
+	 * there: no cursor change, no hover or selection, and — because the handler
+	 * returns before `stopPropagation` — the next intersection along the ray
+	 * still receives the event, so a ghost never shadows the geometry behind it.
+	 */
+	const isNonSelectable = (event: IntersectionEvent<MouseEvent>) =>
+		entityForEvent(event)?.has(traits.NonSelectable) ?? false
+
 	const hoverEntity = (currentEntity: Entity, event: IntersectionEvent<MouseEvent>) => {
 		const hoverInfo = updateHoverInfo(currentEntity, event)
 
@@ -56,6 +65,8 @@ const createEntityEvents = (
 	}
 
 	const onpointerenter = (event: IntersectionEvent<MouseEvent>) => {
+		if (isNonSelectable(event)) return
+
 		event.stopPropagation()
 		cursor.onPointerEnter()
 
@@ -67,6 +78,8 @@ const createEntityEvents = (
 	}
 
 	const onpointermove = (event: IntersectionEvent<MouseEvent>) => {
+		if (isNonSelectable(event)) return
+
 		event.stopPropagation()
 
 		const currentEntity = entityForEvent(event)
@@ -99,6 +112,8 @@ const createEntityEvents = (
 	}
 
 	const onpointerleave = (event: IntersectionEvent<MouseEvent>) => {
+		if (isNonSelectable(event)) return
+
 		event.stopPropagation()
 		cursor.onPointerLeave()
 
@@ -113,10 +128,14 @@ const createEntityEvents = (
 	}
 
 	const onpointerdown = (event: IntersectionEvent<MouseEvent>) => {
+		if (isNonSelectable(event)) return
+
 		down.copy(event.pointer)
 	}
 
 	const onclick = (event: IntersectionEvent<MouseEvent>) => {
+		if (isNonSelectable(event)) return
+
 		event.stopPropagation()
 
 		if (down.distanceToSquared(event.pointer) >= 0.1) {

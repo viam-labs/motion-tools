@@ -1,0 +1,212 @@
+import { type ConfigurableTrait, type Entity, type World } from 'koota'
+import { Color, Matrix4 } from 'three'
+
+import { relations, traits } from '$lib/ecs'
+
+/**
+ * Ghosting for a staged move, expressed as scene entities rather than meshes
+ * of its own.
+ *
+ * Everything hanging off the moved frame — a gripper on the wrist, the
+ * gripper's own `GetGeometries` shapes, a camera above it — rides one
+ * world-space delta: attached frames are rigid with respect to the frame the
+ * gizmo drags, so previewing them is a single premultiply rather than a
+ * re-solve.
+ *
+ * Each ghost is an entity holding a copy of its source's geometry, tinted and
+ * marked `NonSelectable`. The renderers the scene already runs draw them:
+ * boxes, spheres and capsules fold into the instanced draw calls, bare frames
+ * into the batched axes helpers, meshes into `Mesh.svelte`. Nothing here
+ * draws, and nothing here allocates a material.
+ *
+ * Ghosts carry no `Name` and no `ChildOf`, so the hierarchy tree, the frame
+ * system and the world-matrix system never see them.
+ */
+
+/**
+ * Staged-goal green, matching the gizmo's other affordances. Read back through
+ * `Color.setRGB`, which does no colour-space conversion, so the channels are
+ * kept in the working space `new Color(hex)` produces.
+ */
+const ghostColor = new Color('#37a06f')
+
+const GHOST_OPACITY = 0.5
+
+/** Ghost entities, keyed by the entity each one mirrors. */
+export type MoveGhosts = Map<Entity, Entity>
+
+export const createMoveGhosts = (): MoveGhosts => new Map()
+
+/**
+ * Every descendant a rigid move carries with it, depth-first.
+ *
+ * The dragged frame's own `GetGeometries` links are the exception, skipped at
+ * the top level. Those are the arm's links, and they are not rigid with the
+ * end effector: moving it re-solves the chain, so they land wherever IK puts
+ * them rather than offset by the drag. Every level below is rigid, links
+ * included.
+ */
+const collectMoved = (world: World, root: Entity, out: Entity[]): Entity[] => {
+	for (const child of world.query(relations.ChildOf(root), traits.FramesAPI)) {
+		collectDescendants(world, child, out)
+	}
+	return out
+}
+
+const collectDescendants = (world: World, entity: Entity, out: Entity[]): Entity[] => {
+	out.push(entity)
+	for (const child of world.query(relations.ChildOf(entity))) {
+		collectDescendants(world, child, out)
+	}
+	return out
+}
+
+/** Which renderers a source lands in, so a shape swap can respawn the ghost. */
+const shapeKind = (entity: Entity): number =>
+	(entity.has(traits.Box) ? 0b0_0001 : 0) |
+	(entity.has(traits.Sphere) ? 0b0_0010 : 0) |
+	(entity.has(traits.Capsule) ? 0b0_0100 : 0) |
+	(entity.has(traits.BufferGeometry) ? 0b0_1000 : 0) |
+	(entity.has(traits.Center) ? 0b1_0000 : 0)
+
+/** Set on a ghost's cloned geometry, naming the geometry it was cloned from. */
+const GHOST_OF = 'moveGhostOf'
+
+/**
+ * `Mesh.svelte` disposes the geometry it renders when it unmounts, so a ghost
+ * can't share its source's `BufferGeometry` — tearing the ghost down would
+ * take the real geometry with it. The clone drops any vertex colours, which
+ * would otherwise win over the ghost tint, and remembers its origin so a
+ * source that swaps geometry is noticed.
+ */
+const cloneGeometry = (entity: Entity) => {
+	const source = entity.get(traits.BufferGeometry)
+	if (!source) return undefined
+
+	const geometry = source.clone()
+	geometry.deleteAttribute('color')
+	geometry.userData[GHOST_OF] = source.uuid
+	return geometry
+}
+
+/**
+ * A display-only copy of `source`'s geometry. A frame with no geometry of its
+ * own — a bare reference frame — ghosts as an axes triad, so the pose it
+ * carries stays legible.
+ */
+const spawnGhost = (world: World, source: Entity): Entity => {
+	const shape: ConfigurableTrait[] = []
+
+	const box = source.get(traits.Box)
+	if (box) shape.push(traits.Box(box))
+
+	const sphere = source.get(traits.Sphere)
+	if (sphere) shape.push(traits.Sphere(sphere))
+
+	const capsule = source.get(traits.Capsule)
+	if (capsule) shape.push(traits.Capsule(capsule))
+
+	const geometry = cloneGeometry(source)
+	if (geometry) shape.push(traits.BufferGeometry(geometry))
+
+	if (shape.length === 0) shape.push(traits.ShowAxesHelper)
+
+	const center = source.get(traits.Center)
+	if (center) shape.push(traits.Center(center))
+
+	return world.spawn(
+		traits.NonSelectable,
+		traits.WorldMatrix(new Matrix4()),
+		traits.Color({ r: ghostColor.r, g: ghostColor.g, b: ghostColor.b }),
+		traits.Opacity(GHOST_OPACITY),
+		...shape
+	)
+}
+
+/** A geometry swap under a live ghost is rare enough to rebuild rather than patch. */
+const isStale = (source: Entity, ghost: Entity): boolean =>
+	shapeKind(source) !== shapeKind(ghost) ||
+	source.get(traits.BufferGeometry)?.uuid !== ghost.get(traits.BufferGeometry)?.userData[GHOST_OF]
+
+/**
+ * Dimensions and the geometry's frame offset can both change mid-drag. Only
+ * reached once `isStale` has confirmed the ghost carries the same traits as
+ * its source.
+ */
+const syncShape = (source: Entity, ghost: Entity) => {
+	const box = source.get(traits.Box)
+	if (box) ghost.set(traits.Box, box)
+
+	const sphere = source.get(traits.Sphere)
+	if (sphere) ghost.set(traits.Sphere, sphere)
+
+	const capsule = source.get(traits.Capsule)
+	if (capsule) ghost.set(traits.Capsule, capsule)
+
+	const center = source.get(traits.Center)
+	if (center) ghost.set(traits.Center, center)
+}
+
+/**
+ * Bring `ghosts` in line with the move staged by `delta`: spawn ghosts for
+ * descendants that don't have one, drop ghosts whose source has gone (or
+ * turned invisible), and write every ghost's world transform. Safe to call as
+ * often as the drag updates — it only ever writes what changed.
+ *
+ * Passing no `root` or no `delta` clears the set, so an unstaged gizmo and a
+ * closed panel take the same path.
+ */
+export const syncMoveGhosts = (
+	world: World,
+	root: Entity | undefined,
+	delta: Matrix4 | undefined,
+	ghosts: MoveGhosts
+): void => {
+	if (root === undefined || !root.isAlive() || delta === undefined) {
+		clearMoveGhosts(ghosts)
+		return
+	}
+
+	const live = new Set<Entity>()
+
+	for (const source of collectMoved(world, root, [])) {
+		// An invisible source ghosts as nothing at all, rather than as a shape
+		// with no visible original.
+		if (source.has(traits.InheritedInvisible)) continue
+
+		const sourceMatrix = source.get(traits.WorldMatrix)
+		if (!sourceMatrix) continue
+
+		let ghost = ghosts.get(source)
+		if (ghost !== undefined && (!ghost.isAlive() || isStale(source, ghost))) {
+			if (ghost.isAlive()) ghost.destroy()
+			ghost = undefined
+		}
+		if (ghost === undefined) {
+			ghost = spawnGhost(world, source)
+			ghosts.set(source, ghost)
+		}
+
+		live.add(source)
+		syncShape(source, ghost)
+
+		const ghostMatrix = ghost.get(traits.WorldMatrix)
+		if (!ghostMatrix) continue
+		ghostMatrix.multiplyMatrices(delta, sourceMatrix)
+		ghost.changed(traits.WorldMatrix)
+	}
+
+	for (const [source, ghost] of ghosts) {
+		if (live.has(source)) continue
+		if (ghost.isAlive()) ghost.destroy()
+		ghosts.delete(source)
+	}
+}
+
+/** Drop every ghost. Call when the drag ends or the panel closes. */
+export const clearMoveGhosts = (ghosts: MoveGhosts): void => {
+	for (const ghost of ghosts.values()) {
+		if (ghost.isAlive()) ghost.destroy()
+	}
+	ghosts.clear()
+}
