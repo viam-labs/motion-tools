@@ -3,11 +3,10 @@ import type { ResourceName, Transform } from '@viamrobotics/sdk'
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { useResourceNames } from '@viamrobotics/svelte-sdk'
-import { Matrix4 } from 'three'
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { usePartID } from '$lib/hooks/usePartID.svelte'
-import { createPose, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import MoveControls from '../MoveControls.svelte'
 
@@ -143,7 +142,7 @@ describe('MoveControls', () => {
 
 	it('seeds editable position and orientation inputs from the frame pose', async () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
-		moved.matrix = poseToMatrix(createPose({ x: 100, y: -250, z: 40 }), new Matrix4())
+		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
 		render(MoveControls, { props: { frameName: 'arm', onClose } })
 
@@ -156,7 +155,7 @@ describe('MoveControls', () => {
 
 	it('stages a target when a pose field is edited', async () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
-		moved.matrix = poseToMatrix(createPose({ x: 100, y: -250, z: 40 }), new Matrix4())
+		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
 		render(MoveControls, { props: { frameName: 'arm', onClose } })
 

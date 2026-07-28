@@ -12,7 +12,6 @@
 </script>
 
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 
 	import { useThrelte } from '@threlte/core'
@@ -34,7 +33,7 @@
 	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { createPose, matrixToPose } from '$lib/transform'
+	import { Pose } from '$lib/math'
 
 	interface Props {
 		entity: Entity
@@ -59,14 +58,15 @@
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
-		if (source) return matrixToPose(source, createPose())
-		if (center.current) return createPose(center.current)
+
+		if (source) return new Pose().setFromMatrix4(source)
+		if (center.current) return new Pose().copy(center.current)
 		return undefined
 	})
 
 	const worldPose = $derived.by<Pose | undefined>(() => {
 		if (!worldMatrix.current) return
-		return matrixToPose(worldMatrix.current, createPose())
+		return new Pose().setFromMatrix4(worldMatrix.current)
 	})
 
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {

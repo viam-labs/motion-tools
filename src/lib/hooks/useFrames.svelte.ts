@@ -7,12 +7,11 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
-import { Matrix4 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
-import { createPose, isPoseEqual, poseToMatrix } from '$lib/transform'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
@@ -136,10 +135,10 @@ export const provideFrames = (partID: () => string) => {
 				active[entityKey] = true
 
 				const parent = frame.poseInObserverFrame?.referenceFrame
-				const pose = createPose(frame.poseInObserverFrame?.pose)
+				const pose = new Pose().copy(frame.poseInObserverFrame?.pose)
 
 				const center = frame.physicalObject?.center
-					? createPose(frame.physicalObject.center)
+					? new Pose().copy(frame.physicalObject.center)
 					: undefined
 				const resourceName = currentResourcesByName[frame.referenceFrame]
 				const color =
@@ -163,7 +162,7 @@ export const provideFrames = (partID: () => string) => {
 						}
 					}
 
-					if (center && !isPoseEqual(existing.get(traits.Center), center)) {
+					if (center && !center.equals(existing.get(traits.Center))) {
 						existing.set(traits.Center, center)
 					}
 
@@ -177,13 +176,13 @@ export const provideFrames = (partID: () => string) => {
 					if (!partConfig.isDirty && !isBuildMode) {
 						const baseline = existing.get(traits.Matrix)
 						if (baseline) {
-							poseToMatrix(pose, baseline)
+							pose.toMatrix4(baseline)
 							existing.changed(traits.Matrix)
 						}
 					}
 
 					if (!existing.has(traits.LiveMatrix)) {
-						existing.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
+						existing.add(traits.LiveMatrix(pose.toMatrix4()))
 					}
 
 					continue
@@ -191,8 +190,8 @@ export const provideFrames = (partID: () => string) => {
 
 				const entityTraits: ConfigurableTrait[] = [
 					traits.Name(name),
-					traits.Matrix(poseToMatrix(pose, new Matrix4())),
-					traits.LiveMatrix(poseToMatrix(pose, new Matrix4())),
+					traits.Matrix(pose.toMatrix4()),
+					traits.LiveMatrix(pose.toMatrix4()),
 					traits.FramesAPI,
 					traits.Transformable,
 					traits.ShowAxesHelper,

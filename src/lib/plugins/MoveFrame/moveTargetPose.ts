@@ -1,8 +1,6 @@
-import type { Pose } from '@viamrobotics/sdk'
-
 import { MathUtils, Matrix4, Quaternion, Vector3 } from 'three'
 
-import { createPose, matrixToPose, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 const inverseDestination = new Matrix4()
 const localMatrix = new Matrix4()
@@ -20,7 +18,7 @@ const M_TO_MM = 1000
  * reference frame. This is what `MotionClient.move` expects alongside the
  * destination's name.
  *
- * Three.js matrices are metres; `matrixToPose` converts. Omit
+ * Three.js matrices are metres; `Pose` converts. Omit
  * `destinationWorldMatrix` when the destination is `world`, whose world
  * transform is the identity.
  */
@@ -35,7 +33,7 @@ export const toDestinationPose = (
 		localMatrix.premultiply(inverseDestination)
 	}
 
-	return matrixToPose(localMatrix, createPose())
+	return new Pose().setFromMatrix4(localMatrix)
 }
 
 /**
@@ -46,7 +44,7 @@ export const toDestinationPose = (
  * the staged goal is held as `$state.raw` and replaced wholesale.
  */
 export const fromDestinationPose = (pose: Pose, destinationWorldMatrix?: Matrix4): Matrix4 => {
-	const worldMatrix = poseToMatrix(pose, new Matrix4())
+	const worldMatrix = pose.toMatrix4()
 	if (destinationWorldMatrix) worldMatrix.premultiply(destinationWorldMatrix)
 	return worldMatrix
 }

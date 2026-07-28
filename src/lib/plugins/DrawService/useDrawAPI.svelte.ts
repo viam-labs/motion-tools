@@ -1,7 +1,7 @@
 import { useThrelte } from '@threlte/core'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext } from 'svelte'
-import { Color, Matrix4, Vector3, Vector4 } from 'three'
+import { Color, Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { UuidTool } from 'uuid-tool'
@@ -14,9 +14,9 @@ import { asRGB, STRIDE } from '$lib/buffer'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 import { parsePlyInput } from '$lib/ply'
-import { createPose, createPoseFromFrame, poseToMatrix } from '$lib/transform'
 
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 
@@ -157,7 +157,7 @@ export const provideDrawAPI = () => {
 	const drawFrames = async (data: Frame[]) => {
 		for (const rawFrame of data) {
 			const frame = lowercaseKeys(rawFrame) as Frame
-			const pose = createPoseFromFrame(frame)
+			const pose = new Pose().setFromFrame(frame)
 			const name = frame.name ?? frame.id ?? ''
 			const parent = frame.parent
 
@@ -166,7 +166,7 @@ export const provideDrawAPI = () => {
 			if (existing) {
 				const matrix = existing.get(traits.Matrix)
 				if (matrix) {
-					poseToMatrix(pose, matrix)
+					pose.toMatrix4(matrix)
 					existing.changed(traits.Matrix)
 				}
 				hierarchy.setParent(existing, parent)
@@ -193,7 +193,7 @@ export const provideDrawAPI = () => {
 
 			entityTraits.push(
 				traits.Name(name),
-				traits.Matrix(poseToMatrix(pose, new Matrix4())),
+				traits.Matrix(pose.toMatrix4()),
 				traits.DrawAPI,
 				traits.ReferenceFrame,
 				traits.Removable,
@@ -209,13 +209,13 @@ export const provideDrawAPI = () => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const drawGeometry = (data: any, color: string, parent?: string) => {
 		const name = data.label ?? `geometry ${++geometryIndex}`
-		const pose = createPose(data.center)
+		const pose = new Pose().copy(data.center)
 		const existing = entities.get(name)
 
 		if (existing) {
 			const matrix = existing.get(traits.Matrix)
 			if (matrix) {
-				poseToMatrix(pose, matrix)
+				pose.toMatrix4(matrix)
 				existing.changed(traits.Matrix)
 			}
 			return
@@ -239,7 +239,7 @@ export const provideDrawAPI = () => {
 		const entityTraits: ConfigurableTrait[] = [
 			traits.Name(data.label ?? ++geometryIndex),
 			...hierarchy.parentTraits(parent),
-			traits.Matrix(poseToMatrix(pose, new Matrix4())),
+			traits.Matrix(pose.toMatrix4()),
 			traits.Color(colorUtil.set(color)),
 			geometryTrait(),
 			traits.DrawAPI,

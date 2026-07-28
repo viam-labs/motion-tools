@@ -19,8 +19,8 @@ import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
-import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
@@ -174,12 +174,12 @@ export const provideGeometries = (partID: () => string) => {
 						const entityKey = `${currentPartID}:${name}:${label}`
 						nextKeys.add(entityKey)
 
-						const center = createPose(geometry.center)
+						const center = new Pose().copy(geometry.center)
 						const existing = entities.get(entityKey)
 
 						if (existing) {
 							hierarchy.setParent(existing, name)
-							poseToMatrix(center, tempMatrix)
+							center.toMatrix4(tempMatrix)
 							const matrix = existing.get(traits.Matrix)
 							if (matrix && !matrix.equals(tempMatrix)) {
 								matrix.copy(tempMatrix)
@@ -192,7 +192,7 @@ export const provideGeometries = (partID: () => string) => {
 						const entityTraits: ConfigurableTrait[] = [
 							...hierarchy.parentTraits(name),
 							traits.Name(label),
-							traits.Matrix(poseToMatrix(center, new Matrix4())),
+							traits.Matrix(center.toMatrix4()),
 							traits.GeometriesAPI,
 							traits.Geometry(geometry),
 						]

@@ -1,6 +1,4 @@
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
-
 	import { Button, Select, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
@@ -18,13 +16,15 @@
 	} from 'svelte-tweakpane-ui'
 	import { Matrix4 } from 'three'
 
+	import type { Pose } from '$lib/math'
+
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { applyEulerDeltaToPose, createPose, poseToEulerDegrees } from '$lib/transform'
+	import { applyEulerDeltaToPose } from '$lib/transform'
 
 	import { defaultMotionService, frameParent, motionServiceNames } from './moveControls'
 	import MoveGizmo from './MoveGizmo.svelte'
@@ -166,7 +166,7 @@
 	/** The orientation as Euler angles (deg), for the alternate rotation tab. */
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
 		if (!targetPose) return { x: 0, y: 0, z: 0 }
-		const { roll, pitch, yaw } = poseToEulerDegrees(targetPose)
+		const { roll, pitch, yaw } = targetPose.toEulerDegrees()
 		return { x: roll, y: pitch, z: yaw }
 	})
 
@@ -205,19 +205,19 @@
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !targetPose) return
 		const next = event.detail.value as PointValue3dObject
-		stagePose({ ...targetPose, x: next.x, y: next.y, z: next.z })
+		stagePose(targetPose.clone().merge({ x: next.x, y: next.y, z: next.z }))
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !targetPose) return
 		const next = event.detail.value as PointValue4dObject
-		stagePose({ ...targetPose, oX: next.x, oY: next.y, oZ: next.z, theta: next.w })
+		stagePose(targetPose.clone().merge({ oX: next.x, oY: next.y, oZ: next.z, theta: next.w }))
 	}
 
 	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
 		if (event.detail.origin !== 'internal' || !targetPose) return
 		const next = event.detail.value as RotationEulerValueObject
-		const pose = createPose(targetPose)
+		const pose = targetPose.clone()
 		applyEulerDeltaToPose(targetPose, { roll: next.x, pitch: next.y, yaw: next.z }, pose)
 		stagePose(pose)
 	}

@@ -1,11 +1,13 @@
 import type { commonApi } from '@viamrobotics/sdk'
+import type { Matrix4 } from 'three'
 
 import { createRobotQuery, useRobotClient } from '@viamrobotics/svelte-sdk'
-import { Matrix4 } from 'three'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
-import { poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
+
+const tempPose = new Pose()
 
 export interface MovedFrameMatrix {
 	readonly current: Matrix4 | undefined
@@ -49,7 +51,7 @@ export const useMovedFrameMatrix = (
 
 	const current = $derived.by(() => {
 		const pose = query.data?.pose
-		return pose ? poseToMatrix(pose, new Matrix4()) : undefined
+		return pose ? tempPose.copy(pose).toMatrix4() : undefined
 	})
 
 	return {

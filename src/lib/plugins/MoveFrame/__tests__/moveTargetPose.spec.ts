@@ -1,11 +1,10 @@
-import { Matrix4 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { createPose, poseToMatrix } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import { fromDestinationPose, moveDelta, toDestinationPose } from '../moveTargetPose'
 
-const pose = createPose({ x: 100, y: -250, z: 40, oX: 0, oY: 1, oZ: 0, theta: 35 })
+const pose = new Pose(100, -250, 40, 0, 1, 0, 35)
 
 describe('fromDestinationPose', () => {
 	it('round-trips a pose through the world matrix the gizmo drags', () => {
@@ -23,7 +22,7 @@ describe('fromDestinationPose', () => {
 	})
 
 	it('expresses the pose relative to a destination frame', () => {
-		const destination = poseToMatrix(createPose({ x: 1000, y: 0, z: 0 }), new Matrix4())
+		const destination = new Pose(1000).toMatrix4()
 
 		const matrix = fromDestinationPose(pose, destination)
 

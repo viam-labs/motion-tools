@@ -3,12 +3,11 @@ import type { Entity } from 'koota'
 import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
-import { Matrix4 } from 'three'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
-import { poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
@@ -21,6 +20,8 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
  * `<name>_origin` frame rather than the bare component name.
  */
 const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
+
+const tempPose = new Pose()
 
 /**
  * Mirrors each live-machine frame's kinematics-resolved pose into its
@@ -208,10 +209,11 @@ export const providePoses = (partID: () => string) => {
 
 					const live = entity.get(traits.LiveMatrix)
 					if (live) {
-						poseToMatrix(pose, live)
+						tempPose.copy(pose).toMatrix4(live)
+
 						entity.changed(traits.LiveMatrix)
 					} else {
-						entity.add(traits.LiveMatrix(poseToMatrix(pose, new Matrix4())))
+						entity.add(traits.LiveMatrix(tempPose.copy(pose).toMatrix4()))
 					}
 				})
 			})
