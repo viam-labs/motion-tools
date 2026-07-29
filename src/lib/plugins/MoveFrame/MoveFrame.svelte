@@ -9,7 +9,6 @@
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import CollisionDetector from './collisions/CollisionDetector.svelte'
-	import { isMotionService } from './moveControls'
 	import MoveControls from './MoveControls.svelte'
 	import { useOpenMoveWidgets } from './useOpenMoveWidgets.svelte'
 
@@ -22,7 +21,9 @@
 	const frameName = $derived(entity?.get(traits.Name))
 	const isFrame = $derived(entity !== undefined && entity.has(traits.FramesAPI))
 	const hasMotionService = $derived(
-		motionServices.current.some((resource) => isMotionService(resource))
+		motionServices.current.some(
+			(resource) => resource.type === 'service' && resource.subtype === 'motion'
+		)
 	)
 
 	const showButton = $derived(
