@@ -3,6 +3,8 @@ import { Color, Matrix4 } from 'three'
 
 import { relations, traits } from '$lib/ecs'
 
+import { MOVE_GHOST_COLOR } from './moveGhostColor'
+
 /**
  * Ghosting for a staged move, expressed as scene entities rather than meshes
  * of its own.
@@ -24,11 +26,11 @@ import { relations, traits } from '$lib/ecs'
  */
 
 /**
- * Staged-goal green, matching the gizmo's other affordances. Read back through
- * `Color.setRGB`, which does no colour-space conversion, so the channels are
- * kept in the working space `new Color(hex)` produces.
+ * `traits.Color` is read back through `Color.setRGB`, which does no
+ * colour-space conversion, so the channels are stored in the working space
+ * `new Color(hex)` produces.
  */
-const ghostColor = new Color('#37a06f')
+const ghostColor = new Color(MOVE_GHOST_COLOR)
 
 const GHOST_OPACITY = 0.5
 

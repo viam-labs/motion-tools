@@ -7,8 +7,6 @@ import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
 import { Pose } from '$lib/math'
 
-const tempPose = new Pose()
-
 export interface MovedFrameMatrix {
 	readonly current: Matrix4 | undefined
 }
@@ -34,6 +32,10 @@ export const useMovedFrameMatrix = (
 	const settings = useSettings()
 	const client = useRobotClient(partID)
 
+	// Per call, not per module: two open panels each get their own, so neither
+	// depends on the other's decode finishing first.
+	const pose = new Pose()
+
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 
 	const query = createRobotQuery(
@@ -50,8 +52,8 @@ export const useMovedFrameMatrix = (
 	)
 
 	const current = $derived.by(() => {
-		const pose = query.data?.pose
-		return pose ? tempPose.copy(pose).toMatrix4() : undefined
+		const worldPose = query.data?.pose
+		return worldPose ? pose.copy(worldPose).toMatrix4() : undefined
 	})
 
 	return {

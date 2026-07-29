@@ -5,6 +5,8 @@
 	import { MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
 	import { Group, Matrix4, Vector3 } from 'three'
 
+	import { MOVE_GHOST_COLOR } from './moveGhostColor'
+
 	interface Props {
 		/** Where the frame is right now — world space, metres. */
 		currentWorldMatrix: Matrix4
@@ -16,7 +18,6 @@
 
 	const { invalidate } = useThrelte()
 
-	const GHOST_COLOR = '#37a06f'
 	const AXES_LENGTH = 0.08
 	/** Below this the travel line degenerates, so only the triad is worth drawing. */
 	const MIN_TRAVEL = 0.001
@@ -67,7 +68,7 @@
 		<MeshLineGeometry {points} />
 		<MeshLineMaterial
 			width={2}
-			color={GHOST_COLOR}
+			color={MOVE_GHOST_COLOR}
 			depthTest={false}
 			attenuate={false}
 			dashArray={0.05}
@@ -95,7 +96,7 @@
 	>
 		<T.SphereGeometry args={[0.008]} />
 		<T.MeshBasicMaterial
-			color={GHOST_COLOR}
+			color={MOVE_GHOST_COLOR}
 			depthTest={false}
 			transparent
 			opacity={0.5}
