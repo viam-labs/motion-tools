@@ -20,10 +20,19 @@ export const useParentFrameOptions = (
 	const configFrames = useConfigFrames()
 	const fragmentInfo = useFragmentInfo()
 
+	// A fragment frame with no `parent` is world-parented, the same default
+	// `createTransformFromFrame` applies. No frame at all means no known parent.
+	const fragmentComponents = $derived(
+		Object.entries(fragmentInfo.current).map(([name, info]) => ({
+			name,
+			parent: info.frame ? (info.frame.parent ?? 'world') : undefined,
+		}))
+	)
+
 	const current = $derived(
 		parentFrameOptions({
 			frames: frames.current,
-			fragmentComponentNames: Object.keys(fragmentInfo.current),
+			fragmentComponents,
 			unsetFrameNames: configFrames.unsetFrames,
 			componentName: componentName(),
 		})

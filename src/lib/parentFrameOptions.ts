@@ -2,6 +2,17 @@ import type { Transform } from '@viamrobotics/sdk'
 
 const WORLD = 'world'
 
+export interface FragmentComponent {
+	name: string
+	/**
+	 * The parent the fragment's own frame declares, when the app knows it. A
+	 * component mapped from a `fragment_mods` path alone (a nested fragment
+	 * provides it, so `getFragment` never surfaced its frame) has no parent here,
+	 * and stays out of the descendant walk below.
+	 */
+	parent: string | undefined
+}
+
 interface ParentFrameOptionsInput {
 	/**
 	 * Every frame the app knows about: the machine's frame system merged with the
@@ -14,9 +25,10 @@ interface ParentFrameOptionsInput {
 	/**
 	 * Components a fragment provides. A fragment component with no `$set` mod
 	 * isn't in `frames` while offline, but the fragment still supplies its frame,
-	 * so it renders in the scene and is a valid parent.
+	 * so it renders in the scene and is a valid parent. Online it's in `frames`
+	 * too, and that entry wins — it carries the parent the machine resolved.
 	 */
-	fragmentComponentNames: string[]
+	fragmentComponents: FragmentComponent[]
 	/** Frames deleted locally or removed by a fragment `$unset`. */
 	unsetFrameNames: string[]
 	/** The frame being reparented. */
@@ -32,39 +44,49 @@ interface ParentFrameOptionsInput {
  * forever. Descendants are walked over the full merged frame set rather than
  * the part config alone, so a subtree the config doesn't enumerate can't slip
  * through as a selectable parent.
+ *
+ * One descendant can still slip through: a fragment component whose parent
+ * nothing has told us (see `FragmentComponent.parent`). It has no edge to walk,
+ * so it stays selectable even when it sits under `componentName`. Picking it
+ * writes a cycle the RDK rejects as an unlinked part.
  */
 export const parentFrameOptions = ({
 	frames,
-	fragmentComponentNames,
+	fragmentComponents,
 	unsetFrameNames,
 	componentName,
 }: ParentFrameOptionsInput): string[] => {
 	const unset = new Set(unsetFrameNames)
 	const options = new Set<string>()
-
-	for (const frame of frames) {
-		if (!unset.has(frame.referenceFrame)) {
-			options.add(frame.referenceFrame)
-		}
-	}
-
-	for (const name of fragmentComponentNames) {
-		if (!unset.has(name)) {
-			options.add(name)
-		}
-	}
-
 	const childNames = new Map<string, string[]>()
-	for (const frame of frames) {
-		const parent = frame.poseInObserverFrame?.referenceFrame
-		if (!parent) continue
+
+	const link = (name: string, parent: string | undefined) => {
+		if (unset.has(name)) return
+
+		options.add(name)
+
+		if (parent === undefined) return
 
 		const children = childNames.get(parent)
 		if (children) {
-			children.push(frame.referenceFrame)
+			children.push(name)
 		} else {
-			childNames.set(parent, [frame.referenceFrame])
+			childNames.set(parent, [name])
 		}
+	}
+
+	const framed = new Set<string>()
+	for (const frame of frames) {
+		framed.add(frame.referenceFrame)
+		link(frame.referenceFrame, frame.poseInObserverFrame?.referenceFrame)
+	}
+
+	for (const { name, parent } of fragmentComponents) {
+		// A frame the machine (or a `$set` mod) already reported is the resolved
+		// one; the fragment's base parent may be stale against it.
+		if (framed.has(name)) continue
+
+		link(name, parent)
 	}
 
 	/**

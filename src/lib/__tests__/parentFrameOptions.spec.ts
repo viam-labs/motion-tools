@@ -12,7 +12,7 @@ const frame = (name: string, parent = 'world') =>
 const options = (input: Partial<Parameters<typeof parentFrameOptions>[0]>) =>
 	parentFrameOptions({
 		frames: [],
-		fragmentComponentNames: [],
+		fragmentComponents: [],
 		unsetFrameNames: [],
 		componentName: undefined,
 		...input,
@@ -46,7 +46,7 @@ describe('parentFrameOptions', () => {
 	it('offers fragment components that have no frame in the merged set', () => {
 		expect(
 			options({
-				fragmentComponentNames: ['little-arm'],
+				fragmentComponents: [{ name: 'little-arm', parent: 'world' }],
 				componentName: 'camera',
 			})
 		).toEqual(['world', 'little-arm'])
@@ -56,11 +56,47 @@ describe('parentFrameOptions', () => {
 		expect(
 			options({
 				frames: [frame('little-arm'), frame('camera')],
-				fragmentComponentNames: ['gripper'],
+				fragmentComponents: [{ name: 'gripper', parent: 'world' }],
 				unsetFrameNames: ['camera', 'gripper'],
 				componentName: 'sensor',
 			})
 		).toEqual(['world', 'little-arm'])
+	})
+
+	it('excludes offline fragment components that are descendants', () => {
+		// gripper is a fragment component with no `$set` mod, so it's absent from
+		// frames while offline — but the fragment says it hangs off little-arm.
+		expect(
+			options({
+				frames: [frame('little-arm')],
+				fragmentComponents: [{ name: 'gripper', parent: 'little-arm' }],
+				componentName: 'little-arm',
+			})
+		).toEqual(['world'])
+	})
+
+	it('keeps a fragment component whose parent is unknown', () => {
+		// Mapped from a `fragment_mods` path alone: no frame, so no edge to walk.
+		// It stays selectable even though it really is a child of little-arm.
+		expect(
+			options({
+				frames: [frame('little-arm')],
+				fragmentComponents: [{ name: 'gripper', parent: undefined }],
+				componentName: 'little-arm',
+			})
+		).toEqual(['world', 'gripper'])
+	})
+
+	it('prefers the resolved frame over the fragment base parent', () => {
+		// The machine reports gripper under little-arm; the fragment's own frame
+		// still says world. The resolved parent wins, so gripper is a descendant.
+		expect(
+			options({
+				frames: [frame('little-arm'), frame('gripper', 'little-arm')],
+				fragmentComponents: [{ name: 'gripper', parent: 'world' }],
+				componentName: 'little-arm',
+			})
+		).toEqual(['world'])
 	})
 
 	it('excludes the frame itself and its descendants', () => {
