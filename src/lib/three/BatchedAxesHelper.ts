@@ -17,6 +17,10 @@ type BatchedAxesHelpersOptions = {
 	linewidth?: number
 	worldUnits?: boolean
 	frustumCulled?: boolean
+	/** Set `false` to draw the axes over occluding geometry. */
+	depthTest?: boolean
+	depthWrite?: boolean
+	transparent?: boolean
 	xColor?: ColorRepresentation
 	yColor?: ColorRepresentation
 	zColor?: ColorRepresentation
@@ -68,6 +72,9 @@ export class BatchedAxesHelpers extends LineSegments2 {
 			linewidth: options.linewidth ?? 2,
 			worldUnits: options.worldUnits ?? false,
 			vertexColors: true,
+			depthTest: options.depthTest ?? true,
+			depthWrite: options.depthWrite ?? true,
+			transparent: options.transparent ?? false,
 		})
 
 		super(geometry, material)
