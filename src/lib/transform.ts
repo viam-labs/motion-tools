@@ -6,17 +6,26 @@ const quaternion = new Quaternion()
 const euler = new Euler()
 const matA = new Matrix4()
 
-export const applyEulerDeltaToPose = (
+/**
+ * Write `pose`'s orientation into `out` with the given ZYX Euler angles
+ * (degrees) substituted in.
+ *
+ * Each angle is an absolute replacement, not a rotation composed onto what's
+ * there: the base orientation only survives in the channels `angles` leaves
+ * out, which is what lets a control edit one axis without disturbing the other
+ * two. `out` may be `pose`.
+ */
+export const setOrientationFromEuler = (
 	pose: Pose,
-	delta: { roll?: number; pitch?: number; yaw?: number },
+	angles: { roll?: number; pitch?: number; yaw?: number },
 	out: Pose
 ): void => {
 	pose.toQuaternion(quaternion)
 	euler.setFromQuaternion(quaternion, 'ZYX')
 
-	if (delta.roll !== undefined) euler.x = MathUtils.degToRad(delta.roll)
-	if (delta.pitch !== undefined) euler.y = MathUtils.degToRad(delta.pitch)
-	if (delta.yaw !== undefined) euler.z = MathUtils.degToRad(delta.yaw)
+	if (angles.roll !== undefined) euler.x = MathUtils.degToRad(angles.roll)
+	if (angles.pitch !== undefined) euler.y = MathUtils.degToRad(angles.pitch)
+	if (angles.yaw !== undefined) euler.z = MathUtils.degToRad(angles.yaw)
 
 	quaternion.setFromEuler(euler)
 	out.setFromQuaternion(quaternion)

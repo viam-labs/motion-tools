@@ -1,25 +1,40 @@
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
-	import type { Vector3 } from 'three'
+	import type { Matrix4 } from 'three'
 
-	import { Button, Select, Switch, ToastVariant, useToast } from '@viamrobotics/prime-core'
+	import { Button, Select, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { MotionMoveWidget } from '@viamrobotics/test-widgets'
-	import { Slider, type SliderChangeEvent } from 'svelte-tweakpane-ui'
+	import {
+		Point,
+		type PointChangeEvent,
+		type PointValue3dObject,
+		type PointValue4dObject,
+		RotationEuler,
+		type RotationEulerChangeEvent,
+		type RotationEulerValueObject,
+		TabGroup,
+		TabPage,
+	} from 'svelte-tweakpane-ui'
 
+	import type { Pose } from '$lib/math'
+
+	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { setOrientationFromEuler } from '$lib/transform'
 
-	import { buildTargetPose, type OrientationMode } from './buildTargetPose'
 	import { defaultMotionService, frameParent, motionServiceNames } from './moveControls'
-	import { movePicker } from './movePicker.svelte'
+	import MoveGizmo from './MoveGizmo.svelte'
+	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
 	import MoveTabs from './MoveTabs.svelte'
-	import MoveTargetMarker from './MoveTargetMarker.svelte'
-	import MoveTargetPicker from './MoveTargetPicker.svelte'
+	import MoveTargetGhost from './MoveTargetGhost.svelte'
+	import { fromDestinationPose, moveDelta, toDestinationPose } from './moveTargetPose'
+	import { useMovedFrameMatrix } from './useMovedFrameMatrix.svelte'
+	import { useMoveGhosts } from './useMoveGhosts.svelte'
 
 	interface Props {
 		frameName: string
@@ -28,8 +43,11 @@
 
 	const { frameName, onClose }: Props = $props()
 
-	const CLICK_TAB = 'Click to move'
+	const MOVE_TAB = 'Move'
 	const CONTROL_TAB = 'Control'
+
+	/** The gizmo is dragged in world space, so the goal is committed against it. */
+	const WORLD_FRAME = 'world'
 
 	const partID = usePartID()
 	const frames = useFrames()
@@ -60,85 +78,160 @@
 		if (!isOpen) onClose()
 	})
 
-	let activeTab = $state(CLICK_TAB)
-	let orientationMode = $state<OrientationMode>('keep')
-	let standoff = $state(50)
+	let activeTab = $state(MOVE_TAB)
+	let mode = $state<'translate' | 'rotate'>('translate')
+	let space = $state<'local' | 'world'>('world')
 	let executing = $state(false)
-	let lastHit = $state.raw<{ worldPoint: Vector3; worldNormal?: Vector3 }>()
+
+	/**
+	 * The staged goal in world space, or `undefined` while the gizmo still tracks
+	 * the frame. Raw because it is a Three.js instance replaced wholesale on every
+	 * drag frame.
+	 */
+	let targetWorldMatrix = $state.raw<Matrix4>()
 
 	const movedEntity = $derived(
 		named.current.find((entity) => entity.get(traits.Name) === frameName)
 	)
 
-	const destinationEntity = $derived(
-		named.current.find((entity) => entity.get(traits.Name) === destination)
+	// The handle is live for as long as the Move tab is showing. Claim the single
+	// gizmo slot so only one open panel drags at a time.
+	const wantsGizmo = $derived(isOpen && activeTab === MOVE_TAB)
+
+	/**
+	 * The end effector, not the `<name>_origin` mount the scene draws the
+	 * component at — that is the frame the motion service moves, so it is the
+	 * frame the handle belongs on. Resolved in world space and only while the
+	 * gizmo is live.
+	 */
+	const currentWorldMatrix = useMovedFrameMatrix(
+		() => partID.current,
+		() => frameName,
+		() => wantsGizmo
 	)
-
-	const hasNormal = $derived(lastHit?.worldNormal !== undefined)
-
-	const pickedPose = $derived.by<Pose | undefined>(() => {
-		if (!lastHit) return undefined
-		return buildTargetPose({
-			worldPoint: lastHit.worldPoint,
-			worldNormal: lastHit.worldNormal,
-			destinationWorldMatrix: destinationEntity?.get(traits.WorldMatrix),
-			currentWorldMatrix: movedEntity?.get(traits.WorldMatrix),
-			orientation: orientationMode,
-			standoff,
-		})
-	})
-
-	// Picking is live while the click-to-move tab is open and nothing is picked yet.
-	// Claim the single picking slot so only one open panel picks at a time.
-	const picking = $derived(isOpen && activeTab === CLICK_TAB && lastHit === undefined)
 	$effect(() => {
-		if (picking) {
-			movePicker.arm(frameName)
-			return () => movePicker.disarm(frameName)
+		if (wantsGizmo) {
+			moveGizmoOwner.arm(frameName)
+			return () => moveGizmoOwner.disarm(frameName)
 		}
 	})
 
-	// While this panel owns picking, put the scene into `move` mode (disables
-	// entity selection, enables accelerated picking) and restore `navigate` after.
-	const armed = $derived(movePicker.armedFrame === frameName)
+	// While this panel owns the gizmo, put the scene into `gizmo` mode so a drag
+	// can't fall through to the scene and change the selection. Restore `navigate`
+	// after.
+	const armed = $derived(moveGizmoOwner.armedFrame === frameName)
 	$effect(() => {
-		if (picking && armed) {
-			settings.current.interactionMode = 'move'
+		if (wantsGizmo && armed) {
+			settings.current.interactionMode = 'gizmo'
 			return () => {
-				if (settings.current.interactionMode === 'move') {
+				// Only hand the scene back if the gizmo wasn't taken over by another
+				// panel — otherwise this teardown would re-enable picking underneath a
+				// gizmo that is still live.
+				const owner = moveGizmoOwner.armedFrame
+				const handedOff = owner !== undefined && owner !== frameName
+				if (!handedOff && settings.current.interactionMode === 'gizmo') {
 					settings.current.interactionMode = 'navigate'
 				}
 			}
 		}
 	})
 
-	const pickerEnabled = $derived(picking && armed && settings.current.interactionMode === 'move')
+	/** Another open panel took the gizmo out from under this one. */
+	const preempted = $derived(wantsGizmo && !armed)
 
-	const onPick = (hit: { worldPoint: Vector3; worldNormal?: Vector3 }) => (lastHit = hit)
-	const resetToPick = () => (lastHit = undefined)
+	const showGizmo = $derived(
+		wantsGizmo && armed && !executing && currentWorldMatrix.current !== undefined
+	)
 
-	const handleStandoffChange = (event: SliderChangeEvent) => {
-		if (event.detail.origin !== 'internal') return
-		standoff = event.detail.value
+	/** Whether the handle has been dragged off the frame's live pose. */
+	const staged = $derived(targetWorldMatrix !== undefined)
+
+	/**
+	 * What the readout describes: the staged goal once dragged, otherwise where
+	 * the frame is right now. The panel shows the same rows either way, so the
+	 * numbers are readable before the first drag rather than appearing with it.
+	 */
+	const readoutMatrix = $derived(targetWorldMatrix ?? currentWorldMatrix.current)
+
+	// The handle is placed and dragged in world space, so the goal is expressed in
+	// world too — no `<name>_origin` round-trip between what is dragged and what
+	// is committed.
+	const targetPose = $derived(readoutMatrix ? toDestinationPose(readoutMatrix) : undefined)
+
+	const delta = $derived(
+		readoutMatrix && currentWorldMatrix.current
+			? moveDelta(currentWorldMatrix.current, readoutMatrix)
+			: undefined
+	)
+
+	/** The orientation as Euler angles (deg), for the alternate rotation tab. */
+	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
+		if (!targetPose) return { x: 0, y: 0, z: 0 }
+		const { roll, pitch, yaw } = targetPose.toEulerDegrees()
+		return { x: roll, y: pitch, z: yaw }
+	})
+
+	/** Numbers render as an em dash until the frame's pose has resolved. */
+	const num = (value: number | undefined, digits: number) => value?.toFixed(digits) ?? '—'
+
+	// Ghosts are entities, drawn by the scene's own renderers — see `moveGhosts`.
+	// The subtree rides the delta between these two matrices, which the hook
+	// composes itself so a live gizmo isn't allocating one per frame.
+	useMoveGhosts(
+		() => (wantsGizmo && armed ? movedEntity : undefined),
+		() => currentWorldMatrix.current,
+		() => targetWorldMatrix
+	)
+
+	const onDrag = (matrix: Matrix4) => (targetWorldMatrix = matrix)
+
+	/**
+	 * Stage an edited pose as the goal. Typing into a field before the first drag
+	 * stages the frame's current pose with that one value changed, so the inputs
+	 * and the gizmo are two views of the same goal.
+	 */
+	const stagePose = (pose: Pose) => (targetWorldMatrix = fromDestinationPose(pose))
+
+	const handlePositionChange = (event: PointChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !targetPose) return
+		const next = event.detail.value as PointValue3dObject
+		stagePose(targetPose.clone().merge({ x: next.x, y: next.y, z: next.z }))
 	}
+
+	const handleOrientationOVChange = (event: PointChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !targetPose) return
+		const next = event.detail.value as PointValue4dObject
+		stagePose(targetPose.clone().merge({ oX: next.x, oY: next.y, oZ: next.z, theta: next.w }))
+	}
+
+	const handleOrientationEulerChange = (event: RotationEulerChangeEvent) => {
+		if (event.detail.origin !== 'internal' || !targetPose) return
+		const next = event.detail.value as RotationEulerValueObject
+		const pose = targetPose.clone()
+		setOrientationFromEuler(targetPose, { roll: next.x, pitch: next.y, yaw: next.z }, pose)
+		stagePose(pose)
+	}
+
+	/** Drop the staged goal so the gizmo snaps back to wherever the frame is now. */
+	const resetTarget = () => (targetWorldMatrix = undefined)
 
 	const executeMove = async () => {
 		const client = motion.current
-		if (!client || !pickedPose || !service) return
+		if (!client || !targetPose || !service || !staged) return
 
 		executing = true
 		try {
 			const success = await client.move(
-				{ referenceFrame: destination, pose: pickedPose },
+				{ referenceFrame: WORLD_FRAME, pose: targetPose },
 				frameName
 			)
 			toast({
 				message: success
-					? `Moved "${frameName}" to the destination.`
+					? `Moved "${frameName}" to the target.`
 					: `Move for "${frameName}" did not complete.`,
 				variant: success ? ToastVariant.Success : ToastVariant.Warning,
 			})
-			if (success) resetToPick()
+			if (success) resetTarget()
 		} catch (error) {
 			toast({
 				message: error instanceof Error ? error.message : `Failed to move "${frameName}".`,
@@ -150,97 +243,137 @@
 	}
 </script>
 
-{#snippet options()}
-	<div class="flex flex-col gap-2">
-		<label class="flex items-center justify-between gap-2">
-			<span class="text-subtle-1">Align to surface</span>
-			<Switch
-				on={orientationMode === 'align'}
-				on:change={(event) => (orientationMode = event.detail ? 'align' : 'keep')}
+{#snippet gizmoOptions()}
+	<div class="flex flex-wrap items-center gap-2">
+		<!-- transform — same controls as the build-mode dashboard -->
+		<fieldset class="flex">
+			<DashboardButton
+				icon="cursor-move"
+				class="rounded-r-none"
+				active={mode === 'translate'}
+				description="Translate"
+				onclick={() => (mode = 'translate')}
 			/>
-		</label>
-
-		{#if orientationMode === 'align'}
-			<p class="text-subtle-2">
-				Falls back to keeping the current orientation on surfaces without a normal (e.g. point
-				clouds).
-			</p>
-		{/if}
-
-		<div aria-label="mutable approach offset">
-			<Slider
-				value={standoff}
-				min={0}
-				max={500}
-				step={5}
-				label="Approach offset (mm)"
-				format={(value) => value.toFixed(0)}
-				on:change={handleStandoffChange}
+			<DashboardButton
+				icon="sync"
+				class="-ml-px rounded-l-none"
+				active={mode === 'rotate'}
+				description="Rotate"
+				onclick={() => (mode = 'rotate')}
 			/>
-		</div>
+		</fieldset>
+
+		<!-- space -->
+		<fieldset class="flex">
+			<DashboardButton
+				icon="axis-arrow"
+				class="rounded-r-none"
+				active={space === 'local'}
+				description="Local space"
+				onclick={() => (space = 'local')}
+			/>
+			<DashboardButton
+				icon="earth"
+				class="-ml-px rounded-l-none"
+				active={space === 'world'}
+				description="World space"
+				onclick={() => (space = 'world')}
+			/>
+		</fieldset>
 	</div>
 {/snippet}
 
-{#snippet clickTab()}
+{#snippet moveTab()}
 	<div class="flex flex-col gap-3 p-1">
-		{#if pickedPose}
-			<div class="flex flex-col gap-2">
-				<div class="text-subtle-2">
-					Destination · relative to <span class="text-default">{destination}</span>
-				</div>
-				<div class="font-roboto-mono flex flex-col gap-1">
-					<div class="flex justify-between gap-2">
-						<span class="text-subtle-2">pos (mm)</span>
-						<span
-							>{pickedPose.x.toFixed(1)}, {pickedPose.y.toFixed(1)}, {pickedPose.z.toFixed(1)}</span
-						>
-					</div>
-					<div class="flex justify-between gap-2">
-						<span class="text-subtle-2">ov</span>
-						<span
-							>{pickedPose.oX.toFixed(2)}, {pickedPose.oY.toFixed(2)}, {pickedPose.oZ.toFixed(
-								2
-							)}</span
-						>
-					</div>
-					<div class="flex justify-between gap-2">
-						<span class="text-subtle-2">θ (deg)</span>
-						<span>{pickedPose.theta.toFixed(1)}</span>
-					</div>
-				</div>
-			</div>
-
-			{@render options()}
-
-			{#if orientationMode === 'align' && !hasNormal}
-				<p class="text-warning-dark">No surface normal here — keeping the current orientation.</p>
-			{/if}
-
-			<div class="flex items-center gap-2">
-				<Button
-					variant="success"
-					disabled={executing || !service}
-					progress={executing ? 'indeterminate' : undefined}
-					onclick={executeMove}
-				>
-					Execute move
-				</Button>
+		{#if preempted}
+			<div class="border-light flex items-center justify-between gap-2 border px-2 py-1.5">
+				<p class="text-subtle-1">Another move panel has the gizmo.</p>
 				<Button
 					variant="ghost"
-					disabled={executing}
-					onclick={resetToPick}
+					onclick={() => moveGizmoOwner.arm(frameName)}
 				>
-					Pick again
+					Use it here
 				</Button>
 			</div>
-		{:else}
-			<p class="text-subtle-1">
-				Click a surface in the scene to set where <span class="text-default">{frameName}</span> should
-				move.
-			</p>
-
-			{@render options()}
 		{/if}
+
+		{@render gizmoOptions()}
+
+		<div class="flex flex-col gap-2">
+			<div class="text-subtle-2">
+				{staged ? 'Target' : 'Current'} · relative to
+				<span class="text-default">{WORLD_FRAME}</span>
+			</div>
+
+			{#if targetPose}
+				<div>
+					<strong class="font-semibold">position</strong>
+					<span class="text-subtle-2">(mm)</span>
+
+					<div aria-label="move target position">
+						<Point
+							value={{ x: targetPose.x, y: targetPose.y, z: targetPose.z }}
+							disabled={executing}
+							on:change={handlePositionChange}
+						/>
+					</div>
+				</div>
+
+				<div>
+					<strong class="font-semibold">orientation</strong>
+
+					<div aria-label="move target orientation">
+						<TabGroup>
+							<TabPage title="OV (deg)">
+								<Point
+									value={{
+										x: targetPose.oX,
+										y: targetPose.oY,
+										z: targetPose.oZ,
+										w: targetPose.theta,
+									}}
+									disabled={executing}
+									on:change={handleOrientationOVChange}
+								/>
+							</TabPage>
+							<TabPage title="Euler">
+								<RotationEuler
+									value={eulerValue}
+									unit="deg"
+									disabled={executing}
+									on:change={handleOrientationEulerChange}
+								/>
+							</TabPage>
+						</TabGroup>
+					</div>
+				</div>
+			{:else}
+				<p class="text-subtle-2">Resolving the frame's pose…</p>
+			{/if}
+
+			<div class="font-roboto-mono flex justify-between gap-2">
+				<span class="text-subtle-2">travel</span>
+				<span>{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°</span>
+			</div>
+		</div>
+
+		<div class="flex items-center gap-2">
+			<Button
+				variant="success"
+				disabled={!staged || executing || !service}
+				progress={executing ? 'indeterminate' : undefined}
+				onclick={executeMove}
+			>
+				Execute move
+			</Button>
+			<Button
+				variant="ghost"
+				disabled={!staged || executing}
+				onclick={resetTarget}
+			>
+				Reset
+			</Button>
+		</div>
 	</div>
 {/snippet}
 
@@ -282,10 +415,10 @@
 
 		<div class="min-h-0 flex-1">
 			<MoveTabs
-				defaultTab={CLICK_TAB}
+				defaultTab={MOVE_TAB}
 				onValueChange={(value) => (activeTab = value)}
 				items={[
-					{ label: CLICK_TAB, content: clickTab },
+					{ label: MOVE_TAB, content: moveTab },
 					{ label: CONTROL_TAB, content: controlTab },
 				]}
 			/>
@@ -293,16 +426,19 @@
 	</div>
 </FloatingPanel>
 
-<MoveTargetPicker
-	enabled={pickerEnabled}
-	{standoff}
-	{onPick}
-/>
+{#if showGizmo && currentWorldMatrix.current}
+	<MoveGizmo
+		currentWorldMatrix={currentWorldMatrix.current}
+		{targetWorldMatrix}
+		{mode}
+		{space}
+		{onDrag}
+	/>
+{/if}
 
-{#if isOpen && activeTab === CLICK_TAB && lastHit}
-	<MoveTargetMarker
-		point={lastHit.worldPoint}
-		worldNormal={lastHit.worldNormal}
-		{standoff}
+{#if wantsGizmo && armed && targetWorldMatrix && currentWorldMatrix.current}
+	<MoveTargetGhost
+		currentWorldMatrix={currentWorldMatrix.current}
+		{targetWorldMatrix}
 	/>
 {/if}
