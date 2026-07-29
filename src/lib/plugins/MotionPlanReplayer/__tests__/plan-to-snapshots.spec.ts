@@ -173,13 +173,13 @@ describe('parsedPlanToSnapshots with world_state obstacles', () => {
 		parsePlan(JSON.stringify({ ...REQUEST, world_state: worldState }) + JSON.stringify(RESULT))
 	)
 	const obstaclesIn = (step: number) =>
-		snapshots[step]!.transforms.filter((t) => t.referenceFrame.startsWith('obstacle/'))
+		snapshots[step]!.transforms.filter((t) => t.referenceFrame.startsWith('obstacle:'))
 
 	it('adds the obstacles alongside the frame transforms', () => {
 		expect(snapshots[0]!.transforms).toHaveLength(4)
 		expect(obstaclesIn(0).map((t) => t.referenceFrame)).toEqual([
-			'obstacle/pallet',
-			'obstacle/pick-station',
+			'obstacle:pallet',
+			'obstacle:pick-station',
 		])
 	})
 

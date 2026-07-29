@@ -3,14 +3,45 @@
  * `common.v1.WorldState` — a different encoding from the Go-struct marshal `parseGeometry` decodes by
  * hand for `frame_system` frames. protobuf-es reads that encoding natively, so this is a translation
  * to `Transform` rather than a second hand-written geometry parser.
+ *
+ * Mirrors `draw/geometries_in_frame.go`'s `ToTransforms`: one transform per geometry, named for its
+ * label under a shared prefix, parented to the frame the geometry was observed in, with the geometry
+ * itself carried as `physicalObject`. `WorldState.obstacles` and `WorldState.transforms` are the same
+ * thing in different shapes — both are geometry positioned in a frame — so both come through here.
  */
 
-import type { JsonValue } from '@bufbuild/protobuf'
+import type { JsonValue, PartialMessage } from '@bufbuild/protobuf'
 
 import { UuidTool } from 'uuid-tool'
 
-import { PoseInFrame, Transform, WorldState } from '$lib/buf/common/v1/common_pb'
+import {
+	type Pose as CommonPose,
+	Geometry,
+	PoseInFrame,
+	Transform,
+	WorldState,
+} from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
+
+const namespaced = (label: string, fallback: string): string => `obstacle:${label || fallback}`
+
+const newUuid = (): Uint8Array<ArrayBuffer> =>
+	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
+
+// `PartialMessage` so both `$lib/math`'s Pose and a decoded proto Pose fit — the former is the
+// identity default, the latter comes off a supplemental transform.
+const obstacleTransform = (
+	name: string,
+	parent: string,
+	pose: PartialMessage<CommonPose>,
+	geometry: Geometry
+): Transform =>
+	new Transform({
+		referenceFrame: name,
+		poseInObserverFrame: new PoseInFrame({ referenceFrame: parent || 'world', pose }),
+		physicalObject: geometry,
+		uuid: newUuid(),
+	})
 
 export const worldStateObstacleTransforms = (worldState: unknown): Transform[] => {
 	if (!worldState || typeof worldState !== 'object') return []
@@ -25,31 +56,31 @@ export const worldStateObstacleTransforms = (worldState: unknown): Transform[] =
 		return []
 	}
 
-	// `WorldState.transforms` may also carry geometry — the proto uses it to attach moving obstacles
-	// to the frame system. No capture exercises it, so it is reported rather than guessed at.
-	if (parsed.transforms.length > 0) {
-		console.warn(
-			`[MotionPlanReplayer] ignoring ${parsed.transforms.length} world_state transform(s) — geometry attached this way is not drawn`
-		)
-	}
-
-	return parsed.obstacles.flatMap((group, groupIndex) =>
-		group.geometries.map(
-			(geometry, index) =>
-				new Transform({
-					// Obstacle labels collide with frame names — `pallet` and `pick-station` are both in
-					// the pirouette capture — and `resolveOrphans` indexes names globally, so an
-					// unprefixed obstacle would cross-parent into the arm chain.
-					referenceFrame: `obstacle/${geometry.label || `${groupIndex}-${index}`}`,
-					poseInObserverFrame: new PoseInFrame({
-						referenceFrame: group.referenceFrame,
-						// Identity: a world_state geometry carries its pose in its own `center`, which is
-						// already local to the reference frame — `parseGeometry`'s obstacle convention.
-						pose: new Pose(),
-					}),
-					physicalObject: geometry,
-					uuid: Uint8Array.from(UuidTool.toBytes(crypto.randomUUID())),
-				})
+	const fromObstacles = parsed.obstacles.flatMap((group, groupIndex) =>
+		group.geometries.map((geometry, index) =>
+			obstacleTransform(
+				namespaced(geometry.label, `${groupIndex}-${index}`),
+				group.referenceFrame,
+				// Identity: the geometry carries its pose in its own `center`, already local to the
+				// reference frame it was observed in.
+				new Pose(),
+				geometry
+			)
 		)
 	)
+
+	// A supplemental transform already names itself and its parent; only its geometry needs lifting.
+	// Ones carrying no geometry are pure frame plumbing with nothing to draw.
+	const fromTransforms = parsed.transforms
+		.filter((transform) => transform.physicalObject !== undefined)
+		.map((transform, index) =>
+			obstacleTransform(
+				namespaced(transform.referenceFrame, `transform-${index}`),
+				transform.poseInObserverFrame?.referenceFrame ?? 'world',
+				transform.poseInObserverFrame?.pose ?? new Pose(),
+				transform.physicalObject!
+			)
+		)
+
+	return [...fromObstacles, ...fromTransforms]
 }

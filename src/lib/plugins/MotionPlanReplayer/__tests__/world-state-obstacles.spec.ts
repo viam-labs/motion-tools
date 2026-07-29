@@ -20,8 +20,8 @@ describe('worldStateObstacleTransforms', () => {
 	// names globally.
 	it('namespaces labels so they cannot collide with frame names', () => {
 		expect(transforms.map((t) => t.referenceFrame)).toEqual([
-			'obstacle/pallet',
-			'obstacle/pick-station',
+			'obstacle:pallet',
+			'obstacle:pick-station',
 		])
 	})
 
@@ -53,24 +53,37 @@ describe('worldStateObstacleTransforms', () => {
 		warn.mockRestore()
 	})
 
-	// The proto's other geometry-bearing field. Unimplemented for want of a capture, so the contract
-	// is that it says so rather than dropping silently.
-	it('reports supplemental transforms instead of ignoring them quietly', () => {
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-
-		const transforms = worldStateObstacleTransforms({
+	// `obstacles` and `transforms` are the same thing in different shapes — geometry positioned in a
+	// frame — so a supplemental transform is drawn, not dropped.
+	it('draws geometry attached via supplemental transforms', () => {
+		const [drawn] = worldStateObstacleTransforms({
 			transforms: [
 				{
 					referenceFrame: 'moving-box',
-					poseInObserverFrame: { referenceFrame: 'world', pose: { x: 0, y: 0, z: 0, oZ: 1 } },
+					poseInObserverFrame: {
+						referenceFrame: 'arm',
+						pose: { x: 5, y: 0, z: 0, oZ: 1 },
+					},
 					physicalObject: { box: { dimsMm: { x: 10, y: 10, z: 10 } }, label: 'moving-box' },
 				},
 			],
 		})
 
-		expect(transforms).toEqual([])
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('1 world_state transform(s)'))
-		warn.mockRestore()
+		expect(drawn!.referenceFrame).toBe('obstacle:moving-box')
+		// Unlike an obstacle, a transform brings its own parent and pose.
+		expect(drawn!.poseInObserverFrame!.referenceFrame).toBe('arm')
+		expect(drawn!.poseInObserverFrame!.pose).toMatchObject({ x: 5 })
+		expect(drawn!.physicalObject!.geometryType.case).toBe('box')
+	})
+
+	it('skips supplemental transforms that carry no geometry', () => {
+		expect(
+			worldStateObstacleTransforms({
+				transforms: [
+					{ referenceFrame: 'plumbing', poseInObserverFrame: { referenceFrame: 'world' } },
+				],
+			})
+		).toEqual([])
 	})
 
 	it('warns and drops the set when the payload is not a WorldState at all', () => {
