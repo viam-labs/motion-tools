@@ -104,6 +104,8 @@ export const parentFrameOptions = ({
 		queue.push(...(childNames.get(name) ?? []))
 	}
 
+	// The machine's live frame system reports `world` as an explicit frame, so it
+	// may already be in `options`. Remove it before prepending so it only appears once.
 	options.delete(WORLD)
 
 	return [WORLD, ...[...options].toSorted()]
