@@ -1,3 +1,11 @@
+/**
+ * The forward-kinematics half of the client-side fallback (see `parse-plan.ts`). A trajectory step
+ * carries joint values rather than poses, so `computeJointPose` reproduces RDK's
+ * `rotationalFrame.Transform` — axis-angle about the joint's declared axis. Server FK via
+ * `ComputePlanFrames` is the path that shares RDK's own implementation; this one agrees with it only
+ * for the frame types the fallback covers.
+ */
+
 import { Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
 
