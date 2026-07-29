@@ -1,3 +1,11 @@
+/**
+ * The frame-system half of the client-side fallback (see `parse-plan.ts`): a TypeScript reconstruction
+ * of how RDK resolves `frame_system.frames` into a drawable chain. Every conversion below mirrors Go
+ * this file cannot import — orientation encodings (`spatialmath/orientation_json.go`), frame types
+ * (`referenceframe/register.go`), and the two geometry-center conventions — so each switch is a place
+ * the copy can fall behind its original without failing.
+ */
+
 import { protoBase64 } from '@bufbuild/protobuf'
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
