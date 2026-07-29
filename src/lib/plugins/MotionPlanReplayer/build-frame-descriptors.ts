@@ -153,7 +153,18 @@ const geometryCenterInFrame = (
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
  */
-const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | null => {
+const parseGeometry = (
+	geom: unknown,
+	frameName: string,
+	framePose?: FramePoseJson
+): Geometry | null => {
+	// Naming the frame is the difference between a warning you can act on and one you can't:
+	// a capture has dozens of geometries and they all skip through this one line.
+	const skip = (reason: string): null => {
+		console.warn(`[MotionPlanReplayer] skipping geometry on "${frameName}": ${reason}`)
+		return null
+	}
+
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
@@ -223,10 +234,8 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 			const meshData = g.mesh_data as string | undefined
 
 			// parsePlyInput is PLY-only; other formats throw at render time, far from here.
-			if (contentType !== 'ply' || !meshData) {
-				console.warn(`[MotionPlanReplayer] skipping mesh geometry (content type "${contentType}")`)
-				return null
-			}
+			if (!meshData) return skip('mesh geometry carries no mesh_data')
+			if (contentType !== 'ply') return skip(`unsupported mesh content type "${contentType}"`)
 
 			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
 			// report as an unparseable plan — the whole failure mode this branch avoids.
@@ -235,8 +244,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
 				mesh = Uint8Array.from(protoBase64.dec(meshData))
 			} catch {
-				console.warn(`[MotionPlanReplayer] skipping mesh geometry with undecodable mesh_data`)
-				return null
+				return skip('undecodable mesh_data')
 			}
 
 			return new Geometry({
@@ -249,8 +257,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 		// Skip rather than substitute: a stand-in shape would lie about where the collision
 		// volume is, and one unrenderable shape shouldn't cost the whole trajectory.
 		default: {
-			console.warn(`[MotionPlanReplayer] skipping unsupported geometry type "${type}"`)
-			return null
+			return skip(`unsupported geometry type "${type}"`)
 		}
 	}
 }
@@ -379,7 +386,7 @@ const buildDescriptors = (
 						name: frameName,
 						parent,
 						localPose: poseFromFrame(framePose.translation, framePose.orientation),
-						geometry: parseGeometry(innerData.geometry, framePose),
+						geometry: parseGeometry(innerData.geometry, frameName, framePose),
 						uuid: newUuid(),
 					})
 				}
@@ -397,7 +404,7 @@ const buildDescriptors = (
 						frame.translation as Vec3Json | undefined,
 						frame.orientation as OrientJson | undefined
 					),
-					geometry: parseGeometry(frame.geometry),
+					geometry: parseGeometry(frame.geometry, frameName),
 					uuid: newUuid(),
 				})
 				break
