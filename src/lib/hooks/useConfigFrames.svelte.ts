@@ -11,7 +11,6 @@ const key = Symbol('config-frames-context')
 interface ConfigFramesContext {
 	unsetFrames: string[]
 	current: Record<string, Transform>
-	getParentFrameOptions: (componentName: string) => string[]
 }
 
 export const provideConfigFrames = () => {
@@ -80,47 +79,9 @@ export const provideConfigFrames = () => {
 		return result
 	})
 
-	const frameValues = $derived(Object.values(frames))
-
-	const getParentFrameOptions = (componentName: string) => {
-		const validFrames = new Set(frameValues.map((frame) => frame.referenceFrame))
-
-		/**
-		 * Fragment components without a mod don't appear in frameValues (we only
-		 * track frames with explicit $set mods), but the fragment itself supplies
-		 * their frame so they render in the scene and are valid parents. Exclude
-		 * any whose frame the user has $unset.
-		 */
-		const unsetFragmentNames = new Set(fragmentUnsetFrameNames)
-		for (const name of Object.keys(fragmentInfo.current)) {
-			if (!unsetFragmentNames.has(name)) {
-				validFrames.add(name)
-			}
-		}
-
-		validFrames.add('world')
-
-		const frameNameQueue = [componentName]
-		while (frameNameQueue.length > 0) {
-			const frameName = frameNameQueue.shift()
-			if (frameName) {
-				validFrames.delete(frameName)
-				const filteredFrames = frameValues.filter(
-					(frame) => frame.poseInObserverFrame?.referenceFrame === frameName
-				)
-				for (const frame of filteredFrames) {
-					frameNameQueue.push(frame.referenceFrame)
-				}
-			}
-		}
-
-		return [...validFrames]
-	}
-
 	const unsetFrames = $derived([...new Set([...configUnsetFrameNames, ...fragmentUnsetFrameNames])])
 
 	setContext<ConfigFramesContext>(key, {
-		getParentFrameOptions,
 		get unsetFrames() {
 			return unsetFrames
 		},

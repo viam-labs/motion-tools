@@ -31,7 +31,7 @@
 
 	import { traits, useParentName, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
-	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
+	import { useParentFrameOptions } from '$lib/hooks/useParentFrameOptions.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { Pose } from '$lib/math'
 
@@ -44,7 +44,6 @@
 	const { entity, editable }: Props = $props()
 
 	const { invalidate } = useThrelte()
-	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
 
 	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
@@ -55,6 +54,7 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const parent = useParentName(() => entity)
+	const parentOptions = useParentFrameOptions(() => name.current)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -83,17 +83,15 @@
 	/**
 	 * The `<List>`'s bound value must be one of its options, or the underlying
 	 * native <select> has no matching <option>, snaps to selectedIndex -1, and
-	 * renders blank. `getParentFrameOptions` is derived from the editable part
-	 * config, but `parent.current` comes from the live frame system via the ECS
-	 * and can name a frame the config doesn't enumerate (a frame the robot
-	 * reports but the local config omits, an unresolved orphan, or simply the
-	 * config not having loaded yet). Always include the current parent so the
-	 * field shows it rather than going blank. It's cycle-safe: the current
-	 * parent is neither self nor a descendant.
+	 * renders blank. `useParentFrameOptions` enumerates every frame the app knows
+	 * about, but `parent.current` can still name one it doesn't — an unresolved
+	 * orphan, or simply frames not having loaded yet. Always include the current
+	 * parent so the field shows it rather than going blank. It's cycle-safe: the
+	 * current parent is neither self nor a descendant.
 	 */
 	const parentFrameOptions = $derived.by(() => {
 		const value = parent.current ?? 'world'
-		const options = configFrames.getParentFrameOptions(name.current ?? '') ?? []
+		const options = parentOptions.current
 		return options.includes(value) ? options : [value, ...options]
 	})
 
