@@ -27,8 +27,12 @@
 		isFrame && frameName !== undefined && frameName !== 'world' && hasMotionService
 	)
 
-	const openMove = () => {
-		if (frameName !== undefined) moveWidgets.open(frameName)
+	const moveOn = $derived(frameName !== undefined && moveWidgets.current.includes(frameName))
+
+	const toggleMove = () => {
+		if (frameName === undefined) return
+		if (moveOn) moveWidgets.close(frameName)
+		else moveWidgets.open(frameName)
 	}
 </script>
 
@@ -39,14 +43,18 @@
 			location="bottom"
 		>
 			<button
-				class="text-subtle-2"
+				class={[
+					'hover:text-default focus-visible:text-default transition-colors',
+					moveOn ? 'text-info-dark' : 'text-subtle-2',
+				]}
 				aria-describedby={tooltipID}
 				aria-label="Move this frame"
-				onclick={openMove}
+				aria-pressed={moveOn}
+				onclick={toggleMove}
 			>
 				<Move3d size={14} />
 			</button>
-			<p slot="description">Move this frame</p>
+			<p slot="description">{moveOn ? 'Stop moving this frame' : 'Move this frame'}</p>
 		</Tooltip>
 	</Portal>
 {/if}

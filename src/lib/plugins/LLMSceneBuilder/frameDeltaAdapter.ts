@@ -6,7 +6,7 @@ import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { frameGeometryFromTransform } from '$lib/geometry'
 import { Pose } from '$lib/math'
-import { applyEulerDeltaToPose } from '$lib/transform'
+import { setOrientationFromEuler } from '$lib/transform'
 
 /**
  * Resolves current frames for fragment-defined components from live framesystem
@@ -295,7 +295,7 @@ export function validateProposedFrameDeltas(
 		)
 
 		if (delta.orientation) {
-			applyEulerDeltaToPose(previousPose, delta.orientation, newPose)
+			setOrientationFromEuler(previousPose, delta.orientation, newPose)
 		}
 
 		if (
