@@ -358,7 +358,6 @@
 			</div>
 		</div>
 
-		<!-- Directly above Execute: the last thing read before committing the move. -->
 		<Collisions />
 
 		<div class="flex items-center gap-2">

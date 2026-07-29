@@ -81,7 +81,11 @@ describe('isGhost', () => {
 describe('collectMembers', () => {
 	it('collects every collidable primitive', () => {
 		const table = spawnFrame('table')
-		world.spawn(relations.ChildOf(table), traits.Sphere({ r: 50 }), traits.WorldMatrix(new Matrix4()))
+		world.spawn(
+			relations.ChildOf(table),
+			traits.Sphere({ r: 50 }),
+			traits.WorldMatrix(new Matrix4())
+		)
 		world.spawn(
 			relations.ChildOf(table),
 			traits.Capsule({ l: 300, r: 50 }),

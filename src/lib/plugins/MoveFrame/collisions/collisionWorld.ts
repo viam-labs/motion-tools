@@ -66,9 +66,9 @@ const describeShape = (rapier: typeof RAPIER, shape: ColliderShape): RAPIER.Coll
  *
  * Two Rapier defaults must be overridden or nothing is ever reported.
  * `setSensor(true)` makes overlaps surface as intersection pairs rather than
- * contacts to resolve, and `ActiveCollisionTypes.ALL` is required because
- * Rapier skips fixed-vs-fixed pairs by default — and with no rigid bodies,
- * every collider here counts as fixed.
+ * contacts to resolve, and `FIXED_FIXED` has to be requested by name — Rapier
+ * skips fixed-vs-fixed pairs by default, and `ActiveCollisionTypes.ALL` does
+ * not actually include it (see `create`).
  */
 export const createCollisionWorld = (rapier: typeof RAPIER, world: RAPIER.World) => {
 	const tracked = new Map<Entity, Tracked>()
@@ -90,7 +90,7 @@ export const createCollisionWorld = (rapier: typeof RAPIER, world: RAPIER.World)
 			// parentless, which Rapier treats as fixed, so without this every pair is
 			// rejected before narrow phase and nothing is ever reported.
 			.setActiveCollisionTypes(
-				rapier.ActiveCollisionTypes.ALL
+				rapier.ActiveCollisionTypes.ALL | rapier.ActiveCollisionTypes.FIXED_FIXED
 			)
 			.setCollisionGroups(groupsForBit(bit))
 

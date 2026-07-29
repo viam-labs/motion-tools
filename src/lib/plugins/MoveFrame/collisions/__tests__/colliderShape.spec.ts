@@ -84,10 +84,7 @@ describe('composeColliderPose', () => {
 	})
 
 	it("rotates a capsule from Rapier's Y axis onto the scene's Z", () => {
-		const entity = world.spawn(
-			traits.Capsule({ l: 300, r: 50 }),
-			traits.WorldMatrix(new Matrix4())
-		)
+		const entity = world.spawn(traits.Capsule({ l: 300, r: 50 }), traits.WorldMatrix(new Matrix4()))
 
 		composeColliderPose(
 			entity,

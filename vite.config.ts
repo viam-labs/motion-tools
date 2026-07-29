@@ -39,7 +39,11 @@ export default defineConfig({
 		// @testing-library/svelte is excluded so its Svelte components aren't
 		// pre-bundled, but its CJS grandchild aria-query (via @testing-library/dom)
 		// must still be optimized or Rolldown won't expose its named exports.
-		include: ['@testing-library/svelte > @testing-library/dom'],
+		//
+		// rapier3d-compat is listed because the collision tests import it directly:
+		// discovering it mid-run makes Vite re-optimize and reload the test worker,
+		// which vitest flags as a flakiness risk.
+		include: ['@testing-library/svelte > @testing-library/dom', '@dimforge/rapier3d-compat'],
 		exclude: ['@testing-library/svelte'],
 	},
 	build: {
