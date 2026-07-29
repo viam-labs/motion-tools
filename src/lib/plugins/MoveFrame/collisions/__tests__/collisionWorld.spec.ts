@@ -85,6 +85,17 @@ describe('createCollisionWorld', () => {
 		expect(collisions.detect()).toHaveLength(1)
 	})
 
+	it('ignores scenery touching scenery, however much of it a scene has', () => {
+		// The failure this guards: a big cell is full of fixtures bolted to tables
+		// and tables standing on floors, all overlapping by design. Reporting those
+		// buries the one pair that matters and paints most of the scene red.
+		collisions.sync(
+			[0, 0.15, 0.3, 0.45].map((x) => ({ entity: spawnCube(x), bit: ENVIRONMENT_BIT }))
+		)
+
+		expect(collisions.detect()).toHaveLength(0)
+	})
+
 	it('leaves separated colliders alone', () => {
 		collisions.sync([
 			{ entity: spawnCube(0), bit: ARM_BIT },
