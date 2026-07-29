@@ -4,6 +4,7 @@ import type { ParsedPlan } from '../parse-plan'
 
 import { buildFrameDescriptors } from '../build-frame-descriptors'
 import { parsePlan } from '../parse-plan'
+import gantryPlan from './__fixtures__/gantry-plan.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
@@ -99,34 +100,32 @@ describe('unhandled frame types', () => {
 		)
 	})
 
-	// The live case: RDK registers `translational` for prismatic joints (gantries, parallel-jaw
-	// grippers) and this file has no branch for it. Reported, not built — handoff doc §5d.
-	it('warns and emits nothing for a translational joint inside a named frame', () => {
+	// The inner switch needs its own fallthrough — a `named` wrapper around something unregistered
+	// would otherwise be dropped by the inner branch even though the outer one matched.
+	it('warns and emits nothing for an unregistered type inside a named frame', () => {
 		const descriptors = buildFrameDescriptors(
 			plan(
 				{
-					'gripper:left_joint': {
+					'arm:thing': {
 						frame_type: 'named',
-						frame: {
-							inner_frame: {
-								frame_type: 'translational',
-								frame: { id: 'left_joint', type: 'prismatic', axis: { X: 0, Y: 1, Z: 0 } },
-							},
-						},
+						frame: { inner_frame: { frame_type: 'pose', frame: {} } },
 					},
 				},
-				{ 'gripper:left_joint': 'world' }
+				{ 'arm:thing': 'world' }
 			)
 		)
 
 		expect(descriptors).toHaveLength(0)
 		expect(warn).toHaveBeenCalledWith(
-			expect.stringContaining('unhandled frame type "translational" on "gripper:left_joint"')
+			expect.stringContaining('unhandled frame type "pose" on "arm:thing"')
 		)
 	})
 
-	it('stays silent for the four types it does build', () => {
-		buildFrameDescriptors(parsePlan(saladPlan))
+	it.each([
+		['salad-plan', saladPlan],
+		['gantry-plan', gantryPlan],
+	])('stays silent for the frame types %s contains', (_name, capture) => {
+		buildFrameDescriptors(parsePlan(capture))
 		expect(warn).not.toHaveBeenCalled()
 	})
 })

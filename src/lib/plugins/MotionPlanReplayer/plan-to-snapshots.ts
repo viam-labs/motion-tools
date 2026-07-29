@@ -24,11 +24,16 @@ import {
 const quat = new Quaternion()
 const vec3 = new Vector3()
 
-const computeJointPose = (descriptor: JointFrameDescriptor, angleRad: number): Pose => {
-	quat.setFromAxisAngle(
-		vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize(),
-		angleRad
-	)
+/** RDK reads the step value as radians for a revolute joint and millimetres for a prismatic one. */
+const computeJointPose = (descriptor: JointFrameDescriptor, value: number): Pose => {
+	// RDK normalizes on unmarshal; the JSON itself does not guarantee a unit axis.
+	vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize()
+
+	if (descriptor.motion === 'translational') {
+		return new Pose(vec3.x * value, vec3.y * value, vec3.z * value)
+	}
+
+	quat.setFromAxisAngle(vec3, value)
 	return new Pose().setFromQuaternion(quat)
 }
 
@@ -48,12 +53,12 @@ const descriptorToTransform = (
 		})
 	}
 
-	const angleRad = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
+	const jointValue = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
 	return new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
 			referenceFrame: descriptor.parent,
-			pose: computeJointPose(descriptor, angleRad),
+			pose: computeJointPose(descriptor, jointValue),
 		}),
 		uuid: descriptor.uuid,
 	})

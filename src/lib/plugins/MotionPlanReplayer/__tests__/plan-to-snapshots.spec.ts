@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { parsePlan } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
+import gantryPlan from './__fixtures__/gantry-plan.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 // arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
@@ -120,6 +121,46 @@ describe('parsedPlanToSnapshots', () => {
 
 	it('returns empty array for plan with no trajectory', () => {
 		expect(parsedPlanToSnapshots(parsePlan(JSON.stringify(REQUEST)))).toHaveLength(0)
+	})
+})
+
+// The arm holds [0,0,0,0,0,0] across both steps, so the prismatic joint is the plan's only motion —
+// a regression renders this capture entirely still.
+describe('parsedPlanToSnapshots with a translational joint', () => {
+	const snapshots = parsedPlanToSnapshots(parsePlan(gantryPlan))
+	const jointAt = (step: number) =>
+		snapshots[step]!.transforms.find((t) => t.referenceFrame === 'gantry-1:gantry_joint')!
+
+	it('emits the prismatic joint as a transform', () => {
+		expect(snapshots).toHaveLength(2)
+		expect(jointAt(0)).toBeDefined()
+	})
+
+	// 50 and 90 are the capture's own gantry-1 values, on axis {X:1,Y:0,Z:0}.
+	it('translates along the axis by the step value in millimetres', () => {
+		expect(jointAt(0).poseInObserverFrame!.pose!.x).toBeCloseTo(50, 3)
+		expect(jointAt(1).poseInObserverFrame!.pose!.x).toBeCloseTo(90, 3)
+	})
+
+	it('slides without rotating', () => {
+		for (const step of [0, 1]) {
+			const pose = jointAt(step).poseInObserverFrame!.pose!
+			expect(pose.theta).toBeCloseTo(0, 3)
+			expect(pose.y).toBeCloseTo(0, 3)
+			expect(pose.z).toBeCloseTo(0, 3)
+		}
+	})
+
+	it('keeps the carriage parented to the joint so it rides along', () => {
+		const carriage = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'gantry-1:carriage')!
+		expect(carriage.poseInObserverFrame!.referenceFrame).toBe('gantry-1:gantry_joint')
+		expect(carriage.physicalObject!.geometryType.case).toBe('box')
+	})
+
+	// The arm shares the capture and must still read as radians, not millimetres.
+	it('leaves revolute joints on the same rig unchanged', () => {
+		const waist = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm-1:waist')!
+		expect(waist.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 3)
 	})
 })
 
