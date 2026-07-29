@@ -75,6 +75,15 @@ describe('parentFrameOptions', () => {
 		).toEqual(['world'])
 	})
 
+	it('excludes a fragment-only frame when it is the component being reparented', () => {
+		expect(
+			options({
+				fragmentComponents: [{ name: 'gripper', parent: 'world' }],
+				componentName: 'gripper',
+			})
+		).toEqual(['world'])
+	})
+
 	it('keeps a fragment component whose parent is unknown', () => {
 		// Mapped from a `fragment_mods` path alone: no frame, so no edge to walk.
 		// It stays selectable even though it really is a child of little-arm.
