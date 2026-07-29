@@ -1,5 +1,16 @@
 # motion-tools
 
+## 1.40.0
+
+### Minor Changes
+
+- f6b9142: Move frame plugin UX improvements
+
+### Patch Changes
+
+- 1c61c5c: Add tests for the new `Pose` class
+- d2c58fe: Use Three.js-like api for pose math
+
 ## 1.39.0
 
 ### Minor Changes
