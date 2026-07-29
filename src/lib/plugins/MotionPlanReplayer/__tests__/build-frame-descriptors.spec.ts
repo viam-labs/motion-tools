@@ -82,6 +82,55 @@ describe('unrecognised orientation encodings', () => {
 	})
 })
 
+// Neither switch had a fallthrough, so an unregistered or unbuilt frame type produced no descriptor
+// and no output — the frame simply wasn't in the scene.
+describe('unhandled frame types', () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+	afterEach(() => warn.mockClear())
+
+	it('warns and emits nothing for an unregistered outer frame type', () => {
+		const descriptors = buildFrameDescriptors(
+			plan({ 'arm:thing': { frame_type: 'pose', frame: {} } }, { 'arm:thing': 'world' })
+		)
+
+		expect(descriptors).toHaveLength(0)
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('unhandled frame type "pose" on "arm:thing"')
+		)
+	})
+
+	// The live case: RDK registers `translational` for prismatic joints (gantries, parallel-jaw
+	// grippers) and this file has no branch for it. Reported, not built — handoff doc §5d.
+	it('warns and emits nothing for a translational joint inside a named frame', () => {
+		const descriptors = buildFrameDescriptors(
+			plan(
+				{
+					'gripper:left_joint': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: {
+								frame_type: 'translational',
+								frame: { id: 'left_joint', type: 'prismatic', axis: { X: 0, Y: 1, Z: 0 } },
+							},
+						},
+					},
+				},
+				{ 'gripper:left_joint': 'world' }
+			)
+		)
+
+		expect(descriptors).toHaveLength(0)
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('unhandled frame type "translational" on "gripper:left_joint"')
+		)
+	})
+
+	it('stays silent for the four types it does build', () => {
+		buildFrameDescriptors(parsePlan(saladPlan))
+		expect(warn).not.toHaveBeenCalled()
+	})
+})
+
 describe('buildFrameDescriptors', () => {
 	it('produces a static descriptor for a named static frame', () => {
 		const p = plan(
