@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parsePlan } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
+import pirouetteRequest from './__fixtures__/pirouette-request.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 // arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
@@ -161,6 +162,47 @@ describe('parsedPlanToSnapshots with a translational joint', () => {
 	it('leaves revolute joints on the same rig unchanged', () => {
 		const waist = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm-1:waist')!
 		expect(waist.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 3)
+	})
+})
+
+describe('parsedPlanToSnapshots with world_state obstacles', () => {
+	// Real obstacle data, grafted onto a trajectory: pirouette is the only capture carrying
+	// world_state geometry and it is request-only, so the pairing has to be made here.
+	const worldState = (JSON.parse(pirouetteRequest) as { world_state: unknown }).world_state
+	const snapshots = parsedPlanToSnapshots(
+		parsePlan(JSON.stringify({ ...REQUEST, world_state: worldState }) + JSON.stringify(RESULT))
+	)
+	const obstaclesIn = (step: number) =>
+		snapshots[step]!.transforms.filter((t) => t.referenceFrame.startsWith('obstacle/'))
+
+	it('adds the obstacles alongside the frame transforms', () => {
+		expect(snapshots[0]!.transforms).toHaveLength(4)
+		expect(obstaclesIn(0).map((t) => t.referenceFrame)).toEqual([
+			'obstacle/pallet',
+			'obstacle/pick-station',
+		])
+	})
+
+	it('repeats them in every step so they do not blink out mid-scrub', () => {
+		expect(obstaclesIn(1)).toHaveLength(2)
+	})
+
+	// Reconcile keys on uuid; a fresh uuid per step would destroy and respawn every obstacle.
+	it('keeps obstacle uuids stable across steps', () => {
+		expect(obstaclesIn(0).map((t) => t.uuid)).toStrictEqual(obstaclesIn(1).map((t) => t.uuid))
+	})
+
+	it('leaves a plan without world_state untouched', () => {
+		expect(snapshotsFromContent(CONTENT)[0]!.transforms).toHaveLength(2)
+	})
+
+	/**
+	 * The capture this feature exists for still renders nothing: a request-only plan has no
+	 * trajectory, so there are no snapshots to attach obstacles to. Drawing a static scene for
+	 * request-only plans is a separate change to `loadPlan`, and APP-17415 needs it.
+	 */
+	it('still yields nothing for the request-only capture that motivated it', () => {
+		expect(parsedPlanToSnapshots(parsePlan(pirouetteRequest))).toHaveLength(0)
 	})
 })
 

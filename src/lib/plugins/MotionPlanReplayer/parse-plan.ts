@@ -22,6 +22,10 @@ const PlanChunkSchema = z.object({
 	frame_system: FrameSystemSchema.optional(),
 	goals: z.array(z.unknown()).optional(),
 	trajectory: z.array(z.record(z.string(), z.array(z.number()))).optional(),
+	// Left opaque on purpose: this is proto-JSON, and protobuf-es narrows it in
+	// `world-state-obstacles.ts`. Restating `common.v1.WorldState` in zod would be a second
+	// hand-written copy of a message we can already decode.
+	world_state: z.unknown().optional(),
 })
 
 export type RawFrame = z.infer<typeof RawFrameSchema>
@@ -109,6 +113,7 @@ const PlanSchema = z
 		let parents: Record<string, string> = {}
 		let trajectory: Array<Record<string, number[]>> = []
 		let goals: unknown[] = []
+		let worldState: unknown
 		let foundFrameSystem = false
 
 		for (const chunk of chunks) {
@@ -116,6 +121,7 @@ const PlanSchema = z
 				frames = chunk.frame_system.frames
 				parents = chunk.frame_system.parents
 				goals = chunk.goals ?? []
+				worldState = chunk.world_state
 				foundFrameSystem = true
 			}
 
@@ -129,7 +135,7 @@ const PlanSchema = z
 			return z.NEVER
 		}
 
-		return { frames, parents, trajectory, goals }
+		return { frames, parents, trajectory, goals, worldState }
 	})
 
 export type ParsedPlan = z.infer<typeof PlanSchema>

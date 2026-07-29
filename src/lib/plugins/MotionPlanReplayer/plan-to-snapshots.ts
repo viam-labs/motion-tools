@@ -20,6 +20,7 @@ import {
 	type FrameDescriptor,
 	type JointFrameDescriptor,
 } from './build-frame-descriptors'
+import { worldStateObstacleTransforms } from './world-state-obstacles'
 
 const quat = new Quaternion()
 const vec3 = new Vector3()
@@ -80,15 +81,17 @@ export const transformBytesToSnapshots = (transformsPerStep: Uint8Array[][]): Sn
 		transformsToSnapshot(step.map((bytes) => Transform.fromBinary(bytes)))
 	)
 
-const planToSnapshots = (
-	descriptors: FrameDescriptor[],
-	trajectory: Array<Record<string, number[]>>
-): Snapshot[] =>
-	trajectory.map((stepInputs) =>
-		transformsToSnapshot(descriptors.map((d) => descriptorToTransform(d, stepInputs)))
-	)
-
 export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
 	const descriptors = buildFrameDescriptors(plan)
-	return planToSnapshots(descriptors, plan.trajectory)
+
+	// Built once and shared by every step rather than per-step: reconcile keys on `Transform.uuid`,
+	// so stable uuids let obstacles spawn on the first step and survive a scrub untouched.
+	const obstacles = worldStateObstacleTransforms(plan.worldState)
+
+	return plan.trajectory.map((stepInputs) =>
+		transformsToSnapshot([
+			...descriptors.map((descriptor) => descriptorToTransform(descriptor, stepInputs)),
+			...obstacles,
+		])
+	)
 }
