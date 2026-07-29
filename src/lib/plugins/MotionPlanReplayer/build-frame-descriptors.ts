@@ -356,6 +356,17 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 }
 
 /**
+ * `referenceframe/register.go` registers six frame types; the switches below cover four. An
+ * unregistered or unhandled one produces no descriptor, so the frame is absent from the scene and
+ * anything parented to it is left unresolved — worth saying out loud rather than dropping.
+ */
+const warnUnhandledFrame = (frameName: string, frameType: unknown): void => {
+	console.warn(
+		`[MotionPlanReplayer] unhandled frame type "${String(frameType)}" on "${frameName}" — frame not drawn`
+	)
+}
+
+/**
  * A straight map over `frames` — every cross-frame question was already answered by
  * {@link buildFrameContexts}, so each entry is built from itself plus its context.
  */
@@ -407,6 +418,9 @@ const buildDescriptors = (
 						geometry: parseGeometry(innerData.geometry, frameName, framePose),
 						uuid: newUuid(),
 					})
+				} else {
+					// `translational` lands here — see the handoff doc §5d for why it is not yet built.
+					warnUnhandledFrame(frameName, inner.frame_type)
 				}
 				break
 			}
@@ -425,6 +439,11 @@ const buildDescriptors = (
 					geometry: parseGeometry(frame.geometry, frameName),
 					uuid: newUuid(),
 				})
+				break
+			}
+
+			default: {
+				warnUnhandledFrame(frameName, entry.frame_type)
 				break
 			}
 		}
