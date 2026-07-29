@@ -67,8 +67,10 @@ export const parentFrameOptions = ({
 		}
 	}
 
-	// `seen` guards the walk against a cycle already present in the frame data —
-	// an edit mid-flight, or a machine the RDK reported as unlinked.
+	/**
+	 * `seen` guards the walk against a cycle already present in the frame data —
+	 * an edit mid-flight, or a machine the RDK reported as unlinked.
+	 */
 	const seen = new Set<string>()
 	const queue = componentName ? [componentName] : []
 	while (queue.length > 0) {
@@ -82,5 +84,5 @@ export const parentFrameOptions = ({
 
 	options.delete(WORLD)
 
-	return [WORLD, ...[...options].sort()]
+	return [WORLD, ...[...options].toSorted()]
 }
