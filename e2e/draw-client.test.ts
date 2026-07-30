@@ -2,7 +2,12 @@ import { Browser, expect, Page, test } from '@playwright/test'
 import { exec, execSync } from 'node:child_process'
 import { promisify } from 'node:util'
 
-import { captureCanvas, screenshotCanvas, waitForCanvasToChange } from './helpers/screenshot'
+import {
+	captureCanvas,
+	screenshotCanvas,
+	waitForCanvasToChange,
+	waitForCanvasToSettle,
+} from './helpers/screenshot'
 
 const execAsync = promisify(exec)
 
@@ -1027,6 +1032,127 @@ test('replay', async ({ browser }) => {
 
 	await cleanup(page)
 
+	assertNoFailedScreenshots(failedScreenshots)
+})
+
+const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string) => {
+	const page = await createPage(browser)
+
+	execSync(
+		`go test -run ^TestRedrawLoop$/${step}$ github.com/viam-labs/motion-tools/client/api -count=1`,
+		{ encoding: 'utf8' }
+	)
+
+	await expect(page.getByText('redraw-box-00', { exact: true })).toBeVisible({ timeout: 10000 })
+
+	// The entity tree is virtualized, so only the visible rows exist in the DOM and counting them
+	// proves nothing. The canvas is the assertion: the boxes are drawn as a 6x4 grid in a fixed
+	// palette, so a change that went missing reads as a hole in the grid, and one applied to the
+	// wrong entity reads as a wrong-colored cell.
+	await waitForCanvasToSettle(page)
+	await assertTestSuccess(page, testPrefix)
+}
+
+/**
+ * The reported failure: a producer clearing the scene and redrawing it every tick.
+ *
+ * Both tests below draw the identical grid and must produce the identical image. The first clears
+ * before each redraw, the second does not, and the point is that the visualizer converges to the
+ * same scene either way. Before this fix the clearing variant lost entities: a removal and the
+ * re-add that followed it could land in the same animation frame, where the re-add was discarded.
+ */
+test('redraw loop clearing and redrawing', async ({ browser }) => {
+	await runRedrawLoop(browser, 'REDRAW_LOOP_WITH_CLEAR', 'RedrawLoop')
+})
+
+// The pattern we recommend instead: identities are deterministic, so redrawing upserts in place
+// and the service never publishes a removal at all.
+test('redraw loop without clearing', async ({ browser }) => {
+	await runRedrawLoop(browser, 'REDRAW_LOOP_NO_CLEAR', 'RedrawWithoutClearing')
+})
+
+test('update entity partial updates', async ({ browser }) => {
+	const testPrefix = 'UPDATE_ENTITY'
+	const page = await createPage(browser)
+	const failedScreenshots: string[] = []
+
+	execSync(
+		'go test -run ^TestUpdateEntity$/Setup$ github.com/viam-labs/motion-tools/client/api -count=1',
+		{ encoding: 'utf8' }
+	)
+
+	await expect(page.getByText('update-entity box')).toBeVisible({ timeout: 10000 })
+	await expect(page.getByText('update-entity points')).toBeVisible({ timeout: 10000 })
+	const initial = await waitForCanvasToSettle(page)
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_SETUP`))
+
+	/**
+	 * Each step below screenshots only after the canvas settles, not at the first changed pixel.
+	 * An entity's mesh and its axes helper are flushed by separate batched renderers, so the
+	 * first frame that differs can show the box moved with its helper still behind.
+	 */
+	const applyStep = async (step: string, reference: Uint8Array, description: string) => {
+		execSync(
+			`go test -run ^TestUpdateEntity$/${step}$ github.com/viam-labs/motion-tools/client/api -count=1`,
+			{ encoding: 'utf8' }
+		)
+
+		const changed = await waitForCanvasToChange(page, reference)
+		expect(changed, description).not.toBeNull()
+		return waitForCanvasToSettle(page)
+	}
+
+	// A pose-only update: the box moves without its geometry or color being resent.
+	const moved = await applyStep('MoveTransform', initial, 'box did not move on a pose-only update')
+	await expect(page.getByText('update-entity box')).toBeVisible()
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_1_MOVED`))
+
+	// A metadata-only update: the box recolors and must stay where the move put it.
+	const recoloredBox = await applyStep(
+		'RecolorTransform',
+		moved,
+		'box did not recolor on a metadata-only update'
+	)
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_2_BOX_RECOLORED`))
+
+	// The same for a drawing: the points recolor without their positions being resent.
+	await applyStep(
+		'RecolorDrawing',
+		recoloredBox,
+		'points did not recolor on a metadata-only update'
+	)
+	await expect(page.getByText('update-entity points')).toBeVisible()
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_3_POINTS_RECOLORED`))
+
+	await cleanup(page)
+	assertNoFailedScreenshots(failedScreenshots)
+})
+
+test('remove entity', async ({ browser }) => {
+	const testPrefix = 'REMOVE_ENTITY'
+	const page = await createPage(browser)
+	const failedScreenshots: string[] = []
+
+	execSync(
+		'go test -run ^TestRemoveEntity$/Setup$ github.com/viam-labs/motion-tools/client/api -count=1',
+		{ encoding: 'utf8' }
+	)
+
+	await expect(page.getByText('remove-entity keep')).toBeVisible({ timeout: 10000 })
+	await expect(page.getByText('remove-entity drop')).toBeVisible({ timeout: 10000 })
+	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
+
+	execSync(
+		'go test -run ^TestRemoveEntity$/RemoveOne$ github.com/viam-labs/motion-tools/client/api -count=1',
+		{ encoding: 'utf8' }
+	)
+
+	// Only the targeted entity goes; the rest of the scene is untouched.
+	await expect(page.getByText('remove-entity drop')).not.toBeVisible({ timeout: 10000 })
+	await expect(page.getByText('remove-entity keep')).toBeVisible()
+	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
+
+	await cleanup(page)
 	assertNoFailedScreenshots(failedScreenshots)
 })
 

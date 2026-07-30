@@ -1,13 +1,10 @@
 package api
 
 import (
-	"context"
 	"fmt"
 
-	"connectrpc.com/connect"
 	"github.com/viam-labs/motion-tools/client/server"
 	"github.com/viam-labs/motion-tools/draw"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
 	"go.viam.com/rdk/referenceframe"
 )
 
@@ -58,15 +55,5 @@ func DrawFrameSystem(options DrawFrameSystemOptions) ([][]byte, error) {
 		return nil, fmt.Errorf("failed to create frame system geometries: %w", err)
 	}
 
-	uuids := make([][]byte, 0, len(transforms))
-	for _, transform := range transforms {
-		req := connect.NewRequest(&drawv1.AddEntityRequest{Entity: &drawv1.AddEntityRequest_Transform{Transform: transform}})
-		resp, err := client.AddEntity(context.Background(), req)
-		if err != nil {
-			return nil, fmt.Errorf("AddTransform RPC failed: %w", err)
-		}
-		uuids = append(uuids, resp.Msg.Uuid)
-	}
-
-	return uuids, nil
+	return addTransforms(client, transforms)
 }
