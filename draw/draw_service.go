@@ -529,6 +529,7 @@ func (svc *DrawService) UpdateEntity(
 		updated := applyDrawingUpdate(existing.drawing, e.Drawing, req.Msg.UpdatedFields)
 		warnOnAttributeCountMismatch(id, updated)
 		svc.entities[id] = storedEntity{kind: entityKindDrawing, drawing: updated}
+		svc.syncChunkedTemplate(id, e.Drawing, req.Msg.UpdatedFields)
 		changeMsg = &drawv1.StreamEntityChangesResponse{
 			ChangeType:    drawv1.EntityChangeType_ENTITY_CHANGE_TYPE_UPDATED,
 			Entity:        &drawv1.StreamEntityChangesResponse_Drawing{Drawing: updated},
@@ -541,6 +542,32 @@ func (svc *DrawService) UpdateEntity(
 	svc.notifyEntityChange(changeMsg)
 
 	return connect.NewResponse(&drawv1.UpdateEntityResponse{}), nil
+}
+
+// syncChunkedTemplate applies a partial update to a chunked entity's replay template.
+//
+// A chunked drawing is replayed to new subscribers from its template rather than from the stored
+// entity, because the payload has to be rebuilt from the on-disk buffer. Updating only the stored
+// entity would therefore be invisible to anyone connecting later: they would receive the pose and
+// metadata the entity was created with, and nothing would ever correct it.
+//
+// Shape masks are skipped. A chunked entity's elements live in the buffer, not in the template's
+// physical_object, so there is nothing meaningful to sync; see the TODO in UpdateEntity.
+//
+// svc.mu must be held.
+func (svc *DrawService) syncChunkedTemplate(id uuid.UUID, incoming *drawv1.Drawing, mask *fieldmaskpb.FieldMask) {
+	if len(mask.GetPaths()) == 0 || maskSelects(mask, DrawingPathShape) {
+		return
+	}
+
+	chunked, ok := svc.chunked[id]
+	if !ok {
+		return
+	}
+
+	chunked.mu.Lock()
+	defer chunked.mu.Unlock()
+	chunked.template = applyDrawingUpdate(chunked.template, incoming, mask)
 }
 
 func (svc *DrawService) accumulateChunk(entity *chunkedEntity, drawing *drawv1.Drawing) error {
@@ -1289,14 +1316,19 @@ func (entity *chunkedEntity) buildChunkDrawing(start uint32) (*drawv1.Drawing, u
 	setShapeData(drawing, chunkData)
 
 	if len(chunkColors) > 0 || len(chunkOpacities) > 0 {
-		md := &drawv1.Metadata{}
+		// Override only the packed buffers, keeping the rest of the template's metadata. Replacing
+		// it wholesale would drop the chunks descriptor, which is how a client recognizes a
+		// chunked entity and knows to keep pulling; a subscriber replayed without it would render
+		// the first chunk and stop.
+		if drawing.Metadata == nil {
+			drawing.Metadata = &drawv1.Metadata{}
+		}
 		if len(chunkColors) > 0 {
-			md.Colors = chunkColors
+			drawing.Metadata.Colors = chunkColors
 		}
 		if len(chunkOpacities) > 0 {
-			md.Opacities = chunkOpacities
+			drawing.Metadata.Opacities = chunkOpacities
 		}
-		drawing.Metadata = md
 	}
 
 	return drawing, chunkElements, nil

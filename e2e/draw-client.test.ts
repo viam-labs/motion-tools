@@ -382,6 +382,45 @@ test('draw point cloud in chunks with uniform opacity', async ({ browser }) => {
 	)
 })
 
+test('chunked point cloud survives a reconnect', async ({ browser }) => {
+	const testPrefix = 'CHUNKED_POINT_CLOUD_RECONNECT'
+	const page = await createPage(browser)
+
+	// Uses the small chunked cloud on purpose. This test loads one twice, once on the initial draw
+	// and again after the reload, and the multi-million point fixtures are too slow to do that
+	// inside a sensible timeout. Several chunks with per-point colors is all the coverage needs.
+	execSync(
+		'go test -run ^TestDrawPointCloud$/DrawSmallChunkedPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
+		{ encoding: 'utf8' }
+	)
+
+	await expect(page.getByText('chunked_point_cloud_small')).toBeVisible({ timeout: 30_000 })
+	await expect(page.getByRole('progressbar')).toHaveCount(0, { timeout: 60_000 })
+
+	// Reload rather than reconnect the socket: either way the client resubscribes and the service
+	// replays the scene, and a reload is the one a user actually performs.
+	await page.reload()
+	await expect(page.getByText('World', { exact: true })).toBeVisible({ timeout: 30_000 })
+	await expect(page.getByText('chunked_point_cloud_small')).toBeVisible({ timeout: 30_000 })
+
+	// A replayed chunked entity has to finish pulling. If the chunks descriptor went missing from
+	// the replay the client never starts, and if the pull stalls it never ends; either way the
+	// scene is left holding only the first chunk.
+	const progress = page.getByRole('progressbar', { name: /Loading/ })
+	const stalledAt = async () =>
+		`pull did not finish, last progress: ${await progress.getAttribute('aria-label')}`
+	await expect(progress)
+		.toHaveCount(0, { timeout: 60_000 })
+		.catch(async (error: unknown) => {
+			throw new Error(await stalledAt(), { cause: error })
+		})
+
+	// The snapshot catches a partial pull that still cleared the progress bar: a cloud missing
+	// most of its chunks looks obviously wrong.
+	await waitForCanvasToSettle(page, { timeoutMs: 30_000 })
+	await assertTestSuccess(page, testPrefix)
+})
+
 test('draw geometries updating', async ({ browser }) => {
 	const testPrefix = 'DRAW_GEOMETRIES_UPDATING'
 	const page = await createPage(browser)

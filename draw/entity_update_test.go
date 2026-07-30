@@ -177,6 +177,9 @@ func TestDrawService_ChunkedDrawingDistinguishesPatchFromChunk(t *testing.T) {
 	const stride = 12
 	const total = 4
 
+	// Two elements of packed RGB, matching the first chunk's element count.
+	chunkColorBytes := []byte{1, 2, 3, 4, 5, 6}
+
 	newChunkedDrawing := func(t *testing.T) (*DrawService, drawv1connect.DrawServiceClient, []byte) {
 		t.Helper()
 		svc := NewDrawService(t.TempDir())
@@ -190,6 +193,7 @@ func TestDrawService_ChunkedDrawingDistinguishesPatchFromChunk(t *testing.T) {
 		}
 		drawing.Metadata = &drawv1.Metadata{
 			Chunks: &drawv1.Chunks{ChunkSize: 2, Total: total, Stride: stride},
+			Colors: chunkColorBytes,
 		}
 
 		resp, err := client.AddEntity(context.Background(), connect.NewRequest(&drawv1.AddEntityRequest{
@@ -223,6 +227,54 @@ func TestDrawService_ChunkedDrawingDistinguishesPatchFromChunk(t *testing.T) {
 		chunked.mu.Lock()
 		defer chunked.mu.Unlock()
 		test.That(t, chunked.data.bytesWritten, test.ShouldEqual, int64(stride*total))
+	})
+
+	// A chunked drawing is replayed to new subscribers from its template, not from the stored
+	// entity, because the payload has to be rebuilt from the on-disk buffer. A partial update
+	// that only reached the stored entity would be invisible to anyone connecting afterwards.
+	t.Run("MaskedUpdateReachesTheReplayTemplate", func(t *testing.T) {
+		svc, client, id := newChunkedDrawing(t)
+
+		_, err := client.UpdateEntity(context.Background(), connect.NewRequest(&drawv1.UpdateEntityRequest{
+			Uuid: id,
+			Entity: &drawv1.UpdateEntityRequest_Drawing{Drawing: &drawv1.Drawing{
+				PoseInObserverFrame: &commonv1.PoseInFrame{Pose: &commonv1.Pose{X: 77}},
+			}},
+			UpdatedFields: &fieldmaskpb.FieldMask{Paths: []string{DrawingPathPoseValue}},
+		}))
+		test.That(t, err, test.ShouldBeNil)
+
+		parsed, err := uuid.FromBytes(id)
+		test.That(t, err, test.ShouldBeNil)
+		svc.mu.RLock()
+		chunked := svc.chunked[parsed]
+		svc.mu.RUnlock()
+
+		replay := svc.buildChunkedReplayMsg(chunked)
+		test.That(t, replay, test.ShouldNotBeNil)
+		test.That(t, replay.GetDrawing().GetPoseInObserverFrame().GetPose().GetX(), test.ShouldEqual, 77)
+	})
+
+	// The replay overlays each chunk's packed buffers onto the template. Replacing the metadata
+	// outright would drop the chunks descriptor, and a client that cannot see it renders the
+	// first chunk and never asks for the rest.
+	t.Run("ReplayKeepsTheChunksDescriptor", func(t *testing.T) {
+		svc, _, id := newChunkedDrawing(t)
+
+		parsed, err := uuid.FromBytes(id)
+		test.That(t, err, test.ShouldBeNil)
+		svc.mu.RLock()
+		chunked := svc.chunked[parsed]
+		svc.mu.RUnlock()
+
+		replay := svc.buildChunkedReplayMsg(chunked)
+		test.That(t, replay, test.ShouldNotBeNil)
+
+		metadata := replay.GetDrawing().GetMetadata()
+		test.That(t, metadata.GetChunks(), test.ShouldNotBeNil)
+		test.That(t, metadata.GetChunks().GetTotal(), test.ShouldEqual, uint32(total))
+		// The packed buffers still come from the chunk itself.
+		test.That(t, metadata.GetColors(), test.ShouldResemble, chunkColorBytes)
 	})
 
 	t.Run("MaskedUpdatePatchesFieldsInsteadOfAppending", func(t *testing.T) {

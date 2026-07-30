@@ -169,8 +169,12 @@ export function provideDrawService() {
 		firstChunkEnd: number,
 		signal: AbortSignal
 	) => {
+		// The progress trait is added here rather than by the caller so it cannot outlive the pull.
+		// An early return below would otherwise leave a caller-added trait with nothing to remove
+		// it, and the entity would show a loading bar forever.
 		if (activeChunkPulls.has(uuid)) return
 		activeChunkPulls.add(uuid)
+		entity.add(traits.ChunkProgress({ loaded: firstChunkEnd, total: totalElements }))
 
 		try {
 			let nextStart = firstChunkEnd
@@ -225,7 +229,6 @@ export function provideDrawService() {
 		if (isChunkedDrawing(drawing) && activeClient && activeSignal) {
 			const chunk = getChunkInfo(drawing)
 			if (chunk) {
-				spawned.entity.add(traits.ChunkProgress({ loaded: chunk.firstEnd, total: chunk.total }))
 				const uuidBytes = drawing.uuid ?? new Uint8Array()
 				void pullChunks(
 					activeClient,
