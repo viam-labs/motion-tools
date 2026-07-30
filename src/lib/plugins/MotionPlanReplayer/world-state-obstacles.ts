@@ -11,7 +11,7 @@ import { UuidTool } from 'uuid-tool'
 
 import {
 	type Pose as CommonPose,
-	Geometry,
+	type Geometry,
 	PoseInFrame,
 	Transform,
 	WorldState,

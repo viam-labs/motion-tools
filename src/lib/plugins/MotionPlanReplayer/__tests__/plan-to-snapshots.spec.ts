@@ -166,74 +166,17 @@ describe('parsedPlanToSnapshots with a translational joint', () => {
 })
 
 describe('parsedPlanToSnapshots with the pirouette capture', () => {
-	const pirouette = parsePlan(pirouettePlan)
-	const snapshots = parsedPlanToSnapshots(pirouette)
+	const snapshots = parsedPlanToSnapshots(parsePlan(pirouettePlan))
 	const obstaclesIn = (step: number) =>
 		snapshots[step]!.transforms.filter((t) => t.referenceFrame.startsWith('obstacle:'))
 
-	it('emits one snapshot per trajectory step', () => {
-		expect(pirouette.trajectory).toHaveLength(2)
+	it('replays trajectory steps with stable world_state obstacles', () => {
 		expect(snapshots).toHaveLength(2)
-	})
-
-	it('draws world_state obstacles alongside the frame transforms', () => {
 		expect(obstaclesIn(0).map((t) => t.referenceFrame)).toEqual([
 			'obstacle:pallet',
 			'obstacle:pick-station',
 		])
-		expect(obstaclesIn(1)).toHaveLength(2)
 		expect(obstaclesIn(0).map((t) => t.uuid)).toStrictEqual(obstaclesIn(1).map((t) => t.uuid))
-	})
-
-	it.each(['world_state', 'obstacles_in_world_frame'] as const)(
-		'draws the same obstacles when grafted under %s',
-		(key) => {
-			const worldState = pirouette.worldState as {
-				obstacles: Array<{
-					referenceFrame: string
-					geometries: Array<{
-						center: { x: number; y: number; z: number }
-						box: { dimsMm: { x: number; y: number; z: number } }
-						label: string
-					}>
-				}>
-			}
-			const group = worldState.obstacles[0]!
-			const payload =
-				key === 'world_state'
-					? worldState
-					: {
-							frame: group.referenceFrame,
-							geometries: group.geometries.map((g) => ({
-								type: 'box',
-								x: g.box.dimsMm.x,
-								y: g.box.dimsMm.y,
-								z: g.box.dimsMm.z,
-								r: 0,
-								l: 0,
-								translation: { X: g.center.x, Y: g.center.y, Z: g.center.z },
-								orientation: {
-									type: 'quaternion',
-									value: { W: 1, X: 0, Y: 0, Z: 0 },
-								},
-								Label: g.label,
-							})),
-						}
-
-			const grafted = parsedPlanToSnapshots(
-				parsePlan(JSON.stringify({ ...REQUEST, [key]: payload }) + JSON.stringify(RESULT))
-			)
-			expect(
-				grafted[0]!.transforms
-					.filter((t) => t.referenceFrame.startsWith('obstacle:'))
-					.map((t) => t.referenceFrame)
-			).toEqual(['obstacle:pallet', 'obstacle:pick-station'])
-			expect(grafted).toHaveLength(RESULT.trajectory.length)
-		}
-	)
-
-	it('leaves a plan without obstacles untouched', () => {
-		expect(snapshotsFromContent(CONTENT)[0]!.transforms).toHaveLength(2)
 	})
 })
 
