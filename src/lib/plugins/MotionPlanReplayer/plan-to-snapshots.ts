@@ -86,7 +86,7 @@ export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
 
 	// Built once and shared by every step rather than per-step: reconcile keys on `Transform.uuid`,
 	// so stable uuids let obstacles spawn on the first step and survive a scrub untouched.
-	const obstacles = worldStateObstacleTransforms(plan.worldState)
+	const obstacles = worldStateObstacleTransforms(plan)
 
 	return plan.trajectory.map((stepInputs) =>
 		transformsToSnapshot([

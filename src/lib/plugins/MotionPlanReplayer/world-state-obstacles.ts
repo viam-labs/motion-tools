@@ -1,8 +1,8 @@
 /**
- * Obstacles outside `frame_system`. RDK has written two encodings under two keys; `parsePlan`
- * folds either into `worldState` and this module picks the decoder by shape. Draw contract matches
- * `draw/geometries_in_frame.go` `ToTransforms` (namespaced label, parented to the observed frame).
- * WorldState `obstacles` and `transforms` are the same thing in different shapes, so both draw.
+ * Obstacles outside `frame_system`. RDK writes them under two keys that decode differently (see
+ * `parse-plan.ts`), so each arrives on its own field and gets its own decoder here. Draw contract
+ * matches `draw/geometries_in_frame.go` `ToTransforms` — namespaced label, parented to the observed
+ * frame. WorldState `obstacles` and `transforms` are the same thing in different shapes, so both draw.
  */
 
 import type { JsonValue, PartialMessage } from '@bufbuild/protobuf'
@@ -17,6 +17,8 @@ import {
 	WorldState,
 } from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
+
+import type { ObstaclesInWorldFrame, ParsedPlan } from './parse-plan'
 
 import { parseGeometry } from './build-frame-descriptors'
 
@@ -41,28 +43,17 @@ const obstacleTransform = (
 		uuid: newUuid(),
 	})
 
-/** True for Go `GeometriesInFrame` JSON (`{ frame, geometries }`), not proto-JSON WorldState. */
-const isObstaclesInWorldFrame = (payload: object): boolean => {
-	const { geometries, obstacles, transforms } = payload as {
-		geometries?: unknown
-		obstacles?: unknown
-		transforms?: unknown
-	}
-	return Array.isArray(geometries) && obstacles === undefined && transforms === undefined
-}
+const fromObstaclesInWorldFrame = (payload: ObstaclesInWorldFrame | undefined): Transform[] => {
+	if (!payload) return []
 
-const fromObstaclesInWorldFrame = (payload: object): Transform[] => {
-	const raw = payload as { frame?: unknown; geometries: unknown[] }
-	const parent = typeof raw.frame === 'string' && raw.frame !== '' ? raw.frame : 'world'
-
-	return raw.geometries.flatMap((geom, index) => {
+	return payload.geometries.flatMap((geom, index) => {
 		const geometry = parseGeometry(geom, `obstacles_in_world_frame[${index}]`)
 		if (!geometry) return []
 
 		return [
 			obstacleTransform(
 				namespaced(geometry.label, String(index)),
-				parent,
+				payload.frame,
 				// Pose lives on the geometry center, not the transform.
 				new Pose(),
 				geometry
@@ -71,7 +62,9 @@ const fromObstaclesInWorldFrame = (payload: object): Transform[] => {
 	})
 }
 
-const fromWorldState = (payload: object): Transform[] => {
+const fromWorldState = (payload: unknown): Transform[] => {
+	if (!payload || typeof payload !== 'object') return []
+
 	let parsed: WorldState
 	try {
 		// Not optional: protobuf-es rejects unknown JSON fields by default, so one field added to the
@@ -109,9 +102,7 @@ const fromWorldState = (payload: object): Transform[] => {
 	return [...fromObstacles, ...fromTransforms]
 }
 
-export const worldStateObstacleTransforms = (worldState: unknown): Transform[] => {
-	if (!worldState || typeof worldState !== 'object') return []
-	return isObstaclesInWorldFrame(worldState)
-		? fromObstaclesInWorldFrame(worldState)
-		: fromWorldState(worldState)
-}
+export const worldStateObstacleTransforms = (plan: ParsedPlan): Transform[] => [
+	...fromWorldState(plan.worldState),
+	...fromObstaclesInWorldFrame(plan.obstaclesInWorldFrame),
+]

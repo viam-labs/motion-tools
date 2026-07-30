@@ -54,16 +54,34 @@ describe('parsePlan', () => {
 		).toThrow(PlanParseError)
 	})
 
-	it.each(['world_state', 'obstacles_in_world_frame'] as const)(
-		'folds %s into worldState',
-		(key) => {
-			const payload = key === 'world_state' ? { obstacles: [] } : { frame: 'world', geometries: [] }
-			const plan = parsePlan(
-				JSON.stringify({ ...REQUEST_OBJ, [key]: payload }) + JSON.stringify(RESULT_OBJ)
+	it('keeps the two obstacle keys on separate fields', () => {
+		const plan = parsePlan(
+			JSON.stringify({
+				...REQUEST_OBJ,
+				world_state: { obstacles: [] },
+				obstacles_in_world_frame: { frame: 'shelf', geometries: [] },
+			}) + JSON.stringify(RESULT_OBJ)
+		)
+		expect(plan.worldState).toEqual({ obstacles: [] })
+		expect(plan.obstaclesInWorldFrame).toEqual({ frame: 'shelf', geometries: [] })
+	})
+
+	it('defaults an obstacles_in_world_frame with no parent to world', () => {
+		const plan = parsePlan(
+			JSON.stringify({ ...REQUEST_OBJ, obstacles_in_world_frame: { geometries: [] } }) +
+				JSON.stringify(RESULT_OBJ)
+		)
+		expect(plan.obstaclesInWorldFrame?.frame).toBe('world')
+	})
+
+	// Must fail here rather than deep inside the geometry decoder, where there is no path to report.
+	it('throws PlanParseError when obstacles_in_world_frame is malformed', () => {
+		expect(() =>
+			parsePlan(
+				JSON.stringify({ ...REQUEST_OBJ, obstacles_in_world_frame: { geometries: 'nope' } })
 			)
-			expect(plan.worldState).toEqual(payload)
-		}
-	)
+		).toThrow(PlanParseError)
+	})
 })
 
 /**

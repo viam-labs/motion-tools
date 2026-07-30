@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { ParsedPlan } from '../parse-plan'
+
 import { parsePlan } from '../parse-plan'
 import { worldStateObstacleTransforms } from '../world-state-obstacles'
 import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
@@ -34,12 +36,22 @@ const asObstaclesInWorldFrame = {
 	})),
 }
 
+const plan = (fields: Partial<ParsedPlan>): ParsedPlan => ({
+	frames: {},
+	parents: {},
+	trajectory: [],
+	goals: [],
+	worldState: undefined,
+	obstaclesInWorldFrame: undefined,
+	...fields,
+})
+
 describe('worldStateObstacleTransforms', () => {
 	it.each([
-		['world_state', worldState],
-		['obstacles_in_world_frame', asObstaclesInWorldFrame],
-	] as const)('draws namespaced obstacles from %s', (_key, payload) => {
-		const transforms = worldStateObstacleTransforms(payload)
+		['world_state', plan({ worldState })],
+		['obstacles_in_world_frame', plan({ obstaclesInWorldFrame: asObstaclesInWorldFrame })],
+	] as const)('draws namespaced obstacles from %s', (_key, parsed) => {
+		const transforms = worldStateObstacleTransforms(parsed)
 		expect(transforms.map((t) => t.referenceFrame)).toEqual([
 			'obstacle:pallet',
 			'obstacle:pick-station',
@@ -48,16 +60,20 @@ describe('worldStateObstacleTransforms', () => {
 	})
 
 	it('draws geometry-bearing WorldState transforms and skips bare ones', () => {
-		const drawn = worldStateObstacleTransforms({
-			transforms: [
-				{
-					referenceFrame: 'moving-box',
-					poseInObserverFrame: { referenceFrame: 'arm', pose: { x: 5, oZ: 1 } },
-					physicalObject: { box: { dimsMm: { x: 10, y: 10, z: 10 } }, label: 'moving-box' },
+		const drawn = worldStateObstacleTransforms(
+			plan({
+				worldState: {
+					transforms: [
+						{
+							referenceFrame: 'moving-box',
+							poseInObserverFrame: { referenceFrame: 'arm', pose: { x: 5, oZ: 1 } },
+							physicalObject: { box: { dimsMm: { x: 10, y: 10, z: 10 } }, label: 'moving-box' },
+						},
+						{ referenceFrame: 'plumbing', poseInObserverFrame: { referenceFrame: 'world' } },
+					],
 				},
-				{ referenceFrame: 'plumbing', poseInObserverFrame: { referenceFrame: 'world' } },
-			],
-		})
+			})
+		)
 		expect(drawn).toHaveLength(1)
 		expect(drawn[0]?.referenceFrame).toBe('obstacle:moving-box')
 		expect(drawn[0]?.poseInObserverFrame?.referenceFrame).toBe('arm')
@@ -65,8 +81,18 @@ describe('worldStateObstacleTransforms', () => {
 
 	it('returns [] and warns on an undecodable WorldState', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-		expect(worldStateObstacleTransforms({ obstacles: 'nonsense' })).toEqual([])
+		expect(worldStateObstacleTransforms(plan({ worldState: { obstacles: 'nonsense' } }))).toEqual(
+			[]
+		)
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
+	})
+
+	// Both keys read, neither wins — matching app's Go, which concatenates rather than picking.
+	it('draws both keys when a capture somehow carries each', () => {
+		const transforms = worldStateObstacleTransforms(
+			plan({ worldState, obstaclesInWorldFrame: asObstaclesInWorldFrame })
+		)
+		expect(transforms).toHaveLength(4)
 	})
 })

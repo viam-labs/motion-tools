@@ -18,14 +18,29 @@ const FrameSystemSchema = z.object({
 	parents: z.record(z.string(), z.string()),
 })
 
+/**
+ * Go `referenceframe.GeometriesInFrame`, which is not a proto, so no language generates a decoder
+ * for it and the wrapper is checked here. Its geometries stay opaque for `parseGeometry`, which
+ * already reads that same `GeometryConfig` encoding off `frame_system` frames.
+ */
+const ObstaclesInWorldFrameSchema = z.object({
+	frame: z
+		.string()
+		.optional()
+		.transform((frame) => frame || 'world'),
+	geometries: z.array(z.unknown()).default([]),
+})
+
 const PlanChunkSchema = z.object({
 	frame_system: FrameSystemSchema.optional(),
 	goals: z.array(z.unknown()).optional(),
 	trajectory: z.array(z.record(z.string(), z.array(z.number()))).optional(),
-	// Opaque: narrowed in `world-state-obstacles.ts` by shape (proto WorldState vs Go GIF).
+	// Opaque by contrast: protobuf-es decodes this one, so zod here would re-copy a proto shape.
 	world_state: z.unknown().optional(),
-	obstacles_in_world_frame: z.unknown().optional(),
+	obstacles_in_world_frame: ObstaclesInWorldFrameSchema.optional(),
 })
+
+export type ObstaclesInWorldFrame = z.infer<typeof ObstaclesInWorldFrameSchema>
 
 export type RawFrame = z.infer<typeof RawFrameSchema>
 
@@ -113,6 +128,7 @@ const PlanSchema = z
 		let trajectory: Array<Record<string, number[]>> = []
 		let goals: unknown[] = []
 		let worldState: unknown
+		let obstaclesInWorldFrame: ObstaclesInWorldFrame | undefined
 		let foundFrameSystem = false
 
 		for (const chunk of chunks) {
@@ -120,8 +136,10 @@ const PlanSchema = z
 				frames = chunk.frame_system.frames
 				parents = chunk.frame_system.parents
 				goals = chunk.goals ?? []
-				// Salad writes `"world_state": {}` — truthy, so only fall through when the key is absent.
-				worldState = chunk.world_state ?? chunk.obstacles_in_world_frame
+				// Kept apart rather than merged: which key a payload came from decides how it decodes,
+				// and no capture writes both, so neither needs to win.
+				worldState = chunk.world_state
+				obstaclesInWorldFrame = chunk.obstacles_in_world_frame
 				foundFrameSystem = true
 			}
 
@@ -135,7 +153,7 @@ const PlanSchema = z
 			return z.NEVER
 		}
 
-		return { frames, parents, trajectory, goals, worldState }
+		return { frames, parents, trajectory, goals, worldState, obstaclesInWorldFrame }
 	})
 
 export type ParsedPlan = z.infer<typeof PlanSchema>
