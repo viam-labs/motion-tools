@@ -1540,8 +1540,12 @@
 		"poses": null,
 		"configuration": {
 			"arm": [
-				4.081750377684086, -1.4964197133000183, 1.5901956311183134,
-				-1.6645721653113386, -1.5707959818938046, 2.510953637167213
+				4.081750377684086,
+				-1.4964197133000183,
+				1.5901956311183134,
+				-1.6645721653113386,
+				-1.5707959818938046,
+				2.510953637167213
 			],
 			"arm_origin": [],
 			"floor": [],
@@ -1618,8 +1622,239 @@
 		"position_seeds": 0,
 		"return_partial_plan": false,
 		"configuration_distance_metric": "fs_config_l2",
-		"collision_buffer_mm": 1e-8,
+		"collision_buffer_mm": 1e-08,
 		"rseed": 0,
 		"meshes_as_octrees": false
 	}
+}{
+	"path": [
+		{
+			"arm": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200.00005673470258,
+					"y": 499.9999658101636,
+					"z": 449.99997575492165,
+					"oX": -3.2532093364519114e-07,
+					"oY": 1.39326370919733e-07,
+					"oZ": -0.9999999999999377,
+					"theta": -2.3704523668899953e-05
+				}
+			},
+			"arm_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"oZ": 1
+				}
+			},
+			"floor": {
+				"referenceFrame": "world",
+				"pose": {
+					"z": -50,
+					"oZ": 1
+				}
+			},
+			"floor_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"z": -50,
+					"oZ": 1
+				}
+			},
+			"gripper": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200.00002420260924,
+					"y": 499.99997974280063,
+					"z": 349.9999757549279,
+					"oX": -3.2532093364519114e-07,
+					"oY": 1.39326370919733e-07,
+					"oZ": -0.9999999999999377,
+					"theta": -2.3704523668899953e-05
+				}
+			},
+			"gripper_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200.00002420260924,
+					"y": 499.99997974280063,
+					"z": 349.9999757549279,
+					"oX": -3.2532093364519114e-07,
+					"oY": 1.39326370919733e-07,
+					"oZ": -0.9999999999999377,
+					"theta": -2.3704523668899953e-05
+				}
+			},
+			"pallet": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200,
+					"y": 500,
+					"z": 100,
+					"oZ": 1
+				}
+			},
+			"pallet_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200,
+					"y": 500,
+					"z": 100,
+					"oZ": 1
+				}
+			},
+			"pick-station": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 400,
+					"y": -300,
+					"z": 200,
+					"oZ": 1
+				}
+			},
+			"pick-station_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 400,
+					"y": -300,
+					"z": 200,
+					"oZ": 1
+				}
+			}
+		},
+		{
+			"arm": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 399.99993388986684,
+					"y": -300.0000900994777,
+					"z": 519.9999369665006,
+					"oX": 2.0111674691956776e-07,
+					"oY": 7.445190987074776e-07,
+					"oZ": -0.9999999999997027,
+					"theta": 6.869693285234528e-05
+				}
+			},
+			"arm_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"oZ": 1
+				}
+			},
+			"floor": {
+				"referenceFrame": "world",
+				"pose": {
+					"z": -50,
+					"oZ": 1
+				}
+			},
+			"floor_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"z": -50,
+					"oZ": 1
+				}
+			},
+			"gripper": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 399.9999540015416,
+					"y": -300.0000156475678,
+					"z": 419.99993696653024,
+					"oX": 2.0111674691956776e-07,
+					"oY": 7.445190987074776e-07,
+					"oZ": -0.9999999999997027,
+					"theta": 6.869693285234528e-05
+				}
+			},
+			"gripper_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 399.9999540015416,
+					"y": -300.0000156475678,
+					"z": 419.99993696653024,
+					"oX": 2.0111674691956776e-07,
+					"oY": 7.445190987074776e-07,
+					"oZ": -0.9999999999997027,
+					"theta": 6.869693285234528e-05
+				}
+			},
+			"pallet": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200,
+					"y": 500,
+					"z": 100,
+					"oZ": 1
+				}
+			},
+			"pallet_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 200,
+					"y": 500,
+					"z": 100,
+					"oZ": 1
+				}
+			},
+			"pick-station": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 400,
+					"y": -300,
+					"z": 200,
+					"oZ": 1
+				}
+			},
+			"pick-station_origin": {
+				"referenceFrame": "world",
+				"pose": {
+					"x": 400,
+					"y": -300,
+					"z": 200,
+					"oZ": 1
+				}
+			}
+		}
+	],
+	"trajectory": [
+		{
+			"arm": [
+				4.081750377684086,
+				-1.4964197133000183,
+				1.5901956311183134,
+				-1.6645721653113386,
+				-1.5707959818938046,
+				2.510953637167213
+			],
+			"arm_origin": [],
+			"floor": [],
+			"floor_origin": [],
+			"gripper": [],
+			"gripper_origin": [],
+			"pallet": [],
+			"pallet_origin": [],
+			"pick-station": [],
+			"pick-station_origin": []
+		},
+		{
+			"arm": [
+				2.2282275699693086,
+				-1.5912053318382506,
+				1.5090412877843629,
+				-1.4886318163056027,
+				-1.5707957126331542,
+				0.6574324421618585
+			],
+			"arm_origin": [],
+			"floor": [],
+			"floor_origin": [],
+			"gripper": [],
+			"gripper_origin": [],
+			"pallet": [],
+			"pallet_origin": [],
+			"pick-station": [],
+			"pick-station_origin": []
+		}
+	]
 }

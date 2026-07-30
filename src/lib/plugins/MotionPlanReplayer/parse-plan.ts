@@ -22,10 +22,9 @@ const PlanChunkSchema = z.object({
 	frame_system: FrameSystemSchema.optional(),
 	goals: z.array(z.unknown()).optional(),
 	trajectory: z.array(z.record(z.string(), z.array(z.number()))).optional(),
-	// Left opaque on purpose: this is proto-JSON, and protobuf-es narrows it in
-	// `world-state-obstacles.ts`. Restating `common.v1.WorldState` in zod would be a second
-	// hand-written copy of a message we can already decode.
+	// Opaque: narrowed in `world-state-obstacles.ts` by shape (proto WorldState vs Go GIF).
 	world_state: z.unknown().optional(),
+	obstacles_in_world_frame: z.unknown().optional(),
 })
 
 export type RawFrame = z.infer<typeof RawFrameSchema>
@@ -121,7 +120,8 @@ const PlanSchema = z
 				frames = chunk.frame_system.frames
 				parents = chunk.frame_system.parents
 				goals = chunk.goals ?? []
-				worldState = chunk.world_state
+				// Salad writes `"world_state": {}` — truthy, so only fall through when the key is absent.
+				worldState = chunk.world_state ?? chunk.obstacles_in_world_frame
 				foundFrameSystem = true
 			}
 

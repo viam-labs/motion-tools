@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { parsePlan, PlanParseError } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import capturedPlan from './__fixtures__/plan.json?raw'
+import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
 
 const MINIMAL_FRAME_SYSTEM = {
 	frames: {
@@ -52,6 +53,54 @@ describe('parsePlan', () => {
 		expect(() =>
 			parsePlan(JSON.stringify({ frame_system: MINIMAL_FRAME_SYSTEM, trajectory: 'bad' }))
 		).toThrow(PlanParseError)
+	})
+
+	it.each(['world_state', 'obstacles_in_world_frame'] as const)(
+		'folds %s into worldState',
+		(key) => {
+			const captured = parsePlan(pirouettePlan)
+			const worldState = captured.worldState as {
+				obstacles: Array<{
+					referenceFrame: string
+					geometries: Array<{
+						center: { x: number; y: number; z: number }
+						box: { dimsMm: { x: number; y: number; z: number } }
+						label: string
+					}>
+				}>
+			}
+			const group = worldState.obstacles[0]!
+			const payload =
+				key === 'world_state'
+					? worldState
+					: {
+							frame: group.referenceFrame,
+							geometries: group.geometries.map((g) => ({
+								type: 'box',
+								x: g.box.dimsMm.x,
+								y: g.box.dimsMm.y,
+								z: g.box.dimsMm.z,
+								r: 0,
+								l: 0,
+								translation: { X: g.center.x, Y: g.center.y, Z: g.center.z },
+								orientation: {
+									type: 'quaternion',
+									value: { W: 1, X: 0, Y: 0, Z: 0 },
+								},
+								Label: g.label,
+							})),
+						}
+			const plan = parsePlan(
+				JSON.stringify({ ...REQUEST_OBJ, [key]: payload }) + JSON.stringify(RESULT_OBJ)
+			)
+			expect(plan.worldState).toEqual(payload)
+		}
+	)
+
+	it('reads the pirouette capture trajectory', () => {
+		const plan = parsePlan(pirouettePlan)
+		expect(plan.trajectory).toHaveLength(2)
+		expect(plan.worldState).toBeDefined()
 	})
 })
 

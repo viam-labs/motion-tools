@@ -176,8 +176,11 @@ const geometryCenterInFrame = (
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
+ *
+ * Decodes Go `GeometryConfig` marshal (`frame_system` and `obstacles_in_world_frame`), not
+ * proto-JSON `world_state` geometries.
  */
-const parseGeometry = (
+export const parseGeometry = (
 	geom: unknown,
 	frameName: string,
 	framePose?: FramePoseJson

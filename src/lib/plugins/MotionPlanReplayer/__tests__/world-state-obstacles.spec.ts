@@ -1,34 +1,61 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { parsePlan } from '../parse-plan'
 import { worldStateObstacleTransforms } from '../world-state-obstacles'
-import pirouetteRequest from './__fixtures__/pirouette-request.json?raw'
+import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
 
-const pirouetteWorldState = (JSON.parse(pirouetteRequest) as { world_state: unknown }).world_state
+const pirouette = parsePlan(pirouettePlan)
+const pirouetteWorldState = pirouette.worldState as {
+	obstacles: Array<{
+		referenceFrame: string
+		geometries: Array<{
+			center: { x: number; y: number; z: number; oZ?: number }
+			box: { dimsMm: { x: number; y: number; z: number } }
+			label: string
+		}>
+	}>
+}
+
+/** Go-marshal twin of the capture's world_state for the dual-encoding cases. */
+const obstaclesInWorldFrameFromWorldState = (worldState: typeof pirouetteWorldState) => {
+	const group = worldState.obstacles[0]!
+	return {
+		frame: group.referenceFrame,
+		geometries: group.geometries.map((g) => ({
+			type: 'box',
+			x: g.box.dimsMm.x,
+			y: g.box.dimsMm.y,
+			z: g.box.dimsMm.z,
+			r: 0,
+			l: 0,
+			translation: { X: g.center.x, Y: g.center.y, Z: g.center.z },
+			orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+			Label: g.label,
+		})),
+	}
+}
+
+const encodings = [
+	['world_state', pirouetteWorldState],
+	['obstacles_in_world_frame', obstaclesInWorldFrameFromWorldState(pirouetteWorldState)],
+] as const
 
 describe('worldStateObstacleTransforms', () => {
-	const transforms = worldStateObstacleTransforms(pirouetteWorldState)
-
-	it('reads the proto-JSON encoding that parseGeometry cannot', () => {
+	it.each(encodings)('draws pallet and pick-station from %s encoding', (_key, payload) => {
+		const transforms = worldStateObstacleTransforms(payload)
 		expect(transforms).toHaveLength(2)
-		const box = transforms[0]!.physicalObject!
-		expect(box.geometryType.case).toBe('box')
-		expect(box.geometryType.value).toMatchObject({ dimsMm: { x: 350, y: 350, z: 100 } })
-		expect(box.center).toMatchObject({ x: 200, y: 500, z: 100, oZ: 1 })
-	})
-
-	// `pallet` and `pick-station` are frame names in this same capture, and resolveOrphans indexes
-	// names globally.
-	it('namespaces labels so they cannot collide with frame names', () => {
 		expect(transforms.map((t) => t.referenceFrame)).toEqual([
 			'obstacle:pallet',
 			'obstacle:pick-station',
 		])
-	})
 
-	it('parents each obstacle to its GeometriesInFrame reference frame', () => {
+		const box = transforms[0]!.physicalObject!
+		expect(box.geometryType.case).toBe('box')
+		expect(box.geometryType.value).toMatchObject({ dimsMm: { x: 350, y: 350, z: 100 } })
+		expect(box.center).toMatchObject({ x: 200, y: 500, z: 100 })
+
 		for (const transform of transforms) {
 			expect(transform.poseInObserverFrame!.referenceFrame).toBe('world')
-			// The geometry's own center carries the pose, so the frame itself sits at identity.
 			expect(transform.poseInObserverFrame!.pose).toMatchObject({ x: 0, y: 0, z: 0, theta: 0 })
 		}
 	})
@@ -41,7 +68,7 @@ describe('worldStateObstacleTransforms', () => {
 	)
 
 	// Without ignoreUnknownFields one added proto field erases every obstacle, not just its own.
-	it('survives a field the generated types do not know', () => {
+	it('survives a field the generated types do not know (world_state)', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 		const raw = structuredClone(pirouetteWorldState) as {
 			obstacles: Array<Record<string, unknown>>
@@ -70,7 +97,6 @@ describe('worldStateObstacleTransforms', () => {
 		})
 
 		expect(drawn!.referenceFrame).toBe('obstacle:moving-box')
-		// Unlike an obstacle, a transform brings its own parent and pose.
 		expect(drawn!.poseInObserverFrame!.referenceFrame).toBe('arm')
 		expect(drawn!.poseInObserverFrame!.pose).toMatchObject({ x: 5 })
 		expect(drawn!.physicalObject!.geometryType.case).toBe('box')
@@ -90,6 +116,21 @@ describe('worldStateObstacleTransforms', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
 		expect(worldStateObstacleTransforms({ obstacles: 'nonsense' })).toEqual([])
+		expect(warn).toHaveBeenCalled()
+		warn.mockRestore()
+	})
+
+	it('skips geometries parseGeometry cannot decode without dropping siblings', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		const raw = structuredClone(
+			obstaclesInWorldFrameFromWorldState(pirouetteWorldState)
+		) as {
+			frame: string
+			geometries: Array<Record<string, unknown>>
+		}
+		raw.geometries.push({ type: 'not-a-shape', Label: 'junk' })
+
+		expect(worldStateObstacleTransforms(raw)).toHaveLength(2)
 		expect(warn).toHaveBeenCalled()
 		warn.mockRestore()
 	})
