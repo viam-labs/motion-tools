@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ParsedPlan } from '../parse-plan'
 
@@ -11,6 +11,124 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 	parents,
 	trajectory: [],
 	goals: [],
+})
+
+// Identity is right for an absent orientation and wrong for an unrecognised one; both halves matter,
+// since a warning on every pure translation would be as useless as none.
+describe('unrecognised orientation encodings', () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+	afterEach(() => warn.mockClear())
+
+	const framed = (orientation: unknown, geometry?: unknown): ParsedPlan =>
+		plan(
+			{
+				'arm:link': {
+					frame_type: 'named',
+					frame: {
+						inner_frame: {
+							frame_type: 'static',
+							frame: { translation: { X: 0, Y: 0, Z: 267 }, orientation, geometry },
+						},
+					},
+				},
+			},
+			{ 'arm:link': 'world' }
+		)
+
+	it('warns and falls back to identity for a type it has no conversion for', () => {
+		const descriptors = buildFrameDescriptors(framed({ type: 'made_up', value: { th: 1 } }))
+
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('unhandled orientation "made_up"'))
+		const d = descriptors[0]!
+		expect(d.kind).toBe('static')
+		if (d.kind === 'static') {
+			expect(d.localPose.z).toBeCloseTo(267)
+			expect(d.localPose.theta).toBeCloseTo(0)
+		}
+	})
+
+	it('stays silent when orientation is absent — a pure translation is not a defect', () => {
+		buildFrameDescriptors(framed(undefined))
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	// RDK's NoOrientationType is "" and means identity.
+	it("stays silent for RDK's empty-string orientation type", () => {
+		buildFrameDescriptors(framed({ type: '', value: {} }))
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	// Guarded by `hasOrientJson`, so a warn placed only in `quatFromJson` would miss this path.
+	// `rotation_matrix` is a real spatialmath type that `NewOrientationConfig` refuses to marshal,
+	// so it stands in for an encoding this file will never convert.
+	it('warns for an unrecognised orientation on a geometry, not just on a frame', () => {
+		buildFrameDescriptors(
+			framed(
+				{ type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+				{
+					type: 'box',
+					x: 10,
+					y: 10,
+					z: 10,
+					translation: { X: 0, Y: 0, Z: 0 },
+					orientation: { type: 'rotation_matrix', value: { rows: [] } },
+				}
+			)
+		)
+
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('unhandled orientation "rotation_matrix"')
+		)
+	})
+})
+
+// Neither switch had a fallthrough, so an unregistered or unbuilt frame type produced no descriptor
+// and no output — the frame simply wasn't in the scene.
+describe('unhandled frame types', () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+	afterEach(() => warn.mockClear())
+
+	it('warns and emits nothing for an unregistered outer frame type', () => {
+		const descriptors = buildFrameDescriptors(
+			plan({ 'arm:thing': { frame_type: 'pose', frame: {} } }, { 'arm:thing': 'world' })
+		)
+
+		expect(descriptors).toHaveLength(0)
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('unhandled frame type "pose" on "arm:thing"')
+		)
+	})
+
+	// The live case: RDK registers `translational` for prismatic joints (gantries, parallel-jaw
+	// grippers) and this file has no branch for it. Reported, not built — handoff doc §5d.
+	it('warns and emits nothing for a translational joint inside a named frame', () => {
+		const descriptors = buildFrameDescriptors(
+			plan(
+				{
+					'gripper:left_joint': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: {
+								frame_type: 'translational',
+								frame: { id: 'left_joint', type: 'prismatic', axis: { X: 0, Y: 1, Z: 0 } },
+							},
+						},
+					},
+				},
+				{ 'gripper:left_joint': 'world' }
+			)
+		)
+
+		expect(descriptors).toHaveLength(0)
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('unhandled frame type "translational" on "gripper:left_joint"')
+		)
+	})
+
+	it('stays silent for the four types it does build', () => {
+		buildFrameDescriptors(parsePlan(saladPlan))
+		expect(warn).not.toHaveBeenCalled()
+	})
 })
 
 describe('buildFrameDescriptors', () => {
@@ -407,6 +525,55 @@ describe('buildFrameDescriptors', () => {
 			// specifically a 90 degree rotation about Z.
 			expect(d.localPose.theta).toBeCloseTo(90)
 			expect(d.localPose.oZ).toBeCloseTo(1)
+		}
+	})
+
+	// Equivalence against an encoding already covered, rather than hand-computed components: the
+	// claim is that RDK's five orientation types agree, not that a quaternion literal is right.
+	it('parses axis_angles to the same rotation as the equivalent quaternion', () => {
+		const staticFrame = (orientation: unknown): ParsedPlan =>
+			plan(
+				{
+					'arm:link': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: {
+								frame_type: 'static',
+								frame: { translation: { X: 0, Y: 0, Z: 0 }, orientation },
+							},
+						},
+					},
+				},
+				{ 'arm:link': 'world' }
+			)
+
+		// 90° about Z, written both ways.
+		const viaAxis = buildFrameDescriptors(
+			staticFrame({ type: 'axis_angles', value: { th: Math.PI / 2, x: 0, y: 0, z: 1 } })
+		)[0]!
+		const viaQuat = buildFrameDescriptors(
+			staticFrame({
+				type: 'quaternion',
+				value: { W: Math.SQRT1_2, X: 0, Y: 0, Z: Math.SQRT1_2 },
+			})
+		)[0]!
+
+		if (viaAxis.kind === 'static' && viaQuat.kind === 'static') {
+			expect(viaAxis.localPose.theta).toBeCloseTo(viaQuat.localPose.theta)
+			expect(viaAxis.localPose.oX).toBeCloseTo(viaQuat.localPose.oX)
+			expect(viaAxis.localPose.oY).toBeCloseTo(viaQuat.localPose.oY)
+			expect(viaAxis.localPose.oZ).toBeCloseTo(viaQuat.localPose.oZ)
+			// Guard against the pair agreeing by both collapsing to identity.
+			expect(viaAxis.localPose.theta).toBeCloseTo(90)
+		}
+
+		// setFromAxisAngle assumes a unit axis; RDK does not guarantee one on the wire.
+		const viaLongAxis = buildFrameDescriptors(
+			staticFrame({ type: 'axis_angles', value: { th: Math.PI / 2, x: 0, y: 0, z: 7 } })
+		)[0]!
+		if (viaLongAxis.kind === 'static' && viaAxis.kind === 'static') {
+			expect(viaLongAxis.localPose.theta).toBeCloseTo(viaAxis.localPose.theta)
+			expect(viaLongAxis.localPose.oZ).toBeCloseTo(viaAxis.localPose.oZ)
 		}
 	})
 
