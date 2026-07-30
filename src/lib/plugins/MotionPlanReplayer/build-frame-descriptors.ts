@@ -39,10 +39,13 @@ export interface StaticFrameDescriptor {
 
 /**
  * A step addresses joints positionally (`left-arm: [0.1, -0.3, …]`), so `componentName` +
- * `jointIndex` are what turn a step into this frame's angle.
+ * `jointIndex` are what turn a step into this frame's value.
+ *
+ * `motion` rather than a third `kind`: the addressing fields are shared, only the conversion differs.
  */
 export interface JointFrameDescriptor {
 	kind: 'joint'
+	motion: 'rotational' | 'translational'
 	name: string
 	parent: string
 	axis: { X: number; Y: number; Z: number }
@@ -391,15 +394,17 @@ const buildDescriptors = (
 				const inner = outer.inner_frame as Record<string, unknown>
 				const innerData = inner.frame as Record<string, unknown>
 
-				if (inner.frame_type === 'rotational') {
-					// A rotational frame no model claims has no column in any step, so there is no
-					// angle to drive it. Dropping it leaves the rest of the plan viewable.
+				if (inner.frame_type === 'rotational' || inner.frame_type === 'translational') {
+					// A joint frame no model claims has no column in any step, so there is no value to
+					// drive it. Dropping it leaves the rest of the plan viewable.
 					if (!joint) continue
 
 					descriptors.push({
 						kind: 'joint',
+						motion: inner.frame_type,
 						name: frameName,
 						parent,
+						// Both marshal through `JointConfig`, so the axis reads the same either way.
 						axis: innerData.axis as { X: number; Y: number; Z: number },
 						componentName: joint.componentName,
 						jointIndex: joint.jointIndex,
@@ -419,7 +424,6 @@ const buildDescriptors = (
 						uuid: newUuid(),
 					})
 				} else {
-					// `translational` lands here — see the handoff doc §5d for why it is not yet built.
 					warnUnhandledFrame(frameName, inner.frame_type)
 				}
 				break
