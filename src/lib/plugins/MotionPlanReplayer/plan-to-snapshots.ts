@@ -1,3 +1,11 @@
+/**
+ * The forward-kinematics half of the client-side fallback (see `parse-plan.ts`). A trajectory step
+ * carries joint values rather than poses, so `computeJointPose` reproduces RDK's
+ * `rotationalFrame.Transform` — axis-angle about the joint's declared axis. Server FK via
+ * `ComputePlanFrames` is the path that shares RDK's own implementation; this one agrees with it only
+ * for the frame types the fallback covers.
+ */
+
 import { Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
 
@@ -16,11 +24,16 @@ import {
 const quat = new Quaternion()
 const vec3 = new Vector3()
 
-const computeJointPose = (descriptor: JointFrameDescriptor, angleRad: number): Pose => {
-	quat.setFromAxisAngle(
-		vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize(),
-		angleRad
-	)
+/** RDK reads the step value as radians for a revolute joint and millimetres for a prismatic one. */
+const computeJointPose = (descriptor: JointFrameDescriptor, value: number): Pose => {
+	// RDK normalizes on unmarshal; the JSON itself does not guarantee a unit axis.
+	vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize()
+
+	if (descriptor.motion === 'translational') {
+		return new Pose(vec3.x * value, vec3.y * value, vec3.z * value)
+	}
+
+	quat.setFromAxisAngle(vec3, value)
 	return new Pose().setFromQuaternion(quat)
 }
 
@@ -40,12 +53,12 @@ const descriptorToTransform = (
 		})
 	}
 
-	const angleRad = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
+	const jointValue = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
 	return new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
 			referenceFrame: descriptor.parent,
-			pose: computeJointPose(descriptor, angleRad),
+			pose: computeJointPose(descriptor, jointValue),
 		}),
 		uuid: descriptor.uuid,
 	})
