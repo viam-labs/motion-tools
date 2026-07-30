@@ -32,7 +32,6 @@ vi.mock('$lib/hooks/useFrames.svelte', () => ({
 }))
 vi.mock('$lib/hooks/useConfigFrames.svelte', () => ({
 	useConfigFrames: vi.fn(() => ({
-		getParentFrameOptions: vi.fn(),
 		unsetFrames: [],
 		current: {},
 	})),

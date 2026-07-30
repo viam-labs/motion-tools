@@ -13,15 +13,14 @@ import {
 	createResourceQuery,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
-import { Matrix4 } from 'three'
 
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { drawTransform, updateMetadata } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
+import { Pose } from '$lib/math'
 import { metadataFromStruct } from '$lib/metadata'
-import { createPose, poseToMatrix } from '$lib/transform'
 
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
@@ -227,13 +226,11 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			if (path.startsWith('poseInObserverFrame')) {
 				const matrix = entity.get(traits.Matrix)
 				if (matrix) {
-					poseToMatrix(createPose(transform.poseInObserverFrame?.pose), matrix)
+					new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4(matrix)
 					entity.changed(traits.Matrix)
 				} else {
 					entity.add(
-						traits.Matrix(
-							poseToMatrix(createPose(transform.poseInObserverFrame?.pose), new Matrix4())
-						)
+						traits.Matrix(new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4())
 					)
 				}
 				hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)

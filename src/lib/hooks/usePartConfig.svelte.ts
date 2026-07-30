@@ -1,9 +1,9 @@
 import type { JsonValue } from '@viamrobotics/sdk'
 
-import { Pose, Struct } from '@viamrobotics/sdk'
+import { Struct } from '@viamrobotics/sdk'
 import { createAppMutation, createAppQuery } from '@viamrobotics/svelte-sdk'
 import { StateHistory } from 'runed'
-import { getContext, setContext } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
 
 import { useWorld } from '$lib/ecs'
 import {
@@ -13,7 +13,7 @@ import {
 } from '$lib/editing/frameHistory'
 import { createFrame, type Frame } from '$lib/frame'
 import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-import { createPoseFromFrame } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 const key = Symbol('part-config-context')
 
@@ -92,6 +92,30 @@ export const providePartConfig = (
 		if (!config.isDirty) {
 			cleanSnapshot = currentSnapshot
 		}
+	})
+
+	/**
+	 * Once the edits are committed — saved, discarded, or saved by the embedder —
+	 * the config is the new baseline, so fold it into the world: write the config
+	 * poses into `Matrix` / `LiveMatrix` and drop `EditedMatrix`. Without this the
+	 * staged edit outlives the save, and as soon as `useFrames` re-derives the
+	 * baseline from the saved config the blend (live × baseline⁻¹ × edited)
+	 * cancels the edit against a `LiveMatrix` that still holds the pre-save pose —
+	 * the frame snaps back to where it started. Edge-triggered on dirty → clean so
+	 * it never fights `usePoses` while merely monitoring.
+	 */
+	let wasDirty = false
+	$effect(() => {
+		const settled = wasDirty && !config.isDirty
+		wasDirty = config.isDirty
+
+		if (!settled) return
+
+		untrack(() => {
+			applyFrameHistorySnapshotToWorld(world, current, fragmentInfo.current, {
+				keepEditedMatrices: false,
+			})
+		})
 	})
 
 	let historyPartID: string | undefined
@@ -285,7 +309,7 @@ export const providePartConfig = (
 		}
 
 		if (component.frame) {
-			const currentPose = createPoseFromFrame(component.frame)
+			const currentPose = new Pose().setFromFrame(component.frame)
 
 			component.frame.parent = referenceFrame
 			component.frame.translation = {

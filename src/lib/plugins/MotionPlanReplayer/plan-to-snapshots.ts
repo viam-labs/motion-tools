@@ -1,9 +1,9 @@
 import { Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
 
-import { Pose, PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
+import { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
-import { quaternionToPose } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import type { ParsedPlan } from './parse-plan'
 
@@ -13,18 +13,15 @@ import {
 	type JointFrameDescriptor,
 } from './build-frame-descriptors'
 
-// Shared scratch objects — safe in single-threaded JS
-const tmpQ = new Quaternion()
-const tmpVec = new Vector3()
+const quat = new Quaternion()
+const vec3 = new Vector3()
 
 const computeJointPose = (descriptor: JointFrameDescriptor, angleRad: number): Pose => {
-	tmpQ.setFromAxisAngle(
-		tmpVec.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize(),
+	quat.setFromAxisAngle(
+		vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize(),
 		angleRad
 	)
-	const pose = new Pose()
-	quaternionToPose(tmpQ, pose)
-	return pose
+	return new Pose().setFromQuaternion(quat)
 }
 
 const descriptorToTransform = (

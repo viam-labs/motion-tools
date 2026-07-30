@@ -6,13 +6,12 @@ import {
 	Capsule,
 	Geometry,
 	Mesh,
-	Pose,
 	RectangularPrism,
 	Sphere,
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
+import { Pose } from '$lib/math'
 import { OrientationVector } from '$lib/three/OrientationVector'
-import { quaternionToPose } from '$lib/transform'
 
 import type { ParsedPlan } from './parse-plan'
 
@@ -46,8 +45,6 @@ export interface JointFrameDescriptor {
 
 export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 
-// Reused per frame instead of allocated. Safe only because none escape the borrowing function
-// — never hold one across an await or return it.
 const tmpQ = new Quaternion()
 const tmpQFrame = new Quaternion()
 const tmpQGeo = new Quaternion()
@@ -105,13 +102,10 @@ const poseFromFrame = (
 	translation: Vec3Json | undefined,
 	orientation: OrientJson | undefined
 ): Pose => {
-	const pose = new Pose({
-		x: translation?.X ?? 0,
-		y: translation?.Y ?? 0,
-		z: translation?.Z ?? 0,
-	})
-	quaternionToPose(quatFromJson(orientation, tmpQ), pose)
-	return pose
+	quatFromJson(orientation, tmpQ)
+	return new Pose(translation?.X ?? 0, translation?.Y ?? 0, translation?.Z ?? 0).setFromQuaternion(
+		tmpQ
+	)
 }
 
 /**
@@ -135,12 +129,12 @@ const geometryCenterInFrame = (
 		)
 		.applyQuaternion(tmpQInv)
 
-	const center = new Pose({ x: tmpV.x, y: tmpV.y, z: tmpV.z })
+	const center = new Pose(tmpV.x, tmpV.y, tmpV.z)
 
 	if (hasOrientJson(geoOrient)) {
 		quatFromJson(geoOrient, tmpQGeo)
 		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
-		quaternionToPose(tmpQLocal, center)
+		center.setFromQuaternion(tmpQLocal)
 	}
 
 	return center
@@ -165,13 +159,10 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 	const center = framePose
 		? geometryCenterInFrame(trans, orient, framePose)
 		: (() => {
-				const local = new Pose({
-					x: trans?.X ?? 0,
-					y: trans?.Y ?? 0,
-					z: trans?.Z ?? 0,
-				})
+				const local = new Pose(trans?.X ?? 0, trans?.Y ?? 0, trans?.Z ?? 0)
 				if (hasOrientJson(orient)) {
-					quaternionToPose(quatFromJson(orient, tmpQ), local)
+					quatFromJson(orient, tmpQ)
+					local.setFromQuaternion(tmpQ)
 				}
 				return local
 			})()
@@ -218,7 +209,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 		}
 
 		// Bytes pass through unscaled: PLY vertices are already metres, and only the center
-		// pose is millimetres (converted downstream by poseToVector3).
+		// pose is millimetres.
 		case 'mesh': {
 			const contentType = (g.mesh_content_type as string | undefined) ?? ''
 			const meshData = g.mesh_data as string | undefined
