@@ -58,6 +58,10 @@ var ErrEmptyTransformUpdate = errors.New("update sets no fields; set at least on
 // Selecting the whole pose_in_observer_frame would rewrite the observer frame along with the
 // pose, so a move with no reparent selects only the nested pose and a reparent with no move
 // selects only the nested frame.
+//
+// A reparent with no move still has to put something in the pose field of the message it sends,
+// and callers build that with a zero pose. That is harmless: the mask names only the
+// reference_frame leaf, so the stored pose is never read from the message and never overwritten.
 func poseUpdatePaths(posePath, poseValuePath, poseParentPath string, hasPose, hasParent bool) []string {
 	switch {
 	case hasPose && hasParent:

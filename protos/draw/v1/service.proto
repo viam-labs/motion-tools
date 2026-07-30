@@ -16,7 +16,8 @@ service DrawService {
   rpc AddEntity(AddEntityRequest) returns (AddEntityResponse);
 
   // Add many entities to the scene in a single round trip. Equivalent to
-  // calling AddEntity once per entity, but applied atomically.
+  // calling AddEntity once per entity. The batch is validated in full before
+  // any of it is stored, so a malformed entity rejects the whole request.
   rpc AddEntities(AddEntitiesRequest) returns (AddEntitiesResponse);
 
   // Update an entity in the scene.

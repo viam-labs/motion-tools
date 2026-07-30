@@ -141,10 +141,19 @@ func TestEntitySubscriber_ConcurrentPushAndTake(t *testing.T) {
 		}()
 	}
 
+	// Drain the way the real stream loop does, waiting on notify rather than spinning on take.
+	// A signal can be coalesced away when the buffer is already full, but the sender always
+	// leaves one pending, so a waiter is guaranteed at least one more wake after any push.
 	done := make(chan int)
 	go func() {
 		received := 0
 		for received < pushers*perPusher {
+			select {
+			case <-sub.notify:
+			case <-time.After(5 * time.Second):
+				done <- received
+				return
+			}
 			msgs, _, _ := sub.take()
 			received += len(msgs)
 		}

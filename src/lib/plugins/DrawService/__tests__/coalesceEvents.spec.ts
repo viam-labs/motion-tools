@@ -2,6 +2,7 @@ import { FieldMask } from '@bufbuild/protobuf'
 import { describe, expect, it } from 'vitest'
 
 import { Transform } from '$lib/buf/common/v1/common_pb'
+import { Drawing } from '$lib/buf/draw/v1/drawing_pb'
 import { EntityChangeType, EntityScope } from '$lib/buf/draw/v1/service_pb'
 
 import {
@@ -25,6 +26,12 @@ const event = (
 	changeType,
 	entity: { case: 'transform', value: new Transform({ referenceFrame }) },
 	updatedFields,
+})
+
+const drawingEvent = (uuid: string, changeType: EntityChangeType): StreamEvent => ({
+	uuid,
+	changeType,
+	entity: { case: 'drawing', value: new Drawing({ referenceFrame: uuid }) },
 })
 
 const frameOf = (e: StreamEvent | undefined) =>
@@ -147,6 +154,42 @@ describe('mergeClear', () => {
 
 		expect([...pending.events.keys()]).toEqual(['a'])
 		expect(pending.clearedScope).toBe(EntityScope.ALL)
+	})
+
+	// Two scoped clears in one frame both happened. Letting the second replace the first would
+	// reconcile only the second scope at flush, stranding the first scope's entities as ghosts.
+	it('widens to ALL when two different scopes are cleared in one frame', () => {
+		const pending = emptyPendingChanges()
+		mergeClear(pending, EntityScope.TRANSFORMS)
+		mergeClear(pending, EntityScope.DRAWINGS)
+
+		expect(pending.clearedScope).toBe(EntityScope.ALL)
+	})
+
+	it('does not widen when the same scope is cleared twice', () => {
+		const pending = emptyPendingChanges()
+		mergeClear(pending, EntityScope.DRAWINGS)
+		mergeClear(pending, EntityScope.DRAWINGS)
+
+		expect(pending.clearedScope).toBe(EntityScope.DRAWINGS)
+	})
+
+	// A clear only supersedes the buffered events it actually covers.
+	it('keeps a buffered event of a kind the clear does not cover', () => {
+		const pending = emptyPendingChanges()
+		mergeEvent(pending, event('t', EntityChangeType.ADDED))
+		mergeEvent(pending, drawingEvent('d', EntityChangeType.ADDED))
+		mergeClear(pending, EntityScope.DRAWINGS)
+
+		expect([...pending.events.keys()]).toEqual(['t'])
+	})
+
+	it('drops buffered events of a kind the clear does cover', () => {
+		const pending = emptyPendingChanges()
+		mergeEvent(pending, event('t', EntityChangeType.ADDED))
+		mergeClear(pending, EntityScope.TRANSFORMS)
+
+		expect(pending.events.size).toBe(0)
 	})
 })
 

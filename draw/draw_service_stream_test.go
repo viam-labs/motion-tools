@@ -32,7 +32,7 @@ func waitFor(t *testing.T, timeout time.Duration, message string, condition func
 	}
 }
 
-func addTransforms(t *testing.T, client drawv1connect.DrawServiceClient, n int) {
+func addTestTransforms(t *testing.T, client drawv1connect.DrawServiceClient, n int) {
 	t.Helper()
 	entities := make([]*drawv1.AddEntityRequest, 0, n)
 	for i := range n {
@@ -102,7 +102,7 @@ func TestDrawService_NoChangesLostUnderBurst(t *testing.T) {
 
 	// Populate before subscribing: the replay is what flushes the stream's headers, so a
 	// subscriber to an empty store would block until the first later change.
-	addTransforms(t, client, entityCount)
+	addTestTransforms(t, client, entityCount)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -114,7 +114,7 @@ func TestDrawService_NoChangesLostUnderBurst(t *testing.T) {
 
 	_, err = client.RemoveAll(context.Background(), connect.NewRequest(&drawv1.RemoveAllRequest{}))
 	test.That(t, err, test.ShouldBeNil)
-	addTransforms(t, client, entityCount)
+	addTestTransforms(t, client, entityCount)
 
 	// One bulk-clear event, then entityCount adds.
 	var added, cleared int
@@ -167,7 +167,7 @@ func TestDrawService_RemoveAllEmitsSingleClearEvent(t *testing.T) {
 			svc := NewDrawService(t.TempDir())
 			client := newTestServer(t, svc)
 
-			addTransforms(t, client, 10)
+			addTestTransforms(t, client, 10)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()

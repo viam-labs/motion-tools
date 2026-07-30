@@ -242,12 +242,17 @@ func (svc *DrawService) AddEntity(
 }
 
 // AddEntities stores every entity in the batch and returns their UUIDs in request order.
-// Semantics per entity match AddEntity; the whole batch is applied under a single lock, so
-// subscribers never observe a partially applied batch.
+// Semantics per entity match AddEntity, and the batch is applied under a single lock so no
+// other RPC observes the store midway through it.
 //
-// Returns InvalidArgument if the batch is empty or any entity is malformed. Validation is
-// per entity as the batch is applied, so a malformed entity late in the batch leaves the
-// entities before it stored.
+// Returns InvalidArgument if the batch is empty or any entity is malformed. Every entity is
+// checked before any is stored, so a malformed entity anywhere in the batch leaves the store
+// untouched. That guarantee does not extend to Internal errors: a chunked drawing whose buffer
+// cannot be created partway through the batch leaves the entities before it stored.
+//
+// Note this is atomic with respect to the store, not to stream subscribers. Changes are queued
+// per entity and delivered as the consumer drains them, so a subscriber can observe part of a
+// batch before the rest arrives.
 func (svc *DrawService) AddEntities(
 	_ context.Context,
 	req *connect.Request[drawv1.AddEntitiesRequest],
@@ -255,6 +260,12 @@ func (svc *DrawService) AddEntities(
 	entities := req.Msg.GetEntities()
 	if len(entities) == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("entities is required"))
+	}
+
+	for i, entity := range entities {
+		if err := validateAddEntity(entity); err != nil {
+			return nil, fmt.Errorf("entity %d: %w", i, err)
+		}
 	}
 
 	svc.mu.Lock()
@@ -270,6 +281,26 @@ func (svc *DrawService) AddEntities(
 	}
 
 	return connect.NewResponse(&drawv1.AddEntitiesResponse{Uuids: uuids}), nil
+}
+
+// validateAddEntity reports whether a request carries a well-formed entity. Kept separate from
+// addEntityLocked so a batch can be checked in full before any of it is stored.
+func validateAddEntity(msg *drawv1.AddEntityRequest) error {
+	switch e := msg.GetEntity().(type) {
+	case *drawv1.AddEntityRequest_Transform:
+		if e.Transform == nil {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("transform is required"))
+		}
+	case *drawv1.AddEntityRequest_Drawing:
+		if e.Drawing == nil {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("drawing is required"))
+		}
+	case nil:
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("entity is required"))
+	default:
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("entity must be a transform or drawing"))
+	}
+	return nil
 }
 
 // addEntityLocked stores one entity and publishes its change. svc.mu must be held.
@@ -609,7 +640,7 @@ func drawingShapeTypeCase(s *drawv1.Shape) string {
 func validateTransformUpdate(existing, incoming *commonv1.Transform, mask interface{ GetPaths() []string }) error {
 	if maskSelects(mask, "reference_frame") && incoming.GetReferenceFrame() != existing.GetReferenceFrame() {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(
-			"cannot change reference_frame from %q to %q remove the existing entity and add a new one instead",
+			"cannot change reference_frame from %q to %q; remove the existing entity and add a new one instead",
 			existing.GetReferenceFrame(), incoming.GetReferenceFrame(),
 		))
 	}
@@ -618,7 +649,7 @@ func validateTransformUpdate(existing, incoming *commonv1.Transform, mask interf
 	incomingCase := transformGeometryTypeCase(incoming.GetPhysicalObject())
 	if maskSelects(mask, "physical_object") && existingCase != "" && incomingCase != "" && existingCase != incomingCase {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(
-			"cannot change physical_object geometry type from %q to %q remove the existing entity and add a new one instead",
+			"cannot change physical_object geometry type from %q to %q; remove the existing entity and add a new one instead",
 			existingCase, incomingCase,
 		))
 	}
@@ -631,7 +662,7 @@ func validateTransformUpdate(existing, incoming *commonv1.Transform, mask interf
 func validateDrawingUpdate(existing, incoming *drawv1.Drawing, mask interface{ GetPaths() []string }) error {
 	if maskSelects(mask, "reference_frame") && incoming.GetReferenceFrame() != existing.GetReferenceFrame() {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(
-			"cannot change reference_frame from %q to %q remove the existing entity and add a new one instead",
+			"cannot change reference_frame from %q to %q; remove the existing entity and add a new one instead",
 			existing.GetReferenceFrame(), incoming.GetReferenceFrame(),
 		))
 	}
@@ -640,7 +671,7 @@ func validateDrawingUpdate(existing, incoming *drawv1.Drawing, mask interface{ G
 	incomingCase := drawingShapeTypeCase(incoming.GetPhysicalObject())
 	if maskSelects(mask, "physical_object") && existingCase != "" && incomingCase != "" && existingCase != incomingCase {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf(
-			"cannot change physical_object geometry type from %q to %q remove the existing entity and add a new one instead",
+			"cannot change physical_object geometry type from %q to %q; remove the existing entity and add a new one instead",
 			existingCase, incomingCase,
 		))
 	}
@@ -1047,8 +1078,8 @@ func (svc *DrawService) RemoveEntity(
 	}
 
 	delete(svc.entities, id)
-	if entity, ok := svc.chunked[id]; ok {
-		entity.close()
+	if chunked, ok := svc.chunked[id]; ok {
+		chunked.close()
 		delete(svc.chunked, id)
 	}
 
@@ -1141,8 +1172,9 @@ func (svc *DrawService) GetEntityChunk(
 // transform and drawing in the scene. On connect, the current world state is
 // replayed as a series of ADDED events so new subscribers see existing entities
 // before live updates begin. The stream ends when the request context is
-// cancelled. Subscriber channels have a bounded buffer; events that would block
-// a slow consumer are dropped and a warning is logged.
+// cancelled. Changes queue per subscriber and are never dropped; a subscriber
+// that falls further behind than maxPendingEntityChanges has its stream closed
+// with ResourceExhausted so it can reconnect and take a fresh replay.
 func (svc *DrawService) StreamEntityChanges(
 	ctx context.Context,
 	_ *connect.Request[drawv1.StreamEntityChangesRequest],

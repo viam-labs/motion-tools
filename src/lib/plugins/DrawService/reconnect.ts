@@ -70,8 +70,11 @@ export const runWithReconnect = async (options: ReconnectOptions): Promise<void>
 		signal.addEventListener('abort', abortAttempt, { once: true })
 
 		let resync = false
-		// Reset on data received rather than on the attempt completing: a server that accepts
-		// the connection and immediately drops it would otherwise defeat the backoff entirely.
+		// Reset on data received rather than on the attempt completing: a server that accepts the
+		// connection and immediately drops it would otherwise defeat the backoff entirely. The
+		// reset applies to the wait that follows this attempt, so a long-lived connection that
+		// drops normally retries at the initial delay rather than wherever the backoff had
+		// climbed to before it connected.
 		const onData = () => {
 			delay = initialDelay
 		}

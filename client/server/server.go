@@ -235,13 +235,11 @@ func Stop() error {
 	}
 
 	if staticSrv != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := staticSrv.Shutdown(ctx); err != nil {
 				log.Printf("draw server static shutdown error: %v", err)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

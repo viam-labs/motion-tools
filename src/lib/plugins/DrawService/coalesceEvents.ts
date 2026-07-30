@@ -91,13 +91,38 @@ export const mergeEvent = (pending: PendingChanges, event: StreamEvent): void =>
 /**
  * Record a bulk removal.
  *
- * Everything buffered before the clear is dropped: those entities are gone, and any that the
- * producer immediately redraws will arrive as fresh events after this point. The clear itself
- * is deliberately not applied as a teardown — see `survivingUUIDs`.
+ * Events buffered before the clear are dropped when the clear covers them: those entities are
+ * gone, and any the producer immediately redraws arrive as fresh events after this point. Events
+ * for a kind the clear does not cover survive, so clearing drawings does not discard a transform
+ * that was added moments earlier. The clear itself is deliberately not applied as a teardown, see
+ * `survivingUUIDs`.
+ *
+ * Two clears with different scopes in one frame both happened, so the recorded scope widens to
+ * ALL rather than the second replacing the first. Replacing would leave the first scope's
+ * entities behind as ghosts, since only the surviving scope is reconciled at flush.
  */
 export const mergeClear = (pending: PendingChanges, scope: EntityScope): void => {
-	pending.clearedScope = scope
-	pending.events.clear()
+	pending.clearedScope =
+		pending.clearedScope === undefined || pending.clearedScope === scope ? scope : EntityScope.ALL
+
+	for (const [uuid, event] of pending.events) {
+		if (clearCovers(scope, event)) pending.events.delete(uuid)
+	}
+}
+
+/** Whether a bulk removal of this scope subsumes a buffered event for a single entity. */
+const clearCovers = (scope: EntityScope, event: StreamEvent): boolean => {
+	switch (event.entity.case) {
+		case 'transform': {
+			return clearsTransforms(scope)
+		}
+		case 'drawing': {
+			return clearsDrawings(scope)
+		}
+		default: {
+			return false
+		}
+	}
 }
 
 /**

@@ -75,7 +75,8 @@ type DrawServiceClient interface {
 	// Add an entity to the scene.
 	AddEntity(context.Context, *connect.Request[v1.AddEntityRequest]) (*connect.Response[v1.AddEntityResponse], error)
 	// Add many entities to the scene in a single round trip. Equivalent to
-	// calling AddEntity once per entity, but applied atomically.
+	// calling AddEntity once per entity. The batch is validated in full before
+	// any of it is stored, so a malformed entity rejects the whole request.
 	AddEntities(context.Context, *connect.Request[v1.AddEntitiesRequest]) (*connect.Response[v1.AddEntitiesResponse], error)
 	// Update an entity in the scene.
 	UpdateEntity(context.Context, *connect.Request[v1.UpdateEntityRequest]) (*connect.Response[v1.UpdateEntityResponse], error)
@@ -280,7 +281,8 @@ type DrawServiceHandler interface {
 	// Add an entity to the scene.
 	AddEntity(context.Context, *connect.Request[v1.AddEntityRequest]) (*connect.Response[v1.AddEntityResponse], error)
 	// Add many entities to the scene in a single round trip. Equivalent to
-	// calling AddEntity once per entity, but applied atomically.
+	// calling AddEntity once per entity. The batch is validated in full before
+	// any of it is stored, so a malformed entity rejects the whole request.
 	AddEntities(context.Context, *connect.Request[v1.AddEntitiesRequest]) (*connect.Response[v1.AddEntitiesResponse], error)
 	// Update an entity in the scene.
 	UpdateEntity(context.Context, *connect.Request[v1.UpdateEntityRequest]) (*connect.Response[v1.UpdateEntityResponse], error)
