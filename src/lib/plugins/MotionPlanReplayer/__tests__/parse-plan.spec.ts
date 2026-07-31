@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { parsePlan, PlanParseError } from '../parse-plan'
+import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import capturedPlan from './__fixtures__/plan.json?raw'
 
 const MINIMAL_FRAME_SYSTEM = {
@@ -52,6 +53,35 @@ describe('parsePlan', () => {
 			parsePlan(JSON.stringify({ frame_system: MINIMAL_FRAME_SYSTEM, trajectory: 'bad' }))
 		).toThrow(PlanParseError)
 	})
+
+	it('keeps the two obstacle keys on separate fields', () => {
+		const plan = parsePlan(
+			JSON.stringify({
+				...REQUEST_OBJ,
+				world_state: { obstacles: [] },
+				obstacles_in_world_frame: { frame: 'shelf', geometries: [] },
+			}) + JSON.stringify(RESULT_OBJ)
+		)
+		expect(plan.worldState).toEqual({ obstacles: [] })
+		expect(plan.obstaclesInWorldFrame).toEqual({ frame: 'shelf', geometries: [] })
+	})
+
+	it('defaults an obstacles_in_world_frame with no parent to world', () => {
+		const plan = parsePlan(
+			JSON.stringify({ ...REQUEST_OBJ, obstacles_in_world_frame: { geometries: [] } }) +
+				JSON.stringify(RESULT_OBJ)
+		)
+		expect(plan.obstaclesInWorldFrame?.frame).toBe('world')
+	})
+
+	// Must fail here rather than deep inside the geometry decoder, where there is no path to report.
+	it('throws PlanParseError when obstacles_in_world_frame is malformed', () => {
+		expect(() =>
+			parsePlan(
+				JSON.stringify({ ...REQUEST_OBJ, obstacles_in_world_frame: { geometries: 'nope' } })
+			)
+		).toThrow(PlanParseError)
+	})
 })
 
 /**
@@ -93,5 +123,17 @@ describe('parsePlan with a captured plan', () => {
 		// world_state, constraints, planner_options, start_state and path are all
 		// present in the capture; parsing must not reject them.
 		expect(plan.frames['obstacle-table']).toBeDefined()
+	})
+
+	// Skipping is warn-only, so the warning is the contract. A geometry that stops parsing would
+	// otherwise just vanish from the scene — the failure this whole capture-as-oracle setup exists
+	// to catch.
+	it('builds every geometry in the capture without skipping one', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+		parsedPlanToSnapshots(parsePlan(capturedPlan))
+
+		expect(warn).not.toHaveBeenCalled()
+		warn.mockRestore()
 	})
 })

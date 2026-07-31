@@ -1,3 +1,11 @@
+/**
+ * The frame-system half of the client-side fallback (see `parse-plan.ts`): a TypeScript reconstruction
+ * of how RDK resolves `frame_system.frames` into a drawable chain. Every conversion below mirrors Go
+ * this file cannot import — orientation encodings (`spatialmath/orientation_json.go`), frame types
+ * (`referenceframe/register.go`), and the two geometry-center conventions — so each switch is a place
+ * the copy can fall behind its original without failing.
+ */
+
 import { protoBase64 } from '@bufbuild/protobuf'
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
 import { UuidTool } from 'uuid-tool'
@@ -31,10 +39,13 @@ export interface StaticFrameDescriptor {
 
 /**
  * A step addresses joints positionally (`left-arm: [0.1, -0.3, …]`), so `componentName` +
- * `jointIndex` are what turn a step into this frame's angle.
+ * `jointIndex` are what turn a step into this frame's value.
+ *
+ * `motion` rather than a third `kind`: the addressing fields are shared, only the conversion differs.
  */
 export interface JointFrameDescriptor {
 	kind: 'joint'
+	motion: 'rotational' | 'translational'
 	name: string
 	parent: string
 	axis: { X: number; Y: number; Z: number }
@@ -52,55 +63,77 @@ const tmpQInv = new Quaternion()
 const tmpQLocal = new Quaternion()
 const tmpE = new Euler()
 const tmpV = new Vector3()
+// Separate from tmpV: quatFromJson runs inside geometryCenterInFrame, which owns tmpV.
+const tmpAxis = new Vector3()
 const tmpOv = new OrientationVector()
 
 type QuatJson = { W: number; X: number; Y: number; Z: number }
 type EulerJson = { roll: number; pitch: number; yaw: number }
 type OvJson = { x: number; y: number; z: number; th: number }
-type OrientJson =
-	| { type: 'quaternion'; value: QuatJson }
-	| { type: 'euler_angles'; value: EulerJson }
-	| { type: 'ov_degrees'; value: OvJson }
-	| { type: 'ov_radians'; value: OvJson }
+
+/** Straight off the wire: `type` is any string RDK wrote, `value` whatever shape matches it. */
+type RawOrientation = { type?: string; value?: unknown }
+
 type Vec3Json = { X: number; Y: number; Z: number }
-type FramePoseJson = { translation?: Vec3Json; orientation?: OrientJson }
+type FramePoseJson = { translation?: Vec3Json; orientation?: RawOrientation }
 
-const hasOrientJson = (orientation: OrientJson | undefined): orientation is OrientJson =>
-	orientation?.type === 'quaternion' ||
-	orientation?.type === 'euler_angles' ||
-	orientation?.type === 'ov_degrees' ||
-	orientation?.type === 'ov_radians'
+/**
+ * Writes `out` and reports whether it holds a real rotation; false leaves it identity. Callers that
+ * only apply a rotation when one exists ask by calling — the switch below is the single list of
+ * encodings this file handles, so there is nothing to keep in step with it.
+ *
+ * Identity is correct for an absent or empty-string orientation (RDK's own zero value) and wrong for
+ * a `type` with no case here, which is why only the latter warns: it renders confidently wrong
+ * rather than visibly missing.
+ */
+const quatFromJson = (orientation: RawOrientation | undefined, out: Quaternion): boolean => {
+	const value = orientation?.value
+	if (value) {
+		switch (orientation?.type) {
+			case 'quaternion': {
+				const v = value as QuatJson
+				// RDK writes the scalar first; Three.js takes it last.
+				out.set(v.X, v.Y, v.Z, v.W)
+				return true
+			}
+			case 'euler_angles': {
+				const v = value as EulerJson
+				// RDK uses Tait–Bryan Z-Y′-X″; Three.js defaults to 'XYZ'.
+				out.setFromEuler(tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX'))
+				return true
+			}
+			case 'ov_radians': {
+				const v = value as OvJson
+				tmpOv.set(v.x, v.y, v.z, v.th).toQuaternion(out)
+				return true
+			}
+			case 'ov_degrees': {
+				const v = value as OvJson
+				tmpOv.set(v.x, v.y, v.z, MathUtils.degToRad(v.th ?? 0)).toQuaternion(out)
+				return true
+			}
+			// R4AA tags its fields th/x/y/z, so it arrives shaped like an orientation vector.
+			case 'axis_angles': {
+				const v = value as OvJson
+				// RDK does not normalize on unmarshal; setFromAxisAngle assumes a unit axis.
+				out.setFromAxisAngle(tmpAxis.set(v.x, v.y, v.z).normalize(), v.th ?? 0)
+				return true
+			}
+		}
+	}
 
-/** Each branch is a conversion, not a copy — a wrong one mis-poses the arm silently. */
-const quatFromJson = (orientation: OrientJson | undefined, out: Quaternion): Quaternion => {
-	if (orientation?.type === 'quaternion' && orientation.value) {
-		const v = orientation.value
-		// RDK writes the scalar first; Three.js takes it last.
-		return out.set(v.X, v.Y, v.Z, v.W)
+	if (orientation?.type) {
+		console.warn(
+			`[MotionPlanReplayer] unhandled orientation "${orientation.type}" — using identity`
+		)
 	}
-	if (orientation?.type === 'euler_angles' && orientation.value) {
-		const v = orientation.value
-		// RDK uses Tait–Bryan Z-Y′-X″; Three.js defaults to 'XYZ'.
-		tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX')
-		return out.setFromEuler(tmpE)
-	}
-	if (orientation?.type === 'ov_radians' && orientation.value) {
-		const v = orientation.value
-		return tmpOv.set(v.x, v.y, v.z, v.th).toQuaternion(out)
-	}
-	if (orientation?.type === 'ov_degrees' && orientation.value) {
-		const v = orientation.value
-		const th = MathUtils.degToRad(v.th ?? 0)
-		return tmpOv.set(v.x, v.y, v.z, th).toQuaternion(out)
-	}
-
-	// Omitting orientation is normal (a pure translation), not a malformed plan.
-	return out.set(0, 0, 0, 1)
+	out.set(0, 0, 0, 1)
+	return false
 }
 
 const poseFromFrame = (
 	translation: Vec3Json | undefined,
-	orientation: OrientJson | undefined
+	orientation: RawOrientation | undefined
 ): Pose => {
 	quatFromJson(orientation, tmpQ)
 	return new Pose(translation?.X ?? 0, translation?.Y ?? 0, translation?.Z ?? 0).setFromQuaternion(
@@ -115,7 +148,7 @@ const poseFromFrame = (
  */
 const geometryCenterInFrame = (
 	geoTrans: Vec3Json | undefined,
-	geoOrient: OrientJson | undefined,
+	geoOrient: RawOrientation | undefined,
 	framePose: FramePoseJson
 ): Pose => {
 	quatFromJson(framePose.orientation, tmpQFrame)
@@ -131,8 +164,7 @@ const geometryCenterInFrame = (
 
 	const center = new Pose(tmpV.x, tmpV.y, tmpV.z)
 
-	if (hasOrientJson(geoOrient)) {
-		quatFromJson(geoOrient, tmpQGeo)
+	if (quatFromJson(geoOrient, tmpQGeo)) {
 		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
 		center.setFromQuaternion(tmpQLocal)
 	}
@@ -144,8 +176,22 @@ const geometryCenterInFrame = (
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
+ *
+ * Decodes Go `GeometryConfig` marshal (`frame_system` and `obstacles_in_world_frame`), not
+ * proto-JSON `world_state` geometries.
  */
-const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | null => {
+export const parseGeometry = (
+	geom: unknown,
+	frameName: string,
+	framePose?: FramePoseJson
+): Geometry | null => {
+	// Naming the frame is the difference between a warning you can act on and one you can't:
+	// a capture has dozens of geometries and they all skip through this one line.
+	const skip = (reason: string): null => {
+		console.warn(`[MotionPlanReplayer] skipping geometry on "${frameName}": ${reason}`)
+		return null
+	}
+
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
 	const type = g.type as string
@@ -155,15 +201,12 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
-	const orient = g.orientation as OrientJson | undefined
+	const orient = g.orientation as RawOrientation | undefined
 	const center = framePose
 		? geometryCenterInFrame(trans, orient, framePose)
 		: (() => {
 				const local = new Pose(trans?.X ?? 0, trans?.Y ?? 0, trans?.Z ?? 0)
-				if (hasOrientJson(orient)) {
-					quatFromJson(orient, tmpQ)
-					local.setFromQuaternion(tmpQ)
-				}
+				if (quatFromJson(orient, tmpQ)) local.setFromQuaternion(tmpQ)
 				return local
 			})()
 
@@ -215,10 +258,8 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 			const meshData = g.mesh_data as string | undefined
 
 			// parsePlyInput is PLY-only; other formats throw at render time, far from here.
-			if (contentType !== 'ply' || !meshData) {
-				console.warn(`[MotionPlanReplayer] skipping mesh geometry (content type "${contentType}")`)
-				return null
-			}
+			if (!meshData) return skip('mesh geometry carries no mesh_data')
+			if (contentType !== 'ply') return skip(`unsupported mesh content type "${contentType}"`)
 
 			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
 			// report as an unparseable plan — the whole failure mode this branch avoids.
@@ -227,8 +268,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
 				mesh = Uint8Array.from(protoBase64.dec(meshData))
 			} catch {
-				console.warn(`[MotionPlanReplayer] skipping mesh geometry with undecodable mesh_data`)
-				return null
+				return skip('undecodable mesh_data')
 			}
 
 			return new Geometry({
@@ -241,8 +281,7 @@ const parseGeometry = (geom: unknown, framePose?: FramePoseJson): Geometry | nul
 		// Skip rather than substitute: a stand-in shape would lie about where the collision
 		// volume is, and one unrenderable shape shouldn't cost the whole trajectory.
 		default: {
-			console.warn(`[MotionPlanReplayer] skipping unsupported geometry type "${type}"`)
-			return null
+			return skip(`unsupported geometry type "${type}"`)
 		}
 	}
 }
@@ -323,6 +362,17 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 }
 
 /**
+ * `referenceframe/register.go` registers six frame types; the switches below cover four. An
+ * unregistered or unhandled one produces no descriptor, so the frame is absent from the scene and
+ * anything parented to it is left unresolved — worth saying out loud rather than dropping.
+ */
+const warnUnhandledFrame = (frameName: string, frameType: unknown): void => {
+	console.warn(
+		`[MotionPlanReplayer] unhandled frame type "${String(frameType)}" on "${frameName}" — frame not drawn`
+	)
+}
+
+/**
  * A straight map over `frames` — every cross-frame question was already answered by
  * {@link buildFrameContexts}, so each entry is built from itself plus its context.
  */
@@ -347,15 +397,17 @@ const buildDescriptors = (
 				const inner = outer.inner_frame as Record<string, unknown>
 				const innerData = inner.frame as Record<string, unknown>
 
-				if (inner.frame_type === 'rotational') {
-					// A rotational frame no model claims has no column in any step, so there is no
-					// angle to drive it. Dropping it leaves the rest of the plan viewable.
+				if (inner.frame_type === 'rotational' || inner.frame_type === 'translational') {
+					// A joint frame no model claims has no column in any step, so there is no value to
+					// drive it. Dropping it leaves the rest of the plan viewable.
 					if (!joint) continue
 
 					descriptors.push({
 						kind: 'joint',
+						motion: inner.frame_type,
 						name: frameName,
 						parent,
+						// Both marshal through `JointConfig`, so the axis reads the same either way.
 						axis: innerData.axis as { X: number; Y: number; Z: number },
 						componentName: joint.componentName,
 						jointIndex: joint.jointIndex,
@@ -364,16 +416,18 @@ const buildDescriptors = (
 				} else if (inner.frame_type === 'static') {
 					const framePose: FramePoseJson = {
 						translation: innerData.translation as Vec3Json | undefined,
-						orientation: innerData.orientation as OrientJson | undefined,
+						orientation: innerData.orientation as RawOrientation | undefined,
 					}
 					descriptors.push({
 						kind: 'static',
 						name: frameName,
 						parent,
 						localPose: poseFromFrame(framePose.translation, framePose.orientation),
-						geometry: parseGeometry(innerData.geometry, framePose),
+						geometry: parseGeometry(innerData.geometry, frameName, framePose),
 						uuid: newUuid(),
 					})
+				} else {
+					warnUnhandledFrame(frameName, inner.frame_type)
 				}
 				break
 			}
@@ -387,11 +441,16 @@ const buildDescriptors = (
 					parent,
 					localPose: poseFromFrame(
 						frame.translation as Vec3Json | undefined,
-						frame.orientation as OrientJson | undefined
+						frame.orientation as RawOrientation | undefined
 					),
-					geometry: parseGeometry(frame.geometry),
+					geometry: parseGeometry(frame.geometry, frameName),
 					uuid: newUuid(),
 				})
+				break
+			}
+
+			default: {
+				warnUnhandledFrame(frameName, entry.frame_type)
 				break
 			}
 		}
