@@ -1,24 +1,20 @@
-import type { ResourceName, Transform } from '@viamrobotics/sdk'
+import type { ResourceName } from '@viamrobotics/sdk'
+import type { Entity } from 'koota'
 
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { useResourceNames } from '@viamrobotics/svelte-sdk'
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePartID } from '$lib/hooks/usePartID.svelte'
 import { Pose } from '$lib/math'
 
 import MoveControls from '../MoveControls.svelte'
 
-// Render the panel body without Threlte, and stand in for the real move widget so we
-// can assert the props MoveControls hands it.
-vi.mock('$lib/components/overlay/FloatingPanel.svelte', async () => {
-	const MockFloatingPanel = await import('./__fixtures__/MockFloatingPanel.svelte')
-	return { default: MockFloatingPanel.default }
-})
-vi.mock('@viamrobotics/test-widgets', async () => {
-	const MockMoveWidget = await import('./__fixtures__/MockMoveWidget.svelte')
-	return { MotionMoveWidget: MockMoveWidget.default }
+// Render the panel body without Threlte — the shell reads the scene and the ECS.
+vi.mock('$lib/components/overlay/details/DetailsPanel.svelte', async () => {
+	const MockDetailsPanel = await import('./__fixtures__/MockDetailsPanel.svelte')
+	return { default: MockDetailsPanel.default }
 })
 // The scene-side components need a Threlte context (and import @threlte/extras);
 // stub them out for the panel-body test.
@@ -57,23 +53,6 @@ vi.mock('@viamrobotics/prime-core', async (importOriginal) => ({
 	useToast: () => vi.fn(),
 }))
 
-// The frame the panel targets must resolve as present via the ECS name query, else the
-// panel auto-closes. `useQuery` reads from a mutable holder the tests populate.
-const ecs = vi.hoisted(() => ({ names: [] as string[] }))
-vi.mock('$lib/ecs', () => {
-	const Name = Symbol('Name')
-	const WorldMatrix = Symbol('WorldMatrix')
-	return {
-		traits: { Name, WorldMatrix },
-		useQuery: () => ({
-			get current() {
-				return ecs.names.map((name) => ({ get: () => name }))
-			},
-		}),
-		useTrait: () => ({ current: undefined }),
-	}
-})
-
 vi.mock('@viamrobotics/svelte-sdk', () => ({
 	useResourceNames: vi.fn(),
 	createResourceClient: vi.fn(() => ({ current: undefined })),
@@ -81,44 +60,32 @@ vi.mock('@viamrobotics/svelte-sdk', () => ({
 	createRobotQuery: vi.fn(() => ({ data: undefined })),
 }))
 vi.mock('$lib/hooks/usePartID.svelte', () => ({ usePartID: vi.fn() }))
-vi.mock('$lib/hooks/useFrames.svelte', () => ({ useFrames: vi.fn() }))
 
 const service = (name: string): ResourceName =>
 	({ namespace: 'rdk', type: 'service', subtype: 'motion', name }) as ResourceName
 
-const frame = (referenceFrame: string, parent?: string): Transform =>
-	({
-		referenceFrame,
-		poseInObserverFrame: parent ? { referenceFrame: parent } : undefined,
-	}) as Transform
+/** The panel only hands the entity to the shell and the ghosts, both stubbed here. */
+const entity = 1 as unknown as Entity
 
 describe('MoveControls', () => {
 	const partID = 'part1'
-	let onClose: Mock<() => void>
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		vi.clearAllMocks()
-		ecs.names = ['arm']
 		moved.matrix = undefined
-		onClose = vi.fn<() => void>()
 
 		vi.mocked(usePartID).mockReturnValue({ current: partID } as never)
-
-		const { useFrames } = await import('$lib/hooks/useFrames.svelte')
-		vi.mocked(useFrames).mockReturnValue({
-			current: [frame('arm', 'base'), frame('base', 'world')],
-		} as never)
 	})
 
-	it('renders the move widget with the built-in service and the frame parent as destination', () => {
+	it('selects the built-in motion service by default', () => {
 		vi.mocked(useResourceNames).mockReturnValue({
 			current: [service('planner'), service('builtin')],
 		} as never)
 
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		// built-in service is preferred; destination defaults to the frame's parent (base).
-		expect(screen.getByTestId('move-widget')).toHaveTextContent('move:part1:builtin:arm:base')
+		expect(screen.getByText('motion service')).toBeInTheDocument()
+		expect(screen.getByRole('combobox')).toHaveValue('builtin')
 	})
 
 	it('falls back to the first motion service when there is no built-in', () => {
@@ -126,15 +93,16 @@ describe('MoveControls', () => {
 			current: [service('planner'), service('secondary')],
 		} as never)
 
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		expect(screen.getByTestId('move-widget')).toHaveTextContent('move:part1:planner:arm:base')
+		expect(screen.getByText('motion service')).toBeInTheDocument()
+		expect(screen.getByRole('combobox')).toHaveValue('planner')
 	})
 
 	it('waits for the frame pose before offering the pose inputs', () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
 
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
 		expect(screen.queryByLabelText('move target position')).not.toBeInTheDocument()
 		expect(screen.getByText(/resolving the frame's pose/i)).toBeInTheDocument()
@@ -144,10 +112,12 @@ describe('MoveControls', () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
 		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
 		const position = await screen.findByLabelText('move target position')
 		expect(screen.getByLabelText('move target orientation')).toBeInTheDocument()
+		expect(screen.getByText('world position')).toBeInTheDocument()
+		expect(screen.getByText('world orientation')).toBeInTheDocument()
 
 		const fields = position.querySelectorAll('input')
 		expect([...fields].map((field) => Number(field.value))).toEqual([100, -250, 40])
@@ -157,7 +127,7 @@ describe('MoveControls', () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
 		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
 		// Nothing is staged until a field moves, so both actions start disabled.
 		expect(screen.getByRole('button', { name: /reset/i })).toHaveAttribute('aria-disabled', 'true')
@@ -175,17 +145,5 @@ describe('MoveControls', () => {
 		)
 		// 400 mm of travel along x, no rotation.
 		expect(screen.getByText(/400\.0 mm · 0\.0°/)).toBeInTheDocument()
-	})
-
-	it('reports a close when the panel is dismissed', async () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
-
-		render(MoveControls, { props: { frameName: 'arm', onClose } })
-
-		await fireEvent.click(screen.getByRole('button', { name: /close panel/i }))
-
-		await waitFor(() => {
-			expect(onClose).toHaveBeenCalled()
-		})
 	})
 })

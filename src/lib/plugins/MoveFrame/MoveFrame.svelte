@@ -1,76 +1,61 @@
 <script lang="ts">
-	import { Portal } from '@threlte/extras'
 	import { World } from '@threlte/rapier'
-	import { Tooltip } from '@viamrobotics/prime-core'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
-	import { Move3d } from 'lucide-svelte'
 
+	import ModeTogglePortal from '$lib/components/overlay/Portals/ModeTogglePortal.svelte'
+	import ModeButton from '$lib/components/overlay/workspace/ModeButton.svelte'
 	import { traits, useQuery } from '$lib/ecs'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
 	import CollisionDetector from './collisions/CollisionDetector.svelte'
 	import MoveControls from './MoveControls.svelte'
-	import { useOpenMoveWidgets } from './useOpenMoveWidgets.svelte'
+	import MoveDashboard from './MoveDashboard.svelte'
 
-	const partID = usePartID()
+	const environment = useEnvironment()
 	const selected = useQuery(traits.Selected)
-	const motionServices = useResourceNames(() => partID.current, 'motion')
-	const moveWidgets = useOpenMoveWidgets(() => partID.current)
 
-	const entity = $derived(selected.current[0])
-	const frameName = $derived(entity?.get(traits.Name))
-	const isFrame = $derived(entity !== undefined && entity.has(traits.FramesAPI))
-	const hasMotionService = $derived(
-		motionServices.current.some(
-			(resource) => resource.type === 'service' && resource.subtype === 'motion'
-		)
+	/**
+	 * Move mode swaps the details panel for a move panel per selected frame, so the
+	 * selection drives the panels the way it drives details in the other modes. The
+	 * world root has no pose of its own to move.
+	 */
+	const movableFrames = $derived(
+		selected.current.flatMap((entity) => {
+			const frameName = entity.get(traits.Name)
+
+			if (frameName === undefined || frameName === 'world' || !entity.has(traits.FramesAPI)) {
+				return []
+			}
+
+			return [{ entity, frameName }]
+		})
 	)
 
-	const showButton = $derived(
-		isFrame && frameName !== undefined && frameName !== 'world' && hasMotionService
-	)
-
-	const moveOn = $derived(frameName !== undefined && moveWidgets.current.includes(frameName))
-
-	const toggleMove = () => {
-		if (frameName === undefined) return
-		if (moveOn) moveWidgets.close(frameName)
-		else moveWidgets.open(frameName)
-	}
+	const isMoveMode = $derived(environment.current.mode === 'move')
 </script>
 
-{#if showButton}
-	<Portal id="details-header-actions">
-		<Tooltip
-			let:tooltipID
-			location="bottom"
-		>
-			<button
-				class={[
-					'hover:text-default focus-visible:text-default transition-colors',
-					moveOn ? 'text-info-dark' : 'text-subtle-2',
-				]}
-				aria-describedby={tooltipID}
-				aria-label="Move this frame"
-				aria-pressed={moveOn}
-				onclick={toggleMove}
-			>
-				<Move3d size={14} />
-			</button>
-			<p slot="description">{moveOn ? 'Stop moving this frame' : 'Move this frame'}</p>
-		</Tooltip>
-	</Portal>
-{/if}
-
-{#each moveWidgets.current as name (name)}
-	<MoveControls
-		frameName={name}
-		onClose={() => moveWidgets.close(name)}
+<ModeTogglePortal>
+	<ModeButton
+		class="-ml-px rounded-l-none"
+		mode="move"
+		icon="move-3d"
+		description="Move frames with the motion service"
 	/>
-{/each}
+</ModeTogglePortal>
 
-{#if moveWidgets.current.length > 0}
-	<World autoStart={false}>
-		<CollisionDetector />
-	</World>
+{#if isMoveMode}
+	<MoveDashboard />
+
+	{#each movableFrames as { entity, frameName }, index (frameName)}
+		<MoveControls
+			{entity}
+			{frameName}
+			style="transform: translate(0, {index * 40}px)"
+		/>
+	{/each}
+
+	{#if movableFrames.length > 0}
+		<World autoStart={false}>
+			<CollisionDetector />
+		</World>
+	{/if}
 {/if}
