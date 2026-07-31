@@ -491,10 +491,6 @@ const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConf
 const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	const partQuery = createAppQuery('getRobotPart', () => [partID()] as const, {
 		refetchInterval: false,
-		// List every field this hook reads. TanStack otherwise subscribes only to
-		// the fields read so far, and `error` is read late — so a failed load
-		// would go undelivered.
-		notifyOnChangeProps: ['data', 'error'],
 	})
 	const partName = $derived(partQuery.data?.part?.name)
 
