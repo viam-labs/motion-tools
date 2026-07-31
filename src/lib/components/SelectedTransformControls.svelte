@@ -1,9 +1,10 @@
 <script lang="ts">
+	import type { TransformControls as ThreeTransformControls } from 'three/addons/controls/TransformControls.js'
+
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
 	import { onDestroy } from 'svelte'
 	import { Group, MathUtils, Matrix4 } from 'three'
-	import type { TransformControls as ThreeTransformControls } from 'three/addons/controls/TransformControls.js'
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
