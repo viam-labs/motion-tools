@@ -1,5 +1,4 @@
 import { Constraints, WorldState } from '@viamrobotics/sdk'
-
 import { describe, expect, it } from 'vitest'
 
 import { parseMoveOptions } from '../parseMoveOptions'
