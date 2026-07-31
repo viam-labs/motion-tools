@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { TransformControls as ThreeTransformControls } from 'three/addons/controls/TransformControls.js'
+
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
 	import { onDestroy } from 'svelte'
@@ -12,6 +14,7 @@
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { Pose } from '$lib/math'
+	import { isolateTransformControls } from '$lib/three/renderLayers'
 	import { solveEditedMatrix } from '$lib/transform'
 
 	const { invalidate } = useThrelte()
@@ -97,6 +100,11 @@
 		| { type: 'capsule'; r: number; l: number }
 		| undefined
 	let frameHistoryEntryOpen = false
+	let controls = $state.raw<ThreeTransformControls>()
+
+	$effect(() => {
+		if (controls) isolateTransformControls(controls)
+	})
 
 	const beginFrameHistoryEntry = () => {
 		if (!entity?.has(traits.FramesAPI)) return
@@ -312,6 +320,7 @@
 	/>
 	{#key entity}
 		<TransformControls
+			bind:controls
 			object={ref}
 			mode={activeMode}
 			space={settings.current.transformSpace}

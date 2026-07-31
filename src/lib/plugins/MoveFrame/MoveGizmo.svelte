@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { TransformControls as ThreeTransformControls } from 'three/addons/controls/TransformControls.js'
+
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
 	import { onDestroy } from 'svelte'
@@ -6,6 +8,7 @@
 
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { isolateTransformControls } from '$lib/three/renderLayers'
 
 	interface Props {
 		/** Where the frame is right now — world space, metres. */
@@ -35,6 +38,11 @@
 	const anchor = new Group()
 
 	let dragging = false
+	let controls = $state.raw<ThreeTransformControls>()
+
+	$effect(() => {
+		if (controls) isolateTransformControls(controls)
+	})
 
 	/**
 	 * Seed the handle from the staged target, falling back to the frame's live
@@ -83,6 +91,7 @@
 />
 
 <TransformControls
+	bind:controls
 	object={anchor}
 	{mode}
 	{space}
