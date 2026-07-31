@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { useTask, useThrelte } from '@threlte/core'
+	import { T, useTask, useThrelte } from '@threlte/core'
+	import { View } from '@threlte/extras'
 	import { Slider, type SliderChangeEvent } from 'svelte-tweakpane-ui'
-	import { Matrix4, OrthographicCamera, PerspectiveCamera, WebGLRenderer } from 'three'
+	import { Matrix4, OrthographicCamera, PerspectiveCamera } from 'three'
 
 	import { traits, useQuery } from '$lib/ecs'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -16,7 +17,7 @@
 
 	const { frameName }: Props = $props()
 
-	const { scene, renderer: mainRenderer, renderStage, invalidate } = useThrelte()
+	const { scene, renderStage } = useThrelte()
 	const settings = useSettings()
 	const partID = usePartID()
 
@@ -39,54 +40,17 @@
 	const perspectiveCamera = new PerspectiveCamera(PERSPECTIVE_FOV_DEG, 1, 0.01, 1000)
 	perspectiveCamera.up.set(0, 0, 1)
 
-	const orthographicCamera = new OrthographicCamera(-1, 1, 1, -1, 0.01, 1000)
+	const orthographicCamera = new OrthographicCamera(-1, 1, 1, -1, -1000, 1000)
 	orthographicCamera.up.set(0, 0, 1)
 
 	let isOpen = $state(true)
 	let cameraMode = $state<'perspective' | 'orthographic'>('perspective')
 	let orthoZoom = $state(1)
-	let canvasEl = $state.raw<HTMLCanvasElement>()
-	let povRenderer = $state.raw<WebGLRenderer | undefined>()
+	let viewEl = $state.raw<HTMLDivElement>()
 
 	const orthoHeight = $derived(BASE_ORTHO_HEIGHT / orthoZoom)
 
 	const composed = new Matrix4()
-
-	$effect(() => {
-		if (!canvasEl) return
-		const r = new WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true })
-		// Match the main renderer so colors/tone/transparency are consistent
-		// with the main view.
-		r.outputColorSpace = mainRenderer.outputColorSpace
-		r.toneMapping = mainRenderer.toneMapping
-		r.toneMappingExposure = mainRenderer.toneMappingExposure
-		r.setPixelRatio(mainRenderer.getPixelRatio())
-		r.setSize(canvasEl.clientWidth, canvasEl.clientHeight, false)
-		povRenderer = r
-		invalidate()
-		return () => {
-			r.dispose()
-			povRenderer = undefined
-		}
-	})
-
-	$effect(() => {
-		if (!canvasEl) return
-		const ro = new ResizeObserver(() => {
-			const r = povRenderer
-			if (!r || !canvasEl) return
-			r.setSize(canvasEl.clientWidth, canvasEl.clientHeight, false)
-			invalidate()
-		})
-		ro.observe(canvasEl)
-		return () => ro.disconnect()
-	})
-
-	$effect(() => {
-		void cameraMode
-		void orthoZoom
-		invalidate()
-	})
 
 	$effect(() => {
 		if (entity === undefined) {
@@ -107,13 +71,12 @@
 
 	useTask(
 		() => {
-			const r = povRenderer
-			if (!r || !canvasEl || !entity) return
+			if (!viewEl || !entity) return
 			const worldMat = entity.get(traits.WorldMatrix)
 			if (!worldMat) return
 
-			const width = canvasEl.clientWidth
-			const height = canvasEl.clientHeight
+			const width = viewEl.clientWidth
+			const height = viewEl.clientHeight
 			if (width <= 0 || height <= 0) return
 
 			const povCamera = cameraMode === 'perspective' ? perspectiveCamera : orthographicCamera
@@ -121,10 +84,8 @@
 			composed.multiplyMatrices(worldMat, VIAM_TO_THREE_CAMERA)
 			composed.decompose(povCamera.position, povCamera.quaternion, povCamera.scale)
 
-			const aspect = width / height
-			if (povCamera === perspectiveCamera) {
-				perspectiveCamera.aspect = aspect
-			} else {
+			if (povCamera === orthographicCamera) {
+				const aspect = width / height
 				const halfH = orthoHeight / 2
 				const halfW = halfH * aspect
 				orthographicCamera.left = -halfW
@@ -132,10 +93,9 @@
 				orthographicCamera.top = halfH
 				orthographicCamera.bottom = -halfH
 			}
+
 			povCamera.updateProjectionMatrix()
 			povCamera.updateMatrixWorld(true)
-
-			r.render(scene, povCamera)
 		},
 		{ stage: renderStage, autoInvalidate: false }
 	)
@@ -151,29 +111,23 @@
 	bind:isOpen
 	defaultSize={{ width: 320, height: 240 }}
 	resizable
-	onPositionChange={invalidate}
-	onSizeChange={invalidate}
+	bodyClass="bg-transparent"
 >
-	<canvas
-		bind:this={canvasEl}
+	<div
+		bind:this={viewEl}
 		class="absolute inset-0 block h-full w-full"
-	></canvas>
+	></div>
 
-	<fieldset class="absolute top-1 right-1 z-1 flex">
+	<div class="absolute top-1 right-1 z-1">
 		<Button
-			icon="grid-orthographic"
-			active={cameraMode === 'orthographic'}
-			description="Orthographic view"
-			onclick={() => (cameraMode = 'orthographic')}
+			icon={cameraMode === 'orthographic' ? 'grid-orthographic' : 'grid-perspective'}
+			description={cameraMode === 'orthographic'
+				? 'Switch to perspective view'
+				: 'Switch to orthographic view'}
+			tooltipLocation="left"
+			onclick={() => (cameraMode = cameraMode === 'orthographic' ? 'perspective' : 'orthographic')}
 		/>
-		<Button
-			icon="grid-perspective"
-			active={cameraMode === 'perspective'}
-			description="Perspective view"
-			class="-ml-px"
-			onclick={() => (cameraMode = 'perspective')}
-		/>
-	</fieldset>
+	</div>
 
 	{#if cameraMode === 'orthographic'}
 		<div class="absolute right-1 bottom-1 left-1 z-1 rounded bg-white/85 p-1">
@@ -189,3 +143,21 @@
 		</div>
 	{/if}
 </FloatingPanel>
+
+<View
+	dom={viewEl}
+	{scene}
+>
+	{#if cameraMode === 'perspective'}
+		<T
+			is={perspectiveCamera}
+			makeDefault
+		/>
+	{:else}
+		<T
+			is={orthographicCamera}
+			manual
+			makeDefault
+		/>
+	{/if}
+</View>
