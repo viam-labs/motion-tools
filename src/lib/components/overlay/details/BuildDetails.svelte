@@ -46,7 +46,10 @@
 		name.current && Object.keys(fragmentInfo.current?.[name.current]?.variables ?? {}).length > 0
 	)
 	const showEditFrameOptions = $derived(
-		!!framesAPI.current && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
+		!!framesAPI.current &&
+		partConfig.hasEditPermissions &&
+		!isFragmentComponentWithVariables &&
+		!environment.buildSyncing
 	)
 	const showConfigUnavailableWarning = $derived(
 		!!framesAPI.current && !partConfig.hasEditPermissions && partConfig.error !== undefined
@@ -58,6 +61,15 @@
 	{entity}
 	{...rest}
 >
+	{#if environment.buildSyncing}
+		<p
+			class="mt-2 rounded border-l-4 border-blue-600 bg-blue-50 px-2 py-1.5 text-blue-900"
+			role="status"
+		>
+			Refreshing machine state before editing…
+		</p>
+	{/if}
+
 	{#if isFragmentComponentWithVariables}
 		<p
 			class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"

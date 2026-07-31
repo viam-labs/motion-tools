@@ -131,6 +131,7 @@ describe('Details component', () => {
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
 		environmentContext.current.mode = 'build'
+		environmentContext.finishBuildSync()
 
 		entity.add(traits.FramesAPI)
 
@@ -178,6 +179,7 @@ describe('Details component', () => {
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
 		environmentContext.current.mode = 'build'
+		environmentContext.finishBuildSync()
 
 		entity.add(traits.FramesAPI)
 

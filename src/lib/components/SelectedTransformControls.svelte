@@ -94,6 +94,7 @@
 
 	const transforming = $derived(
 		isBuildMode &&
+			!environment.buildSyncing &&
 			ref &&
 			entity &&
 			activeMode &&
