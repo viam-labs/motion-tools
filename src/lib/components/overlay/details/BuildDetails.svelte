@@ -48,6 +48,9 @@
 	const showEditFrameOptions = $derived(
 		!!framesAPI.current && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
 	)
+	const showConfigUnavailableWarning = $derived(
+		!!framesAPI.current && !partConfig.hasEditPermissions && partConfig.error !== undefined
+	)
 	const showRelationshipOptions = $derived(!!points.current || !!arrows.current)
 </script>
 
@@ -63,6 +66,17 @@
 		>
 			This component is from a fragment with variables, editing frames in 3D scene is disabled
 		</p>
+	{/if}
+
+	{#if showConfigUnavailableWarning}
+		<div
+			class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"
+			data-testid="config-unavailable-warning"
+			role="status"
+		>
+			<p>Frame editing is disabled — this machine's configuration could not be read.</p>
+			<p class="mt-1 break-words text-yellow-800">{partConfig.error}</p>
+		</div>
 	{/if}
 
 	<h3

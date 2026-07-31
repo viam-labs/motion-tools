@@ -30,6 +30,12 @@ interface LocalPartConfig {
 	isDirty: boolean
 	hasEditPermissions: boolean
 	current: Struct
+	/**
+	 * Why the config is unavailable, when it is. Stays undefined while the config
+	 * is still loading, so consumers can tell "not ready yet" from "will never
+	 * arrive" instead of flashing an error during startup.
+	 */
+	error?: string
 
 	set: (config: PartConfig, options?: { dirty?: boolean }) => void
 	save?: () => void
@@ -40,6 +46,8 @@ interface PartConfigContext {
 	current: PartConfig
 	isDirty: boolean
 	hasEditPermissions: boolean
+	/** Why the config is unavailable — see `LocalPartConfig.error`. */
+	error?: string
 
 	updateFrame: (
 		componentName: string,
@@ -383,6 +391,9 @@ export const providePartConfig = (
 		get hasEditPermissions() {
 			return config.hasEditPermissions
 		},
+		get error() {
+			return config.error
+		},
 
 		updateFrame: (
 			componentName: string,
@@ -492,6 +503,27 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 
 	const hasEditPermissions = $derived(networkPartConfig !== undefined)
 
+	/**
+	 * Distinguishes the two ways the config can be missing from the third, benign
+	 * one (still in flight). Without this every frame edit silently no-ops:
+	 * `updatePartFrame` finds no matching component and returns, so nothing
+	 * dirties and Save never enables.
+	 */
+	const error = $derived.by(() => {
+		if (partQuery.error) {
+			return partQuery.error.message
+		}
+
+		// The app omits `robotConfig` when the caller can't read the machine's
+		// stored config, so a successful response with nothing in it means the
+		// credentials lack config access rather than that the part is empty.
+		if (partQuery.data !== undefined && networkPartConfig === undefined) {
+			return 'This machine returned no stored configuration.'
+		}
+
+		return undefined
+	})
+
 	let lastPartID: string | undefined
 	$effect.pre(() => {
 		const id = partID()
@@ -523,6 +555,9 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 		},
 		get hasEditPermissions() {
 			return hasEditPermissions
+		},
+		get error() {
+			return error
 		},
 
 		set(config: PartConfig, options?: { dirty?: boolean }): void {
