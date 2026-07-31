@@ -69,3 +69,32 @@ export const waitForCanvasToChange = async (
 		return null
 	})
 }
+
+/**
+ * Wait until the canvas stops changing, then return the settled frame.
+ *
+ * `waitForCanvasToChange` returns on the first differing pixel, which can be a partially applied
+ * update: an entity's mesh and its axes helper are flushed by separate batched renderers, so a
+ * move can be visible on one before the other. Screenshotting at that point captures a torn
+ * frame and makes a passing snapshot look like a bug. Wait for the scene to settle instead.
+ */
+export const waitForCanvasToSettle = async (
+	page: Page,
+	{ stableMs = 400, timeoutMs = 10000 }: { stableMs?: number; timeoutMs?: number } = {}
+): Promise<Buffer> => {
+	return withOverlaysHidden(page, async () => {
+		const canvas = page.locator('canvas').first()
+		const deadline = Date.now() + timeoutMs
+
+		let previous = await canvas.screenshot()
+		while (Date.now() < deadline) {
+			await page.waitForTimeout(stableMs)
+			const current = await canvas.screenshot()
+			if (current.equals(previous)) {
+				return current
+			}
+			previous = current
+		}
+		return previous
+	})
+}

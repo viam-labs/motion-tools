@@ -42,6 +42,7 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 	})
 
 	await page.goto('/')
+	await page.waitForLoadState('load')
 	await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
 		timeout: 15000,
 	})
