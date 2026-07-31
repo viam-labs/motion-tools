@@ -4,6 +4,7 @@ import { Color, Matrix4 } from 'three'
 import { relations, traits } from '$lib/ecs'
 
 import { MOVE_GHOST_COLOR } from './moveGhostColor'
+import { GhostOf } from './relations'
 
 /**
  * Ghosting for a staged move, expressed as scene entities rather than meshes
@@ -133,6 +134,7 @@ const spawnGhost = (world: World, source: Entity): Entity => {
 	if (center) shape.push(traits.Center(center))
 
 	return world.spawn(
+		GhostOf(source),
 		traits.NonSelectable,
 		traits.WorldMatrix(new Matrix4()),
 		traits.Color({ r: ghostColor.r, g: ghostColor.g, b: ghostColor.b }),
