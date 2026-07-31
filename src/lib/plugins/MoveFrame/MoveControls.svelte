@@ -3,11 +3,13 @@
 	import type { HTMLAttributes } from 'svelte/elements'
 	import type { Matrix4 } from 'three'
 
-	import { Button, Select, ToastVariant, useToast } from '@viamrobotics/prime-core'
+	import { Button, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { PersistedState } from 'runed'
 	import {
+		List,
+		type ListChangeEvent,
 		Point,
 		type PointChangeEvent,
 		type PointValue3dObject,
@@ -27,14 +29,14 @@
 	import { setOrientationFromEuler } from '$lib/transform'
 
 	import Collisions from './collisions/Collisions.svelte'
-	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
+	import { defaultMotionService, motionServiceNames } from './moveControls'
 	import MoveGizmo from './MoveGizmo.svelte'
+	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
 	import MoveJsonField from './MoveJsonField.svelte'
 	import MoveTargetGhost from './MoveTargetGhost.svelte'
-	import { defaultMotionService, motionServiceNames } from './moveControls'
-	import { parseMoveOptions } from './parseMoveOptions'
 	import { fromDestinationPose, moveDelta, toDestinationPose } from './moveTargetPose'
+	import { parseMoveOptions } from './parseMoveOptions'
 	import { useMovedFrameMatrix } from './useMovedFrameMatrix.svelte'
 	import { useMoveGhosts } from './useMoveGhosts.svelte'
 
@@ -197,6 +199,11 @@
 	/** Drop the staged goal so the gizmo snaps back to wherever the frame is now. */
 	const resetTarget = () => (targetWorldMatrix = undefined)
 
+	const handleServiceChange = (event: ListChangeEvent) => {
+		if (event.detail.origin !== 'internal') return
+		selectedService = event.detail.value as string
+	}
+
 	const executeMove = async () => {
 		const client = motion.current
 		if (!client || !targetPose || !service || !staged) return
@@ -245,14 +252,9 @@
 	{/if}
 
 	<div class="flex flex-col gap-2">
-		<div class="text-subtle-2">
-			{staged ? 'Target' : 'Current'} · relative to
-			<span class="text-default">{WORLD_FRAME}</span>
-		</div>
-
 		{#if targetPose}
 			<div>
-				<strong class="font-semibold">position</strong>
+				<strong class="font-semibold">world position</strong>
 				<span class="text-subtle-2">(mm)</span>
 
 				<div aria-label="move target position">
@@ -265,7 +267,7 @@
 			</div>
 
 			<div>
-				<strong class="font-semibold">orientation</strong>
+				<strong class="font-semibold">world orientation</strong>
 
 				<div aria-label="move target orientation">
 					<TabGroup>
@@ -296,13 +298,13 @@
 			<p class="text-subtle-2">Resolving the frame's pose…</p>
 		{/if}
 
-		<div class="font-roboto-mono flex justify-between gap-2">
-			<span class="text-subtle-2">travel</span>
-			<span>{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°</span>
+		<div>
+			<strong class="font-semibold">travel</strong>
+			<div class="mt-0.5">
+				{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°
+			</div>
 		</div>
 	</div>
-
-	<Collisions />
 
 	<div class="flex flex-col gap-1">
 		<MoveJsonField
@@ -316,6 +318,8 @@
 			onChange={(next) => (constraintsJson.current = next)}
 		/>
 	</div>
+
+	<Collisions />
 
 	<div class="flex items-center gap-2">
 		<Button
@@ -343,21 +347,16 @@
 	<h3 class="text-subtle-2 pt-3 pb-2">Move</h3>
 
 	<div class="flex flex-col gap-3">
-		<label class="flex flex-col gap-1">
-			<span class="text-subtle-2">Motion service</span>
-			<Select
+		{#if service}
+			<List
+				label="Motion service"
+				options={motionServices}
 				value={service}
-				onchange={(event: Event) => {
-					if (event.target instanceof HTMLSelectElement) {
-						selectedService = event.target.value
-					}
-				}}
-			>
-				{#each motionServices as name (name)}
-					<option value={name}>{name}</option>
-				{/each}
-			</Select>
-		</label>
+				on:change={handleServiceChange}
+			/>
+		{:else}
+			<p class="text-subtle-2">No motion service available.</p>
+		{/if}
 
 		{@render moveControls()}
 	</div>

@@ -84,7 +84,8 @@ describe('MoveControls', () => {
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		expect(screen.getByRole('combobox', { name: /motion service/i })).toHaveValue('builtin')
+		expect(screen.getByText('Motion service')).toBeInTheDocument()
+		expect(screen.getByRole('combobox')).toHaveValue('builtin')
 	})
 
 	it('falls back to the first motion service when there is no built-in', () => {
@@ -94,7 +95,8 @@ describe('MoveControls', () => {
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		expect(screen.getByRole('combobox', { name: /motion service/i })).toHaveValue('planner')
+		expect(screen.getByText('Motion service')).toBeInTheDocument()
+		expect(screen.getByRole('combobox')).toHaveValue('planner')
 	})
 
 	it('waits for the frame pose before offering the pose inputs', () => {
@@ -114,6 +116,8 @@ describe('MoveControls', () => {
 
 		const position = await screen.findByLabelText('move target position')
 		expect(screen.getByLabelText('move target orientation')).toBeInTheDocument()
+		expect(screen.getByText('world position')).toBeInTheDocument()
+		expect(screen.getByText('world orientation')).toBeInTheDocument()
 
 		const fields = position.querySelectorAll('input')
 		expect([...fields].map((field) => Number(field.value))).toEqual([100, -250, 40])
