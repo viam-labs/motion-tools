@@ -5,7 +5,7 @@
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
-	import { provideBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
+	import { provideBuildModeSync } from '$lib/hooks/provideBuildModeSync.svelte'
 	import { provideConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
