@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Portal } from '@threlte/extras'
+	import { World } from '@threlte/rapier'
 	import { Tooltip } from '@viamrobotics/prime-core'
 	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { Move3d } from 'lucide-svelte'
@@ -7,7 +8,7 @@
 	import { traits, useQuery } from '$lib/ecs'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
-	import { isMotionService } from './moveControls'
+	import CollisionDetector from './collisions/CollisionDetector.svelte'
 	import MoveControls from './MoveControls.svelte'
 	import { useOpenMoveWidgets } from './useOpenMoveWidgets.svelte'
 
@@ -20,7 +21,9 @@
 	const frameName = $derived(entity?.get(traits.Name))
 	const isFrame = $derived(entity !== undefined && entity.has(traits.FramesAPI))
 	const hasMotionService = $derived(
-		motionServices.current.some((resource) => isMotionService(resource))
+		motionServices.current.some(
+			(resource) => resource.type === 'service' && resource.subtype === 'motion'
+		)
 	)
 
 	const showButton = $derived(
@@ -65,3 +68,9 @@
 		onClose={() => moveWidgets.close(name)}
 	/>
 {/each}
+
+{#if moveWidgets.current.length > 0}
+	<World autoStart={false}>
+		<CollisionDetector />
+	</World>
+{/if}

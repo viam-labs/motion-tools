@@ -27,6 +27,7 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { setOrientationFromEuler } from '$lib/transform'
 
+	import Collisions from './collisions/Collisions.svelte'
 	import { defaultMotionService, frameParent, motionServiceNames } from './moveControls'
 	import MoveGizmo from './MoveGizmo.svelte'
 	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
@@ -356,6 +357,8 @@
 				<span>{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°</span>
 			</div>
 		</div>
+
+		<Collisions />
 
 		<div class="flex items-center gap-2">
 			<Button

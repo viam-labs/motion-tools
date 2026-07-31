@@ -2,12 +2,7 @@ import type { ResourceName, Transform } from '@viamrobotics/sdk'
 
 import { describe, expect, it } from 'vitest'
 
-import {
-	defaultMotionService,
-	frameParent,
-	isMotionService,
-	motionServiceNames,
-} from '../moveControls'
+import { defaultMotionService, frameParent, motionServiceNames } from '../moveControls'
 
 const resource = (subtype: string, type = 'service', name = `${subtype}-1`): ResourceName =>
 	({ namespace: 'rdk', type, subtype, name }) as ResourceName
@@ -17,14 +12,6 @@ const frame = (referenceFrame: string, parent?: string): Transform =>
 		referenceFrame,
 		poseInObserverFrame: parent ? { referenceFrame: parent } : undefined,
 	}) as Transform
-
-describe('isMotionService', () => {
-	it('accepts only rdk:service:motion', () => {
-		expect(isMotionService(resource('motion'))).toBe(true)
-		expect(isMotionService(resource('motion', 'component'))).toBe(false)
-		expect(isMotionService(resource('vision'))).toBe(false)
-	})
-})
 
 describe('motionServiceNames', () => {
 	it('keeps only motion services and maps to names, in order', () => {
