@@ -12,6 +12,8 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 	parents,
 	trajectory: [],
 	goals: [],
+	obstaclesInWorldFrame: undefined,
+	worldState: undefined,
 })
 
 // Identity is right for an absent orientation and wrong for an unrecognised one; both halves matter,

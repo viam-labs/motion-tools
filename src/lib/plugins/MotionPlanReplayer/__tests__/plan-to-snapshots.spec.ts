@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parsePlan } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
+import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 // arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
@@ -161,6 +162,21 @@ describe('parsedPlanToSnapshots with a translational joint', () => {
 	it('leaves revolute joints on the same rig unchanged', () => {
 		const waist = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm-1:waist')!
 		expect(waist.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 3)
+	})
+})
+
+describe('parsedPlanToSnapshots with the pirouette capture', () => {
+	const snapshots = parsedPlanToSnapshots(parsePlan(pirouettePlan))
+	const obstaclesIn = (step: number) =>
+		snapshots[step]!.transforms.filter((t) => t.referenceFrame.startsWith('obstacle:'))
+
+	it('replays trajectory steps with stable world_state obstacles', () => {
+		expect(snapshots).toHaveLength(2)
+		expect(obstaclesIn(0).map((t) => t.referenceFrame)).toEqual([
+			'obstacle:pallet',
+			'obstacle:pick-station',
+		])
+		expect(obstaclesIn(0).map((t) => t.uuid)).toStrictEqual(obstaclesIn(1).map((t) => t.uuid))
 	})
 })
 
