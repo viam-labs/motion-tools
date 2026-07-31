@@ -143,7 +143,6 @@
 		isBuildMode && isFrameNode && !partConfig.hasEditPermissions && partConfig.error !== undefined
 	)
 
-
 	const showRelationshipOptions = $derived(isBuildMode && (points.current || arrows.current))
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
