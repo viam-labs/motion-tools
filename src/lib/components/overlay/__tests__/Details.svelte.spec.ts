@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
+import { BUILD_MODE_SYNC_CONTEXT_KEY } from '$lib/hooks/useBuildModeSync.svelte'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
 import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
 import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
@@ -131,7 +132,6 @@ describe('Details component', () => {
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
 		environmentContext.current.mode = 'build'
-		environmentContext.finishBuildSync()
 
 		entity.add(traits.FramesAPI)
 
@@ -157,6 +157,7 @@ describe('Details component', () => {
 		const context = new Map<symbol, unknown>([
 			[WEBLABS_CONTEXT_KEY, weblabContext],
 			[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+			[BUILD_MODE_SYNC_CONTEXT_KEY, { syncing: false }],
 			[WORLD_CONTEXT_KEY, world],
 		])
 
@@ -179,7 +180,6 @@ describe('Details component', () => {
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
 		environmentContext.current.mode = 'build'
-		environmentContext.finishBuildSync()
 
 		entity.add(traits.FramesAPI)
 
@@ -207,6 +207,7 @@ describe('Details component', () => {
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, weblabContext],
 				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+				[BUILD_MODE_SYNC_CONTEXT_KEY, { syncing: false }],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})

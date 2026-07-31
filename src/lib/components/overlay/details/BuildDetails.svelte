@@ -9,6 +9,7 @@
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
 	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
+	import { useBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
@@ -31,6 +32,7 @@
 	const { entity, details, ...rest }: Props = $props()
 
 	const environment = useEnvironment()
+	const buildModeSync = useBuildModeSync()
 	const fragmentInfo = useFragmentInfo()
 	const partConfig = usePartConfig()
 
@@ -47,9 +49,9 @@
 	)
 	const showEditFrameOptions = $derived(
 		!!framesAPI.current &&
-		partConfig.hasEditPermissions &&
-		!isFragmentComponentWithVariables &&
-		!environment.buildSyncing
+			partConfig.hasEditPermissions &&
+			!isFragmentComponentWithVariables &&
+			!buildModeSync.syncing
 	)
 	const showConfigUnavailableWarning = $derived(
 		!!framesAPI.current && !partConfig.hasEditPermissions && partConfig.error !== undefined
@@ -61,7 +63,7 @@
 	{entity}
 	{...rest}
 >
-	{#if environment.buildSyncing}
+	{#if buildModeSync.syncing}
 		<p
 			class="mt-2 rounded border-l-4 border-blue-600 bg-blue-50 px-2 py-1.5 text-blue-900"
 			role="status"

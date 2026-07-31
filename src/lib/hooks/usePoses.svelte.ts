@@ -47,7 +47,6 @@ export const providePoses = (partID: () => string) => {
 	const frameEntities = useQuery(traits.FramesAPI)
 
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
-
 	const options = $derived({
 		enabled: interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
