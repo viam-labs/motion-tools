@@ -348,12 +348,14 @@
 
 	<div class="flex flex-col gap-3">
 		{#if service}
-			<List
-				label="Motion service"
-				options={motionServices}
-				value={service}
-				on:change={handleServiceChange}
-			/>
+			<div>
+				<strong class="font-semibold">motion service</strong>
+				<List
+					options={motionServices}
+					value={service}
+					on:change={handleServiceChange}
+				/>
+			</div>
 		{:else}
 			<p class="text-subtle-2">No motion service available.</p>
 		{/if}

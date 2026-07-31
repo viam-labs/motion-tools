@@ -84,7 +84,7 @@ describe('MoveControls', () => {
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		expect(screen.getByText('Motion service')).toBeInTheDocument()
+		expect(screen.getByText('motion service')).toBeInTheDocument()
 		expect(screen.getByRole('combobox')).toHaveValue('builtin')
 	})
 
@@ -95,7 +95,7 @@ describe('MoveControls', () => {
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
-		expect(screen.getByText('Motion service')).toBeInTheDocument()
+		expect(screen.getByText('motion service')).toBeInTheDocument()
 		expect(screen.getByRole('combobox')).toHaveValue('planner')
 	})
 
