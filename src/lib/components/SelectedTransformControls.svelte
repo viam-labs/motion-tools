@@ -35,6 +35,7 @@
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const name = useTrait(() => entity, traits.Name)
+	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const hasScalableGeometry = $derived(
 		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
 	)
@@ -76,11 +77,24 @@
 	})
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
 	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
+
+	/**
+	 * A frame drag is only ever staged through the part config, so without edit
+	 * permissions every change is discarded — `updatePartFrame` finds no matching
+	 * component and returns, leaving the frame visibly moved but nothing dirtied.
+	 * Withhold the gizmo rather than offering an edit that can't land. Non-frame
+	 * entities (drawings, tool gizmos) stage straight into `Matrix` and never
+	 * touch the config, so they stay draggable.
+	 */
+	const isFrameEntity = $derived(framesAPI.current !== undefined)
+	const canEdit = $derived(!isFrameEntity || partConfig.hasEditPermissions)
+
 	const transforming = $derived(
 		isBuildMode &&
 			ref &&
 			entity &&
 			activeMode &&
+			canEdit &&
 			!isFragmentComponentWithVariables &&
 			!invisible.current
 	)
@@ -99,7 +113,7 @@
 	let frameHistoryEntryOpen = false
 
 	const beginFrameHistoryEntry = () => {
-		if (!entity?.has(traits.FramesAPI)) return
+		if (!isFrameEntity) return
 		partConfig.beginFrameEditHistoryEntry()
 		frameHistoryEntryOpen = true
 	}
@@ -149,7 +163,6 @@
 	const onChange = () => {
 		if (!ref || !entity || !activeMode) return
 
-		const isFrameEntity = entity.has(traits.FramesAPI)
 		if (activeMode === 'translate' || activeMode === 'rotate') {
 			if (isFrameEntity) {
 				stageFrameTransform()

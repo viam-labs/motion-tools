@@ -132,6 +132,18 @@
 		isBuildMode && isFrameNode && partConfig.hasEditPermissions && !isFragmentComponentWithVariables
 	)
 
+	/**
+	 * Editing a frame writes through the part config, so when that config can't
+	 * be read the whole panel silently degrades to read-only. Say so, and say
+	 * why, rather than leaving the user to wonder why Save never enables. Gated
+	 * on `error` rather than `!hasEditPermissions` so the warning can't flash
+	 * while the config is still loading.
+	 */
+	const showConfigUnavailableWarning = $derived(
+		isBuildMode && isFrameNode && !partConfig.hasEditPermissions && partConfig.error !== undefined
+	)
+
+
 	const showRelationshipOptions = $derived(isBuildMode && (points.current || arrows.current))
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
 	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
@@ -405,6 +417,17 @@
 			>
 				This component is from a fragment with variables, editing frames in 3D scene is disabled
 			</p>
+		{/if}
+
+		{#if showConfigUnavailableWarning}
+			<div
+				class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"
+				data-testid="config-unavailable-warning"
+				role="status"
+			>
+				<p>Frame editing is disabled — this machine's configuration could not be read.</p>
+				<p class="mt-1 break-words text-yellow-800">{partConfig.error}</p>
+			</div>
 		{/if}
 
 		<h3
