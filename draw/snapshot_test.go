@@ -928,7 +928,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		_, err = snapshot.DrawArrows(DrawArrowsOptions{	
+		_, err = snapshot.DrawArrows(DrawArrowsOptions{
 			Name:   "capsule-surface-arrows",
 			Parent: "world",
 			Pose:   spatialmath.NewZeroPose(),
@@ -1046,9 +1046,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 			path2 = append(path2, r3.Vector{X: x, Y: y, Z: z})
 		}
 		_, err = snapshot.DrawLine(DrawLineOptions{
-			Name:   "zigzag-path",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+			Name:      "zigzag-path",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: path2,
 			LineWidth: 20.0,
 			DotSize:   10.0,
@@ -1071,9 +1071,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 			path3 = append(path3, r3.Vector{X: x, Y: y, Z: z})
 		}
 		_, err = snapshot.DrawLine(DrawLineOptions{
-			Name:   "spiral-path",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+			Name:      "spiral-path",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: path3,
 			LineWidth: 12.0,
 			DotSize:   10.0,
@@ -1090,9 +1090,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 		path4 = append(path4, r3.Vector{X: 1000, Y: 1500, Z: 1200})
 		path4 = append(path4, r3.Vector{X: 3500, Y: 3500, Z: 500})
 		_, err = snapshot.DrawLine(DrawLineOptions{
-			Name:   "straight-path",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+			Name:      "straight-path",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: path4,
 			LineWidth: 25.0,
 			DotSize:   10.0,
@@ -1157,9 +1157,9 @@ func TestGeneratingSnapshots(t *testing.T) {
 		}
 
 		_, err := snapshot.DrawPoints(DrawPointsOptions{
-			Name:   "grid-points",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+			Name:      "grid-points",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: gridPoints,
 			Colors:    []Color{NewColor(WithName("red"))},
 			PointSize: pointSize,
@@ -1188,17 +1188,17 @@ func TestGeneratingSnapshots(t *testing.T) {
 			sphereColors = append(sphereColors, NewColor(WithHSV(float32(hue), 1.0, 1.0)))
 		}
 
-		_, err = snapshot.DrawPoints(DrawPointsOptions{	
-			Name:   "sphere-points",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+		_, err = snapshot.DrawPoints(DrawPointsOptions{
+			Name:      "sphere-points",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: spherePoints,
 			Colors:    sphereColors,
 			PointSize: pointSize,
 		})
 		if err != nil {
 			t.Fatal(err)
-		}	
+		}
 
 		// 3. Parametric surface (wave) - 100mm spacing between points\
 		var wavePoints []r3.Vector
@@ -1210,17 +1210,17 @@ func TestGeneratingSnapshots(t *testing.T) {
 			}
 		}
 
-		_, err = snapshot.DrawPoints(DrawPointsOptions{	
-			Name:   "wave-points",
-			Parent: "world",
-			Pose:   spatialmath.NewZeroPose(),
+		_, err = snapshot.DrawPoints(DrawPointsOptions{
+			Name:      "wave-points",
+			Parent:    "world",
+			Pose:      spatialmath.NewZeroPose(),
 			Positions: wavePoints,
 			Colors:    []Color{NewColor(WithName("blue"))},
 			PointSize: pointSize,
 		})
 		if err != nil {
 			t.Fatal(err)
-		}	
+		}
 
 		writeSnapshot(t, snapshot, "visualization_snapshot_points.json")
 	})
@@ -1250,7 +1250,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{	
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "duck",
 			Parent: "world",
 			Pose:   createPose(-2000, -2000, 0),
@@ -1260,7 +1260,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		})
 		if err != nil {
 			t.Fatal(err)
-		}	
+		}
 
 		// 2. Avocado - Fresh avocado from URL
 		avocadoURL := "http://localhost:5173/models/Avocado.glb"
@@ -1269,7 +1269,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{	
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "avocado",
 			Parent: "world",
 			Pose:   createPose(0, -2000, 0),
@@ -1289,7 +1289,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{	
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "lantern",
 			Parent: "world",
 			Pose:   createPose(2000, -2000, 0),
@@ -1311,7 +1311,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{		
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "box",
 			Parent: "world",
 			Pose:   createPose(-2000, 2000, 600),
@@ -1332,7 +1332,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{	
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "milktruck",
 			Parent: "world",
 			Pose:   createPose(0, 2000, 0),
@@ -1354,7 +1354,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = snapshot.DrawModel(DrawModelOptions{	
+		_, err = snapshot.DrawModel(DrawModelOptions{
 			Name:   "fox",
 			Parent: "world",
 			Pose:   createPose(2000, 2000, 0),

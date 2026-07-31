@@ -40,7 +40,11 @@ The `config` prop is reactive — change it and the plugin reconnects to the new
 
 ## Connection logs
 
-`<DrawService />` reports connection lifecycle events — connecting, connected, disconnected, reconnecting, and parse or socket errors — through the `useLogs` hook. Mount [`<Logs />`](../logs/) alongside it to see them in a panel; without it the messages are dropped.
+`<DrawService />` opens two connections: a WebSocket for the legacy draw API, and a Connect-RPC stream for entity changes.
+
+The WebSocket connection reports its lifecycle events — connecting, connected, disconnected, reconnecting, and parse or socket errors — through the `useLogs` hook. Mount [`<Logs />`](../logs/) alongside it to see them in a panel; without it the messages are dropped.
+
+The entity stream does not report to `useLogs`. It reconnects on its own with exponential backoff, and resubscribing replays the full scene, so a dropped connection recovers without anything to act on. Stream errors go to the browser console.
 
 ## Running a draw server
 
@@ -80,6 +84,21 @@ Your `client/api` producer code then points at this server, and `<DrawService co
 
 ### Implement your own server
 
-If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viam-labs/motion-tools/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs (`AddEntity`, `UpdateEntity`, `RemoveEntity`, `StreamEntityChanges`, …) in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
+If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viam-labs/motion-tools/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
+
+Start with these, which between them cover everything `client/api` calls:
+
+| RPC                                                                     | Why it's needed                                                                                                                                                                                          |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AddEntity`                                                             | Single-entity draws (`DrawGeometry`, `DrawPoints`, `DrawLine`, and friends).                                                                                                                             |
+| `AddEntities`                                                           | Batch draws. `DrawFrameSystem`, `DrawWorldState`, `DrawGeometriesInFrame`, and `DrawFrames` send one batch rather than one request per entity, so a backend without this fails on the most common calls. |
+| `UpdateEntity`                                                          | Partial updates, and the delivery channel for chunked point-cloud payloads.                                                                                                                              |
+| `RemoveEntity`, `RemoveAll`, `RemoveAllTransforms`, `RemoveAllDrawings` | Removal.                                                                                                                                                                                                 |
+| `StreamEntityChanges`                                                   | The subscription `<DrawService />` consumes. Replay the current scene as `ADDED` events on connect so a reconnecting client resyncs.                                                                     |
+| `GetEntityChunk`                                                        | Only if you support chunked entities.                                                                                                                                                                    |
+| `SetScene`, `StreamSceneChanges`                                        | Only if you drive the camera from the server.                                                                                                                                                            |
+| `CreateRelationship`, `DeleteRelationship`                              | Only if you use entity relationships.                                                                                                                                                                    |
+
+The `cleared_scope` field on `StreamEntityChangesResponse` is optional. It lets a bulk removal travel as one event instead of one per entity, but a backend that emits an individual `REMOVED` per entity works against the client unchanged.
 
 See the [`client/api`](../../api/client-api/) reference for the producer-side calls regardless of which server you use.
