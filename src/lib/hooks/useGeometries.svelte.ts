@@ -76,7 +76,7 @@ export const provideGeometries = (partID: () => string) => {
 	const interval = $derived(refreshRates[RefreshRates.poses])
 
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF && environment.current.mode === 'monitor',
+		enabled: interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 

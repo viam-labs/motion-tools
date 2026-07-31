@@ -62,7 +62,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 		for (const client of clients) {
 			if (
-				environment.current.mode === 'monitor' &&
+				environment.isLive &&
 				fetchedPropQueries &&
 				client.current?.name &&
 				interval !== RefetchRates.OFF &&
