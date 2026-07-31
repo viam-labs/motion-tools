@@ -44,27 +44,17 @@ export const createBuildModeSync = (environment: ReturnType<typeof useEnvironmen
 }
 
 export const provideBuildModeSync = () => {
-	const context = createBuildModeSync(useEnvironment())
-	setContext<Context>(BUILD_MODE_SYNC_CONTEXT_KEY, context)
-	return context
-}
-
-export const useBuildModeSync = () => getContext<Context>(BUILD_MODE_SYNC_CONTEXT_KEY)
-
-/**
- * Takes a fresh live-machine snapshot before build mode becomes editable.
- * Must be called after the pose and geometry providers have been installed.
- */
-export const coordinateBuildModeSync = () => {
 	const partID = usePartID()
 	const environment = useEnvironment()
-	const buildModeSync = useBuildModeSync()
+	const context = createBuildModeSync(environment)
 	const connectionStatus = useConnectionStatus(() => partID.current)
 	const geometries = useGeometries()
 	const { refetchPoses } = useRefetchPoses()
 
+	setContext<Context>(BUILD_MODE_SYNC_CONTEXT_KEY, context)
+
 	$effect(() => {
-		if (!buildModeSync.syncing || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
+		if (!context.syncing || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
 			return
 		}
 
@@ -76,7 +66,7 @@ export const coordinateBuildModeSync = () => {
 			// Query observers and the ECS hierarchy update in reactive effects.
 			await tick()
 			if (!cancelled && environment.current.mode === 'build') {
-				buildModeSync.finish()
+				context.finish()
 			}
 		})()
 
@@ -84,4 +74,8 @@ export const coordinateBuildModeSync = () => {
 			cancelled = true
 		}
 	})
+
+	return context
 }
+
+export const useBuildModeSync = () => getContext<Context>(BUILD_MODE_SYNC_CONTEXT_KEY)
