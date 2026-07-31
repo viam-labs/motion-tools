@@ -162,6 +162,42 @@ func TestDrawPointCloud(t *testing.T) {
 		test.That(t, uuid, test.ShouldNotBeNil)
 	})
 
+	// A deliberately small chunked cloud, for tests that have to load one more than once. It is
+	// still several chunks with per-point colors, which is what exercises the chunked paths; the
+	// millions of points in the other cases only make each load slow.
+	t.Run("DrawSmallChunkedPointCloud", func(t *testing.T) {
+		const numPoints = 50_000
+		pc := pointcloud.NewBasicPointCloud(numPoints)
+
+		goldenAngle := math.Pi * (3 - math.Sqrt(5))
+		for i := range numPoints {
+			frac := float64(i) / float64(numPoints)
+			phi := math.Acos(1 - 2*frac)
+			theta := goldenAngle * float64(i)
+			r := 2000.0
+			_ = pc.Set(r3.Vector{
+				X: r * math.Sin(phi) * math.Cos(theta),
+				Y: r * math.Sin(phi) * math.Sin(theta),
+				Z: r * math.Cos(phi),
+			}, nil)
+		}
+
+		colors := make([]draw.Color, numPoints)
+		n := float32(numPoints)
+		for i := range colors {
+			colors[i] = draw.ColorFromHSV(float32(i)/n, 1, 1)
+		}
+
+		uuid, err := DrawPointCloud(DrawPointCloudOptions{
+			Name:       "chunked_point_cloud_small",
+			PointCloud: pc,
+			Colors:     colors,
+			ChunkSize:  10_000,
+		})
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, uuid, test.ShouldNotBeNil)
+	})
+
 	t.Run("DrawPointCloudInChunksWithPalette", func(t *testing.T) {
 		const numPoints = 2_500_000
 		pc := pointcloud.NewBasicPointCloud(numPoints)
