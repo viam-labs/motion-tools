@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
-import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
+import { ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
 import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
@@ -17,6 +17,13 @@ import { createWeblabs, WEBLABS_CONTEXT_KEY } from '$lib/hooks/useWeblabs.svelte
 import Details from '../Details.svelte'
 import { createEntityFixture } from './__fixtures__/entity'
 import { resource } from './__fixtures__/resource'
+
+const createTestEnvironment = (mode: 'monitor' | 'build' = 'monitor') => ({
+	current: { mode, isStandalone: true, inputBindingsEnabled: true },
+	get isLive() {
+		return this.current.mode !== 'build'
+	},
+})
 
 describe('Details component', () => {
 	const world = createWorld()
@@ -66,7 +73,7 @@ describe('Details component', () => {
 			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
-				[ENVIRONMENT_CONTEXT_KEY, createEnvironment()],
+				[ENVIRONMENT_CONTEXT_KEY, createTestEnvironment()],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})
@@ -76,8 +83,7 @@ describe('Details component', () => {
 	it('renders local details', () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
-		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
+		const environmentContext = createTestEnvironment()
 		const context = new Map<symbol, unknown>([
 			[WEBLABS_CONTEXT_KEY, weblabContext],
 			[ENVIRONMENT_CONTEXT_KEY, environmentContext],
@@ -128,9 +134,7 @@ describe('Details component', () => {
 	it('renders update fields for frame nodes', () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
-		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
-		environmentContext.current.mode = 'build'
+		const environmentContext = createTestEnvironment('build')
 
 		entity.add(traits.FramesAPI)
 
@@ -175,9 +179,7 @@ describe('Details component', () => {
 	it('stops keyboard events from propagating out of the panel', async () => {
 		const weblabContext = createWeblabs()
 		weblabContext.isActive = vi.fn(() => true)
-		const environmentContext = createEnvironment()
-		environmentContext.current.isStandalone = true
-		environmentContext.current.mode = 'build'
+		const environmentContext = createTestEnvironment('build')
 
 		entity.add(traits.FramesAPI)
 
