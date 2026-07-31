@@ -23,7 +23,11 @@ interface Environment {
 
 interface Context {
 	current: Environment
+	/** Whether live scene queries may run. Normally follows mode, but remains true
+	 * temporarily while build mode captures its initial machine snapshot. */
 	readonly isLive: boolean
+	/** Updates the live-query gate; used by build-mode synchronization to open and
+	 * close its temporary snapshot window. */
 	setLive: (value: boolean) => void
 }
 

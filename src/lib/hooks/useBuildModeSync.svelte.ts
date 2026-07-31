@@ -17,7 +17,8 @@ interface Context {
 export const createBuildModeSync = (environment: ReturnType<typeof useEnvironment>): Context => {
 	let syncing = $state(environment.current.mode === 'build')
 	let previousMode = environment.current.mode
-	environment.setLive(environment.current.mode !== 'build' || syncing)
+	// Live data stays enabled until the initial build snapshot is finished.
+	environment.setLive(true)
 
 	$effect(() => {
 		const mode = environment.current.mode

@@ -65,7 +65,7 @@
 >
 	{#if buildModeSync.syncing}
 		<p
-			class="mt-2 rounded border-l-4 border-blue-600 bg-blue-50 px-2 py-1.5 text-blue-900"
+			class="border-info-dark bg-info-light text-info-dark mt-2 rounded border-l-4 px-2 py-1.5"
 			role="status"
 		>
 			Refreshing machine state before editing…
