@@ -1,5 +1,23 @@
 # motion-tools
 
+## 1.41.0
+
+### Minor Changes
+
+- 8d92e23: Add dedicated move mode
+- 2756206: Add batch and partial-update draw APIs: `AddEntities`, `UpdateTransform`, and `UpdateEntity`
+- 2756206: Stop dropping draw service entity changes under load
+- 00ee712: Add collision warnings to the `MoveFrame` plugin
+
+### Patch Changes
+
+- 86dcace: Support prismatic joint FK
+- 83796b8: Improved selection state for no-geometry frames
+- 96879b4: Render world state obstacles
+- 96879b4: Local Motion Plan Replayer quick hits
+- e1c977d: Support axis-angles and warn on skipped frames/orients
+- 6207580: Improved parent options during frame editing reparenting
+
 ## 1.40.0
 
 ### Minor Changes
