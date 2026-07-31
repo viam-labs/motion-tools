@@ -1,3 +1,4 @@
+import { PersistedState } from 'runed'
 import { getContext, setContext } from 'svelte'
 
 export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
@@ -30,14 +31,26 @@ interface Context {
 	readonly isLive: boolean
 }
 
-const defaults = (): Environment => ({
-	mode: 'monitor',
-	isStandalone: true,
-	inputBindingsEnabled: true,
-})
+/** Where the persisted mode lives. Exported so tests can reset it. */
+export const ENVIRONMENT_MODE_STORAGE_KEY = 'motion-tools:environment-mode'
+
+const modes = new Set<EnvironmentMode>(['monitor', 'build', 'move'])
 
 export const createEnvironment = (): Context => {
-	const environment = $state<Environment>(defaults())
+	// The mode is the user's choice of tool, so it outlives the session. The rest
+	// describes the host and is set on mount.
+	const stored = new PersistedState<EnvironmentMode>(ENVIRONMENT_MODE_STORAGE_KEY, 'monitor')
+
+	const environment = $state<Environment>({
+		get mode() {
+			return modes.has(stored.current) ? stored.current : 'monitor'
+		},
+		set mode(value: EnvironmentMode) {
+			stored.current = value
+		},
+		isStandalone: true,
+		inputBindingsEnabled: true,
+	})
 
 	const context: Context = {
 		get current() {

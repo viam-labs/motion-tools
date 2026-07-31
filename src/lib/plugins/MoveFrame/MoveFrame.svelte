@@ -1,26 +1,17 @@
 <script lang="ts">
 	import { World } from '@threlte/rapier'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 
 	import ModeTogglePortal from '$lib/components/overlay/Portals/ModeTogglePortal.svelte'
 	import ModeButton from '$lib/components/overlay/workspace/ModeButton.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import CollisionDetector from './collisions/CollisionDetector.svelte'
 	import MoveControls from './MoveControls.svelte'
+	import MoveDashboard from './MoveDashboard.svelte'
 
 	const environment = useEnvironment()
-	const partID = usePartID()
 	const selected = useQuery(traits.Selected)
-	const motionServices = useResourceNames(() => partID.current, 'motion')
-
-	const hasMotionService = $derived(
-		motionServices.current.some(
-			(resource) => resource.type === 'service' && resource.subtype === 'motion'
-		)
-	)
 
 	/**
 	 * Move mode swaps the details panel for a move panel per selected frame, so the
@@ -40,34 +31,25 @@
 	)
 
 	const isMoveMode = $derived(environment.current.mode === 'move')
-
-	// Without a motion service there is nothing to move, so the mode goes away with
-	// it rather than stranding the app in a mode that can't act.
-	$effect(() => {
-		if (!hasMotionService && environment.current.mode === 'move') {
-			environment.current.mode = 'monitor'
-		}
-	})
 </script>
 
-{#if hasMotionService}
-	<ModeTogglePortal>
-		<ModeButton
-			class="-ml-px rounded-l-none"
-			mode="move"
-			icon="move-3d"
-			description="Move frames with the motion service"
-		/>
-	</ModeTogglePortal>
-{/if}
+<ModeTogglePortal>
+	<ModeButton
+		class="-ml-px rounded-l-none"
+		mode="move"
+		icon="move-3d"
+		description="Move frames with the motion service"
+	/>
+</ModeTogglePortal>
 
 {#if isMoveMode}
-	{#each movableFrames as { entity, frameName } (frameName)}
+	<MoveDashboard />
+
+	{#each movableFrames as { entity, frameName }, index (frameName)}
 		<MoveControls
+			{entity}
 			{frameName}
-			onClose={() => {
-				if (entity.isAlive()) entity.remove(traits.Selected)
-			}}
+			style="transform: translate(0, {index * 40}px)"
 		/>
 	{/each}
 

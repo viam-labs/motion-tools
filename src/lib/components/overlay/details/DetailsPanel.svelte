@@ -11,7 +11,7 @@
 
 	import { draggable } from '@neodrag/svelte'
 	import { useThrelte } from '@threlte/core'
-	import { PortalTarget } from '@threlte/extras'
+	import { Portal, PortalTarget } from '@threlte/extras'
 	import { Icon, Tooltip } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
@@ -140,147 +140,149 @@
 	}
 </script>
 
-<!-- tabindex makes the whole panel focusable so a click anywhere in it (not
+<Portal id="dom">
+	<!-- tabindex makes the whole panel focusable so a click anywhere in it (not
 just the inputs) raises it via `focus-within:z-5`. -->
-<div
-	id="details-panel"
-	class="border-medium bg-extralight absolute top-10 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
-	role="region"
-	aria-label="Details panel"
-	tabindex="-1"
-	onkeydown={stopKeyboardPropagation}
-	onkeyup={stopKeyboardPropagation}
-	use:draggable={{
-		bounds: 'body',
-		handle: dragElement,
-	}}
-	{...rest}
->
 	<div
-		class="flex cursor-move items-center justify-between gap-2 pb-2"
-		bind:this={dragElement}
+		id="details-panel"
+		class="border-medium bg-extralight absolute top-10 right-0 z-4 m-2 w-70 border p-2 text-xs focus-within:z-5"
+		role="region"
+		aria-label="Details panel"
+		tabindex="-1"
+		onkeydown={stopKeyboardPropagation}
+		onkeyup={stopKeyboardPropagation}
+		use:draggable={{
+			bounds: 'body',
+			handle: dragElement,
+		}}
+		{...rest}
 	>
-		<div class="flex w-[90%] items-center gap-1">
-			<PortalTarget id="details-header-icon" />
-			<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
-			<span class="text-subtle-2">{displayType}</span>
+		<div
+			class="flex cursor-move items-center justify-between gap-2 pb-2"
+			bind:this={dragElement}
+		>
+			<div class="flex w-[90%] items-center gap-1">
+				<PortalTarget id="details-header-icon" />
+				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
+				<span class="text-subtle-2">{displayType}</span>
+			</div>
+
+			{#if focusable}
+				<Tooltip
+					let:tooltipID
+					location="bottom"
+				>
+					<button
+						class="text-subtle-2"
+						aria-describedby={tooltipID}
+						onclick={() => {
+							const padding = 0.4
+
+							const currentControls = controls.current
+
+							if (!currentControls || !('fitToBox' in currentControls)) return
+
+							focusBox.makeEmpty()
+							expandBoxByEntity(focusBox, entity, scene)
+							if (focusBox.isEmpty()) return
+
+							const { azimuthAngle, polarAngle } = currentControls
+
+							currentControls.fitToBox(focusBox, true, {
+								paddingTop: padding,
+								paddingBottom: padding,
+								paddingLeft: padding,
+								paddingRight: padding,
+							})
+
+							// Preserve previous rotation
+							currentControls.rotateAzimuthTo(azimuthAngle, true)
+							currentControls.rotatePolarTo(polarAngle, true)
+						}}
+					>
+						<Icon name="image-filter-center-focus" />
+					</button>
+					<p slot="description">Zoom to object</p>
+				</Tooltip>
+			{/if}
+
+			{#if name.current}
+				<Tooltip
+					let:tooltipID
+					location="bottom"
+				>
+					<button
+						class="text-subtle-2"
+						aria-describedby={tooltipID}
+						aria-label="Open view from this frame"
+						onclick={() => {
+							const frameName = name.current
+							if (!frameName) return
+							const list = settings.current.openFramePovWidgets[partID.current] ?? []
+							if (list.includes(frameName)) return
+							settings.current.openFramePovWidgets = {
+								...settings.current.openFramePovWidgets,
+								[partID.current]: [...list, frameName],
+							}
+						}}
+					>
+						<Icon name="camera-outline" />
+					</button>
+					<p slot="description">View from this frame</p>
+				</Tooltip>
+			{/if}
+
+			<PortalTarget id="details-header-actions" />
+
+			{#if removable.current}
+				<Tooltip
+					let:tooltipID
+					location="bottom"
+				>
+					<button
+						class="text-subtle-2"
+						aria-describedby={tooltipID}
+						onclick={() => {
+							if (world.has(entity)) {
+								entity.destroy()
+							}
+						}}
+					>
+						<Icon name="trash-can-outline" />
+					</button>
+					<p slot="description">Remove from scene</p>
+				</Tooltip>
+			{/if}
+
+			<Tooltip
+				let:tooltipID
+				location="bottom"
+			>
+				<button
+					class="text-subtle-2"
+					aria-describedby={tooltipID}
+					onclick={async () => {
+						try {
+							await navigator.clipboard.writeText(getCopyClipboardText())
+						} catch {
+							// clipboard unavailable (non-secure context or permission denied)
+						}
+						copied = true
+						setTimeout(() => (copied = false), 1000)
+					}}
+				>
+					{#if copied}
+						<Check size={14} />
+					{:else}
+						<Copy size={14} />
+					{/if}
+				</button>
+				<p slot="description">Copy details to clipboard</p>
+			</Tooltip>
 		</div>
 
-		{#if focusable}
-			<Tooltip
-				let:tooltipID
-				location="bottom"
-			>
-				<button
-					class="text-subtle-2"
-					aria-describedby={tooltipID}
-					onclick={() => {
-						const padding = 0.4
+		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
 
-						const currentControls = controls.current
-
-						if (!currentControls || !('fitToBox' in currentControls)) return
-
-						focusBox.makeEmpty()
-						expandBoxByEntity(focusBox, entity, scene)
-						if (focusBox.isEmpty()) return
-
-						const { azimuthAngle, polarAngle } = currentControls
-
-						currentControls.fitToBox(focusBox, true, {
-							paddingTop: padding,
-							paddingBottom: padding,
-							paddingLeft: padding,
-							paddingRight: padding,
-						})
-
-						// Preserve previous rotation
-						currentControls.rotateAzimuthTo(azimuthAngle, true)
-						currentControls.rotatePolarTo(polarAngle, true)
-					}}
-				>
-					<Icon name="image-filter-center-focus" />
-				</button>
-				<p slot="description">Zoom to object</p>
-			</Tooltip>
-		{/if}
-
-		{#if name.current}
-			<Tooltip
-				let:tooltipID
-				location="bottom"
-			>
-				<button
-					class="text-subtle-2"
-					aria-describedby={tooltipID}
-					aria-label="Open view from this frame"
-					onclick={() => {
-						const frameName = name.current
-						if (!frameName) return
-						const list = settings.current.openFramePovWidgets[partID.current] ?? []
-						if (list.includes(frameName)) return
-						settings.current.openFramePovWidgets = {
-							...settings.current.openFramePovWidgets,
-							[partID.current]: [...list, frameName],
-						}
-					}}
-				>
-					<Icon name="camera-outline" />
-				</button>
-				<p slot="description">View from this frame</p>
-			</Tooltip>
-		{/if}
-
-		<PortalTarget id="details-header-actions" />
-
-		{#if removable.current}
-			<Tooltip
-				let:tooltipID
-				location="bottom"
-			>
-				<button
-					class="text-subtle-2"
-					aria-describedby={tooltipID}
-					onclick={() => {
-						if (world.has(entity)) {
-							entity.destroy()
-						}
-					}}
-				>
-					<Icon name="trash-can-outline" />
-				</button>
-				<p slot="description">Remove from scene</p>
-			</Tooltip>
-		{/if}
-
-		<Tooltip
-			let:tooltipID
-			location="bottom"
-		>
-			<button
-				class="text-subtle-2"
-				aria-describedby={tooltipID}
-				onclick={async () => {
-					try {
-						await navigator.clipboard.writeText(getCopyClipboardText())
-					} catch {
-						// clipboard unavailable (non-secure context or permission denied)
-					}
-					copied = true
-					setTimeout(() => (copied = false), 1000)
-				}}
-			>
-				{#if copied}
-					<Check size={14} />
-				{:else}
-					<Copy size={14} />
-				{/if}
-			</button>
-			<p slot="description">Copy details to clipboard</p>
-		</Tooltip>
+		{@render children()}
 	</div>
-
-	<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
-
-	{@render children()}
-</div>
+</Portal>

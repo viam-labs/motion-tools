@@ -1,10 +1,12 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
+	import type { HTMLAttributes } from 'svelte/elements'
 	import type { Matrix4 } from 'three'
 
 	import { Button, Select, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
 	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
-	import { MotionMoveWidget } from '@viamrobotics/test-widgets'
+	import { PersistedState } from 'runed'
 	import {
 		Point,
 		type PointChangeEvent,
@@ -19,40 +21,35 @@
 
 	import type { Pose } from '$lib/math'
 
-	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
-	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
-	import { traits, useQuery } from '$lib/ecs'
-	import { useFrames } from '$lib/hooks/useFrames.svelte'
+	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { setOrientationFromEuler } from '$lib/transform'
 
 	import Collisions from './collisions/Collisions.svelte'
-	import { defaultMotionService, frameParent, motionServiceNames } from './moveControls'
+	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 	import MoveGizmo from './MoveGizmo.svelte'
 	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
-	import MoveTabs from './MoveTabs.svelte'
+	import MoveJsonField from './MoveJsonField.svelte'
 	import MoveTargetGhost from './MoveTargetGhost.svelte'
+	import { defaultMotionService, motionServiceNames } from './moveControls'
+	import { parseMoveOptions } from './parseMoveOptions'
 	import { fromDestinationPose, moveDelta, toDestinationPose } from './moveTargetPose'
 	import { useMovedFrameMatrix } from './useMovedFrameMatrix.svelte'
 	import { useMoveGhosts } from './useMoveGhosts.svelte'
 
-	interface Props {
+	interface Props extends HTMLAttributes<HTMLDivElement> {
+		/** The selected frame this panel is the details for. */
+		entity: Entity
 		frameName: string
-		onClose: () => void
 	}
 
-	const { frameName, onClose }: Props = $props()
-
-	const MOVE_TAB = 'Move'
-	const CONTROL_TAB = 'Control'
+	const { entity, frameName, ...rest }: Props = $props()
 
 	/** The gizmo is dragged in world space, so the goal is committed against it. */
 	const WORLD_FRAME = 'world'
 
 	const partID = usePartID()
-	const frames = useFrames()
-	const named = useQuery(traits.Name)
 	const settings = useSettings()
 	const toast = useToast()
 	const motionResources = useResourceNames(() => partID.current, 'motion')
@@ -62,7 +59,6 @@
 
 	let selectedService = $state<string>()
 	const service = $derived(selectedService ?? defaultService)
-	const destination = $derived(frameParent(frames.current, frameName))
 
 	const motion = createResourceClient(
 		MotionClient,
@@ -70,18 +66,15 @@
 		() => service
 	)
 
-	let isOpen = $state(true)
-	const isFrame = $derived(named.current.some((entity) => entity.get(traits.Name) === frameName))
-	$effect(() => {
-		if (!isFrame) isOpen = false
-	})
-	$effect(() => {
-		if (!isOpen) onClose()
-	})
+	// Hand-written JSON is expensive to retype, and the panel unmounts with the
+	// selection, so keep each frame's fields across mounts and reloads.
+	const worldStateJson = $derived(
+		new PersistedState(`motion-tools:move-world-state:${partID.current}:${frameName}`, '')
+	)
+	const constraintsJson = $derived(
+		new PersistedState(`motion-tools:move-constraints:${partID.current}:${frameName}`, '')
+	)
 
-	let activeTab = $state(MOVE_TAB)
-	let mode = $state<'translate' | 'rotate'>('translate')
-	let space = $state<'local' | 'world'>('world')
 	let executing = $state(false)
 
 	/**
@@ -91,30 +84,22 @@
 	 */
 	let targetWorldMatrix = $state.raw<Matrix4>()
 
-	const movedEntity = $derived(
-		named.current.find((entity) => entity.get(traits.Name) === frameName)
-	)
-
-	// The handle is live for as long as the Move tab is showing. Claim the single
-	// gizmo slot so only one open panel drags at a time.
-	const wantsGizmo = $derived(isOpen && activeTab === MOVE_TAB)
-
 	/**
 	 * The end effector, not the `<name>_origin` mount the scene draws the
 	 * component at — that is the frame the motion service moves, so it is the
-	 * frame the handle belongs on. Resolved in world space and only while the
-	 * gizmo is live.
+	 * frame the handle belongs on. Resolved in world space.
 	 */
 	const currentWorldMatrix = useMovedFrameMatrix(
 		() => partID.current,
 		() => frameName,
-		() => wantsGizmo
+		() => true
 	)
+
+	// The handle is live for as long as the panel is. Claim the single gizmo slot
+	// so only one open panel drags at a time.
 	$effect(() => {
-		if (wantsGizmo) {
-			moveGizmoOwner.arm(frameName)
-			return () => moveGizmoOwner.disarm(frameName)
-		}
+		moveGizmoOwner.arm(frameName)
+		return () => moveGizmoOwner.disarm(frameName)
 	})
 
 	// While this panel owns the gizmo, put the scene into `gizmo` mode so a drag
@@ -122,7 +107,7 @@
 	// after.
 	const armed = $derived(moveGizmoOwner.armedFrame === frameName)
 	$effect(() => {
-		if (wantsGizmo && armed) {
+		if (armed) {
 			settings.current.interactionMode = 'gizmo'
 			return () => {
 				// Only hand the scene back if the gizmo wasn't taken over by another
@@ -138,11 +123,9 @@
 	})
 
 	/** Another open panel took the gizmo out from under this one. */
-	const preempted = $derived(wantsGizmo && !armed)
+	const preempted = $derived(!armed)
 
-	const showGizmo = $derived(
-		wantsGizmo && armed && !executing && currentWorldMatrix.current !== undefined
-	)
+	const showGizmo = $derived(armed && !executing && currentWorldMatrix.current !== undefined)
 
 	/** Whether the handle has been dragged off the frame's live pose. */
 	const staged = $derived(targetWorldMatrix !== undefined)
@@ -179,12 +162,10 @@
 	// The subtree rides the delta between these two matrices, which the hook
 	// composes itself so a live gizmo isn't allocating one per frame.
 	useMoveGhosts(
-		() => (wantsGizmo && armed ? movedEntity : undefined),
+		() => (armed ? entity : undefined),
 		() => currentWorldMatrix.current,
 		() => targetWorldMatrix
 	)
-
-	const onDrag = (matrix: Matrix4) => (targetWorldMatrix = matrix)
 
 	/**
 	 * Stage an edited pose as the goal. Typing into a field before the first drag
@@ -222,9 +203,15 @@
 
 		executing = true
 		try {
+			const { worldState, constraints } = parseMoveOptions(
+				worldStateJson.current,
+				constraintsJson.current
+			)
 			const success = await client.move(
 				{ referenceFrame: WORLD_FRAME, pose: targetPose },
-				frameName
+				frameName,
+				worldState,
+				constraints
 			)
 			toast({
 				message: success
@@ -244,162 +231,118 @@
 	}
 </script>
 
-{#snippet gizmoOptions()}
-	<div class="flex flex-wrap items-center gap-2">
-		<!-- transform — same controls as the build-mode dashboard -->
-		<fieldset class="flex">
-			<DashboardButton
-				icon="cursor-move"
-				class="rounded-r-none"
-				active={mode === 'translate'}
-				description="Translate"
-				onclick={() => (mode = 'translate')}
-			/>
-			<DashboardButton
-				icon="sync"
-				class="-ml-px rounded-l-none"
-				active={mode === 'rotate'}
-				description="Rotate"
-				onclick={() => (mode = 'rotate')}
-			/>
-		</fieldset>
-
-		<!-- space -->
-		<fieldset class="flex">
-			<DashboardButton
-				icon="axis-arrow"
-				class="rounded-r-none"
-				active={space === 'local'}
-				description="Local space"
-				onclick={() => (space = 'local')}
-			/>
-			<DashboardButton
-				icon="earth"
-				class="-ml-px rounded-l-none"
-				active={space === 'world'}
-				description="World space"
-				onclick={() => (space = 'world')}
-			/>
-		</fieldset>
-	</div>
-{/snippet}
-
-{#snippet moveTab()}
-	<div class="flex flex-col gap-3 p-1">
-		{#if preempted}
-			<div class="border-light flex items-center justify-between gap-2 border px-2 py-1.5">
-				<p class="text-subtle-1">Another move panel has the gizmo.</p>
-				<Button
-					variant="ghost"
-					onclick={() => moveGizmoOwner.arm(frameName)}
-				>
-					Use it here
-				</Button>
-			</div>
-		{/if}
-
-		{@render gizmoOptions()}
-
-		<div class="flex flex-col gap-2">
-			<div class="text-subtle-2">
-				{staged ? 'Target' : 'Current'} · relative to
-				<span class="text-default">{WORLD_FRAME}</span>
-			</div>
-
-			{#if targetPose}
-				<div>
-					<strong class="font-semibold">position</strong>
-					<span class="text-subtle-2">(mm)</span>
-
-					<div aria-label="move target position">
-						<Point
-							value={{ x: targetPose.x, y: targetPose.y, z: targetPose.z }}
-							disabled={executing}
-							on:change={handlePositionChange}
-						/>
-					</div>
-				</div>
-
-				<div>
-					<strong class="font-semibold">orientation</strong>
-
-					<div aria-label="move target orientation">
-						<TabGroup>
-							<TabPage title="OV (deg)">
-								<Point
-									value={{
-										x: targetPose.oX,
-										y: targetPose.oY,
-										z: targetPose.oZ,
-										w: targetPose.theta,
-									}}
-									disabled={executing}
-									on:change={handleOrientationOVChange}
-								/>
-							</TabPage>
-							<TabPage title="Euler">
-								<RotationEuler
-									value={eulerValue}
-									unit="deg"
-									disabled={executing}
-									on:change={handleOrientationEulerChange}
-								/>
-							</TabPage>
-						</TabGroup>
-					</div>
-				</div>
-			{:else}
-				<p class="text-subtle-2">Resolving the frame's pose…</p>
-			{/if}
-
-			<div class="font-roboto-mono flex justify-between gap-2">
-				<span class="text-subtle-2">travel</span>
-				<span>{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°</span>
-			</div>
-		</div>
-
-		<Collisions />
-
-		<div class="flex items-center gap-2">
-			<Button
-				variant="success"
-				disabled={!staged || executing || !service}
-				progress={executing ? 'indeterminate' : undefined}
-				onclick={executeMove}
-			>
-				Execute move
-			</Button>
+{#snippet moveControls()}
+	{#if preempted}
+		<div class="border-light flex items-center justify-between gap-2 border px-2 py-1.5">
+			<p class="text-subtle-1">Another move panel has the gizmo.</p>
 			<Button
 				variant="ghost"
-				disabled={!staged || executing}
-				onclick={resetTarget}
+				onclick={() => moveGizmoOwner.arm(frameName)}
 			>
-				Reset
+				Use it here
 			</Button>
 		</div>
-	</div>
-{/snippet}
+	{/if}
 
-{#snippet controlTab()}
-	<div class="p-1">
-		{#if service}
-			<MotionMoveWidget
-				partID={partID.current}
-				resourceName={service}
-				{frameName}
-				{destination}
-			/>
+	<div class="flex flex-col gap-2">
+		<div class="text-subtle-2">
+			{staged ? 'Target' : 'Current'} · relative to
+			<span class="text-default">{WORLD_FRAME}</span>
+		</div>
+
+		{#if targetPose}
+			<div>
+				<strong class="font-semibold">position</strong>
+				<span class="text-subtle-2">(mm)</span>
+
+				<div aria-label="move target position">
+					<Point
+						value={{ x: targetPose.x, y: targetPose.y, z: targetPose.z }}
+						disabled={executing}
+						on:change={handlePositionChange}
+					/>
+				</div>
+			</div>
+
+			<div>
+				<strong class="font-semibold">orientation</strong>
+
+				<div aria-label="move target orientation">
+					<TabGroup>
+						<TabPage title="OV (deg)">
+							<Point
+								value={{
+									x: targetPose.oX,
+									y: targetPose.oY,
+									z: targetPose.oZ,
+									w: targetPose.theta,
+								}}
+								disabled={executing}
+								on:change={handleOrientationOVChange}
+							/>
+						</TabPage>
+						<TabPage title="Euler">
+							<RotationEuler
+								value={eulerValue}
+								unit="deg"
+								disabled={executing}
+								on:change={handleOrientationEulerChange}
+							/>
+						</TabPage>
+					</TabGroup>
+				</div>
+			</div>
+		{:else}
+			<p class="text-subtle-2">Resolving the frame's pose…</p>
 		{/if}
+
+		<div class="font-roboto-mono flex justify-between gap-2">
+			<span class="text-subtle-2">travel</span>
+			<span>{num(delta?.distance, 1)} mm · {num(delta?.angle, 1)}°</span>
+		</div>
+	</div>
+
+	<Collisions />
+
+	<div class="flex flex-col gap-1">
+		<MoveJsonField
+			label="World state"
+			value={worldStateJson.current}
+			onChange={(next) => (worldStateJson.current = next)}
+		/>
+		<MoveJsonField
+			label="Constraints"
+			value={constraintsJson.current}
+			onChange={(next) => (constraintsJson.current = next)}
+		/>
+	</div>
+
+	<div class="flex items-center gap-2">
+		<Button
+			variant="success"
+			disabled={!staged || executing || !service}
+			progress={executing ? 'indeterminate' : undefined}
+			onclick={executeMove}
+		>
+			Execute move
+		</Button>
+		<Button
+			variant="ghost"
+			disabled={!staged || executing}
+			onclick={resetTarget}
+		>
+			Reset
+		</Button>
 	</div>
 {/snippet}
 
-<FloatingPanel
-	title={`Move: ${frameName}`}
-	bind:isOpen
-	resizable
-	defaultSize={{ width: 360, height: 480 }}
+<DetailsPanel
+	{entity}
+	{...rest}
 >
-	<div class="flex h-full flex-col gap-3 overflow-hidden p-2 text-xs">
+	<h3 class="text-subtle-2 pt-3 pb-2">Move</h3>
+
+	<div class="flex flex-col gap-3">
 		<label class="flex flex-col gap-1">
 			<span class="text-subtle-2">Motion service</span>
 			<Select
@@ -416,30 +359,21 @@
 			</Select>
 		</label>
 
-		<div class="min-h-0 flex-1">
-			<MoveTabs
-				defaultTab={MOVE_TAB}
-				onValueChange={(value) => (activeTab = value)}
-				items={[
-					{ label: MOVE_TAB, content: moveTab },
-					{ label: CONTROL_TAB, content: controlTab },
-				]}
-			/>
-		</div>
+		{@render moveControls()}
 	</div>
-</FloatingPanel>
+</DetailsPanel>
 
 {#if showGizmo && currentWorldMatrix.current}
 	<MoveGizmo
 		currentWorldMatrix={currentWorldMatrix.current}
 		{targetWorldMatrix}
-		{mode}
-		{space}
-		{onDrag}
+		mode={moveGizmoOptions.mode}
+		space={moveGizmoOptions.space}
+		onDrag={(matrix: Matrix4) => (targetWorldMatrix = matrix)}
 	/>
 {/if}
 
-{#if wantsGizmo && armed && targetWorldMatrix && currentWorldMatrix.current}
+{#if armed && targetWorldMatrix && currentWorldMatrix.current}
 	<MoveTargetGhost
 		currentWorldMatrix={currentWorldMatrix.current}
 		{targetWorldMatrix}
