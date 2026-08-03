@@ -13,6 +13,7 @@ import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
+import { syncFrameCenter } from './syncFrameCenter'
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
@@ -162,9 +163,12 @@ export const provideFrames = (partID: () => string) => {
 						}
 					}
 
-					if (center && !center.equals(existing.get(traits.Center))) {
-						existing.set(traits.Center, center)
-					}
+					// `Frame.geometry` has no center field. Config transforms therefore
+					// synthesize an identity center, while the frame-system response may
+					// carry a render offset. Preserve that live-only offset when build mode
+					// swaps sources; otherwise the mesh jumps even though WorldMatrix (and
+					// every pose shown in Details) is unchanged.
+					syncFrameCenter(existing, center, isBuildMode)
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
 
