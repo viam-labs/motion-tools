@@ -9,20 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm 🔧
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm playwright install chromium --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test e2e/ci.test.ts --config playwright.ci.config.ts
+        run: pnpm playwright test e2e/ci.test.ts --config playwright.ci.config.ts
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
