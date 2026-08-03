@@ -6,32 +6,38 @@ import { BUILD_MODE_SYNC_CONTEXT_KEY, createBuildModeSync } from './useBuildMode
 import { useEnvironment } from './useEnvironment.svelte'
 import { useGeometries } from './useGeometries.svelte'
 import { usePartID } from './usePartID.svelte'
-import { useRefetchPoses } from './useRefetchPoses'
+import { usePartConfig } from './usePartConfig.svelte'
+import type { PoseSnapshotSource } from './usePoses.svelte'
 
 /**
  * Provides build synchronization state and captures a fresh live-machine
  * snapshot before build mode becomes editable. Must be called after the pose
  * and geometry providers have been installed.
  */
-export const provideBuildModeSync = () => {
+export const provideBuildModeSync = (poses: PoseSnapshotSource) => {
 	const partID = usePartID()
 	const environment = useEnvironment()
 	const context = createBuildModeSync(environment)
 	const connectionStatus = useConnectionStatus(() => partID.current)
+	const partConfig = usePartConfig()
 	const geometries = useGeometries()
-	const { refetchPoses } = useRefetchPoses()
 
 	setContext(BUILD_MODE_SYNC_CONTEXT_KEY, context)
 
 	$effect(() => {
-		if (!context.syncing || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
+		if (
+			!context.syncing ||
+			!partConfig.isReady ||
+			!poses.isReady ||
+			connectionStatus.current !== MachineConnectionEvent.CONNECTED
+		) {
 			return
 		}
 
 		let cancelled = false
 		void (async () => {
 			await tick()
-			await Promise.allSettled([refetchPoses(), geometries.refetch()])
+			await Promise.allSettled([poses.refetch(), geometries.refetch()])
 			await tick()
 			if (!cancelled && environment.current.mode === 'build') context.finish()
 		})()

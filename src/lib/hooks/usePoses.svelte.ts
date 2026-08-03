@@ -23,6 +23,12 @@ const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 const tempPose = new Pose()
 
+export interface PoseSnapshotSource {
+	/** True once every frame in the selected config has a pose query. */
+	readonly isReady: boolean
+	refetch: () => Promise<PromiseSettledResult<unknown>[]>
+}
+
 /**
  * Mirrors each live-machine frame's kinematics-resolved pose into its
  * `LiveMatrix` trait. Watches every entity with `FramesAPI` and drives one
@@ -218,4 +224,11 @@ export const providePoses = (partID: () => string) => {
 			})
 		}
 	})
+
+	return {
+		get isReady() {
+			return entries.length === frames.current.length
+		},
+		refetch: () => Promise.allSettled(entries.map(({ query }) => query.refetch())),
+	} satisfies PoseSnapshotSource
 }

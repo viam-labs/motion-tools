@@ -7,6 +7,7 @@ vi.mock('$lib/loaders/pcd', () => ({
 
 import { hierarchy, traits } from '$lib/ecs'
 import { installWorldMatrixListeners } from '$lib/ecs/worldMatrix'
+import type { Frame } from '$lib/frame'
 import { Pose } from '$lib/math'
 
 import {
@@ -144,8 +145,8 @@ describe('frame history replay', () => {
 						name: 'arm',
 						frame: {
 							parent: 'world',
-							translation: { x: 0, y: 0, z: 0 },
-							orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 0 } },
+							translation: { x: 40, y: 0, z: 0 },
+							orientation: { type: 'ov_degrees' } as Frame['orientation'],
 						},
 					},
 				],
@@ -155,7 +156,7 @@ describe('frame history replay', () => {
 		)
 
 		expect(entity.has(traits.EditedMatrix)).toBe(false)
-		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(0)
+		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(40)
 		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(125)
 	})
 
