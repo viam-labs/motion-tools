@@ -12,7 +12,7 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
-import { getContext, setContext, untrack } from 'svelte'
+import { getContext, setContext, tick, untrack } from 'svelte'
 import { Color, Matrix4 } from 'three'
 
 import { resourceColors } from '$lib/color'
@@ -29,7 +29,7 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
 const key = Symbol('geometries-context')
 
 interface Context {
-	refetch: () => void
+	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
 const colorUtil = new Color()
@@ -72,9 +72,9 @@ export const provideGeometries = (partID: () => string) => {
 			.filter((generic) => generic.type === 'component')
 			.map((generic) => createResourceClient(GenericComponentClient, partID, () => generic.name))
 	)
+	const resourceNameContexts = [arms, bases, cameras, grippers, gantries, generics]
 
 	const interval = $derived(refreshRates[RefreshRates.poses])
-
 	const options = $derived({
 		enabled: interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
@@ -250,13 +250,21 @@ export const provideGeometries = (partID: () => string) => {
 		}
 	})
 
-	setContext<Context>(key, {
-		refetch() {
-			for (const [, query] of queries) {
-				query.refetch()
-			}
+	const context: Context = {
+		async refetch() {
+			// Geometry queries are created from resourceNames. On a cold load that
+			// discovery request may still be in flight, so refresh it first and let
+			// Svelte materialize the resulting per-resource queries before fetching.
+			await Promise.allSettled(
+				resourceNameContexts.flatMap(({ query }) => (query ? [query.refetch()] : []))
+			)
+			await tick()
+			return Promise.allSettled(queries.map(([, query]) => query.refetch()))
 		},
-	})
+	}
+
+	setContext<Context>(key, context)
+	return context
 }
 
 export const useGeometries = () => {

@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte'
 
 	import { provideHierarchy, provideWorldMatrix } from '$lib/ecs'
+	import { provideBuildModeSync } from '$lib/hooks/provideBuildModeSync.svelte'
 	import { provide3DModels } from '$lib/hooks/use3DModels.svelte'
 	import { provideArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { provideArmKinematics } from '$lib/hooks/useArmKinematics.svelte'
@@ -50,6 +51,9 @@
 	provideFramelessComponents()
 
 	provideLinkedEntities()
+
+	// Depends on the pose and geometry providers above.
+	provideBuildModeSync()
 </script>
 
 {@render children()}

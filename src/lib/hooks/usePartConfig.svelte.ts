@@ -113,6 +113,7 @@ export const providePartConfig = (
 	 * it never fights `usePoses` while merely monitoring.
 	 */
 	let wasDirty = false
+	let cleanSettlement: 'save' | 'discard' = 'save'
 	$effect(() => {
 		const settled = wasDirty && !config.isDirty
 		wasDirty = config.isDirty
@@ -121,8 +122,9 @@ export const providePartConfig = (
 
 		untrack(() => {
 			applyFrameHistorySnapshotToWorld(world, current, fragmentInfo.current, {
-				keepEditedMatrices: false,
+				mode: cleanSettlement,
 			})
+			cleanSettlement = 'save'
 		})
 	})
 
@@ -143,7 +145,7 @@ export const providePartConfig = (
 			const isClean = snapshot === cleanSnapshot
 			config.set(nextConfig, { dirty: !isClean })
 			applyFrameHistorySnapshotToWorld(world, nextConfig, fragmentInfo.current, {
-				keepEditedMatrices: !isClean,
+				mode: isClean ? 'discard' : 'edit',
 			})
 		} finally {
 			applyingHistory = false
@@ -430,10 +432,12 @@ export const providePartConfig = (
 		},
 		save: () => {
 			deactivateHistory()
+			cleanSettlement = 'save'
 			config.save?.()
 		},
 		discardChanges: () => {
 			deactivateHistory()
+			cleanSettlement = 'discard'
 			config.discardChanges?.()
 		},
 		get canUndoFrameEdit() {

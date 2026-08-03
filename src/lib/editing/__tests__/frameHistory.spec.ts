@@ -48,7 +48,7 @@ describe('frame history replay', () => {
 				],
 			},
 			{},
-			{ keepEditedMatrices: true }
+			{ mode: 'edit' }
 		)
 
 		const edited = entity.get(traits.EditedMatrix)
@@ -85,14 +85,78 @@ describe('frame history replay', () => {
 				],
 			},
 			{},
-			{ keepEditedMatrices: false }
+			{ mode: 'save' }
 		)
 
 		expect(entity.has(traits.EditedMatrix)).toBe(false)
 		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(300)
-		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(300)
+		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(30)
 		expect(hierarchy.getParentName(entity)).toBeUndefined()
 		expect(entity.has(traits.Sphere)).toBe(false)
+	})
+
+	it('preserves untouched live snapshots when saving', () => {
+		world = createWorld()
+		const entity = world.spawn(
+			traits.Name('arm'),
+			traits.FramesAPI,
+			traits.Matrix(),
+			traits.LiveMatrix(new Pose(125, 0, 0).toMatrix4())
+		)
+
+		applyFrameHistorySnapshotToWorld(
+			world,
+			{
+				components: [
+					{
+						name: 'arm',
+						frame: {
+							parent: 'world',
+							translation: { x: 0, y: 0, z: 0 },
+							orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 0 } },
+						},
+					},
+				],
+			},
+			{},
+			{ mode: 'save' }
+		)
+
+		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(0)
+		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(125)
+	})
+
+	it('preserves live snapshots and removes edits when discarding', () => {
+		world = createWorld()
+		const entity = world.spawn(
+			traits.Name('arm'),
+			traits.FramesAPI,
+			traits.Matrix(),
+			traits.LiveMatrix(new Pose(125, 0, 0).toMatrix4()),
+			traits.EditedMatrix(new Pose(500, 0, 0).toMatrix4())
+		)
+
+		applyFrameHistorySnapshotToWorld(
+			world,
+			{
+				components: [
+					{
+						name: 'arm',
+						frame: {
+							parent: 'world',
+							translation: { x: 0, y: 0, z: 0 },
+							orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 0 } },
+						},
+					},
+				],
+			},
+			{},
+			{ mode: 'discard' }
+		)
+
+		expect(entity.has(traits.EditedMatrix)).toBe(false)
+		expect(new Pose().setFromMatrix4(entity.get(traits.Matrix)!).x).toBe(0)
+		expect(new Pose().setFromMatrix4(entity.get(traits.LiveMatrix)!).x).toBe(125)
 	})
 
 	it('holds the edited pose after the baseline is re-derived from the saved config', async () => {
@@ -126,7 +190,7 @@ describe('frame history replay', () => {
 				],
 			},
 			{},
-			{ keepEditedMatrices: false }
+			{ mode: 'save' }
 		)
 
 		// Back in monitor mode useFrames re-derives the baseline from the saved
