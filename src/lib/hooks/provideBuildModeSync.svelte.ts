@@ -2,12 +2,13 @@ import { MachineConnectionEvent } from '@viamrobotics/sdk'
 import { useConnectionStatus } from '@viamrobotics/svelte-sdk'
 import { setContext, tick } from 'svelte'
 
+import type { PoseSnapshotSource } from './usePoses.svelte'
+
 import { BUILD_MODE_SYNC_CONTEXT_KEY, createBuildModeSync } from './useBuildModeSync.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useGeometries } from './useGeometries.svelte'
-import { usePartID } from './usePartID.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
-import type { PoseSnapshotSource } from './usePoses.svelte'
+import { usePartID } from './usePartID.svelte'
 
 /**
  * Provides build synchronization state and captures a fresh live-machine

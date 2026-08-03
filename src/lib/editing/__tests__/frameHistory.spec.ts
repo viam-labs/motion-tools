@@ -5,9 +5,10 @@ vi.mock('$lib/loaders/pcd', () => ({
 	parsePcdInWorker: vi.fn(() => Promise.resolve({ positions: new Float32Array(), colors: null })),
 }))
 
+import type { Frame } from '$lib/frame'
+
 import { hierarchy, traits } from '$lib/ecs'
 import { installWorldMatrixListeners } from '$lib/ecs/worldMatrix'
-import type { Frame } from '$lib/frame'
 import { Pose } from '$lib/math'
 
 import {
