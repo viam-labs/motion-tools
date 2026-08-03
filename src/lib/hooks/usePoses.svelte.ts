@@ -9,6 +9,7 @@ import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
+import { missingPoseFrameNames } from './poseSnapshot'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
@@ -26,6 +27,8 @@ const tempPose = new Pose()
 export interface PoseSnapshotSource {
 	/** True once every frame in the selected config has a pose query. */
 	readonly isReady: boolean
+	/** Configured frame names whose pose queries have not been registered yet. */
+	readonly missingFrameNames: string[]
 	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
@@ -225,10 +228,25 @@ export const providePoses = (partID: () => string) => {
 		}
 	})
 
+	const expectedFrameNames = () => frames.current.map(({ referenceFrame }) => referenceFrame)
+	const registeredFrameNames = () =>
+		entries.map(({ name }) => name.current).filter((name): name is string => name !== undefined)
+	const missingFrameNames = () =>
+		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
+
 	return {
 		get isReady() {
-			return entries.length === frames.current.length
+			return frames.isReady && missingFrameNames().length === 0
 		},
-		refetch: () => Promise.allSettled(entries.map(({ query }) => query.refetch())),
+		get missingFrameNames() {
+			return missingFrameNames()
+		},
+		refetch: () => {
+			const expected = new Set(expectedFrameNames())
+			const currentEntries = entries.filter(
+				({ name }) => name.current !== undefined && expected.has(name.current)
+			)
+			return Promise.allSettled(currentEntries.map(({ query }) => query.refetch()))
+		},
 	} satisfies PoseSnapshotSource
 }
