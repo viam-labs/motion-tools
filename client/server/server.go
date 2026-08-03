@@ -73,9 +73,28 @@ var (
 	rpcSrv     *http.Server
 	staticSrv  *http.Server
 	drawClient drawv1connect.DrawServiceClient
+	httpClient *http.Client
 	address    string
 	recorder   *RecordingInterceptor
 )
+
+// newHTTPClient returns an HTTP client with a connection pool of its own.
+//
+// Deliberately not http.DefaultClient: its pool is process-wide and outlives Stop, so a
+// Start/Stop/Start cycle on the same port would reuse keep-alive connections to the server that
+// just went away. The next RPC then fails with a connection reset, broken pipe, or unexpected
+// EOF depending on where the dead connection is noticed.
+func newHTTPClient() *http.Client {
+	return &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone()}
+}
+
+// closeHTTPClient releases the pooled connections belonging to the current client.
+func closeHTTPClient() {
+	if httpClient != nil {
+		httpClient.CloseIdleConnections()
+		httpClient = nil
+	}
+}
 
 // Start starts the Connect-RPC draw server using the provided Config. It is
 // idempotent: calling Start when the server is already running returns nil.
@@ -100,8 +119,9 @@ func Start(cfg DrawServerConfig) error {
 			// A server is already listening on this port (e.g. started by `make up`).
 			// Attach a client to it rather than failing — the test suite uses this path.
 			recorder = NewRecordingInterceptor()
+			httpClient = newHTTPClient()
 			drawClient = drawv1connect.NewDrawServiceClient(
-				http.DefaultClient,
+				httpClient,
 				fmt.Sprintf("http://%s", address),
 				connect.WithInterceptors(recorder),
 			)
@@ -159,8 +179,9 @@ func Start(cfg DrawServerConfig) error {
 	// Use the Connect protocol over HTTP/1.1 (chunked streaming).  The h2c
 	// wrapper on the server still accepts HTTP/1.1 requests, so there is no
 	// need for a special transport on the Go side.
+	httpClient = newHTTPClient()
 	drawClient = drawv1connect.NewDrawServiceClient(
-		http.DefaultClient,
+		httpClient,
 		fmt.Sprintf("http://%s", address),
 		connect.WithInterceptors(recorder),
 	)
@@ -189,6 +210,7 @@ func Stop() error {
 
 	if attached {
 		drawClient = nil
+		closeHTTPClient()
 		address = ""
 		running = false
 		attached = false
@@ -213,13 +235,11 @@ func Stop() error {
 	}
 
 	if staticSrv != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := staticSrv.Shutdown(ctx); err != nil {
 				log.Printf("draw server static shutdown error: %v", err)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -227,6 +247,7 @@ func Stop() error {
 	rpcSrv = nil
 	staticSrv = nil
 	drawClient = nil
+	closeHTTPClient()
 	address = ""
 	running = false
 	if recorder != nil {
@@ -270,8 +291,9 @@ func attachDefaultLocked() {
 
 	address = addr
 	recorder = NewRecordingInterceptor()
+	httpClient = newHTTPClient()
 	drawClient = drawv1connect.NewDrawServiceClient(
-		http.DefaultClient,
+		httpClient,
 		"http://"+addr,
 		connect.WithInterceptors(recorder),
 	)

@@ -5,7 +5,7 @@
 	import { Quaternion } from 'three'
 
 	import { SettingsPortal } from '$lib'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
+	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import CameraFeed from './CameraFeed.svelte'
@@ -29,15 +29,20 @@
 	const { renderer } = useThrelte()
 	const { isPresenting } = useXR()
 	const settings = useSettings()
-	const partID = usePartID()
+	const resourceByName = useResourceByName()
 
 	const enableXR = $derived(settings.current.enableXR)
 
-	// Get all enabled camera widgets for the current part
+	// Cameras chosen for in-headset display in the AR settings panel. Guard against
+	// stale names — a selected camera that was removed or is no longer a camera.
 	const enabledCameras = $derived.by(() => {
-		const openWidgets = settings.current.openCameraWidgets
-		const currentPartID = partID.current
-		return openWidgets[currentPartID] || []
+		const names = new Set<string>()
+		for (const name of settings.current.xrCameras) {
+			if (resourceByName.current[name]?.subtype === 'camera') {
+				names.add(name)
+			}
+		}
+		return [...names]
 	})
 
 	// Track camera aspect ratios to compute proper spacing

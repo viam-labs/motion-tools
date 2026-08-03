@@ -10,11 +10,17 @@
 	const armClient = useArmClient()
 	const partID = usePartID()
 	const resources = useResourceNames(() => partID.current, 'gripper')
+	const cameraResources = useResourceNames(() => partID.current, 'camera')
 
 	const armNames = $derived(armClient.names || [])
 	const gripperNames = $derived(
 		resources.current
 			.filter((r) => r.subtype === 'gripper' && r.type === 'component')
+			.map((r) => r.name)
+	)
+	const cameraNames = $derived(
+		cameraResources.current
+			.filter((r) => r.subtype === 'camera' && r.type === 'component')
 			.map((r) => r.name)
 	)
 
@@ -49,6 +55,16 @@
 			[key]: value,
 		}
 	}
+
+	function toggleCamera(name: string, on: boolean) {
+		const next = new Set(settings.current.xrCameras)
+		if (on) {
+			next.add(name)
+		} else {
+			next.delete(name)
+		}
+		settings.current.xrCameras = [...next]
+	}
 </script>
 
 <div class="flex flex-col gap-2.5 text-xs">
@@ -56,6 +72,24 @@
 		<label class="flex items-center justify-between gap-2">
 			Enable VR / AR mode <Switch bind:on={settings.current.enableXR} />
 		</label>
+
+		<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Cameras</strong></h3>
+
+		{#if cameraNames.length === 0}
+			<p class="text-subtle-2">No cameras on this machine.</p>
+		{:else}
+			{#each cameraNames as name (name)}
+				<label class="flex items-center justify-between gap-2">
+					{name}
+					<Switch
+						on={settings.current.xrCameras.includes(name)}
+						on:change={(event) => {
+							toggleCamera(name, event.detail)
+						}}
+					/>
+				</label>
+			{/each}
+		{/if}
 
 		<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Left Controller</strong></h3>
 

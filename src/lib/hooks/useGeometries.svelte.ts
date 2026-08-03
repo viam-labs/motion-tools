@@ -12,15 +12,15 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
-import { getContext, setContext, untrack } from 'svelte'
+import { getContext, setContext, tick, untrack } from 'svelte'
 import { Color, Matrix4 } from 'three'
 
 import { resourceColors } from '$lib/color'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { updateGeometryTrait } from '$lib/ecs/traits'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
-import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
@@ -29,7 +29,7 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
 const key = Symbol('geometries-context')
 
 interface Context {
-	refetch: () => void
+	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
 const colorUtil = new Color()
@@ -72,11 +72,11 @@ export const provideGeometries = (partID: () => string) => {
 			.filter((generic) => generic.type === 'component')
 			.map((generic) => createResourceClient(GenericComponentClient, partID, () => generic.name))
 	)
+	const resourceNameContexts = [arms, bases, cameras, grippers, gantries, generics]
 
 	const interval = $derived(refreshRates[RefreshRates.poses])
-
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF && environment.current.viewerMode === 'monitor',
+		enabled: interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -174,12 +174,12 @@ export const provideGeometries = (partID: () => string) => {
 						const entityKey = `${currentPartID}:${name}:${label}`
 						nextKeys.add(entityKey)
 
-						const center = createPose(geometry.center)
+						const center = new Pose().copy(geometry.center)
 						const existing = entities.get(entityKey)
 
 						if (existing) {
 							hierarchy.setParent(existing, name)
-							poseToMatrix(center, tempMatrix)
+							center.toMatrix4(tempMatrix)
 							const matrix = existing.get(traits.Matrix)
 							if (matrix && !matrix.equals(tempMatrix)) {
 								matrix.copy(tempMatrix)
@@ -192,7 +192,7 @@ export const provideGeometries = (partID: () => string) => {
 						const entityTraits: ConfigurableTrait[] = [
 							...hierarchy.parentTraits(name),
 							traits.Name(label),
-							traits.Matrix(poseToMatrix(center, new Matrix4())),
+							traits.Matrix(center.toMatrix4()),
 							traits.GeometriesAPI,
 							traits.Geometry(geometry),
 						]
@@ -250,13 +250,21 @@ export const provideGeometries = (partID: () => string) => {
 		}
 	})
 
-	setContext<Context>(key, {
-		refetch() {
-			for (const [, query] of queries) {
-				query.refetch()
-			}
+	const context: Context = {
+		async refetch() {
+			// Geometry queries are created from resourceNames. On a cold load that
+			// discovery request may still be in flight, so refresh it first and let
+			// Svelte materialize the resulting per-resource queries before fetching.
+			await Promise.allSettled(
+				resourceNameContexts.flatMap(({ query }) => (query ? [query.refetch()] : []))
+			)
+			await tick()
+			return Promise.allSettled(queries.map(([, query]) => query.refetch()))
 		},
-	})
+	}
+
+	setContext<Context>(key, context)
+	return context
 }
 
 export const useGeometries = () => {

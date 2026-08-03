@@ -86,7 +86,7 @@ export const providePointclouds = (partID: () => string) => {
 	})
 
 	const options = $derived({
-		enabled: environment.current.viewerMode === 'monitor',
+		enabled: environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 

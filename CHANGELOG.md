@@ -1,5 +1,87 @@
 # motion-tools
 
+## 1.41.0
+
+### Minor Changes
+
+- 8d92e23: Add dedicated move mode
+- 2756206: Add batch and partial-update draw APIs: `AddEntities`, `UpdateTransform`, and `UpdateEntity`
+- 2756206: Stop dropping draw service entity changes under load
+- 00ee712: Add collision warnings to the `MoveFrame` plugin
+
+### Patch Changes
+
+- 86dcace: Support prismatic joint FK
+- 83796b8: Improved selection state for no-geometry frames
+- 96879b4: Render world state obstacles
+- 96879b4: Local Motion Plan Replayer quick hits
+- e1c977d: Support axis-angles and warn on skipped frames/orients
+- 6207580: Improved parent options during frame editing reparenting
+
+## 1.40.0
+
+### Minor Changes
+
+- f6b9142: Move frame plugin UX improvements
+
+### Patch Changes
+
+- 1c61c5c: Add tests for the new `Pose` class
+- d2c58fe: Use Three.js-like api for pose math
+
+## 1.39.0
+
+### Minor Changes
+
+- 51ea2d8: Add frame edit undo / redo
+
+### Patch Changes
+
+- 79c4bfc: make upload motion plan callback usable via server RDK path
+- ff3e614: Restrict motion plan replayer to monitor mode
+
+## 1.38.0
+
+### Minor Changes
+
+- d34e066: Add control widgets for all resource types through a new ControlWidgets plugin, including a Move control for the built-in motion service
+- 9f08bcf: Add `MoveFrame` plugin to easily move entities with a motion service
+- c33ca6b: Select in-headset AR cameras from the XR settings panel instead of the control widgets plugin
+
+### Patch Changes
+
+- 8afe4a4: Add do command widgets to ControlWidgets plugin
+
+## 1.37.1
+
+### Patch Changes
+
+- 8627748: Fix updating arrows
+- b476aaa: Fix motion plan replayer provider surface for app
+- 7dce2eb: Remove skeletonlabs dependency and uses badges for logs chips
+
+## 1.37.0
+
+### Minor Changes
+
+- f563895: Toggle independent arm position widgets with per-arm switches
+- 04f4e2e: Motion plan replayer + docs
+- 2c86fdd: Dedicated edit mode
+
+### Patch Changes
+
+- 339cb67: Refactor frame editing for plugin extraction
+- 76b5ae0: Migrate camera and arm position widgets to use FloatingPanel
+- f563895: Add individual switches for arm widgets, similar to cameras
+- fec460a: Fix tweakpane styling race condition
+- 27b41ec: Add the motion plan JSON parser (`parsePlan`) for the Motion Plan Replayer: validates and normalizes plan JSON into a `ParsedPlan` (frames, parents, trajectory, goals).
+- 2da1274: Add frame-descriptor derivation for the Motion Plan Replayer: converts a `ParsedPlan` into static and jointed `FrameDescriptor`s (geometry, orientation conversion, joint-index mapping, end-effector reparenting).
+- 0f42c63: Add per-step snapshot generation (`parsedPlanToSnapshots`) and the `PartOfPlan` ECS relation for the Motion Plan Replayer, turning frame descriptors into renderable snapshots grouped under a plan entity.
+- 7292c08: Add the Motion Plan Replayer plugin shell: a dashboard-mounted floating panel that uploads plan JSON files, parses them into snapshots, and lists them with ready/error/no-trajectory status. Exposes an `extraSource` snippet receiving `addPlan` so an embedding app can inject its own plan source (e.g. a DB picker) without escaping the plugin's context.
+- ddfa766: Render Motion Plan Replayer plans in 3D and add the timeline scrubber. Selecting a plan spawns its snapshot entities under a plan entity, and a bottom scrubber (play/pause, step, seek) resolves each slider position to the corresponding snapshot via `reconcileSnapshotEntities`. Plan entities are tinted and torn down as a group through the `PartOfPlan` relation.
+- a388301: Add persistent per-frame display config to the Motion Plan Replayer. Per-frame color, opacity, visibility, and axes edits made via the scene Details panel and tree now persist across scrubbing instead of being reset each step. Also fixes the Details panel "show axes helper" toggle, which previously had no effect because the batched axes renderer never reacted to the trait being added or removed at runtime.
+- 3f4bd3b: Render mesh geometry in the Motion Plan Replayer.
+
 ## 1.36.2
 
 ### Patch Changes

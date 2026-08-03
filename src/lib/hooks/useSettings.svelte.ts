@@ -8,7 +8,7 @@ const key = Symbol('dashboard-context')
 export interface Settings {
 	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
-	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo'
+	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo' | 'move'
 	refreshRates: {
 		poses: number
 		pointclouds: number
@@ -47,9 +47,7 @@ export interface Settings {
 
 	enableLabels: boolean
 
-	// Widgets
-	enableArmPositionsWidget: boolean
-	openCameraWidgets: Record<string, string[]>
+	// Frame POV widgets
 	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean
@@ -59,6 +57,7 @@ export interface Settings {
 	// Webxr
 	enableXR: boolean
 	xrMode: 'frame-configure' | 'arm-teleop'
+	xrCameras: string[]
 	xrController: {
 		left: {
 			armName?: string
@@ -126,8 +125,6 @@ const defaults = (): Settings => ({
 
 	enableLabels: false,
 
-	enableArmPositionsWidget: false,
-	openCameraWidgets: {},
 	openFramePovWidgets: {},
 
 	renderStats: false,
@@ -136,6 +133,7 @@ const defaults = (): Settings => ({
 
 	enableXR: false,
 	xrMode: 'frame-configure',
+	xrCameras: [],
 	xrController: {
 		left: {
 			scaleFactor: 1,

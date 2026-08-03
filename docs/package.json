@@ -12,15 +12,15 @@
 	"dependencies": {
 		"@astrojs/starlight": "0.38.4",
 		"@tailwindcss/vite": "4.2.4",
-		"astro": "6.4.6",
-		"sharp": "0.34.2",
+		"astro": "7.1.0",
+		"sharp": "0.35.0",
 		"starlight-theme-nova": "^0.11.9",
 		"tailwindcss": "4.2.4"
 	},
 	"devDependencies": {
 		"@fontsource-variable/public-sans": "^5.2.7",
 		"@fontsource-variable/roboto-mono": "^5.2.8",
-		"@viamrobotics/tailwind-config": "^1.0.0",
+		"@viamrobotics/tailwind-config": "^1.2.0",
 		"remark-gfm": "^4.0.1",
 		"typescript": "5.9.2"
 	},

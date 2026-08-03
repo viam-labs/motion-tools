@@ -12,7 +12,7 @@
 	import { Icon, Locate, Move3d, Plus, Rotate3d, Scale3d } from 'threlte-uikit/lucide'
 
 	import { traits, useQuery, useTrait } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
@@ -62,7 +62,7 @@
 		origin.commit()
 	}
 
-	const updater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const box = useTrait(() => selectedEntity, traits.Box)
 	const sphere = useTrait(() => selectedEntity, traits.Sphere)
@@ -90,6 +90,19 @@
 	// Snapshot of the geometry dims at drag start. Used in scale mode to compute
 	// `newDims = base * absoluteScaleFactor` each frame; cleared on drag end.
 	let geometryBase: GeometryBase | undefined
+	let frameHistoryEntryOpen = false
+
+	const beginFrameHistoryEntry = () => {
+		if (!selectedEntity?.has(traits.FramesAPI)) return
+		partConfig.beginFrameEditHistoryEntry()
+		frameHistoryEntryOpen = true
+	}
+
+	const endFrameHistoryEntry = () => {
+		if (!frameHistoryEntryOpen) return
+		partConfig.endFrameEditHistoryEntry()
+		frameHistoryEntryOpen = false
+	}
 
 	const getRay = (handedness: Handedness | undefined): XRTargetRaySpace | undefined => {
 		if (handedness === 'left') return leftController.current?.targetRay
@@ -224,6 +237,7 @@
 	// baseline, and clear the snapshot on drag end.
 	controls.addEventListener('mouseDown', () => {
 		transformControls.setActive(true)
+		beginFrameHistoryEntry()
 		if (mode !== 'scale') return
 		if (box.current) {
 			geometryBase = { type: 'box', x: box.current.x, y: box.current.y, z: box.current.z }
@@ -239,6 +253,7 @@
 	controls.addEventListener('mouseUp', () => {
 		transformControls.setActive(false)
 		geometryBase = undefined
+		endFrameHistoryEntry()
 	})
 
 	controls.addEventListener('objectChange', () => {
@@ -246,15 +261,15 @@
 		if (!selectedEntity || !target) return
 
 		if (mode === 'translate') {
-			// three.js scene is in meters; FrameConfigUpdater stores mm.
-			updater.updateLocalPosition(selectedEntity, {
+			// three.js scene is in meters; frame config stores mm.
+			frameEditor.setPose(selectedEntity, {
 				x: target.position.x * 1000,
 				y: target.position.y * 1000,
 				z: target.position.z * 1000,
 			})
 		} else if (mode === 'rotate') {
 			ov.setFromQuaternion(target.quaternion)
-			updater.updateLocalOrientation(selectedEntity, {
+			frameEditor.setPose(selectedEntity, {
 				oX: ov.x,
 				oY: ov.y,
 				oZ: ov.z,
@@ -268,19 +283,19 @@
 			// frame's regenerated geometry isn't re-scaled visually.
 			const s = target.scale
 			if (geometryBase.type === 'box') {
-				updater.updateGeometry(selectedEntity, {
+				frameEditor.setGeometry(selectedEntity, {
 					type: 'box',
 					x: geometryBase.x * s.x,
 					y: geometryBase.y * s.y,
 					z: geometryBase.z * s.z,
 				})
 			} else if (geometryBase.type === 'sphere') {
-				updater.updateGeometry(selectedEntity, {
+				frameEditor.setGeometry(selectedEntity, {
 					type: 'sphere',
 					r: geometryBase.r * s.x,
 				})
 			} else {
-				updater.updateGeometry(selectedEntity, {
+				frameEditor.setGeometry(selectedEntity, {
 					type: 'capsule',
 					r: geometryBase.r * s.x,
 					l: geometryBase.l * s.z,
@@ -291,6 +306,7 @@
 	})
 
 	onDestroy(() => {
+		endFrameHistoryEntry()
 		transformControls.setActive(false)
 		controls.detach()
 		controls.dispose()

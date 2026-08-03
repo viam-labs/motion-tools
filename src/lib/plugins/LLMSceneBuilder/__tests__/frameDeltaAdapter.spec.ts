@@ -6,7 +6,7 @@ import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { createGeometryFromFrame } from '$lib/geometry'
-import { createPose } from '$lib/transform'
+import { Pose } from '$lib/math'
 
 import {
 	type FrameDelta,
@@ -26,12 +26,12 @@ const makeConfig = (components: PartConfig['components']): PartConfig => ({ comp
 const makeTransform = (
 	name: string,
 	parent: string,
-	pose: Parameters<typeof createPose>[0] = {},
+	pose: Pose,
 	geometry?: Frame['geometry']
 ): Transform =>
 	new Transform({
 		referenceFrame: name,
-		poseInObserverFrame: { referenceFrame: parent, pose: createPose(pose) },
+		poseInObserverFrame: { referenceFrame: parent, pose },
 		physicalObject: geometry ? createGeometryFromFrame({ geometry }) : undefined,
 	})
 
@@ -411,7 +411,7 @@ describe('resolveFragmentCurrentFrames', () => {
 	const gripperMeta = makeFragmentMeta()
 
 	it('uses the live frame when there is no config override', () => {
-		const live = [makeTransform('gripper', 'arm', { x: 5, y: 6, z: 7 })]
+		const live = [makeTransform('gripper', 'arm', new Pose(5, 6, 7))]
 
 		const result = resolveFragmentCurrentFrames(['gripper'], { gripper: gripperMeta }, live, {})
 
@@ -421,8 +421,8 @@ describe('resolveFragmentCurrentFrames', () => {
 	})
 
 	it('lets a config $set-mod override win over the live frame', () => {
-		const live = [makeTransform('gripper', 'arm', { x: 5 })]
-		const configFrames = { gripper: makeTransform('gripper', 'base', { x: 99 }) }
+		const live = [makeTransform('gripper', 'arm', new Pose(5))]
+		const configFrames = { gripper: makeTransform('gripper', 'base', new Pose(99)) }
 
 		const result = resolveFragmentCurrentFrames(
 			['gripper'],
@@ -444,7 +444,7 @@ describe('resolveFragmentCurrentFrames', () => {
 
 	it('surfaces the geometry from the transform physicalObject', () => {
 		const live = [
-			makeTransform('gripper', 'arm', { x: 5 }, { type: 'box', x: 100, y: 100, z: 100 }),
+			makeTransform('gripper', 'arm', new Pose(5), { type: 'box', x: 100, y: 100, z: 100 }),
 		]
 
 		const result = resolveFragmentCurrentFrames(['gripper'], { gripper: gripperMeta }, live, {})

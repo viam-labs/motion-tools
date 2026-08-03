@@ -12,7 +12,6 @@
 </script>
 
 <script lang="ts">
-	import type { Pose } from '@viamrobotics/sdk'
 	import type { Entity } from 'koota'
 
 	import { useThrelte } from '@threlte/core'
@@ -30,11 +29,11 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { hierarchy, traits, useParentName, useTrait } from '$lib/ecs'
-	import { FrameConfigUpdater } from '$lib/FrameConfigUpdater.svelte'
-	import { useConfigFrames } from '$lib/hooks/useConfigFrames.svelte'
+	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
+	import { useParentFrameOptions } from '$lib/hooks/useParentFrameOptions.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { createPose, matrixToPose } from '$lib/transform'
+	import { Pose } from '$lib/math'
 
 	interface Props {
 		entity: Entity
@@ -45,10 +44,9 @@
 	const { entity, editable }: Props = $props()
 
 	const { invalidate } = useThrelte()
-	const configFrames = useConfigFrames()
 	const partConfig = usePartConfig()
 
-	const frameConfigUpdater = new FrameConfigUpdater(partConfig.updateFrame, partConfig.deleteFrame)
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 
 	const name = useTrait(() => entity, traits.Name)
 	const matrix = useTrait(() => entity, traits.Matrix)
@@ -56,17 +54,19 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const parent = useParentName(() => entity)
+	const parentOptions = useParentFrameOptions(() => name.current)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
-		if (source) return matrixToPose(source, createPose())
-		if (center.current) return createPose(center.current)
+
+		if (source) return new Pose().setFromMatrix4(source)
+		if (center.current) return new Pose().copy(center.current)
 		return undefined
 	})
 
 	const worldPose = $derived.by<Pose | undefined>(() => {
 		if (!worldMatrix.current) return
-		return matrixToPose(worldMatrix.current, createPose())
+		return new Pose().setFromMatrix4(worldMatrix.current)
 	})
 
 	const eulerValue = $derived.by<RotationEulerValueObject>(() => {
@@ -83,17 +83,15 @@
 	/**
 	 * The `<List>`'s bound value must be one of its options, or the underlying
 	 * native <select> has no matching <option>, snaps to selectedIndex -1, and
-	 * renders blank. `getParentFrameOptions` is derived from the editable part
-	 * config, but `parent.current` comes from the live frame system via the ECS
-	 * and can name a frame the config doesn't enumerate (a frame the robot
-	 * reports but the local config omits, an unresolved orphan, or simply the
-	 * config not having loaded yet). Always include the current parent so the
-	 * field shows it rather than going blank. It's cycle-safe: the current
-	 * parent is neither self nor a descendant.
+	 * renders blank. `useParentFrameOptions` enumerates every frame the app knows
+	 * about, but `parent.current` can still name one it doesn't — an unresolved
+	 * orphan, or simply frames not having loaded yet. Always include the current
+	 * parent so the field shows it rather than going blank. It's cycle-safe: the
+	 * current parent is neither self nor a descendant.
 	 */
 	const parentFrameOptions = $derived.by(() => {
 		const value = parent.current ?? 'world'
-		const options = configFrames.getParentFrameOptions(name.current ?? '') ?? []
+		const options = parentOptions.current
 		return options.includes(value) ? options : [value, ...options]
 	})
 
@@ -101,22 +99,21 @@
 		if (event.detail.origin !== 'internal') return
 		const value = event.detail.value as string
 		if (value === parent.current) return
-		hierarchy.setParent(entity, value)
-		frameConfigUpdater.setFrameParent(entity, value)
+		frameEditor.setParent(entity, value)
 		invalidate()
 	}
 
 	const handlePositionChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue3dObject
-		frameConfigUpdater.updateLocalPosition(entity, next)
+		frameEditor.setPose(entity, next)
 		invalidate()
 	}
 
 	const handleOrientationOVChange = (event: PointChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
 		const next = event.detail.value as PointValue4dObject
-		frameConfigUpdater.updateLocalOrientation(entity, {
+		frameEditor.setPose(entity, {
 			oX: next.x,
 			oY: next.y,
 			oZ: next.z,
@@ -136,7 +133,7 @@
 		)
 		quaternionUtil.setFromEuler(eulerUtil)
 		ovUtil.setFromQuaternion(quaternionUtil)
-		frameConfigUpdater.updateLocalOrientation(entity, {
+		frameEditor.setPose(entity, {
 			oX: ovUtil.x,
 			oY: ovUtil.y,
 			oZ: ovUtil.z,

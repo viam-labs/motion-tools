@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { Badge } from '@viamrobotics/prime-core'
 	import { PersistedState } from 'runed'
 
-	import { DashboardPortal } from '$lib'
+	import { WorkspacePortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 
@@ -18,7 +19,7 @@
 	})
 </script>
 
-<DashboardPortal>
+<WorkspacePortal>
 	<fieldset class="relative">
 		<DashboardButton
 			active={isOpen.current}
@@ -44,7 +45,7 @@
 			</span>
 		{/if}
 	</fieldset>
-</DashboardPortal>
+</WorkspacePortal>
 
 <FloatingPanel
 	title="Logs"
@@ -56,56 +57,47 @@
 		<div class="flex gap-1 px-3 py-2">
 			<button
 				type="button"
-				class={[
-					'chip border px-2',
-					{
-						'border-danger-dark bg-danger-dark text-white hover:border-red-700 hover:bg-red-700':
-							levels.current.error,
-						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
-							!levels.current.error,
-					},
-				]}
+				class="group cursor-pointer rounded-full"
+				aria-pressed={levels.current.error}
 				onclick={() => {
 					levels.current.error = !levels.current.error
 				}}
 			>
-				error
+				<Badge
+					label="error"
+					variant={levels.current.error ? 'danger' : 'inactive'}
+					cx="transition group-hover:brightness-95"
+				/>
 			</button>
 
 			<button
 				type="button"
-				class={[
-					'chip border',
-					{
-						'border-amber-400 bg-amber-400 text-white hover:border-amber-500 hover:bg-amber-500':
-							levels.current.warn,
-						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
-							!levels.current.warn,
-					},
-				]}
+				class="group cursor-pointer rounded-full"
+				aria-pressed={levels.current.warn}
 				onclick={() => {
 					levels.current.warn = !levels.current.warn
 				}}
 			>
-				warn
+				<Badge
+					label="warn"
+					variant={levels.current.warn ? 'warning' : 'inactive'}
+					cx="transition group-hover:brightness-95"
+				/>
 			</button>
 
 			<button
 				type="button"
-				class={[
-					'chip border',
-					{
-						'border-blue-400 bg-blue-400 text-white hover:border-blue-500 hover:bg-blue-500':
-							levels.current.info,
-						'bg-light hover:bg-ghost-light hover:border-light border-light text-subtle-1':
-							!levels.current.info,
-					},
-				]}
+				class="group cursor-pointer rounded-full"
+				aria-pressed={levels.current.info}
 				onclick={() => {
 					levels.current.info = !levels.current.info
 				}}
 			>
-				info
+				<Badge
+					label="info"
+					variant={levels.current.info ? 'neutral' : 'inactive'}
+					cx="transition group-hover:brightness-95"
+				/>
 			</button>
 		</div>
 

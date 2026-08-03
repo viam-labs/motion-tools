@@ -12,9 +12,13 @@
 	import { SvelteSet } from 'svelte/reactivity'
 
 	import { traits, useQuery, useWorld } from '$lib/ecs'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
 	const world = useWorld()
 	const selected = useQuery(traits.Selected)
+	const environment = useEnvironment()
+
+	const isBuildMode = $derived(environment.current.mode === 'build')
 
 	const entities = new SvelteSet<Entity>()
 	const selectedCustomGeometry = $derived(
@@ -24,6 +28,8 @@
 	const keys = new PressedKeys()
 
 	keys.onKeys('=', () => {
+		if (!isBuildMode) return
+
 		const entity = world.spawn(
 			traits.Name(`custom geometry ${++index}`),
 			traits.Matrix,

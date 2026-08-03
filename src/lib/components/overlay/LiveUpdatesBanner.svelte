@@ -1,30 +1,60 @@
 <script lang="ts">
 	import { Button, Icon } from '@viamrobotics/prime-core'
+	import { Redo2, Undo2 } from 'lucide-svelte'
 
+	import { useWorld } from '$lib/ecs'
+	import { resetStagedEdits } from '$lib/editing/resetStagedEdits'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
+	const environment = useEnvironment()
 	const partConfig = usePartConfig()
+	const world = useWorld()
 
 	const { ...rest } = $props()
 
-	const isMacDevice = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+	const discard = () => {
+		partConfig.discardChanges()
+		resetStagedEdits(world)
+	}
+
+	const handleKeydown = (event: KeyboardEvent) => {
+		if (environment.current.mode !== 'build') return
+
+		const modifier = event.metaKey || event.ctrlKey
+		const key = event.key.toLowerCase()
+
+		if (modifier && key === 's' && environment.current.isStandalone) {
+			event.preventDefault()
+			event.stopImmediatePropagation()
+			partConfig.save()
+			return
+		}
+
+		const redo = modifier && (key === 'y' || (key === 'z' && event.shiftKey))
+		const undo = modifier && key === 'z' && !event.shiftKey
+
+		if (redo && partConfig.canRedoFrameEdit) {
+			event.preventDefault()
+			event.stopImmediatePropagation()
+			partConfig.redoFrameEdit()
+		} else if (undo && partConfig.canUndoFrameEdit) {
+			event.preventDefault()
+			event.stopImmediatePropagation()
+			partConfig.undoFrameEdit()
+		}
+	}
+
+	const isMacDevice = /Mac|iPod|iPhone|iPad/.test(navigator.userAgent)
 	const iconName = isMacDevice ? ('apple-keyboard-command' as const) : ('chevron-up' as const)
 	const iconLabel = isMacDevice ? 'command' : 'control'
 </script>
 
-<svelte:window
-	onkeydowncapture={(event) => {
-		if (event.metaKey && event.key.toLowerCase() === 's') {
-			event.preventDefault()
-			event.stopImmediatePropagation()
-			partConfig.save()
-		}
-	}}
-/>
+<svelte:window onkeydowncapture={handleKeydown} />
 
-{#if partConfig.isDirty}
+{#if environment.current.mode === 'build'}
 	<div
-		class="absolute bottom-8 z-4 flex w-full justify-center gap-2"
+		class="absolute bottom-4 z-4 flex w-full justify-center gap-2"
 		{...rest}
 	>
 		<div
@@ -35,39 +65,62 @@
 					<strong>Live updates paused</strong>
 				</p>
 
-				<p class="text-subtle-2 text-sm">You are currently viewing a snapshot while editing.</p>
+				<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
 			</div>
 
 			<div class="flex gap-2">
 				<Button
-					class="cursor-pointer text-blue-600"
-					onclick={() => {
-						partConfig.discardChanges()
-					}}
+					aria-label="Undo frame edit"
+					disabled={!partConfig.canUndoFrameEdit}
+					onclick={() => partConfig.undoFrameEdit()}
 				>
-					Discard
+					<div class="flex items-center gap-2">
+						<Undo2 size={14} />
+						Undo
+					</div>
 				</Button>
 
 				<Button
-					variant="dark"
-					aria-label="Save"
-					class="cursor-pointer text-blue-600"
-					onclick={() => {
-						partConfig.save()
-					}}
+					aria-label="Redo frame edit"
+					disabled={!partConfig.canRedoFrameEdit}
+					onclick={() => partConfig.redoFrameEdit()}
 				>
-					<div class="flex gap-2">
-						Save
-						<div class="font-roboto-mono text-disabled flex items-center">
-							<Icon
-								name={iconName}
-								size="xs"
-							/>
-							<span class="sr-only">{iconLabel}</span>
-							<span>S</span>
-						</div>
+					<div class="flex items-center gap-2">
+						<Redo2 size={14} />
+						Redo
 					</div>
 				</Button>
+
+				{#if environment.current.isStandalone}
+					<Button
+						onclick={discard}
+						disabled={!partConfig.isDirty}
+					>
+						Discard
+					</Button>
+
+					<Button
+						variant="dark"
+						aria-label="Save"
+						class="cursor-pointer text-blue-600"
+						disabled={!partConfig.isDirty}
+						onclick={() => {
+							partConfig.save()
+						}}
+					>
+						<div class="flex gap-2">
+							Save
+							<div class="font-roboto-mono text-disabled flex items-center">
+								<Icon
+									name={iconName}
+									size="xs"
+								/>
+								<span class="sr-only">{iconLabel}</span>
+								<span>S</span>
+							</div>
+						</div>
+					</Button>
+				{/if}
 			</div>
 		</div>
 	</div>

@@ -50,7 +50,8 @@
 		settings.current.renderSubEntityHoverDetail ||
 			settings.current.interactionMode === 'measure' ||
 			settings.current.interactionMode === 'select' ||
-			settings.current.interactionMode === 'gizmo'
+			settings.current.interactionMode === 'gizmo' ||
+			settings.current.interactionMode === 'move'
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))

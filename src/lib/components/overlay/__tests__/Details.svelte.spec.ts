@@ -6,8 +6,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
+import { BUILD_MODE_SYNC_CONTEXT_KEY } from '$lib/hooks/useBuildModeSync.svelte'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
-import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
+import {
+	createEnvironment,
+	ENVIRONMENT_CONTEXT_KEY,
+	ENVIRONMENT_MODE_STORAGE_KEY,
+} from '$lib/hooks/useEnvironment.svelte'
 import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
 import * as useLinkedEntities from '$lib/hooks/useLinked.svelte'
 import * as usePartConfig from '$lib/hooks/usePartConfig.svelte'
@@ -24,6 +29,8 @@ describe('Details component', () => {
 	let entity: Entity
 
 	beforeEach(() => {
+		localStorage.removeItem(ENVIRONMENT_MODE_STORAGE_KEY)
+
 		// Mock the selection hooks to return test data
 		world.reset()
 
@@ -36,7 +43,6 @@ describe('Details component', () => {
 			current: {},
 		})
 		vi.mocked(useConfigFrames.useConfigFrames).mockReturnValue({
-			getParentFrameOptions: vi.fn(),
 			unsetFrames: [],
 			current: {},
 		})
@@ -44,14 +50,17 @@ describe('Details component', () => {
 			current: { components: [] },
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 		vi.mocked(useLinkedEntities.useLinkedEntities).mockReturnValue({
 			current: [],
@@ -64,6 +73,7 @@ describe('Details component', () => {
 			props: { entity },
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, context],
+				[ENVIRONMENT_CONTEXT_KEY, createEnvironment()],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})
@@ -127,6 +137,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
 
@@ -136,19 +147,23 @@ describe('Details component', () => {
 			},
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 
 		const context = new Map<symbol, unknown>([
 			[WEBLABS_CONTEXT_KEY, weblabContext],
 			[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+			[BUILD_MODE_SYNC_CONTEXT_KEY, { syncing: false }],
 			[WORLD_CONTEXT_KEY, world],
 		])
 
@@ -170,6 +185,7 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
 
@@ -179,14 +195,17 @@ describe('Details component', () => {
 			},
 			updateFrame: vi.fn(),
 			isDirty: false,
-			hasPendingSave: false,
-			clearPendingSave: vi.fn(),
-			setPendingSave: vi.fn(),
 			save: vi.fn(),
 			discardChanges: vi.fn(),
 			deleteFrame: vi.fn(),
 			createFrame: vi.fn(),
 			hasEditPermissions: true,
+			canUndoFrameEdit: false,
+			canRedoFrameEdit: false,
+			undoFrameEdit: vi.fn(),
+			redoFrameEdit: vi.fn(),
+			beginFrameEditHistoryEntry: vi.fn(),
+			endFrameEditHistoryEntry: vi.fn(),
 		})
 
 		const { container } = render(Details, {
@@ -194,6 +213,7 @@ describe('Details component', () => {
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, weblabContext],
 				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
+				[BUILD_MODE_SYNC_CONTEXT_KEY, { syncing: false }],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})

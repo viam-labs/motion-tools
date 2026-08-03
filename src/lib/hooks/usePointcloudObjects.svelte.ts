@@ -14,8 +14,8 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
+import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
-import { createPose, poseToMatrix } from '$lib/transform'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -62,7 +62,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 		for (const client of clients) {
 			if (
-				environment.current.viewerMode === 'monitor' &&
+				environment.isLive &&
 				fetchedPropQueries &&
 				client.current?.name &&
 				interval !== RefetchRates.OFF &&
@@ -229,12 +229,12 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 							nextKeys.add(geometryLabel)
 
-							const center = createPose(geometry.center)
+							const center = new Pose().copy(geometry.center)
 							const existing = entities.get(geometryLabel)
 
 							if (existing) {
 								hierarchy.setParent(existing, geometriesInFrame.referenceFrame)
-								poseToMatrix(center, matrix4)
+								center.toMatrix4(matrix4)
 								const matrix = existing.get(traits.Matrix)
 								if (matrix && !matrix.equals(matrix4)) {
 									matrix.copy(matrix4)
@@ -245,7 +245,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 								const entityTraits: ConfigurableTrait[] = [
 									traits.Name(geometryLabel),
 									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
-									traits.Matrix(poseToMatrix(center, new Matrix4())),
+									traits.Matrix(center.toMatrix4()),
 									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),

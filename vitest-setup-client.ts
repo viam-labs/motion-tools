@@ -18,13 +18,16 @@ vi.mock('@threlte/core', () => ({
 
 // `@threlte/extras` components (PortalTarget, HTML, etc.) call into Threlte's
 // internal context which requires a `<Canvas>` parent. Tests render Svelte
-// components in isolation, so stub the pieces Details / plugin Details panels
-// touch with no-op components.
-vi.mock('@threlte/extras', () => ({
-	PortalTarget: vi.fn(),
-	Portal: vi.fn(),
-	HTML: vi.fn(),
-}))
+// components in isolation. Portal must preserve its children because the shared
+// DetailsPanel renders its entire UI through it; the target-only pieces are no-ops.
+vi.mock('@threlte/extras', async () => {
+	const MockPortal = await import('$lib/__tests__/__fixtures__/MockPortal.svelte')
+	return {
+		PortalTarget: vi.fn(),
+		Portal: MockPortal.default,
+		HTML: vi.fn(),
+	}
+})
 
 // Mock useFrames hook
 vi.mock('$lib/hooks/useFrames.svelte', () => ({
@@ -32,7 +35,6 @@ vi.mock('$lib/hooks/useFrames.svelte', () => ({
 }))
 vi.mock('$lib/hooks/useConfigFrames.svelte', () => ({
 	useConfigFrames: vi.fn(() => ({
-		getParentFrameOptions: vi.fn(),
 		unsetFrames: [],
 		current: {},
 	})),

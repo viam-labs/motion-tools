@@ -26,13 +26,15 @@ import {
 } from '$lib/buffer'
 import { hierarchy, relations, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
+import { Pose } from '$lib/math'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
-import { createPose, poseToMatrix } from '$lib/transform'
 
 import { ColorFormat } from './buf/draw/v1/metadata_pb'
 import { isPointCloud } from './geometry'
 
 const vec3 = new Vector3()
+const tempPose = new Pose()
+
 const rgb = { r: 0, g: 0, b: 0 }
 
 export const DEFAULT_LINE_WIDTH = 5
@@ -83,7 +85,7 @@ export const drawTransform = (
 ) => {
 	const entityTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
+		traits.Matrix(tempPose.copy(poseInObserverFrame?.pose).toMatrix4()),
 		api,
 	]
 
@@ -151,7 +153,7 @@ export const drawDrawing = (
 
 	const entity = world.spawn(
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
+		traits.Matrix(tempPose.copy(poseInObserverFrame?.pose).toMatrix4()),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 		...uuidTraits
@@ -173,10 +175,10 @@ export const updateTransform = (
 ) => {
 	const matrix = entity.get(traits.Matrix)
 	if (matrix) {
-		poseToMatrix(createPose(poseInObserverFrame?.pose), matrix)
+		tempPose.copy(poseInObserverFrame?.pose).toMatrix4(matrix)
 		entity.changed(traits.Matrix)
 	} else {
-		entity.add(traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())))
+		entity.add(traits.Matrix(tempPose.copy(poseInObserverFrame?.pose).toMatrix4()))
 	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
@@ -240,10 +242,10 @@ export const updateDrawing = (
 
 	const matrix = entity.get(traits.Matrix)
 	if (matrix) {
-		poseToMatrix(createPose(poseInObserverFrame?.pose), matrix)
+		tempPose.copy(poseInObserverFrame?.pose).toMatrix4(matrix)
 		entity.changed(traits.Matrix)
 	} else {
-		entity.add(traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())))
+		entity.add(traits.Matrix(tempPose.copy(poseInObserverFrame?.pose).toMatrix4()))
 	}
 
 	hierarchy.setParent(entity, poseInObserverFrame?.referenceFrame)
@@ -403,7 +405,7 @@ const drawModel = (
 
 	const baseTraits: ConfigurableTrait[] = [
 		traits.Name(referenceFrame),
-		traits.Matrix(poseToMatrix(createPose(poseInObserverFrame?.pose), new Matrix4())),
+		traits.Matrix(tempPose.copy(poseInObserverFrame?.pose).toMatrix4()),
 		api,
 		...hierarchy.parentTraits(poseInObserverFrame?.referenceFrame),
 	]
@@ -529,7 +531,7 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 
 	switch (geometryType?.case) {
 		case 'arrows': {
-			const poses = asFloat32Array(geometryType.value.poses, inMeters)
+			const poses = asFloat32Array(geometryType.value.poses)
 			entity.set(traits.Positions, poses)
 			entity.set(traits.Instances, { count: poses.length / STRIDE.ARROWS })
 			setColorTraits(entity, metadata?.colors ?? DEFAULT_ARROWS_COLORS)

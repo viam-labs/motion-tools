@@ -33,6 +33,7 @@ Both v1 and v2 assume you run the visualizer locally with `make up`. No extra se
 | `RemoveSpatialObjects`             | —                                  | Removed                               |
 | —                                  | `RemoveTransforms`                 | New                                   |
 | —                                  | `RemoveDrawings`                   | New                                   |
+| —                                  | `RemoveEntity`                     | New                                   |
 | —                                  | `CreateRelationship`               | New                                   |
 | —                                  | `DeleteRelationship`               | New                                   |
 | `Record` / `StopRecord` / `Replay` | `Record` / `StopRecord` / `Replay` | Same signatures, new recording format |
@@ -148,7 +149,7 @@ The following v1 helpers have no v2 equivalent and can be deleted from your code
 - `client.DefaultColorMap` — see [draw Package: Color API](#draw-package-color-api) for how to rebuild the same palette or swap in `draw.ChromaticColorChooser`.
 - `colorutil.NamedColorToRGB` — use `draw.ColorFromName` instead.
 - `shapes.Nurbs` — pass `ControlPoints`, `Knots`, `Weights`, and `Degree` directly to `DrawNurbs`.
-- `client.RemoveSpatialObjects(names)` — remove-by-name is not supported; see [Removing objects](#removing-objects) below.
+- `client.RemoveSpatialObjects(names)` — remove-by-name is not supported, but `api.RemoveEntity` drops one entity at a time by UUID; see [Removing objects](#removing-objects) below.
 
 ## Per-function migration
 
@@ -486,12 +487,23 @@ client.RemoveSpatialObjects([]string{"box", "sphere"})
 count, err := api.RemoveAll()        // see client/api/remove_all.go
 count, err := api.RemoveTransforms() // see client/api/remove_transforms.go
 count, err := api.RemoveDrawings()   // see client/api/remove_drawings.go
+err := api.RemoveEntity(uuid)        // see client/api/remove_entity.go
 ```
 
-- All three v2 functions return `int32`, the count of removed entities.
+- `RemoveAll`, `RemoveTransforms`, and `RemoveDrawings` return `int32`, the count of removed entities. `RemoveEntity` returns only an `error`.
 - `RemoveTransforms` clears geometries, frames, frame systems, and point clouds.
 - `RemoveDrawings` clears lines, points, arrows, NURBS, and GLTF models.
-- `RemoveSpatialObjects(names)` has **no direct replacement** — remove-by-name is not supported. Use `RemoveTransforms` / `RemoveDrawings` to clear a category, or prefer the v2 `ID` pattern: keep your entity IDs stable and update them in place via subsequent `Draw*` calls rather than remove-then-redraw.
+- `RemoveEntity` removes one entity by the UUID its `Draw*` call returned, so you can drop a single object without clearing a whole category.
+- `RemoveSpatialObjects(names)` has **no by-name replacement** — v2 removes by UUID, not by name. Keep the UUIDs your `Draw*` calls return and pass them to `RemoveEntity`, use `RemoveTransforms` / `RemoveDrawings` to clear a category, or prefer the v2 `ID` pattern: keep your entity IDs stable and update them in place via subsequent `Draw*` calls rather than remove-then-redraw.
+
+Removing one entity at a time:
+
+```go
+uuid, err := api.DrawGeometry(api.DrawGeometryOptions{ID: "box", Geometry: box})
+
+// ...later, once the box is no longer part of the scene:
+err = api.RemoveEntity(uuid)
+```
 
 ## Recording and replay
 

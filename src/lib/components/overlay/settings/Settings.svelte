@@ -6,8 +6,8 @@
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
-	import DashboardPortal from '../Portals/DashboardPortal.svelte'
 	import { useSettingsTabs } from '../Portals/useSettingsTabs.svelte'
+	import WorkspacePortal from '../Portals/WorkspacePortal.svelte'
 	import ConnectionSettings from './ConnectionSettings.svelte'
 	import DebugSettings from './DebugSettings.svelte'
 	import PointcloudSettings from './PointcloudSettings.svelte'
@@ -15,7 +15,6 @@
 	import Tabs from './Tabs.svelte'
 	import VisionSettings from './VisionSettings.svelte'
 	import WeblabSettings from './WeblabSettings.svelte'
-	import WidgetSettings from './WidgetSettings.svelte'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
@@ -35,7 +34,7 @@
 	const activeTab = new PersistedState('settings-active-tab', 'Connection')
 </script>
 
-<DashboardPortal>
+<WorkspacePortal>
 	<fieldset>
 		<DashboardButton
 			active={isOpen.current}
@@ -46,7 +45,7 @@
 			}}
 		/>
 	</fieldset>
-</DashboardPortal>
+</WorkspacePortal>
 
 <FloatingPanel
 	title="Settings"
@@ -60,7 +59,6 @@
 			{ label: 'Scene', component: SceneSettings },
 			{ label: 'Pointclouds', component: PointcloudSettings },
 			{ label: 'Vision', component: VisionSettings },
-			{ label: 'Widgets', component: WidgetSettings },
 			{ label: 'Debug', component: DebugSettings },
 			{ label: 'Weblabs', component: WeblabSettings },
 			...settingsTabs.current,

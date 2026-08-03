@@ -1,8 +1,9 @@
-import type { Geometry, Pose } from '@viamrobotics/sdk'
+import type { Geometry } from '@viamrobotics/sdk'
 
 import { Euler, MathUtils, Quaternion } from 'three'
 
-import { OrientationVector } from './three/OrientationVector'
+import { Pose } from '$lib/math'
+import { OrientationVector } from '$lib/three/OrientationVector'
 
 interface RawKinematicsTranslation {
 	X?: number
@@ -120,15 +121,7 @@ export const createPoseFromOrientation = (
 	orientation?: RawKinematicsOrientation
 ): Pose => {
 	const { oX, oY, oZ, theta } = orientationToOV(orientation)
-	return {
-		x: translation?.X ?? 0,
-		y: translation?.Y ?? 0,
-		z: translation?.Z ?? 0,
-		oX,
-		oY,
-		oZ,
-		theta,
-	}
+	return new Pose(translation?.X, translation?.Y, translation?.Z, oX, oY, oZ, theta)
 }
 
 /**
@@ -142,19 +135,17 @@ export const createPoseFromOrientation = (
  *   `{ geometryType: { case, value }, label, center: Pose }`
  */
 export const parseKinematicsGeometry = (raw: RawKinematicsGeometry): Geometry => {
-	console.log(raw)
 	const center: Pose = createPoseFromOrientation(raw.translation, raw.orientation)
 
 	const label = raw.Label ?? ''
 
 	const hasMesh = raw.mesh_data !== undefined && raw.mesh_data.length > 0
-	const hasBox = (raw.x !== undefined && raw.x !== 0)
-		|| (raw.y !== undefined && raw.y !== 0)
-		|| (raw.z !== undefined && raw.z !== 0)
-	const hasCapsule = (raw.r !== undefined && raw.r !== 0)
-		&& (raw.l !== undefined && raw.l !== 0)
-	const hasSphere = (raw.r !== undefined && raw.r !== 0)
-		&& !hasCapsule
+	const hasBox =
+		(raw.x !== undefined && raw.x !== 0) ||
+		(raw.y !== undefined && raw.y !== 0) ||
+		(raw.z !== undefined && raw.z !== 0)
+	const hasCapsule = raw.r !== undefined && raw.r !== 0 && raw.l !== undefined && raw.l !== 0
+	const hasSphere = raw.r !== undefined && raw.r !== 0 && !hasCapsule
 
 	if (hasMesh) {
 		return {

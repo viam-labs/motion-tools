@@ -1,27 +1,35 @@
 <script lang="ts">
+	import type { TransformControls as ThreeTransformControls } from 'three/addons/controls/TransformControls.js'
+
 	import { T, useThrelte } from '@threlte/core'
 	import { TransformControls } from '@threlte/extras'
+	import { onDestroy } from 'svelte'
 	import { Group, MathUtils, Matrix4 } from 'three'
 
-	import type { FrameEditSession } from '$lib/editing/FrameEditSession'
-
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
+	import { FrameEditor } from '$lib/editing/FrameEditor'
+	import { useBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
-	import { useFrameEditSession } from '$lib/hooks/useFrameEditSession.svelte'
+	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { createPose, matrixToPose, poseToMatrix, solveEditedMatrix } from '$lib/transform'
+	import { Pose } from '$lib/math'
+	import { isolateTransformControls } from '$lib/three/renderLayers'
+	import { solveEditedMatrix } from '$lib/transform'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
 	const environment = useEnvironment()
+	const buildModeSync = useBuildModeSync()
 	const fragmentInfo = useFragmentInfo()
 	const transformControls = useTransformControls()
-	const sessions = useFrameEditSession()
+	const partConfig = usePartConfig()
+	const frameEditor = new FrameEditor(partConfig.updateFrame, partConfig.deleteFrame)
 	const selected = useQuery(traits.Selected)
 
 	const mode = $derived(settings.current.transformMode)
+	const isBuildMode = $derived(environment.current.mode === 'build')
 	const entity = $derived(selected.current[0])
 	const transformable = useTrait(() => entity, traits.Transformable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
@@ -32,6 +40,7 @@
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const name = useTrait(() => entity, traits.Name)
+	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 	const hasScalableGeometry = $derived(
 		box.current !== undefined || sphere.current !== undefined || capsule.current !== undefined
 	)
@@ -73,22 +82,60 @@
 	})
 	const isSphereScale = $derived(activeMode === 'scale' && sphere.current !== undefined)
 	const isCapsuleScale = $derived(activeMode === 'scale' && capsule.current !== undefined)
+
+	/**
+	 * A frame drag is only ever staged through the part config, so without edit
+	 * permissions every change is discarded — `updatePartFrame` finds no matching
+	 * component and returns, leaving the frame visibly moved but nothing dirtied.
+	 * Withhold the gizmo rather than offering an edit that can't land. Non-frame
+	 * entities (drawings, tool gizmos) stage straight into `Matrix` and never
+	 * touch the config, so they stay draggable.
+	 */
+	const isFrameEntity = $derived(framesAPI.current !== undefined)
+	const canEdit = $derived(!isFrameEntity || partConfig.hasEditPermissions)
+
 	const transforming = $derived(
-		ref && entity && activeMode && !isFragmentComponentWithVariables && !invisible.current
+		isBuildMode &&
+			!buildModeSync.syncing &&
+			ref &&
+			entity &&
+			activeMode &&
+			canEdit &&
+			!isFragmentComponentWithVariables &&
+			!invisible.current
 	)
 
-	const refPose = createPose()
+	const refPose = new Pose()
 	const tempRefMatrix = new Matrix4()
 	const tempEditedMatrix = new Matrix4()
 	const tempParentInverse = new Matrix4()
-	const tempPose = createPose()
+	const tempPose = new Pose()
 
-	let session: FrameEditSession | undefined
 	let scaleStart:
 		| { type: 'box'; x: number; y: number; z: number }
 		| { type: 'sphere'; r: number }
 		| { type: 'capsule'; r: number; l: number }
 		| undefined
+	let frameHistoryEntryOpen = false
+	let controls = $state.raw<ThreeTransformControls>()
+
+	$effect(() => {
+		if (controls) isolateTransformControls(controls)
+	})
+
+	const beginFrameHistoryEntry = () => {
+		if (!isFrameEntity) return
+		partConfig.beginFrameEditHistoryEntry()
+		frameHistoryEntryOpen = true
+	}
+
+	const endFrameHistoryEntry = () => {
+		if (!frameHistoryEntryOpen) return
+		partConfig.endFrameEditHistoryEntry()
+		frameHistoryEntryOpen = false
+	}
+
+	onDestroy(endFrameHistoryEntry)
 
 	const captureScaleStart = () => {
 		if (!entity || activeMode !== 'scale') {
@@ -118,20 +165,15 @@
 	}
 
 	const onMouseDown = () => {
-		if (entity?.has(traits.FramesAPI)) {
-			session = sessions.begin([entity])
-		}
-
 		captureScaleStart()
+		beginFrameHistoryEntry()
 
-		environment.current.viewerMode = 'edit'
 		transformControls.setActive(true)
 	}
 
 	const onChange = () => {
 		if (!ref || !entity || !activeMode) return
 
-		const isFrameEntity = entity.has(traits.FramesAPI)
 		if (activeMode === 'translate' || activeMode === 'rotate') {
 			if (isFrameEntity) {
 				stageFrameTransform()
@@ -155,14 +197,14 @@
 					z: Math.max(0, scaleStart.z * ref.scale.z),
 				}
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'box', ...next })
+					frameEditor.setGeometry(entity, { type: 'box', ...next })
 				} else {
 					entity.set(traits.Box, next)
 				}
 			} else if (scaleStart?.type === 'sphere') {
 				const next = { r: Math.max(0, scaleStart.r * ref.scale.x) }
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'sphere', ...next })
+					frameEditor.setGeometry(entity, { type: 'sphere', ...next })
 				} else {
 					entity.set(traits.Sphere, next)
 				}
@@ -172,7 +214,7 @@
 					l: Math.max(0, scaleStart.l * ref.scale.y),
 				}
 				if (isFrameEntity) {
-					session?.stageGeometry(entity, { type: 'capsule', ...next })
+					frameEditor.setGeometry(entity, { type: 'capsule', ...next })
 				} else {
 					entity.set(traits.Capsule, next)
 				}
@@ -183,10 +225,9 @@
 	}
 
 	const onMouseUp = () => {
-		session?.commit()
-		session = undefined
 		scaleStart = undefined
 		transformControls.setActive(false)
+		endFrameHistoryEntry()
 	}
 
 	/**
@@ -214,30 +255,30 @@
 	}
 
 	/**
-	 * Stages a translate/rotate drag for a frame system entity into the edit
-	 * session. With a kinematic offset (LiveMatrix + Matrix both present), the
-	 * parent-relative target feeds solveEditedMatrix to back out the EditedMatrix
-	 * satisfying live × baseline⁻¹ × edited = local. Without one, Frame.svelte's
-	 * blend short-circuits to EditedMatrix, so we stage the target pose directly.
+	 * Applies a translate/rotate drag for a frame system entity. With a kinematic
+	 * offset (LiveMatrix + Matrix both present), the parent-relative target feeds
+	 * solveEditedMatrix to back out the EditedMatrix satisfying
+	 * live × baseline⁻¹ × edited = local. Without one, Frame.svelte's blend
+	 * short-circuits to EditedMatrix, so we write the target pose directly.
 	 */
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
 
 		computeLocalDragTarget(tempRefMatrix)
-		matrixToPose(tempRefMatrix, refPose)
+		refPose.setFromMatrix4(tempRefMatrix)
 
 		const live = liveMatrix.current
 		const config = configMatrix.current
 
 		if (!live || !config) {
 			if (activeMode === 'translate') {
-				session?.stagePose(entity, {
+				frameEditor.setPose(entity, {
 					x: refPose.x,
 					y: refPose.y,
 					z: refPose.z,
 				})
 			} else if (activeMode === 'rotate') {
-				session?.stagePose(entity, {
+				frameEditor.setPose(entity, {
 					oX: refPose.oX,
 					oY: refPose.oY,
 					oZ: refPose.oZ,
@@ -248,8 +289,10 @@
 		}
 
 		solveEditedMatrix(config, live, tempRefMatrix, tempEditedMatrix)
-		matrixToPose(tempEditedMatrix, tempPose)
-		session?.stagePose(entity, { ...tempPose })
+
+		tempPose.setFromMatrix4(tempEditedMatrix)
+
+		frameEditor.setPose(entity, { ...tempPose })
 	}
 
 	/**
@@ -267,8 +310,9 @@
 		computeLocalDragTarget(tempRefMatrix)
 
 		// update only the dragged component
-		matrixToPose(matrix, tempPose)
-		matrixToPose(tempRefMatrix, refPose)
+		tempPose.setFromMatrix4(matrix)
+		refPose.setFromMatrix4(tempRefMatrix)
+
 		if (activeMode === 'translate') {
 			tempPose.x = refPose.x
 			tempPose.y = refPose.y
@@ -280,7 +324,7 @@
 			tempPose.theta = refPose.theta
 		}
 
-		poseToMatrix(tempPose, matrix)
+		tempPose.toMatrix4(matrix)
 		entity.changed(traits.Matrix)
 	}
 </script>
@@ -292,6 +336,7 @@
 	/>
 	{#key entity}
 		<TransformControls
+			bind:controls
 			object={ref}
 			mode={activeMode}
 			space={settings.current.transformSpace}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '@viamrobotics/tailwind-config/fonts'
+
 	import '../app.css'
 
 	import type { DialConf } from '@viamrobotics/sdk'
@@ -7,7 +9,16 @@
 
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
-	import { DrawService, Focus, Logs, MeasureTool, XR } from '$lib/plugins'
+	import {
+		ControlWidgets,
+		DrawService,
+		Focus,
+		Logs,
+		MeasureTool,
+		MotionPlanReplayer,
+		MoveFrame,
+		XR,
+	} from '$lib/plugins'
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
@@ -71,17 +82,18 @@
 			>
 				{@render children()}
 
-				{#snippet dashboard()}
-					<Machines bind:isOpen={isMachinesPageOpen} />
-				{/snippet}
-
-				<Logs />
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
+				<MoveFrame />
 				<StandaloneLLMWrapper />
+				<MotionPlanReplayer />
 
 				<XR />
+
+				<Logs />
+				<ControlWidgets />
+				<Machines bind:isOpen={isMachinesPageOpen} />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

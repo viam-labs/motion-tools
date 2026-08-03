@@ -2,6 +2,7 @@
 	import { Button } from '@viamrobotics/prime-core'
 
 	import { DashboardPortal } from '$lib'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -12,13 +13,16 @@
 	const partID = usePartID()
 	const framelessComponents = useFramelessComponents()
 	const partConfig = usePartConfig()
+	const environment = useEnvironment()
+
+	const isBuildMode = $derived(environment.current.mode === 'build')
 
 	let selectedComponent = $derived(framelessComponents.current[0] ?? '')
 
 	let isOpen = $state(false)
 </script>
 
-{#if partID.current && partConfig.hasEditPermissions}
+{#if isBuildMode && partID.current && partConfig.hasEditPermissions}
 	<DashboardPortal>
 		<fieldset>
 			<DashboardButton

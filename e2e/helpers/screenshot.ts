@@ -1,14 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-/**
- * Take a snapshot of just the 3D canvas, ignoring DOM overlays (toolbar,
- * tree, details panel, toasts). Use this for tests that verify 3D scene
- * rendering so unrelated UI changes don't invalidate the snapshot.
- *
- * Returns the failed file name on failure (or '' on success) so callers
- * can collect failures and assert at the end of a test.
- */
-export const screenshotCanvas = async (page: Page, name: string): Promise<string> => {
+const withOverlaysHidden = async <T>(page: Page, fn: () => Promise<T>): Promise<T> => {
 	const canvas = page.locator('canvas').first()
 
 	await canvas.evaluate((node) => {
@@ -28,13 +20,7 @@ export const screenshotCanvas = async (page: Page, name: string): Promise<string
 	})
 
 	try {
-		await expect(canvas).toHaveScreenshot(`${name}.png`, {
-			threshold: 0.1,
-		})
-		return ''
-	} catch (error) {
-		console.warn(error)
-		return `${name}.png`
+		return await fn()
 	} finally {
 		await page.evaluate(() => {
 			const store = globalThis as unknown as { __screenshotHidden?: HTMLElement[] }
@@ -45,4 +31,70 @@ export const screenshotCanvas = async (page: Page, name: string): Promise<string
 			delete store.__screenshotHidden
 		})
 	}
+}
+
+export const screenshotCanvas = async (page: Page, name: string): Promise<string> => {
+	return withOverlaysHidden(page, async () => {
+		try {
+			await expect(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`, {
+				threshold: 0.1,
+			})
+			return ''
+		} catch (error) {
+			console.warn(error)
+			return `${name}.png`
+		}
+	})
+}
+
+export const captureCanvas = async (page: Page): Promise<Buffer> => {
+	return withOverlaysHidden(page, () => page.locator('canvas').first().screenshot())
+}
+
+export const waitForCanvasToChange = async (
+	page: Page,
+	reference: Buffer,
+	timeoutMs = 10000
+): Promise<Buffer | null> => {
+	return withOverlaysHidden(page, async () => {
+		const canvas = page.locator('canvas').first()
+		const deadline = Date.now() + timeoutMs
+		while (Date.now() < deadline) {
+			const current = await canvas.screenshot()
+			if (!current.equals(reference)) {
+				return current
+			}
+			await page.waitForTimeout(150)
+		}
+		return null
+	})
+}
+
+/**
+ * Wait until the canvas stops changing, then return the settled frame.
+ *
+ * `waitForCanvasToChange` returns on the first differing pixel, which can be a partially applied
+ * update: an entity's mesh and its axes helper are flushed by separate batched renderers, so a
+ * move can be visible on one before the other. Screenshotting at that point captures a torn
+ * frame and makes a passing snapshot look like a bug. Wait for the scene to settle instead.
+ */
+export const waitForCanvasToSettle = async (
+	page: Page,
+	{ stableMs = 400, timeoutMs = 10000 }: { stableMs?: number; timeoutMs?: number } = {}
+): Promise<Buffer> => {
+	return withOverlaysHidden(page, async () => {
+		const canvas = page.locator('canvas').first()
+		const deadline = Date.now() + timeoutMs
+
+		let previous = await canvas.screenshot()
+		while (Date.now() < deadline) {
+			await page.waitForTimeout(stableMs)
+			const current = await canvas.screenshot()
+			if (current.equals(previous)) {
+				return current
+			}
+			previous = current
+		}
+		return previous
+	})
 }
