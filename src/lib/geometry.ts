@@ -11,9 +11,13 @@ import { Pose } from '$lib/math'
 
 import type { Frame } from './frame'
 
-export const createGeometry = (geometryType?: Geometry['geometryType'], label = ''): Geometry => {
+export const createGeometry = (
+	geometryType?: Geometry['geometryType'],
+	label = '',
+	center = new Pose()
+): Geometry => {
 	return {
-		center: new Pose(),
+		center,
 		label,
 		geometryType: geometryType ?? { case: undefined, value: undefined },
 	}
@@ -30,33 +34,45 @@ export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undef
 			return undefined
 		}
 		case 'box': {
-			return createGeometry({
-				case: 'box',
-				value: {
-					dimsMm: {
-						x: geometry.x,
-						y: geometry.y,
-						z: geometry.z,
+			return createGeometry(
+				{
+					case: 'box',
+					value: {
+						dimsMm: {
+							x: geometry.x,
+							y: geometry.y,
+							z: geometry.z,
+						},
 					},
 				},
-			})
+				'',
+				new Pose().setFromFrame(geometry)
+			)
 		}
 		case 'sphere': {
-			return createGeometry({
-				case: 'sphere',
-				value: {
-					radiusMm: geometry.r,
+			return createGeometry(
+				{
+					case: 'sphere',
+					value: {
+						radiusMm: geometry.r,
+					},
 				},
-			})
+				'',
+				new Pose().setFromFrame(geometry)
+			)
 		}
 		case 'capsule': {
-			return createGeometry({
-				case: 'capsule',
-				value: {
-					radiusMm: geometry.r,
-					lengthMm: geometry.l,
+			return createGeometry(
+				{
+					case: 'capsule',
+					value: {
+						radiusMm: geometry.r,
+						lengthMm: geometry.l,
+					},
 				},
-			})
+				'',
+				new Pose().setFromFrame(geometry)
+			)
 		}
 		default: {
 			const _exhaustive: never = geometry
