@@ -150,7 +150,9 @@ export const provideFrames = (partID: () => string) => {
 
 						invFrameQuat.multiply(geoQuat)
 
-						geo.center = new Pose().setFromQuaternion(invFrameQuat)
+						// setFromQuaternion only updates orientation. Copy the center first so the
+						// link-local translation calculated above is not reset to the origin.
+						geo.center = new Pose().copy(geo.center).setFromQuaternion(invFrameQuat)
 					}
 
 					frames[frameName].physicalObject = geo
