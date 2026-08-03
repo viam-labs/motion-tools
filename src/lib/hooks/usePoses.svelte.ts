@@ -2,7 +2,7 @@ import type { Entity } from 'koota'
 
 import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
-import { untrack } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
@@ -24,11 +24,15 @@ const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 const tempPose = new Pose()
 
-export interface PoseSnapshotSource {
+const key = Symbol('use-poses-context')
+
+export interface Context {
 	/** True once every frame in the selected config has a pose query. */
 	readonly isReady: boolean
+
 	/** Configured frame names whose pose queries have not been registered yet. */
 	readonly missingFrameNames: string[]
+
 	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
@@ -234,7 +238,7 @@ export const providePoses = (partID: () => string) => {
 	const missingFrameNames = () =>
 		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
 
-	return {
+	setContext<Context>(key, {
 		get isReady() {
 			return frames.isReady && missingFrameNames().length === 0
 		},
@@ -248,5 +252,9 @@ export const providePoses = (partID: () => string) => {
 			)
 			return Promise.allSettled(currentEntries.map(({ query }) => query.refetch()))
 		},
-	} satisfies PoseSnapshotSource
+	})
+}
+
+export const usePoses = () => {
+	return getContext<Context>(key)
 }
