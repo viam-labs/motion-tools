@@ -21,6 +21,7 @@ import {
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
+import { meshContentType } from '$lib/mesh'
 import {
 	type FramePoseJson,
 	geometryCenterInFrame,
@@ -146,15 +147,16 @@ export const parseGeometry = (
 			})
 		}
 
-		// Bytes pass through unscaled: PLY vertices are already metres, and only the center
-		// pose is millimetres.
+		// Bytes pass through unscaled: PLY and STL vertices are already metres, and only the
+		// center pose is millimetres.
 		case 'mesh': {
-			const contentType = (g.mesh_content_type as string | undefined) ?? ''
+			const declared = g.mesh_content_type as string | undefined
 			const meshData = g.mesh_data as string | undefined
 
-			// parsePlyInput is PLY-only; other formats throw at render time, far from here.
+			// `parseMeshInput` handles ply and stl; anything else throws at render time, far from here.
 			if (!meshData) return skip('mesh geometry carries no mesh_data')
-			if (contentType !== 'ply') return skip(`unsupported mesh content type "${contentType}"`)
+			const contentType = meshContentType(declared)
+			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)
 
 			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
 			// report as an unparseable plan — the whole failure mode this branch avoids.

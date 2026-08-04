@@ -67,10 +67,13 @@ export const geometryCenterInFrame = (
 
 	const center = new Pose(tmpV.x, tmpV.y, tmpV.z)
 
-	if (quatFromJson(geoOrient, tmpQGeo)) {
-		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
-		center.setFromQuaternion(tmpQLocal)
-	}
+	// Unconditional, because "no orientation" means identity *in the parent's frame*, which is still
+	// a rotation of R_frame⁻¹ once expressed locally. Applying it only when the geometry declared one
+	// left an unoriented shape aligned to the parent instead of to its own link, off by exactly the
+	// link's rotation. `quatFromJson` writes identity when it finds nothing, so one path covers both.
+	quatFromJson(geoOrient, tmpQGeo)
+	tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
+	center.setFromQuaternion(tmpQLocal)
 
 	return center
 }

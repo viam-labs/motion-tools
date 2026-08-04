@@ -9,7 +9,7 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
-import { parsePlyInput } from '$lib/ply'
+import { parseMeshInput } from '$lib/mesh'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -268,7 +268,8 @@ export const Geometry = (geometry: ViamGeometry) => {
 	} else if (geometry.geometryType.case === 'sphere') {
 		return Sphere(createSphere(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'mesh') {
-		return BufferGeometry(parsePlyInput(geometry.geometryType.value.mesh))
+		const { mesh, contentType } = geometry.geometryType.value
+		return BufferGeometry(parseMeshInput(mesh, contentType))
 	}
 
 	return ReferenceFrame
@@ -308,13 +309,14 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
+		const { mesh, contentType } = geometry.geometryType.value
 		if (entity.has(BufferGeometry)) {
 			const old = entity.get(BufferGeometry)
-			entity.set(BufferGeometry, parsePlyInput(geometry.geometryType.value.mesh))
+			entity.set(BufferGeometry, parseMeshInput(mesh, contentType))
 			old?.dispose()
 		} else {
 			entity.remove(Box, Sphere, Capsule)
-			entity.add(BufferGeometry(parsePlyInput(geometry.geometryType.value.mesh)))
+			entity.add(BufferGeometry(parseMeshInput(mesh, contentType)))
 		}
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
