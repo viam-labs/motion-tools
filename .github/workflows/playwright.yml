@@ -48,7 +48,7 @@ jobs:
         run: ./e2e/setup.sh
 
       - name: Run Playwright tests
-        run: pnpm playwright test e2e/ci.test.ts
+        run: pnpm playwright test e2e/ci.test.ts --config playwright.ci.config.ts
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
