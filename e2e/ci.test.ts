@@ -1,28 +1,43 @@
 import { test } from '@playwright/test'
 
+const getE2EConfig = () => {
+	const host = process.env.VIAM_E2E_HOST
+	const partId = process.env.VIAM_E2E_PART_ID
+	const apiKeyId = process.env.VIAM_E2E_API_KEY_ID
+	const apiKey = process.env.VIAM_E2E_API_KEY
+	const signalingAddress = process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443'
+
+	if (!host || !partId || !apiKeyId || !apiKey) {
+		throw new Error(
+			'Missing E2E environment variables. The global setup may not have run.\n' +
+				'Make sure playwright.config.ts has globalSetup configured.'
+		)
+	}
+
+	return { host, partId, apiKeyId, apiKey, signalingAddress }
+}
+
 test('test', async ({ page }) => {
+	const { host, partId, apiKeyId, apiKey, signalingAddress } = getE2EConfig()
+
 	await page.goto('https://viamrobotics.github.io/visualization/playground/')
 	await page.getByRole('button', { name: 'Machine connection configs' }).click()
 	await page.getByRole('button', { name: 'Add config' }).click()
 	await page.getByRole('textbox', { name: 'Host' }).click()
 	await page.getByRole('textbox', { name: 'Host' }).click()
 	await page.getByRole('textbox', { name: 'Host' }).click()
-	await page.getByRole('textbox', { name: 'Host' }).fill('test-rdk-main.i6h2oo7033.viam.cloud')
+	await page.getByRole('textbox', { name: 'Host' }).fill(host)
 	await page.getByRole('button', { name: 'Expand connection config' }).click()
 	await page.getByRole('button', { name: 'Expand connection config' }).click()
 	await page.getByRole('textbox', { name: 'Part ID' }).click()
-	await page.getByRole('textbox', { name: 'Part ID' }).fill('06a3121a-520e-4d23-8d1e-e3908bde1eea')
+	await page.getByRole('textbox', { name: 'Part ID' }).fill(partId)
 	await page.getByRole('textbox', { name: 'API key ID' }).click()
 	await page.getByRole('textbox', { name: 'API key ID' }).click()
-	await page
-		.getByRole('textbox', { name: 'API key ID' })
-		.fill('b3242cee-eade-4123-9633-5a1f2999920a')
+	await page.getByRole('textbox', { name: 'API key ID' }).fill(apiKeyId)
 	await page.getByRole('textbox', { name: 'API key value' }).dblclick()
-	await page
-		.getByRole('textbox', { name: 'API key value' })
-		.fill('c4y8bry090n1ydijv40id3zttbzgag5n')
+	await page.getByRole('textbox', { name: 'API key value' }).fill(apiKey)
 	await page.getByRole('textbox', { name: 'Signaling address' }).dblclick()
-	await page.getByRole('textbox', { name: 'Signaling address' }).fill('https://app.viam.com:443')
+	await page.getByRole('textbox', { name: 'Signaling address' }).fill(signalingAddress)
 	await page.getByRole('button', { name: 'Expand connection config' }).click()
 	await page.locator('canvas').click({
 		position: {

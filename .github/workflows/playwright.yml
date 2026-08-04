@@ -22,14 +22,33 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       - name: Install dependencies
         run: pnpm install
 
       - name: Install Playwright browsers
         run: pnpm playwright install chromium --with-deps
 
+      - name: Install Viam CLI
+        run: |
+          sudo curl --compressed -o /usr/local/bin/viam https://storage.googleapis.com/packages.viam.com/apps/viam-cli/viam-cli-stable-linux-amd64
+          sudo chmod a+rx /usr/local/bin/viam
+
+      - name: Log in to Viam CLI
+        run: viam login api-key --key-id="$VIAM_KEY_ID" --key="$VIAM_KEY_VALUE"
+        env:
+          VIAM_KEY_ID: ${{ secrets.VIAM_KEY_ID }}
+          VIAM_KEY_VALUE: ${{ secrets.VIAM_KEY_VALUE }}
+
+      - name: Run e2e setup
+        run: ./e2e/setup.sh
+
       - name: Run Playwright tests
-        run: pnpm playwright test e2e/ci.test.ts --config playwright.ci.config.ts
+        run: pnpm playwright test e2e/ci.test.ts
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
