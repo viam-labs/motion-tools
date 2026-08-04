@@ -4,12 +4,17 @@ on:
   pull_request:
     branches: [main] # JUST FOR TESTING
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧
@@ -48,7 +53,19 @@ jobs:
         run: ./e2e/setup.sh
 
       - name: Run Playwright tests
-        run: pnpm playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts
+        run: pnpm playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts -u
+
+      - name: Commit updated snapshots
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add e2e/edit-frame.test.ts-snapshots/ e2e/file-drop.test.ts-snapshots/
+          if git diff --staged --quiet; then
+            echo "No snapshot changes to commit"
+          else
+            git commit -m "Update e2e screenshot baselines"
+            git push
+          fi
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}
