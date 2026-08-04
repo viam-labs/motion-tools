@@ -35,7 +35,7 @@
 		"test:draw": "wireit",
 		"test:e2e": "./e2e/setup.sh && playwright test",
 		"test:e2e-ui": "./e2e/setup.sh && playwright test --ui",
-		"test:e2e-ci": "./e2e/setup.sh && playwright test e2e/ci.test.ts --config playwright.ci.config.ts",
+		"test:e2e-ci": "./e2e/setup.sh && playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts",
 		"vet": "wireit",
 		"vet:draw": "wireit",
 		"vet:client": "wireit",
