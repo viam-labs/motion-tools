@@ -5,8 +5,9 @@ import { setContext, tick } from 'svelte'
 import { BUILD_MODE_SYNC_CONTEXT_KEY, createBuildModeSync } from './useBuildModeSync.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useGeometries } from './useGeometries.svelte'
+import { usePartConfig } from './usePartConfig.svelte'
 import { usePartID } from './usePartID.svelte'
-import { useRefetchPoses } from './useRefetchPoses'
+import { usePoses } from './usePoses.svelte'
 
 /**
  * Provides build synchronization state and captures a fresh live-machine
@@ -18,20 +19,26 @@ export const provideBuildModeSync = () => {
 	const environment = useEnvironment()
 	const context = createBuildModeSync(environment)
 	const connectionStatus = useConnectionStatus(() => partID.current)
+	const partConfig = usePartConfig()
+	const poses = usePoses()
 	const geometries = useGeometries()
-	const { refetchPoses } = useRefetchPoses()
 
 	setContext(BUILD_MODE_SYNC_CONTEXT_KEY, context)
 
 	$effect(() => {
-		if (!context.syncing || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
+		if (
+			!context.syncing ||
+			!partConfig.isReady ||
+			!poses.isReady ||
+			connectionStatus.current !== MachineConnectionEvent.CONNECTED
+		) {
 			return
 		}
 
 		let cancelled = false
 		void (async () => {
 			await tick()
-			await Promise.allSettled([refetchPoses(), geometries.refetch()])
+			await Promise.allSettled([poses.refetch(), geometries.refetch()])
 			await tick()
 			if (!cancelled && environment.current.mode === 'build') context.finish()
 		})()
