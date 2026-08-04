@@ -40,7 +40,7 @@
 	provideResourceByName(() => partID.current)
 	provideConfigFrames()
 	provideFrames(() => partID.current)
-	const poses = providePoses(() => partID.current)
+	providePoses(() => partID.current)
 	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)
 	providePointclouds(() => partID.current)
@@ -53,7 +53,7 @@
 	provideLinkedEntities()
 
 	// Depends on the pose and geometry providers above.
-	provideBuildModeSync(poses)
+	provideBuildModeSync()
 </script>
 
 {@render children()}
