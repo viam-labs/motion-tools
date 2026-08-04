@@ -186,6 +186,53 @@ type Frames = ParsedPlan['frames']
 const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
 	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
 
+interface ModelNode {
+	id?: string
+	parent?: string
+}
+
+/**
+ * The model's one childless frame, over links *and* joints. RDK computes `leaves` the same way and
+ * refuses to build a model that has more than one, so anything else is a shape we cannot read.
+ */
+const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
+	const nodes = [
+		...((model?.links ?? []) as ModelNode[]),
+		...((model?.joints ?? []) as ModelNode[]),
+	]
+
+	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))
+	const leaves = nodes.flatMap((node) =>
+		node.id !== undefined && !claimed.has(node.id) ? node.id : []
+	)
+
+	return leaves.length === 1 ? leaves[0] : undefined
+}
+
+/**
+ * Which frame a model hands its children to. RDK serialises this on the `SimpleModel` envelope, a
+ * *sibling* of `model`; `ModelConfigJSON` has no such field, only `output_frames`. Reading it off
+ * `model` therefore never finds it, and the array-position fallback that covered for that is
+ * arbitrary. `UnmarshalModelXML` builds its links from a Go map, so for a URDF arm the declaration
+ * order is fixed at parse time and can differ between robot restarts.
+ *
+ * The last resort reproduces RDK's own `leaves[0]` rule, which is why it can name a joint,
+ * something `links.at(-1)` never could. It agrees with the declared `primary_output_frame` for all
+ * 29 model frames across the four captures, so the ladder is consistent wherever both can answer.
+ */
+const modelOutputFrame = (
+	entry: Frames[string],
+	model: Record<string, unknown> | undefined
+): string | undefined => {
+	const declared = (entry.frame as Record<string, unknown>).primary_output_frame
+	if (typeof declared === 'string' && declared !== '') return declared
+
+	const configured = (model?.output_frames as string[] | undefined)?.[0]
+	if (typeof configured === 'string' && configured !== '') return configured
+
+	return soleLeafOf(model)
+}
+
 const newUuid = (): Uint8Array<ArrayBuffer> =>
 	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
 
@@ -230,9 +277,7 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
 		}
 
-		const primaryOutput = model?.primary_output_frame as string | undefined
-		const links = model?.links as Array<{ id: string }> | undefined
-		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
+		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
 			continue

@@ -5,6 +5,8 @@ import type { ParsedPlan } from '../parse-plan'
 import { buildFrameDescriptors } from '../build-frame-descriptors'
 import { parsePlan } from '../parse-plan'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
+import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
+import planDump from './__fixtures__/plan.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
@@ -14,6 +16,35 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 	goals: [],
 	obstaclesInWorldFrame: undefined,
 	worldState: undefined,
+})
+
+/**
+ * The regression gate for the output-frame ladder, asserted against every capture at once. A frame
+ * parented to a bare model name has to land on that model's declared `primary_output_frame` — read
+ * here straight out of the dump rather than from a snapshot, so a wrong answer names itself instead
+ * of showing up as a diff nobody can adjudicate. `gantry-plan` contributes nothing, which is why the
+ * count is asserted across the set rather than per file.
+ */
+describe('captured plans', () => {
+	it('resolve every model-parented frame to that model`s declared output frame', () => {
+		let checked = 0
+
+		for (const raw of [gantryPlan, pirouettePlan, planDump, saladPlan]) {
+			const parsed = parsePlan(raw)
+			const parentByName = new Map(buildFrameDescriptors(parsed).map((d) => [d.name, d.parent]))
+
+			for (const [child, rawParent] of Object.entries(parsed.parents)) {
+				const model = parsed.frames[rawParent]
+				if (model?.frame_type !== 'model') continue
+
+				const declared = (model.frame as Record<string, unknown>).primary_output_frame
+				expect(parentByName.get(child)).toBe(`${rawParent}:${declared as string}`)
+				checked += 1
+			}
+		}
+
+		expect(checked).toBe(14)
+	})
 })
 
 // Identity is right for an absent orientation and wrong for an unrecognised one; both halves matter,
@@ -264,66 +295,141 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('prefers primary_output_frame over last-joint static child when both exist', () => {
-		const p = plan(
-			{
-				arm: {
-					frame_type: 'model',
-					frame: {
-						name: 'arm',
-						model: {
-							joints: [{ id: 'waist' }, { id: 'gripper_rot' }],
-							primary_output_frame: 'gripper_mount',
-							links: [{ id: 'extra_link' }, { id: 'gripper_mount' }],
-						},
-					},
-				},
-				'arm:gripper_rot': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } },
-					},
-				},
-				'arm:extra_link': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: {
-							frame_type: 'static',
-							frame: {
-								translation: { X: 0, Y: 0, Z: 0 },
-								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-							},
-						},
-					},
-				},
-				'arm:gripper_mount': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: {
-							frame_type: 'static',
-							frame: {
-								translation: { X: 0, Y: 0, Z: 0 },
-								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-							},
-						},
-					},
-				},
-				camera_origin: {
+	/**
+	 * Where a model hands off its children. Both cases below declare `links` with the tip *first*, so
+	 * array position answers differently from the model's own declaration and the two are
+	 * distinguishable — the previous version of this test could not tell them apart, because its last
+	 * link was also its output frame. A URDF arm's link order really is arbitrary: RDK builds it by
+	 * ranging a Go map, so it is fixed at parse time and can differ between robot restarts.
+	 */
+	describe('model output frame', () => {
+		const staticFrame = {
+			frame_type: 'named',
+			frame: {
+				inner_frame: {
 					frame_type: 'static',
 					frame: {
-						translation: { X: 10, Y: 0, Z: 0 },
+						translation: { X: 0, Y: 0, Z: 0 },
 						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
 					},
 				},
 			},
-			{
-				'arm:extra_link': 'arm:gripper_rot',
-				'arm:gripper_mount': 'arm:extra_link',
-				camera_origin: 'arm',
-			}
-		)
-		const camera = buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')!
-		expect(camera.parent).toBe('arm:gripper_mount')
+		}
+
+		const camera = {
+			frame_type: 'static',
+			frame: {
+				translation: { X: 10, Y: 0, Z: 0 },
+				orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+			},
+		}
+
+		const rotational = {
+			frame_type: 'named',
+			frame: { inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } } },
+		}
+
+		const armed = (frame: Record<string, unknown>): ParsedPlan =>
+			plan(
+				{
+					arm: { frame_type: 'model', frame },
+					'arm:gripper_rot': rotational,
+					'arm:gripper_mount': staticFrame,
+					'arm:extra_link': staticFrame,
+					camera_origin: camera,
+				},
+				{
+					'arm:gripper_rot': 'arm:base',
+					'arm:gripper_mount': 'arm:gripper_rot',
+					'arm:extra_link': 'arm:gripper_rot',
+					camera_origin: 'arm',
+				}
+			)
+
+		const parentOfCamera = (p: ParsedPlan): string | undefined =>
+			buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')?.parent
+
+		// RDK puts this on the SimpleModel envelope, a sibling of `model`. All four captures have it
+		// there; none has it inside `model`, so reading it off `model` never found it.
+		it('reads primary_output_frame off the model envelope, not out of `model`', () => {
+			const p = armed({
+				name: 'arm',
+				primary_output_frame: 'gripper_mount',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		// `ModelConfigJSON` has no primary_output_frame — `output_frames` is its analogue, and RDK
+		// refuses to build a model that declares more than one.
+		it('falls back to the model config`s own output_frames', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					output_frames: ['gripper_mount'],
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		// RDK's own rule when nothing is declared. `extra_link` is declared last but is not the tip.
+		it('falls back to the model`s sole childless frame rather than its last link', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		// The leaf can be a joint, which the old array-position fallback could never name.
+		it('accepts a joint as the terminal frame', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [{ id: 'extra_link', parent: 'base' }],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_rot')
+		})
+
+		// Ambiguous shapes must not guess; the last-joint-child path still covers them.
+		it('declines to pick when a model has more than one childless frame', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			// Falls through to "what hangs off the last joint", which is insertion-ordered.
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
 	})
 
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
