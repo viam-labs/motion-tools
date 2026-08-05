@@ -1,9 +1,17 @@
+import { MathUtils, Quaternion, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
+
+import type { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
+
+import { OrientationVector } from '$lib/three/OrientationVector'
 
 import { parsePlan } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
 import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
+import gripperModel from './__fixtures__/rdk-mimic-gripper-model.json'
+import serialModel from './__fixtures__/rdk-mimic-serial-model.json'
+import { rdkModelPlan } from './__fixtures__/rdk-model-plan'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 // arm chain: waist (joint, Z-axis) → base (link, z=100mm, capsule geometry)
@@ -201,5 +209,81 @@ describe('parsedPlanToSnapshots with mesh geometry present', () => {
 	it('still carries geometry for frames the builder understands', () => {
 		const withGeometry = snapshots[0]!.transforms.filter((t) => t.physicalObject !== undefined)
 		expect(withGeometry.length).toBeGreaterThan(0)
+	})
+})
+
+/**
+ * Transforms carry a pose in their parent's frame, so a claim about where a frame ends up is a claim
+ * about the whole chain. Composing it here is what lets these tests quote RDK's own expected points
+ * instead of ours.
+ */
+const worldPointOf = (transforms: Transform[], frame: string): Vector3 => {
+	const byName = new Map(transforms.map((t) => [t.referenceFrame, t]))
+
+	const chain: PoseInFrame[] = []
+	for (let name = frame; byName.has(name); ) {
+		const parented = byName.get(name)!.poseInObserverFrame!
+		chain.unshift(parented)
+		name = parented.referenceFrame
+	}
+
+	const point = new Vector3()
+	const rotation = new Quaternion()
+	const local = new Quaternion()
+	const ov = new OrientationVector()
+
+	for (const { pose } of chain) {
+		point.add(new Vector3(pose!.x, pose!.y, pose!.z).applyQuaternion(rotation))
+		ov.set(pose!.oX, pose!.oY, pose!.oZ, MathUtils.degToRad(pose!.theta))
+		rotation.multiply(ov.toQuaternion(local))
+	}
+
+	return point
+}
+
+/**
+ * A mimic joint moves but has no column of its own, so a step is shorter than the model's joint list
+ * and reading it positionally walks off the end. Both models are byte-for-byte copies of
+ * `referenceframe/testfiles/`, and every point below is one RDK's own tests assert
+ * (`referenceframe/model_test.go:407,453`) — so what is being checked is agreement with RDK, not
+ * self-consistency.
+ */
+describe('parsedPlanToSnapshots with a model whose joints mimic', () => {
+	// RDK: 1 DoF. Opening to 25 mm drives both fingers, the right one through its mimic.
+	describe("the gripper's two fingers off one column", () => {
+		const [snapshot] = parsedPlanToSnapshots(
+			rdkModelPlan(gripperModel, [{ test_mimic_gripper: [25] }])
+		)
+		const point = (frame: string) =>
+			worldPointOf(snapshot!.transforms, `test_mimic_gripper:${frame}`)
+
+		it('opens them symmetrically about the axis they share', () => {
+			expect(point('left_finger').y).toBeCloseTo(25, 6)
+			expect(point('right_finger').y).toBeCloseTo(-25, 6)
+		})
+
+		it('leaves the tcp where a static link belongs, clear of the joints', () => {
+			expect(point('tcp').toArray()).toEqual([0, 0, 30])
+		})
+	})
+
+	// RDK: 2 DoF. joint3 mimics joint1 at -1, so at joint1 = +90° it folds back by the same angle and
+	// the tip comes to rest at (200, 0, 100) rather than continuing round to (300, 0, 0).
+	describe("the serial arm's third joint driven from its first", () => {
+		const steps = [{ test_mimic_serial: [0, 0] }, { test_mimic_serial: [Math.PI / 2, 0] }]
+		const snapshots = parsedPlanToSnapshots(rdkModelPlan(serialModel, steps))
+		const tipAt = (step: number) =>
+			worldPointOf(snapshots[step]!.transforms, 'test_mimic_serial:link3')
+
+		it('stacks the three links when every joint is at zero', () => {
+			expect(tipAt(0).toArray()).toEqual([0, 0, 300])
+		})
+
+		it('folds the mimic back through the angle its source turned', () => {
+			const tip = tipAt(1)
+			expect(tip.x).toBeCloseTo(200, 6)
+			expect(tip.y).toBeCloseTo(0, 6)
+			expect(tip.z).toBeCloseTo(100, 6)
+		})
 	})
 })

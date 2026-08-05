@@ -31,7 +31,10 @@ import {
 } from '$lib/math/spatialJson'
 import { meshContentType } from '$lib/mesh'
 
+import type { JointJson } from './model-joint-columns'
 import type { ParsedPlan } from './parse-plan'
+
+import { modelJointColumns } from './model-joint-columns'
 
 /**
  * Split from joints because a trajectory step only carries joint angles: every other frame's
@@ -61,6 +64,11 @@ export interface JointFrameDescriptor {
 	axis: { X: number; Y: number; Z: number }
 	componentName: string
 	jointIndex: number
+	/**
+	 * Present iff this joint mimics another: it has no column of its own, so `jointIndex` addresses
+	 * its source's and the value to use is `multiplier * step[jointIndex] + offset`.
+	 */
+	mimic?: { multiplier: number; offset: number }
 	uuid: Uint8Array<ArrayBuffer>
 }
 
@@ -250,7 +258,7 @@ interface FrameContext {
 	/** Parent with model frames already resolved away — safe to use as a descriptor's parent. */
 	parent: string
 	/** Present iff a model claims this frame as a joint. Absent means no trajectory column. */
-	joint?: { componentName: string; jointIndex: number }
+	joint?: Pick<JointFrameDescriptor, 'componentName' | 'jointIndex' | 'mimic'>
 }
 
 const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
@@ -272,12 +280,16 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 		if (entry.frame_type !== 'model') continue
 		const model = modelOf(entry)
 
-		// `model.joints` is the only record of which slot in a trajectory step drives which frame,
-		// and its array order *is* that slot. Keyed by frame name because that is how the frame
-		// asks — the join between the two is the `${model}:${id}` naming convention, nothing else.
-		const joints = (model?.joints ?? []) as Array<{ id: string }>
-		for (const [jointIndex, joint] of joints.entries()) {
-			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
+		// `model.joints` is the only record of which slot in a trajectory step drives which frame.
+		// Keyed by frame name because that is how the frame asks — the join between the two is the
+		// `${model}:${id}` naming convention, nothing else.
+		const joints = (model?.joints ?? []) as JointJson[]
+		for (const [jointId, column] of modelJointColumns(joints)) {
+			jointOwners.set(`${modelName}:${jointId}`, {
+				componentName: modelName,
+				jointIndex: column.index,
+				mimic: column.mimic,
+			})
 		}
 
 		// Truthiness, not a null check: `soleLeafOf` can return `''`, since Go marshals `id` without
@@ -356,6 +368,7 @@ const buildDescriptors = (
 						axis: innerData.axis as { X: number; Y: number; Z: number },
 						componentName: joint.componentName,
 						jointIndex: joint.jointIndex,
+						mimic: joint.mimic,
 						uuid: newUuid(),
 					})
 				} else if (inner.frame_type === 'static') {
