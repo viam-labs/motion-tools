@@ -12,6 +12,7 @@ import { useLogs } from '$lib/plugins'
 import { missingPoseFrameNames } from './poseSnapshot'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
+import { usePartConfig } from './usePartConfig.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
 import { useResourceByName } from './useResourceByName.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -55,7 +56,16 @@ export const providePoses = (partID: () => string) => {
 	const connectionStatus = useConnectionStatus(partID)
 	const resourceByName = useResourceByName()
 	const frames = useFrames()
+	const partConfig = usePartConfig()
 	const { addQueryToRefetch } = useRefetchPoses()
+	const configuredSubtypeByName = $derived.by(() => {
+		const result: Record<string, string> = {}
+		for (const { name, api } of partConfig.current.components ?? []) {
+			const subtype = api?.split(':').at(-1)
+			if (subtype) result[name] = subtype
+		}
+		return result
+	})
 
 	const frameEntities = useQuery(traits.FramesAPI)
 
@@ -90,13 +100,18 @@ export const providePoses = (partID: () => string) => {
 			() => {
 				const frameName = name.current
 				const parentFrameName = parentName.current
-				const resource = frameName ? resourceByName.current[frameName] : undefined
-				const parentResource = parentFrameName ? resourceByName.current[parentFrameName] : undefined
+				const resourceSubtype = frameName
+					? (resourceByName.current[frameName]?.subtype ?? configuredSubtypeByName[frameName])
+					: undefined
+				const parentResourceSubtype = parentFrameName
+					? (resourceByName.current[parentFrameName]?.subtype ??
+						configuredSubtypeByName[parentFrameName])
+					: undefined
 
-				const resolvedName = originFrameComponentTypes.has(resource?.subtype ?? '')
+				const resolvedName = originFrameComponentTypes.has(resourceSubtype ?? '')
 					? `${frameName}_origin`
 					: frameName
-				const resolvedParent = originFrameComponentTypes.has(parentResource?.subtype ?? '')
+				const resolvedParent = originFrameComponentTypes.has(parentResourceSubtype ?? '')
 					? `${parentFrameName}_origin`
 					: parentFrameName
 
@@ -109,13 +124,25 @@ export const providePoses = (partID: () => string) => {
 			() => options
 		)
 
-		return { entity, name, query }
+		return { entity, name, parentName, query }
 	}
 
 	type PoseEntry = ReturnType<typeof buildEntry> & { dispose: () => void }
 
 	const entryByEntity = new Map<Entity, PoseEntry>()
 	let entries = $state.raw<PoseEntry[]>([])
+
+	const applyPose = (entity: Entity, pose: Parameters<Pose['copy']>[0]) => {
+		if (!pose || !entity.isAlive()) return
+
+		const live = entity.get(traits.LiveMatrix)
+		if (live) {
+			tempPose.copy(pose).toMatrix4(live)
+			entity.changed(traits.LiveMatrix)
+		} else {
+			entity.add(traits.LiveMatrix(tempPose.copy(pose).toMatrix4()))
+		}
+	}
 
 	/**
 	 * Reconcile the query map against the live frame set: a newly-added frame
@@ -215,18 +242,7 @@ export const providePoses = (partID: () => string) => {
 			untrack(() => {
 				$effect(() => {
 					if (!environment.isLive) return
-
-					const pose = query.data?.pose
-					if (!pose || !entity.isAlive()) return
-
-					const live = entity.get(traits.LiveMatrix)
-					if (live) {
-						tempPose.copy(pose).toMatrix4(live)
-
-						entity.changed(traits.LiveMatrix)
-					} else {
-						entity.add(traits.LiveMatrix(tempPose.copy(pose).toMatrix4()))
-					}
+					applyPose(entity, query.data?.pose)
 				})
 			})
 		}
@@ -237,20 +253,44 @@ export const providePoses = (partID: () => string) => {
 		entries.map(({ name }) => name.current).filter((name): name is string => name !== undefined)
 	const missingFrameNames = () =>
 		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
+	const haveResolvedParents = () => {
+		const expectedParents = new Map(
+			frames.current.map((frame) => [
+				frame.referenceFrame,
+				frame.poseInObserverFrame?.referenceFrame === 'world'
+					? undefined
+					: frame.poseInObserverFrame?.referenceFrame || undefined,
+			])
+		)
+
+		return [...expectedParents].every(([frameName, expectedParent]) => {
+			const entry = entries.find(({ name }) => name.current === frameName)
+			return entry?.parentName.current === expectedParent
+		})
+	}
 
 	setContext<Context>(key, {
 		get isReady() {
-			return frames.isReady && missingFrameNames().length === 0
+			return frames.isReady && missingFrameNames().length === 0 && haveResolvedParents()
 		},
 		get missingFrameNames() {
 			return missingFrameNames()
 		},
-		refetch: () => {
+		refetch: async () => {
 			const expected = new Set(expectedFrameNames())
 			const currentEntries = entries.filter(
 				({ name }) => name.current !== undefined && expected.has(name.current)
 			)
-			return Promise.allSettled(currentEntries.map(({ query }) => query.refetch()))
+			const results = await Promise.allSettled(currentEntries.map(({ query }) => query.refetch()))
+
+			// Build-mode synchronization closes the live gate as soon as this promise
+			// resolves. Commit the fetched snapshot here so that closure cannot race
+			// the reactive query-data effect above on a restored build-mode startup.
+			for (const { entity, query } of currentEntries) {
+				applyPose(entity, query.data?.pose)
+			}
+
+			return results
 		},
 	})
 }

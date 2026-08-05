@@ -62,7 +62,6 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 		for (const client of clients) {
 			if (
-				environment.isLive &&
 				fetchedPropQueries &&
 				client.current?.name &&
 				interval !== RefetchRates.OFF &&
@@ -98,7 +97,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 	const interval = $derived(refreshRates[RefreshRates.vision])
 
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF,
+		enabled: environment.isLive && interval !== RefetchRates.OFF,
 		refetchInterval: (interval === RefetchRates.MANUAL ? false : interval) as number | false,
 	})
 
