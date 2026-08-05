@@ -42,7 +42,10 @@
 	provideFrames(() => partID.current)
 	providePoses(() => partID.current)
 	// Off while geometries come from kinematics; the context still needs to exist.
-	provideGeometries(() => partID.current, () => false)
+	provideGeometries(
+		() => partID.current,
+		() => false
+	)
 	provide3DModels(() => partID.current)
 	providePointclouds(() => partID.current)
 	providePointcloudObjects(() => partID.current)
