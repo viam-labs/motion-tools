@@ -27,6 +27,7 @@ export interface PartConfig {
 }
 
 interface LocalPartConfig {
+	readonly isReady: boolean
 	isDirty: boolean
 	hasEditPermissions: boolean
 	current: Struct
@@ -44,6 +45,8 @@ interface LocalPartConfig {
 
 interface PartConfigContext {
 	current: PartConfig
+	/** Whether the initial config snapshot for the selected part has settled. */
+	readonly isReady: boolean
 	isDirty: boolean
 	hasEditPermissions: boolean
 	/** Why the config is unavailable — see `LocalPartConfig.error`. */
@@ -387,6 +390,9 @@ export const providePartConfig = (
 		get current() {
 			return current
 		},
+		get isReady() {
+			return config.isReady
+		},
 		get isDirty() {
 			return config.isDirty
 		},
@@ -476,6 +482,7 @@ interface AppEmbeddedPartConfigProps {
 
 const useEmbeddedPartConfig = (props: AppEmbeddedPartConfigProps): LocalPartConfig => {
 	return {
+		isReady: true,
 		hasEditPermissions: true,
 		get isDirty() {
 			return props.isDirty
@@ -551,6 +558,13 @@ const useStandalonePartConfig = (partID: () => string): LocalPartConfig => {
 	const updateRobotPartMutation = createAppMutation('updateRobotPart')
 
 	return {
+		get isReady() {
+			return (
+				partID() !== '' &&
+				!partQuery.isFetching &&
+				(partQuery.data !== undefined || partQuery.error !== undefined)
+			)
+		},
 		get current() {
 			return current ?? new Struct()
 		},

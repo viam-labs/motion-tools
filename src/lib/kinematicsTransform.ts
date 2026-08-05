@@ -1,17 +1,16 @@
 import type { Geometry } from '@viamrobotics/sdk'
 
-import { Euler, MathUtils, Quaternion } from 'three'
+import type { Frame } from '$lib/frame'
 
 import { Pose } from '$lib/math'
-import { OrientationVector } from '$lib/three/OrientationVector'
 
-interface RawKinematicsTranslation {
+export interface RawKinematicsTranslation {
 	X?: number
 	Y?: number
 	Z?: number
 }
 
-interface RawKinematicsOrientation {
+export interface RawKinematicsOrientation {
 	type?: string
 	value?: {
 		// ov_degrees / ov_radians
@@ -31,52 +30,40 @@ interface RawKinematicsOrientation {
 	}
 }
 
-const quaternion = new Quaternion()
-const euler = new Euler()
-const ov = new OrientationVector()
-
 /**
- * Convert a raw kinematics orientation blob to an orientation vector in
- * degrees. Raw kinematics orientations may be expressed as `ov_degrees`
- * (default, `{ x, y, z, th }` in degrees), `ov_radians`, `quaternion`
- * (`{ X, Y, Z, W }`), or `euler_angles` (`{ roll, pitch, yaw }` in radians).
+ * Restate a raw kinematics orientation as the config `Frame` orientation shape,
+ * so `Pose.setFromFrame` owns the actual conversion. Raw kinematics
+ * orientations may be `ov_degrees` (default, `{ x, y, z, th }` in degrees),
+ * `ov_radians`, `quaternion` (`{ X, Y, Z, W }` — Go's un-tagged field
+ * capitalisation), or `euler_angles` (`{ roll, pitch, yaw }` in radians).
  */
-const orientationToOV = (
-	orientation?: RawKinematicsOrientation
-): { oX: number; oY: number; oZ: number; theta: number } => {
+const toFrameOrientation = (orientation?: RawKinematicsOrientation): Frame['orientation'] => {
 	const value = orientation?.value
+	const vector = { x: value?.x ?? 0, y: value?.y ?? 0, z: value?.z ?? 1, th: value?.th ?? 0 }
 
-	if (orientation?.type === 'quaternion') {
-		quaternion.set(value?.X ?? 0, value?.Y ?? 0, value?.Z ?? 0, value?.W ?? 1)
-		ov.setFromQuaternion(quaternion)
-		return { oX: ov.x, oY: ov.y, oZ: ov.z, theta: MathUtils.radToDeg(ov.th) }
-	}
-
-	if (orientation?.type === 'euler_angles') {
-		euler.set(value?.roll ?? 0, value?.pitch ?? 0, value?.yaw ?? 0, 'ZYX')
-		quaternion.setFromEuler(euler)
-		ov.setFromQuaternion(quaternion)
-		return { oX: ov.x, oY: ov.y, oZ: ov.z, theta: MathUtils.radToDeg(ov.th) }
-	}
-
-	if (orientation?.type === 'ov_radians') {
-		return {
-			oX: value?.x ?? 0,
-			oY: value?.y ?? 0,
-			oZ: value?.z ?? 1,
-			theta: MathUtils.radToDeg(value?.th ?? 0),
+	switch (orientation?.type) {
+		case 'quaternion': {
+			return {
+				type: 'quaternion',
+				value: { x: value?.X ?? 0, y: value?.Y ?? 0, z: value?.Z ?? 0, w: value?.W ?? 1 },
+			}
 		}
-	}
-
-	return {
-		oX: value?.x ?? 0,
-		oY: value?.y ?? 0,
-		oZ: value?.z ?? 1,
-		theta: value?.th ?? 0,
+		case 'euler_angles': {
+			return {
+				type: 'euler_angles',
+				value: { roll: value?.roll ?? 0, pitch: value?.pitch ?? 0, yaw: value?.yaw ?? 0 },
+			}
+		}
+		case 'ov_radians': {
+			return { type: 'ov_radians', value: vector }
+		}
+		default: {
+			return { type: 'ov_degrees', value: vector }
+		}
 	}
 }
 
-interface RawKinematicsGeometry {
+export interface RawKinematicsGeometry {
 	x?: number
 	y?: number
 	z?: number
@@ -88,6 +75,27 @@ interface RawKinematicsGeometry {
 	orientation?: RawKinematicsOrientation
 	mesh_data?: string | number[]
 	mesh_content_type?: string
+	mesh_file_path?: string
+}
+
+export interface RawKinematicsLink {
+	id: string
+	parent?: string
+	translation?: RawKinematicsTranslation
+	orientation?: RawKinematicsOrientation
+	geometry?: RawKinematicsGeometry
+}
+
+export interface RawKinematicsJoint {
+	id: string
+	parent?: string
+}
+
+/** rdk's `ModelConfigJSON`, as it arrives in `FrameSystemConfig.kinematics`. */
+export interface RawKinematicsModel {
+	name?: string
+	links?: RawKinematicsLink[]
+	joints?: RawKinematicsJoint[]
 }
 
 /**
@@ -120,8 +128,10 @@ export const createPoseFromOrientation = (
 	translation?: RawKinematicsTranslation,
 	orientation?: RawKinematicsOrientation
 ): Pose => {
-	const { oX, oY, oZ, theta } = orientationToOV(orientation)
-	return new Pose(translation?.X, translation?.Y, translation?.Z, oX, oY, oZ, theta)
+	return new Pose().setFromFrame({
+		translation: { x: translation?.X ?? 0, y: translation?.Y ?? 0, z: translation?.Z ?? 0 },
+		orientation: toFrameOrientation(orientation),
+	})
 }
 
 /**
@@ -133,70 +143,91 @@ export const createPoseFromOrientation = (
  *
  * Target format (`Geometry` from `@viamrobotics/sdk`):
  *   `{ geometryType: { case, value }, label, center: Pose }`
+ *
+ * `type` is authoritative; when it is absent rdk infers the shape from whichever
+ * params are set, and so do we.
  */
 export const parseKinematicsGeometry = (raw: RawKinematicsGeometry): Geometry => {
 	const center: Pose = createPoseFromOrientation(raw.translation, raw.orientation)
-
 	const label = raw.Label ?? ''
 
-	const hasMesh = raw.mesh_data !== undefined && raw.mesh_data.length > 0
-	const hasBox =
-		(raw.x !== undefined && raw.x !== 0) ||
-		(raw.y !== undefined && raw.y !== 0) ||
-		(raw.z !== undefined && raw.z !== 0)
-	const hasCapsule = raw.r !== undefined && raw.r !== 0 && raw.l !== undefined && raw.l !== 0
-	const hasSphere = raw.r !== undefined && raw.r !== 0 && !hasCapsule
+	const box = (): Geometry => ({
+		center,
+		label,
+		geometryType: {
+			case: 'box',
+			value: { dimsMm: { x: raw.x ?? 0, y: raw.y ?? 0, z: raw.z ?? 0 } },
+		},
+	})
 
-	if (hasMesh) {
-		return {
-			center,
-			label,
-			geometryType: {
-				case: 'mesh',
-				value: {
-					contentType: raw.mesh_content_type ?? '',
-					mesh: toMeshBytes(raw.mesh_data),
-				},
-			},
-		}
-	}
+	const sphere = (): Geometry => ({
+		center,
+		label,
+		geometryType: { case: 'sphere', value: { radiusMm: raw.r ?? 0 } },
+	})
 
-	if (hasCapsule) {
-		return {
-			center,
-			label,
-			geometryType: {
-				case: 'capsule',
-				value: { radiusMm: raw.r!, lengthMm: raw.l! },
-			},
-		}
-	}
+	const capsule = (): Geometry => ({
+		center,
+		label,
+		geometryType: { case: 'capsule', value: { radiusMm: raw.r ?? 0, lengthMm: raw.l ?? 0 } },
+	})
 
-	if (hasSphere) {
-		return {
-			center,
-			label,
-			geometryType: {
-				case: 'sphere',
-				value: { radiusMm: raw.r! },
-			},
-		}
-	}
+	const mesh = (): Geometry => ({
+		center,
+		label,
+		geometryType: {
+			case: 'mesh',
+			value: { contentType: raw.mesh_content_type ?? '', mesh: toMeshBytes(raw.mesh_data) },
+		},
+	})
 
-	if (hasBox) {
-		return {
-			center,
-			label,
-			geometryType: {
-				case: 'box',
-				value: { dimsMm: { x: raw.x ?? 0, y: raw.y ?? 0, z: raw.z ?? 0 } },
-			},
-		}
-	}
-
-	return {
+	const none = (): Geometry => ({
 		center,
 		label,
 		geometryType: { case: undefined, value: undefined },
+	})
+
+	switch (raw.type) {
+		case 'box': {
+			return box()
+		}
+		case 'sphere': {
+			return sphere()
+		}
+		case 'capsule': {
+			return capsule()
+		}
+		case 'mesh': {
+			if (raw.mesh_data === undefined || raw.mesh_data.length === 0) {
+				// URDF meshes referenced only by path aren't inlined into the
+				// kinematics, so there is nothing to render.
+				console.warn(
+					`[kinematics] mesh geometry "${label}" has no mesh_data${
+						raw.mesh_file_path ? ` (file path: ${raw.mesh_file_path})` : ''
+					}`
+				)
+				return none()
+			}
+			return mesh()
+		}
+		case undefined:
+		case '': {
+			// rdk infers intent from whichever params are set when `type` is
+			// omitted — mirror `GeometryConfig.ParseConfig`'s order exactly.
+			if ((raw.x ?? 0) !== 0 || (raw.y ?? 0) !== 0 || (raw.z ?? 0) !== 0) {
+				return box()
+			}
+			if ((raw.l ?? 0) !== 0) {
+				return capsule()
+			}
+			if ((raw.r ?? 0) !== 0) {
+				return sphere()
+			}
+			return none()
+		}
+		default: {
+			// `cylinder` and `point` have no equivalent in the SDK geometry union.
+			return none()
+		}
 	}
 }

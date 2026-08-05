@@ -122,10 +122,15 @@ export class Pose implements ViamPose {
 	}
 
 	setFromFrame(frame: Partial<Frame>) {
-		if (frame.orientation?.type === 'quaternion') {
+		// Stored configs can contain the orientation discriminator without its
+		// value (for example after a partial frame edit is discarded). Treat that
+		// wire-level default the same as an omitted orientation.
+		if (!frame.orientation?.value) {
+			ov.set(0, 0, 1, 0)
+		} else if (frame.orientation.type === 'quaternion') {
 			quaternion.copy(frame.orientation.value)
 			ov.setFromQuaternion(quaternion)
-		} else if (frame.orientation?.type === 'euler_angles') {
+		} else if (frame.orientation.type === 'euler_angles') {
 			euler.set(
 				frame.orientation.value.roll,
 				frame.orientation.value.pitch,
@@ -134,13 +139,11 @@ export class Pose implements ViamPose {
 			)
 			quaternion.setFromEuler(euler)
 			ov.setFromQuaternion(quaternion)
-		} else if (frame.orientation?.type === 'ov_radians') {
+		} else if (frame.orientation.type === 'ov_radians') {
 			ov.copy(frame.orientation.value)
-		} else if (frame.orientation) {
-			const th = MathUtils.degToRad(frame.orientation?.value.th ?? 0)
-			ov.set(frame.orientation?.value.x, frame.orientation?.value.y, frame.orientation?.value.z, th)
 		} else {
-			ov.set(0, 0, 1, 0)
+			const th = MathUtils.degToRad(frame.orientation.value.th ?? 0)
+			ov.set(frame.orientation.value.x, frame.orientation.value.y, frame.orientation.value.z, th)
 		}
 
 		// Frame translations come from the machine config, already in millimetres.

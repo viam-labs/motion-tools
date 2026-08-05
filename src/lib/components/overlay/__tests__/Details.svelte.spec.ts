@@ -48,6 +48,7 @@ describe('Details component', () => {
 		})
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: { components: [] },
+			isReady: true,
 			updateFrame: vi.fn(),
 			isDirty: false,
 			save: vi.fn(),
@@ -145,6 +146,7 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
+			isReady: true,
 			updateFrame: vi.fn(),
 			isDirty: false,
 			save: vi.fn(),
@@ -193,6 +195,7 @@ describe('Details component', () => {
 			current: {
 				components: [resource],
 			},
+			isReady: true,
 			updateFrame: vi.fn(),
 			isDirty: false,
 			save: vi.fn(),

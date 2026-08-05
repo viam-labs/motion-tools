@@ -1,5 +1,14 @@
 # motion-tools
 
+## 1.41.1
+
+### Patch Changes
+
+- b22115a: Better error states in build mode
+- 8549b91: POV widget improvements
+- 5faf86d: Ensure build mode takes most recent pose snapshot when starting up
+- 4a46eb1: Build mode fixes
+
 ## 1.41.0
 
 ### Minor Changes

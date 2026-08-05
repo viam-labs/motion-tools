@@ -11,7 +11,11 @@ import { Vector3 } from 'three'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
-import { createPoseFromOrientation, parseKinematicsGeometry } from '$lib/kinematicsTransform'
+import {
+	createPoseFromOrientation,
+	parseKinematicsGeometry,
+	type RawKinematicsModel,
+} from '$lib/kinematicsTransform'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -26,12 +30,14 @@ interface TransformMetadata {
 }
 
 interface FramesContext {
-	current: (Transform & TransformMetadata)[]
+	current: (Transform & Partial<TransformMetadata>)[]
+	/** Whether the current part's frame set has been reconciled into the world. */
+	readonly isReady: boolean
 }
 
 interface KinematicNode {
 	id: string
-	parent: string | null
+	parent?: string
 	isLink: boolean
 }
 
@@ -66,28 +72,32 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
-	const kinematics = $derived.by(() => {
-		const kinematics: Record<string, any> = {}
+	const kinematicsByComponent = $derived.by(() => {
+		const result: Record<string, RawKinematicsModel> = {}
 		for (const fsConfig of query.data ?? []) {
+			const componentName = fsConfig.frame?.referenceFrame
 			if (
+				componentName === undefined ||
+				componentName === '' ||
 				fsConfig.kinematics === undefined ||
 				Object.keys(fsConfig.kinematics.fields).length === 0
 			) {
 				continue
 			}
-			kinematics[fsConfig.frame?.referenceFrame ?? ''] = fsConfig.kinematics.toJson()
+			result[componentName] = fsConfig.kinematics.toJson() as RawKinematicsModel
 		}
-		return kinematics
+		return result
 	})
 
-	$inspect(kinematics)
-
 	const kinematicsDerivedFrames = $derived.by(() => {
-		const nodes: Record<string, KinematicNode> = {}
+		const kinematicsFrames: Record<string, Transform & TransformMetadata> = {}
 
-		const frames: Record<string, Transform & TransformMetadata> = {}
-		for (const [componentName, kinematicJson] of Object.entries(kinematics)) {
-			for (const link of kinematicJson.links ?? []) {
+		for (const [componentName, kinematicJson] of Object.entries(kinematicsByComponent)) {
+			const links = kinematicJson.links ?? []
+			// Scoped per component: two arms of the same model share link ids.
+			const nodes: Record<string, KinematicNode> = {}
+
+			for (const link of links) {
 				nodes[link.id] = {
 					id: link.id,
 					parent: link.parent,
@@ -101,19 +111,33 @@ export const provideFrames = (partID: () => string) => {
 					isLink: false,
 				}
 			}
-			for (let i = 0; i < kinematicJson.links.length; i++) {
-				const link = kinematicJson.links[i]
+
+			// A link nothing else hangs off of terminates the chain. Array order in
+			// the model JSON is not a guarantee, so don't read it as one.
+			const parentIds = new Set(Object.values(nodes).map((node) => node.parent))
+
+			for (const link of links) {
 				const frameName = `${componentName}:${link.id}`
 				const pose = createPoseFromOrientation(link.translation, link.orientation)
-				let parent = nodes[link.parent]
-				while (parent && !parent.isLink && parent.parent !== null) {
-					parent = nodes[parent.parent]
+				// Joints carry no static offset at zero configuration, so a link hangs
+				// off its nearest link ancestor. `seen` guards against a malformed
+				// model whose parent chain loops back on itself.
+				let parent: KinematicNode | undefined =
+					link.parent === undefined ? undefined : nodes[link.parent]
+				const seen = new Set<string>()
+				while (parent && !parent.isLink) {
+					if (seen.has(parent.id)) {
+						parent = undefined
+						break
+					}
+					seen.add(parent.id)
+					parent = parent.parent === undefined ? undefined : nodes[parent.parent]
 				}
 				const parentFrameName = parent ? `${componentName}:${parent.id}` : componentName
 
-				frames[frameName] = {
+				kinematicsFrames[frameName] = {
 					fromKinematics: true,
-					isEndEffector: false,
+					isEndEffector: !parentIds.has(link.id),
 					uuid: new Uint8Array(0),
 					referenceFrame: frameName,
 					poseInObserverFrame: {
@@ -125,13 +149,18 @@ export const provideFrames = (partID: () => string) => {
 				if (link.geometry) {
 					const geo = parseKinematicsGeometry(link.geometry)
 					if (geo.center) {
-						// `link.geometry`'s translation/orientation in the kinematics JSON is
-						// expressed in the same frame as `link.translation`/`link.orientation`
-						// (the link's parent frame), not relative to the link's own rotated
-						// frame — rdk's `staticFrame.Geometries()` returns the geometry pose
-						// untouched by the link's own transform. `Center` renders as
-						// `WorldMatrix × Center × part` (local to this frame), so rotate out
-						// the frame's own orientation to express the geometry locally.
+						// `Center` renders local to this frame (`WorldMatrix × Center`), and
+						// geometries only land correctly once the link's own rotation is
+						// divided back out — so `link.geometry`'s pose behaves as though it
+						// is expressed in the same frame as `link.translation`/`link.orientation`
+						// rather than in the link's own rotated frame. Compute the link-local
+						// pose as `P_link⁻¹ ∘ P_geometry`.
+						//
+						// This reads against rdk, where `LinkConfig.ParseConfig` passes the
+						// geometry through untouched and `staticFrame.Geometries()` tags it
+						// with the link's *own* frame name — which would make this a double
+						// transform. Placement is correct in practice; revisit here first if
+						// a link with both a rotation and a geometry offset looks wrong.
 
 						const frameQuat = pose.toQuaternion()
 						const invFrameQuat = frameQuat.clone().invert()
@@ -155,15 +184,11 @@ export const provideFrames = (partID: () => string) => {
 						geo.center = new Pose().copy(geo.center).setFromQuaternion(invFrameQuat)
 					}
 
-					frames[frameName].physicalObject = geo
-				}
-
-				if (i === kinematicJson.links.length - 1) {
-					frames[frameName].isEndEffector = true
+					kinematicsFrames[frameName].physicalObject = geo
 				}
 			}
 		}
-		return frames
+		return kinematicsFrames
 	})
 
 	const frames = $derived.by(() => {
@@ -209,9 +234,9 @@ export const provideFrames = (partID: () => string) => {
 
 	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
 
-	$inspect(current)
-
 	const entities = new Map<string, Entity | undefined>()
+	let reconciledFrames = $state.raw<Transform[]>()
+	let reconciledPartID = $state<string>()
 
 	$effect(() => {
 		if (revision) {
@@ -236,15 +261,16 @@ export const provideFrames = (partID: () => string) => {
 		const currentResourcesByName = resourceByName.current
 		const currentPartID = partID()
 		const currentComponentSubtypeByName = componentSubtypeByName
+		const currentFrames = current
 
 		// We only want to update whenever "current" or "resourceByName.current" changes
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		current.length
+		currentFrames.length
 
 		untrack(() => {
 			const active: Record<string, boolean> = {}
 
-			for (const frame of current) {
+			for (const frame of currentFrames) {
 				const name = frame.referenceFrame
 				const entityKey = `${currentPartID}:${name}`
 				active[entityKey] = true
@@ -338,6 +364,9 @@ export const provideFrames = (partID: () => string) => {
 				}
 			}
 		})
+
+		reconciledFrames = currentFrames
+		reconciledPartID = currentPartID
 	})
 
 	// Clear all entities on unmount
@@ -354,6 +383,9 @@ export const provideFrames = (partID: () => string) => {
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get isReady() {
+			return reconciledPartID === partID() && reconciledFrames === current
 		},
 	})
 }

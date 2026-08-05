@@ -35,7 +35,7 @@ interface Context {
 const colorUtil = new Color()
 const tempMatrix = new Matrix4()
 
-export const provideGeometries = (partID: () => string) => {
+export const provideGeometries = (partID: () => string, enabled: () => boolean = () => true) => {
 	const environment = useEnvironment()
 	const resources = useResourceByName()
 	const world = useWorld()
@@ -76,7 +76,7 @@ export const provideGeometries = (partID: () => string) => {
 
 	const interval = $derived(refreshRates[RefreshRates.poses])
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF && environment.isLive,
+		enabled: enabled() && interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
