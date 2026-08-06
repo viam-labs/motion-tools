@@ -2,6 +2,10 @@
  * A TypeScript reconstruction of how RDK resolves a flattened frame system into a drawable chain.
  * Each switch mirrors `register.go` and can fall behind. Spatialmath decoding lives in
  * `$lib/math/spatialJson`.
+ *
+ * Two callers feed it, and the shape they share is {@link FrameSystemJson}: the motion plan replayer
+ * parses RDK's plan dump (`parse-plan.ts`), and the move panel's preview synthesizes the same shape
+ * from `robot.frameSystemConfig` (`frameSystemToPlanFrames.ts`).
  */
 
 import { protoBase64 } from '@bufbuild/protobuf'
@@ -35,6 +39,23 @@ import { modelJointColumns, nodeName } from './jointColumns'
 export interface RawFrame {
 	frame_type: string
 	frame: unknown
+}
+
+/**
+ * Not one of RDK's frame types. `frameSystemToPlanFrames` synthesizes a frame system from
+ * `robot.frameSystemConfig`, where a part's own pose and geometry arrive as protobuf rather than
+ * Go's JSON marshal. Re-encoding those into a `static` frame purely so the switch below could
+ * decode them again would round-trip a proto `Geometry` through a lossy `GeometryConfig`, so they
+ * are carried already decoded instead.
+ *
+ * Only the *part-level* frames need this. A model's links and joints come off the wire as the same
+ * `LinkConfig` / `JointConfig` JSON the plan dump carries, so they take the normal path.
+ */
+export const DECODED_FRAME_TYPE = 'decoded'
+
+export interface DecodedFrame {
+	pose: Pose
+	geometry: Geometry | null
 }
 
 /**
@@ -87,8 +108,21 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
- * RDK's `GeometryConfig.ParseConfig` reads an empty `type` as "infer from the dimensions that were
- * set": box, then capsule, then sphere. This is that chain, without RDK's per-shape validation.
+ * RDK's `GeometryConfig.ParseConfig` treats an empty `type` as "infer from whichever dimensions were
+ * set": box if `r3.Vector{X, Y, Z}.Norm() > 0`, else capsule if `L != 0`, else sphere. The three
+ * predicates below are that chain, in that order.
+ *
+ * What this does *not* reproduce is the validation each arm then runs. RDK constructs the shape it
+ * picked and yields no geometry at all when the constructor refuses the dimensions — a negative box
+ * side, a capsule with `r <= 0` or `l < 2r` — and `NewCapsule` returns a *sphere* outright when
+ * `l == 2r`. Every one of those needs a config RDK rejected while configuring the part, so a machine
+ * able to answer at all has already been through those gates. The divergence is written down rather
+ * than guarded, because a guard against input that cannot arrive is a guard nothing can test.
+ *
+ * A flattened frame system has already been through that resolution, so its geometries name their
+ * type outright. A *model config* has not: `frameSystemToPlanFrames` reads links straight off
+ * `FrameSystemConfig.kinematics`, where the arm links that draw as spheres and capsules in a plan
+ * dump still carry `"type": ""`. Skipping them here is how the preview loses an arm.
  */
 const inferGeometryType = (g: Record<string, unknown>): string => {
 	const declared = (g.type ?? '') as string
@@ -115,8 +149,21 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 type MeshDataProblem = 'absent' | 'unreadable' | 'empty'
 
 /**
- * `mesh_data` arrives base64 from a plan dump, which `encoding/json` marshals, and as a number array
- * from `frameSystemConfig`, which `protoutils.StructToStructPb` reflects over element by element.
+ * `mesh_data` arrives in one of two shapes, decided by the route it took rather than by anything in
+ * the data.
+ *
+ * A plan dump reaches us through `SimpleModel.MarshalJSON`, so Go's `encoding/json` writes the
+ * `[]byte` as **base64**. `frameSystemConfig` reaches us through `protoutils.StructToStructPb`,
+ * which reflects over the struct instead of marshalling it: `protoutils.marshalSlice` walks the
+ * slice element by element, so the same field arrives as an **array of numbers**.
+ *
+ * Go itself needs no equivalent of this function, which is why the asymmetry is easy to miss from
+ * that side: `encoding/json` unmarshals *both* a base64 string and a number array into a `[]byte`.
+ * Only a decoder written by hand has to know there are two shapes.
+ *
+ * Reading only the first shape meant every mesh on the preview path threw inside `protoBase64.dec`
+ * and was reported as `undecodable mesh_data`, blaming the robot's data for a decoder that was
+ * looking for the wrong thing.
  */
 const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | MeshDataProblem => {
 	if (raw === undefined || raw === null || raw === '') return 'absent'
@@ -447,6 +494,19 @@ const buildDescriptors = (
 				} else {
 					warnUnhandledFrame(frameName, inner.frame_type)
 				}
+				break
+			}
+
+			case DECODED_FRAME_TYPE: {
+				const { pose, geometry } = entry.frame as DecodedFrame
+				descriptors.push({
+					kind: 'static',
+					name: frameName,
+					parent,
+					localPose: pose,
+					geometry,
+					uuid: newUuid(),
+				})
 				break
 			}
 
