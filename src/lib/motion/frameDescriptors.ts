@@ -108,6 +108,40 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 }
 
 /**
+ * `mesh_data` arrives in one of two shapes, decided by the route it took rather than by anything in
+ * the data.
+ *
+ * A plan dump reaches us through `SimpleModel.MarshalJSON`, so Go's `encoding/json` writes the
+ * `[]byte` as **base64**. `frameSystemConfig` reaches us through `protoutils.StructToStructPb`,
+ * which reflects over the struct instead of marshalling it — `marshalSlice` walks the slice element
+ * by element, so the same field arrives as an **array of numbers**
+ * (`utils@v0.10.1/protoutils/protoutils.go:239`). RDK records the same asymmetry for
+ * `original_file.bytes`.
+ *
+ * Reading only the first shape means anything reaching this from `frameSystemConfig` throws inside
+ * `protoBase64.dec` and is reported as `undecodable mesh_data`, blaming the robot's data for a
+ * decoder that was looking for the wrong thing.
+ */
+const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | undefined => {
+	if (Array.isArray(raw)) {
+		const bytes = raw.filter((value) => typeof value === 'number')
+		// An empty array is truthy, so a plain presence check let it through as a zero-length mesh.
+		return bytes.length > 0 ? Uint8Array.from(bytes) : undefined
+	}
+
+	if (typeof raw !== 'string' || raw === '') return undefined
+
+	try {
+		// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects. `dec`
+		// throws a bare Error on malformed input, which `loadPlan` would otherwise report as an
+		// unparseable plan rather than as one unreadable shape.
+		return Uint8Array.from(protoBase64.dec(raw))
+	} catch {
+		return undefined
+	}
+}
+
+/**
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
@@ -190,23 +224,15 @@ export const parseGeometry = (
 		// center pose is millimeters.
 		case 'mesh': {
 			const declared = g.mesh_content_type as string | undefined
-			const meshData = g.mesh_data as string | undefined
 
-			// The renderer falls back to PLY for a label it cannot read; a plan is parsed once, so
-			// name the skip here rather than draw nothing later.
-			if (!meshData) return skip('mesh geometry carries no mesh_data')
+			// `parseMeshInput` handles ply and stl and falls back to ply for anything else, which is
+			// right for the renderer and wrong here: a plan is parsed once, so an unreadable label is
+			// worth a named warning now rather than an entity that silently draws nothing later.
 			const contentType = meshContentType(declared)
 			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)
 
-			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
-			// report as an unparseable plan — the whole failure mode this branch avoids.
-			let mesh: Uint8Array<ArrayBuffer>
-			try {
-				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
-				mesh = Uint8Array.from(protoBase64.dec(meshData))
-			} catch {
-				return skip('undecodable mesh_data')
-			}
+			const mesh = meshBytes(g.mesh_data)
+			if (!mesh) return skip('mesh geometry carries no readable mesh_data')
 
 			return new Geometry({
 				center,

@@ -1055,6 +1055,46 @@ describe('buildFrameDescriptors', () => {
 		expect(mesh?.contentType).toBe(expected)
 	})
 
+	/**
+	 * The same bytes as above, in the shape the *other* route delivers them. A plan dump is
+	 * marshalled by `encoding/json`, which writes a `[]byte` as base64; `frameSystemConfig` is built
+	 * by `protoutils.StructToStructPb`, which reflects over the struct and walks the slice element by
+	 * element, so the field arrives as an array of numbers. Reading only base64 meant every mesh the
+	 * move preview drew threw inside `protoBase64.dec` and was reported as undecodable.
+	 */
+	it('reads mesh data delivered as a number array, as frameSystemConfig sends it', () => {
+		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
+		const geometry = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: 'ply',
+			mesh_data: [...new TextEncoder().encode(ply)],
+			Label: 'scoop',
+		})
+
+		expect(geometry?.geometryType.case).toBe('mesh')
+		if (geometry?.geometryType.case === 'mesh') {
+			expect(geometry.geometryType.value.mesh).toEqual(new TextEncoder().encode(ply))
+		}
+	})
+
+	it('reads the two shapes to the same bytes', () => {
+		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
+		const asBase64 = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: 'ply',
+			mesh_data: btoa(ply),
+		})
+		const asNumbers = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: 'ply',
+			mesh_data: [...new TextEncoder().encode(ply)],
+		})
+
+		expect(asNumbers?.geometryType.case === 'mesh' && asNumbers.geometryType.value.mesh).toEqual(
+			asBase64?.geometryType.case === 'mesh' ? asBase64.geometryType.value.mesh : undefined
+		)
+	})
+
 	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
 	// Undecodable data must skip too: protoBase64 throws, and an escaping error would fail
 	// the entire plan rather than the one shape.
@@ -1064,6 +1104,8 @@ describe('buildFrameDescriptors', () => {
 		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
 		['absent mesh data', { mesh_content_type: 'ply' }],
 		['undecodable mesh data', { mesh_content_type: 'ply', mesh_data: '!!!not base64!!!' }],
+		// Truthy, so a bare presence check let this through as a zero-length mesh.
+		['an empty number array', { mesh_content_type: 'ply', mesh_data: [] }],
 	])('skips a mesh with %s', (_label, geometry) => {
 		expect(obstacleGeometry({ type: 'mesh', ...geometry })).toBeNull()
 	})
