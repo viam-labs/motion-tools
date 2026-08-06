@@ -31,7 +31,7 @@ export const parsePlyInput = (mesh: string | Uint8Array): BufferGeometry => {
 	const exact =
 		mesh.byteOffset === 0 && mesh.byteLength === mesh.buffer.byteLength
 			? (mesh.buffer as ArrayBuffer)
-			: (mesh.slice().buffer as ArrayBuffer)
+			: (new Uint8Array(mesh).buffer as ArrayBuffer)
 
 	return plyLoader.parse(exact)
 }
