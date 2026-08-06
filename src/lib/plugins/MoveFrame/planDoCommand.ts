@@ -52,6 +52,15 @@ export const planCommand = ({
 	worldState,
 	constraints,
 }: PlanRequest): Record<string, JsonValue> => {
+	// `JSON.stringify` writes `null` for a non-finite number, and Go's protojson *skips* a JSON null
+	// for a scalar field rather than rejecting it, leaving the field at its zero. A `NaN` in the goal
+	// would therefore reach RDK as 0 mm, plan successfully, and preview a move to somewhere the user
+	// never asked for. Only this path can do that: `client.move` sends a proto double, which carries
+	// the NaN and gets refused.
+	if (!destination.pose.isFinite()) {
+		throw new PlanCommandError('The move target is not a finite pose.')
+	}
+
 	const moveRequest: Record<string, JsonValue> = {
 		name: service,
 		componentName,
@@ -104,16 +113,27 @@ export const executeCommand = (trajectory: TrajectoryStep[]): Record<string, Jso
 	executeCheckStart: RDK_DEFAULT_EPSILON,
 })
 
-const isTrajectory = (value: unknown): value is TrajectoryStep[] =>
-	Array.isArray(value) &&
-	value.every(
-		(step) =>
-			typeof step === 'object' &&
-			step !== null &&
-			Object.values(step as Record<string, unknown>).every(
-				(inputs) => Array.isArray(inputs) && inputs.every((input) => typeof input === 'number')
-			)
+/**
+ * A step has to be a non-empty object of number arrays.
+ *
+ * The two structural cases are worth naming because `every` says yes to both by default. An array
+ * is `typeof 'object'`, so `[[0, 1], [2, 3]]` walked as a step and passed; and `Object.values({})`
+ * is empty, so `{}` passed vacuously. Neither errors downstream either: `jointValueAt` resolves a
+ * missing column to `0`, so a step with no readable columns draws a plausible arm at the zero
+ * configuration instead of reporting a reply this client cannot read. `[[], []]` was worse again —
+ * it parsed *and* satisfied `isAlreadyAtGoal`.
+ */
+const isTrajectoryStep = (step: unknown): step is TrajectoryStep =>
+	typeof step === 'object' &&
+	step !== null &&
+	!Array.isArray(step) &&
+	Object.keys(step).length > 0 &&
+	Object.values(step as Record<string, unknown>).every(
+		(inputs) => Array.isArray(inputs) && inputs.every((input) => typeof input === 'number')
 	)
+
+const isTrajectory = (value: unknown): value is TrajectoryStep[] =>
+	Array.isArray(value) && value.every((step) => isTrajectoryStep(step))
 
 export class PlanCommandError extends Error {
 	constructor(message: string) {
@@ -133,7 +153,10 @@ export const parsePlanResult = (value: JsonValue): PlanResult => {
 
 	const trajectory = (value as Record<string, JsonValue>).plan
 
-	if (trajectory === undefined) {
+	// `== null` rather than `=== undefined`: a Go nil trajectory marshals to JSON `null`, which is
+	// nothing to draw for the same reason an absent key is. Distinguishing them only sent a user on
+	// current RDK to go and upgrade it.
+	if (trajectory == null) {
 		throw new PlanCommandError('Motion service returned no trajectory for this move.')
 	}
 
@@ -160,6 +183,11 @@ const sameInputs = (a: TrajectoryStep, b: TrajectoryStep): boolean => {
 	if (names.length !== Object.keys(b).length) return false
 
 	return names.every((name) => {
+		// `hasOwn` rather than testing `b[name]` for undefined: a plain index reads straight through to
+		// `Object.prototype`, so a component named `toString` matched a member function whose `length`
+		// happens to be 0, and two steps naming different components compared equal.
+		if (!Object.hasOwn(b, name)) return false
+
 		const left = a[name]
 		const right = b[name]
 		return (
@@ -174,10 +202,17 @@ const sameInputs = (a: TrajectoryStep, b: TrajectoryStep): boolean => {
 /**
  * Whether the planner answered "there is nothing to do".
  *
- * RDK seeds its trajectory with the start configuration before it plans towards the goal, so a move
- * whose goal is already satisfied comes back as that one configuration twice — never as an empty
- * plan, and never as an error. Exact comparison rather than a tolerance, because the two steps are
- * the same node written out twice.
+ * RDK seeds its trajectory with the start configuration (`plan_manager.go:51`) and then appends the
+ * IK solution, so a move whose goal is already satisfied comes back as two steps — never as an empty
+ * plan, and never as an error.
+ *
+ * Exact comparison rather than a tolerance, but not because the second step is a copy of the first:
+ * it is an nlopt output. It is bit-identical because nlopt runs with `SetStopVal(defaultGoalThreshold)`
+ * from exactly the start configuration, so when the goal is already met it short-circuits at x0 and
+ * hands the seed vector back unchanged. That makes the guard one that under-fires rather than one
+ * that mis-fires: a goal near enough to look identical on screen but far enough to clear the
+ * threshold gets a real two-step plan, and the user sees a preview that does not visibly move. A
+ * tolerance here would trade that for hiding real short moves, which is the worse mistake.
  *
  * Length two is load-bearing: a longer plan that happens to end where it began is a real move that
  * goes somewhere and comes back, and hiding it would be worse than showing it.
