@@ -27,7 +27,7 @@ import {
 } from '$lib/math/spatialJson'
 import { meshContentType } from '$lib/mesh'
 
-import type { JointJson } from './jointColumns'
+import type { ModelJson, ModelNodeJson } from './jointColumns'
 
 import { modelJointColumns } from './jointColumns'
 
@@ -207,11 +207,6 @@ type Frames = FrameSystemJson['frames']
 const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
 	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
 
-interface ModelNode {
-	id?: string
-	parent?: string
-}
-
 /**
  * The model's one childless frame, over links and joints. Undefined when there is more than one,
  * which RDK also refuses, and for a DH model, whose topology lives in `dhParams` not either list.
@@ -222,8 +217,8 @@ const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefi
 	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
 	// non-iterable throws, taking the whole plan render down.
 	const nodes = [
-		...(Array.isArray(links) ? (links as ModelNode[]) : []),
-		...(Array.isArray(joints) ? (joints as ModelNode[]) : []),
+		...(Array.isArray(links) ? (links as ModelNodeJson[]) : []),
+		...(Array.isArray(joints) ? (joints as ModelNodeJson[]) : []),
 	]
 
 	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))
@@ -290,10 +285,10 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 		if (entry.frame_type !== 'model') continue
 		const model = modelOf(entry)
 
-		// `model.joints` is the only place mimic mappings survive serialization; `FrameSystem.MarshalJSON`
-		// writes only name, world, frames and parents. Keyed by frame name, which is how the frame asks.
-		const joints = (model?.joints ?? []) as JointJson[]
-		for (const [jointId, column] of modelJointColumns(joints)) {
+		// Which slot of a trajectory step drives which frame. Keyed by frame name because that is how
+		// the frame asks — the join between the two is the `${model}:${id}` convention, nothing else.
+		const { order, columns } = modelJointColumns(model as ModelJson | undefined, modelName)
+		for (const [jointId, column] of columns) {
 			jointOwners.set(`${modelName}:${jointId}`, {
 				componentName: modelName,
 				jointIndex: column.index,
@@ -309,9 +304,11 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 			continue
 		}
 
-		const lastJoint = joints.at(-1)
-		if (!lastJoint) continue
-		const terminal = childMap.get(`${modelName}:${lastJoint.id}`)?.[0]
+		// `order`, not `columns`: a mimic joint holds no column but still sits in the chain, and on a
+		// gripper it is routinely the last thing before the tool.
+		const lastJointId = order.at(-1)
+		if (!lastJointId) continue
+		const terminal = childMap.get(`${modelName}:${lastJointId}`)?.[0]
 		if (terminal) modelTerminals.set(modelName, terminal)
 	}
 

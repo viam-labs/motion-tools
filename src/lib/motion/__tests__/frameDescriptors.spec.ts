@@ -197,7 +197,22 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'shoulder' }] } },
+					// Joints carry their own parents, which is what decides their trajectory column
+					// (see `modelJointColumns`) — declaration order alone does not.
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'base_top', parent: 'waist' },
+								{ id: 'upper_arm', parent: 'shoulder' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'shoulder', parent: 'base_top' },
+							],
+						},
+					},
 				},
 				'arm:waist': {
 					frame_type: 'named',
@@ -458,7 +473,19 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'gripper_rot' }] } },
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'gripper_mount', parent: 'gripper_rot' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'gripper_rot', parent: 'waist' },
+							],
+						},
+					},
 				},
 				'arm:gripper_rot': {
 					frame_type: 'named',
