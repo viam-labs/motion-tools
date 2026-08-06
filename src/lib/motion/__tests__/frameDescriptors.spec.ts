@@ -893,8 +893,8 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
-		const p = plan(
+	const linkWithGeometry = (geometry: Record<string, unknown>) =>
+		plan(
 			{
 				'arm:link': {
 					frame_type: 'named',
@@ -904,7 +904,7 @@ describe('buildFrameDescriptors', () => {
 							frame: {
 								translation: { X: 0, Y: 0, Z: 0 },
 								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-								geometry: { type: '', r: 1, l: 0 },
+								geometry,
 							},
 						},
 					},
@@ -912,10 +912,24 @@ describe('buildFrameDescriptors', () => {
 			},
 			{ 'arm:link': 'world' }
 		)
-		const descriptors = buildFrameDescriptors(p)
-		const d = descriptors[0]!
-		expect(d.kind).toBe('static')
-		if (d.kind === 'static') expect(d.geometry).toBeNull()
+
+	const geometryCase = (geometry: Record<string, unknown>) => {
+		const d = buildFrameDescriptors(linkWithGeometry(geometry))[0]!
+		return d.kind === 'static' ? (d.geometry?.geometryType.case ?? null) : undefined
+	}
+
+	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
+		expect(geometryCase({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
+	})
+
+	// A model config reaches `buildFrameDescriptors` unresolved — RDK infers the type from whichever
+	// dimensions were set, and an arm's links rely on it (see `inferGeometryType`).
+	it.each([
+		['sphere', { type: '', r: 1, l: 0 }],
+		['capsule', { type: '', r: 50, l: 320 }],
+		['box', { type: '', x: 80, y: 180, z: 250, r: 0, l: 0 }],
+	])('infers %s from the dimensions of an untyped geometry', (expected, geometry) => {
+		expect(geometryCase(geometry)).toBe(expected)
 	})
 
 	const obstacleWith = (geometry: Record<string, unknown>) =>

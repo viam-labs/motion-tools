@@ -87,6 +87,32 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
+ * RDK's `GeometryConfig.ParseConfig` treats an absent `type` as "infer from whichever dimensions
+ * were set" — box if any of x/y/z, else capsule if a length, else a sphere — and refuses to guess
+ * when nothing was, which is the only case that means "no geometry".
+ *
+ * A flattened frame system has already been through that resolution, so its geometries name their
+ * type outright. A *model config* has not: an arm's links carry the shapes that draw as spheres and
+ * capsules in a plan dump while still spelling `"type": ""`, so reading the field literally loses
+ * every one of them.
+ */
+const inferGeometryType = (g: Record<string, unknown>): string => {
+	const declared = (g.type ?? '') as string
+	if (declared !== '') return declared
+
+	const x = (g.x as number) ?? 0
+	const y = (g.y as number) ?? 0
+	const z = (g.z as number) ?? 0
+	if (Math.hypot(x, y, z) > 0) return 'box'
+
+	// `l` before `r`: a capsule sets both, and RDK checks the length first for the same reason.
+	if (((g.l as number) ?? 0) !== 0) return 'capsule'
+	if (((g.r as number) ?? 0) > 0) return 'sphere'
+
+	return ''
+}
+
+/**
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
@@ -108,10 +134,11 @@ export const parseGeometry = (
 
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
-	const type = g.type as string
+	const type = inferGeometryType(g)
 
-	// Go marshals the zero value rather than omitting it, so an empty type means "no geometry",
-	// not "unrecognized geometry" — distinct from the types rejected below.
+	// Go marshals the zero value rather than omitting it, and `inferGeometryType` returns it
+	// unchanged when nothing was specified — an empty type means "no geometry", not "unrecognized
+	// geometry", which is distinct from the types rejected below.
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
