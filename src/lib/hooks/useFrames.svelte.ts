@@ -1,4 +1,4 @@
-import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
+import { MachineConnectionEvent, type robotApi, Transform } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -21,8 +21,20 @@ import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
-interface FramesContext {
+export interface FramesContext {
 	current: Transform[]
+	/**
+	 * The raw `frameSystemConfig` reply, kept alongside the flattened `current` because it is the
+	 * only place `kinematics` survives — the model JSON a client needs to run forward kinematics
+	 * for itself (see `$lib/motion/frameSystemToPlanFrames`).
+	 *
+	 * Empty only until the first successful fetch. It is **not** cleared on entering build mode or on
+	 * a disconnect: the query stops refetching, but a disabled TanStack query keeps its data and the
+	 * observer stays mounted. So a non-empty `parts` does not mean the reply is current, and callers
+	 * must not read it as "we are live" — `current` may meanwhile have fallen back to locally edited
+	 * config frames that carry no kinematics at all.
+	 */
+	parts: robotApi.FrameSystemConfig[]
 	/** Whether the current part's frame set has been reconciled into the world. */
 	readonly isReady: boolean
 	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
@@ -296,11 +308,15 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const parts = $derived(query.data ?? [])
 	const kinematicsComponents = $derived(new Set(Object.keys(kinematicsByComponent)))
 
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get parts() {
+			return parts
 		},
 		get isReady() {
 			return reconciledPartID === partID() && reconciledFrames === current
