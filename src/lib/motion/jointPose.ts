@@ -1,6 +1,10 @@
 /**
- * The one piece of forward kinematics a trajectory step needs: it carries joint values, not poses,
- * so this reproduces RDK's `rotationalFrame.Transform` and `translationalFrame.Transform`.
+ * The one piece of forward kinematics a trajectory step needs: a step carries joint values, not
+ * poses, so this reproduces RDK's `rotationalFrame.Transform` / `translationalFrame.Transform`
+ * — motion about the joint's declared axis.
+ *
+ * Shared by the two things that turn a trajectory into geometry: the plan replayer's snapshot
+ * builder and the move panel's preview ghosts.
  */
 
 import { Quaternion, Vector3 } from 'three'
@@ -29,11 +33,13 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
 }
 
 /**
- * A step addresses joints positionally per component; a missing column reads as zero, where RDK's
- * `FrameSystem.Transform` errors instead.
+ * A step addresses joints positionally per component (`{'left-arm': [0.1, -0.3, …]}`). A missing
+ * column means the component contributed no inputs to this plan, which reads the same as zero.
  *
- * The `offset` is in the column's unit, radians or millimetres, not degrees like the sibling `min`
- * and `max`.
+ * A mimic joint has no column of its own, so `jointIndex` addresses its *source* and the linear map
+ * on the descriptor turns that value into this joint's — the same derivation RDK applies when it
+ * forks a model's schema, `multiplier * inputs[source] + offset`. Both callers go through here, so
+ * the replayer and the preview ghosts agree on a gripper's second finger.
  */
 export const jointValueAt = (
 	descriptor: JointFrameDescriptor,
@@ -43,3 +49,12 @@ export const jointValueAt = (
 	const { mimic } = descriptor
 	return mimic ? mimic.multiplier * column + mimic.offset : column
 }
+
+/** The frame's pose relative to its parent at `stepInputs`, whichever kind of frame it is. */
+export const descriptorLocalPose = (
+	descriptor: { kind: 'static'; localPose: Pose } | JointFrameDescriptor,
+	stepInputs: TrajectoryStep
+): Pose =>
+	descriptor.kind === 'static'
+		? descriptor.localPose
+		: computeJointPose(descriptor, jointValueAt(descriptor, stepInputs))
