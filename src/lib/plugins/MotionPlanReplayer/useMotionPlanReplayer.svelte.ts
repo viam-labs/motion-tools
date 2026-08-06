@@ -37,6 +37,11 @@ export interface PlanEntry {
 
 // Only primitives here — proto objects (Snapshot[]) live outside $state to avoid Svelte 5 deep proxy
 interface PlanState {
+	/**
+	 * Survives the reindexing that `removePlan` does to `plans`, which a position cannot. Everything
+	 * held outside `plans` is keyed by this rather than by where the plan currently sits.
+	 */
+	id: number
 	name: string
 	content: string
 	status: 'idle' | 'ready' | 'error' | 'no-trajectory'
@@ -64,11 +69,16 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const world = useWorld()
 	const relationships = useRelationships()
 
-	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy
+	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy.
+	// Keyed by `PlanState.id`: keyed by position, removing any plan ahead of the active one left every
+	// later entry pointing at its neighbour's snapshots.
 	const snapshotStore = new Map<number, Snapshot[]>()
+
+	let nextPlanId = 0
 
 	let plans = $state<PlanState[]>(
 		(initialPlans ?? []).map((e) => ({
+			id: nextPlanId++,
 			name: e.name,
 			content: e.content,
 			status: 'idle' as const,
@@ -146,7 +156,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 	const setStep = (step: number) => {
 		if (activePlanIndex === null) return
-		const snapshots = snapshotStore.get(activePlanIndex)
+		const active = plans[activePlanIndex]
+		const snapshots = active && snapshotStore.get(active.id)
 		if (!snapshots || snapshots.length === 0) return
 		applyStep(snapshots, Math.max(0, Math.min(snapshots.length - 1, step)))
 	}
@@ -155,7 +166,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		const planState = plans[index]
 		if (!planState) return
 
-		const stored = snapshotStore.get(index)
+		const stored = snapshotStore.get(planState.id)
 		if (stored) {
 			activePlanIndex = index
 			currentStep = 0
@@ -172,7 +183,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 				activePlanIndex = index
 				return
 			}
-			snapshotStore.set(index, snapshots)
+			snapshotStore.set(planState.id, snapshots)
 			plans[index] = { ...planState, status: 'ready', stepCount: snapshots.length, error: null }
 			activePlanIndex = index
 			currentStep = 0
@@ -191,13 +202,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const addPlan = (name: string, content: string, precomputedSnapshots?: Snapshot[]) => {
+		const id = nextPlanId++
 		const index = plans.length
 		if (precomputedSnapshots && precomputedSnapshots.length > 0) {
-			snapshotStore.set(index, precomputedSnapshots)
+			snapshotStore.set(id, precomputedSnapshots)
 		}
 		plans = [
 			...plans,
 			{
+				id,
 				name,
 				content,
 				status: precomputedSnapshots && precomputedSnapshots.length > 0 ? 'ready' : 'idle',
@@ -209,9 +222,14 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const removePlan = (index: number) => {
+		const removed = plans[index]
+		if (!removed) return
+
 		if (activePlanIndex === index) clearActivePlan()
-		snapshotStore.delete(index)
+		snapshotStore.delete(removed.id)
 		plans = plans.filter((_, i) => i !== index)
+		// Every remaining plan keeps its snapshots because they were never keyed by position; only
+		// `activePlanIndex`, which is one, has to follow the shift.
 		if (activePlanIndex !== null && activePlanIndex > index) {
 			activePlanIndex = activePlanIndex - 1
 		}
