@@ -24,6 +24,12 @@ static/test-fixtures
 # cannot round-trip them.
 src/lib/plugins/MotionPlanReplayer/__tests__/__fixtures__/
 
+# A 225-step plan captured from a real arm, stored minified at 6 decimal places
+# because it is 2,000 lines pretty-printed and nothing reads it by eye. The
+# sibling fixtures in that directory are small and stay formatted. Regenerate
+# from a capture rather than hand-editing.
+src/lib/motion/__tests__/__fixtures__/plan-linear-constrained.json
+
 # IDE
 .cursor
 
