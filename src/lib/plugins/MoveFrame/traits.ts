@@ -28,10 +28,26 @@ const ORIGIN_SUFFIX = '_origin'
  * naming `frameSystemToPlanFrames` builds: `arm`, `arm_origin` and `arm:wrist_1_link` all belong to
  * `arm`.
  *
+ * The part is everything before the **last** colon, not the first, because a colon is RDK's remote
+ * delimiter as well as its link delimiter — and it is only ever a delimiter, since `:` is a reserved
+ * character in a resource name (`resource/resource.go:40`). A remote arm is therefore `myremote:arm`
+ * with links `myremote:arm:wrist_1_link`, and nesting can go deeper still. Splitting on the first
+ * colon answered `myremote`, which is neither an `armBits` key nor any live frame's name, so every
+ * ghost of a remote arm fell through to the environment and reported touching the arm it sits
+ * exactly on top of — the whole bug this trait exists to prevent, reinstated for remote parts.
+ *
+ * Stripping `_origin` first is what makes the last-colon rule exact rather than a guess. `_origin` is
+ * appended to the whole part name (`frame_system.go:1105`), so a name ending in it settles the
+ * question outright; every other frame reaching here is `<part>:<link>`, because the bare part frame
+ * carries no geometry and so is never ghosted. Without that ordering `myremote:arm_origin` would
+ * read as part `myremote`.
+ *
  * Here rather than beside the spawner for the same reason the trait is: this is how a value for it
  * is derived, so anything that reads the label can produce one without reaching for the lifecycle.
  */
 export const previewComponentName = (frameName: string): string => {
-	const part = frameName.split(':')[0] ?? frameName
-	return part.endsWith(ORIGIN_SUFFIX) ? part.slice(0, -ORIGIN_SUFFIX.length) : part
+	if (frameName.endsWith(ORIGIN_SUFFIX)) return frameName.slice(0, -ORIGIN_SUFFIX.length)
+
+	const lastColon = frameName.lastIndexOf(':')
+	return lastColon === -1 ? frameName : frameName.slice(0, lastColon)
 }

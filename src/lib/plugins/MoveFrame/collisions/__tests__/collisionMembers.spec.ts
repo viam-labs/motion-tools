@@ -165,6 +165,61 @@ describe('collectMembers', () => {
 			}
 		)
 
+		/**
+		 * The first rung of the ladder, which the rows above only appear to cover: each of them also
+		 * spawns a live `arm` frame, so the parent walk reaches bit 1 on its own and `armBits.get`
+		 * could be deleted without failing anything. Here there is no live entity to walk, so the
+		 * name has to answer for itself.
+		 *
+		 * Reachable in practice: a preview drawn before `useFrames` has reconciled the arm's frame
+		 * entity has `armBits` populated from `useResourceNames` and no live frame yet.
+		 */
+		it('answers from the arm`s own name when nothing live carries it', () => {
+			expect(bitOf(spawnPreview('arm:wrist_1_link'), collectMembers(world, armBits))).toBe(1)
+		})
+
+		/**
+		 * RDK's remote delimiter is the same colon as its link delimiter, so a remote arm is
+		 * `myremote:arm` and its links are `myremote:arm:wrist_1_link`. Reading the part as everything
+		 * before the *first* colon answered `myremote` — no `armBits` key, no live frame — so every
+		 * ghost of a remote arm fell into the environment and reported touching the arm it is drawn on
+		 * top of. That is the exact bug this whole file exists to prevent, reinstated for remote parts.
+		 *
+		 * The `arm:wrist_1_link` row above cannot catch it: the spec spawns a live collider with that
+		 * literal name, so `liveByName` finds it and the walk succeeds even if the parse returns the
+		 * whole string untouched.
+		 */
+		describe('a remote-qualified part', () => {
+			const remoteBits = new Map([['myremote:arm', 1]])
+
+			/**
+			 * The bare part frame is deliberately absent. `myremote:arm` is ambiguous from the string
+			 * alone — link `arm` of local part `myremote`, or bare part `arm` on remote `myremote` — and
+			 * nothing can decide it, since `:` is the delimiter in both cases. It is also unreachable:
+			 * a ghost is only spawned for a frame carrying geometry, and the bare part frame never
+			 * does, so only `<part>_origin` and `<part>:<link>` are ever parsed.
+			 */
+			it.each(['myremote:arm_origin', 'myremote:arm:wrist_1_link'])(
+				'gives the preview of %s the remote arm`s bit',
+				(frameName) => {
+					spawnCollider(spawnFrame('myremote:arm'), 'myremote:arm:wrist_1_link')
+					expect(bitOf(spawnPreview(frameName), collectMembers(world, remoteBits))).toBe(1)
+				}
+			)
+
+			it('never lets a remote arm`s preview test against the real one', () => {
+				const link = spawnCollider(spawnFrame('myremote:arm'), 'myremote:arm:wrist_1_link')
+				const preview = spawnPreview('myremote:arm:wrist_1_link')
+
+				const members = collectMembers(world, remoteBits)
+				const linkGroups = groupsForBit(bitOf(link, members)!)
+				const previewGroups = groupsForBit(bitOf(preview, members)!)
+
+				expect((linkGroups >>> 16) & (previewGroups & 0xff_ff)).toBe(0)
+				expect((previewGroups >>> 16) & (linkGroups & 0xff_ff)).toBe(0)
+			})
+		})
+
 		// The bug this fixes: the real arm reported touching seven `unnamed` colliders, because the
 		// ghosts fell through to the environment and the arm tests against the environment.
 		it('never lets a previewed arm test against the real arm', () => {
