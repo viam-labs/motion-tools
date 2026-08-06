@@ -12,12 +12,17 @@ import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
 import type { ForwardKinematics } from '$lib/motion/forwardKinematics'
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+import type { JointMotions } from '$lib/motion/interpolateTrajectory'
 import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import { createForwardKinematics } from '$lib/motion/forwardKinematics'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
 import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
-import { waypointFrames } from '$lib/motion/interpolateTrajectory'
+import {
+	interpolatedFrames,
+	jointMotionsOf,
+	waypointFrames,
+} from '$lib/motion/interpolateTrajectory'
 import { createTrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import type { MoveOptions } from './parseMoveOptions'
@@ -39,8 +44,25 @@ import {
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 /**
- * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than a frame
- * rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable.
+ * What one frame of playback represents. Not a fidelity setting — both show the same motion, and
+ * neither is faster or slower than the real move, since a trajectory carries no timing at all.
+ *
+ *   - `waypoints` gives each configuration the planner returned its own frame, and nothing between.
+ *   - `interpolated` adds frames along the straight joint path between waypoints, in proportion to
+ *     travel. That path is not invented — it is the one RDK collision-checks when it validates the
+ *     segment — but it is what the planner *approved*, not a promise of what the arm traces: the
+ *     component is handed the whole waypoint list so it can blend between them.
+ */
+export type PreviewDetail = 'waypoints' | 'interpolated'
+
+/**
+ * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than to a
+ * frame rate is what makes the two detail settings comparable: `raw` and `smoothed` describe the
+ * same motion with wildly different frame counts, so a fixed per-frame interval would race through
+ * a two-waypoint plan and crawl through a two-hundred-waypoint one.
+ *
+ * It is also the honest unit here. A trajectory carries no timing, so no frame rate is more correct
+ * than another — but "the whole move takes about this long" is at least a consistent claim.
  */
 const PREVIEW_DURATION_MS = 4000
 
@@ -86,6 +108,9 @@ export interface PreviewMove {
 	readonly trajectory: TrajectoryStep[]
 	/** How many waypoints the planner actually returned, whatever is being played. */
 	readonly plannedSteps: number
+	/** Which played frames are planned waypoints, for marking them on a scrubber. */
+	readonly waypointIndices: number[]
+	detail: PreviewDetail
 	readonly player: TrajectoryPlayer
 	/** Plans and renders. Resolves once the ghosts are on screen; never rejects. */
 	requestPreview: () => Promise<void>
@@ -104,10 +129,16 @@ export const usePreviewMove = ({
 }: PreviewMoveOptions): PreviewMove => {
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
-	// `$state.raw`: replaced wholesale, and only `playbackFrames.length` is read reactively. Two
-	// arrays because `execute` must receive what the planner said, never what the scrubber walks.
+	// Raw: both are large arrays of plain numbers, replaced wholesale, and nothing reads into them
+	// reactively — only `playbackFrames.length`, through the player.
+	//
+	// Two arrays rather than one because they answer different questions. `trajectory` is what the
+	// planner said and what `execute` must receive; `playbackFrames` is that same motion subdivided for
+	// playback, which the robot must never be asked to run.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
 	let playbackFrames = $state.raw<TrajectoryStep[]>([])
+	let waypointIndices = $state.raw<number[]>([])
+	let detail = $state<PreviewDetail>('waypoints')
 
 	// Playback covers `playbackFrames.length - 1` transitions, so that is what the duration divides.
 	const frameIntervalMs = $derived(
@@ -118,6 +149,9 @@ export const usePreviewMove = ({
 	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
 	const ghosts: PreviewGhosts = createPreviewGhosts()
 	let forwardKinematics: ForwardKinematics | undefined
+	// Held alongside the kinematics rather than derived where it is used: `set detail` reframes the
+	// same plan without a descriptor in scope, and it needs the same answer this request built.
+	let jointMotions: JointMotions = new Map()
 
 	/**
 	 * Which request the state on screen belongs to. Bumped by every reset, so a plan that resolves
@@ -134,9 +168,14 @@ export const usePreviewMove = ({
 		return true
 	}
 
-	/** Build the played frames from the plan. The plan itself is untouched. */
-	const applyPlayback = (planned: TrajectoryStep[]) => {
-		playbackFrames = waypointFrames(planned).steps
+	/** Rebuild the played frames for the current detail. The plan itself is untouched. */
+	const applyDetail = (planned: TrajectoryStep[]) => {
+		const built =
+			detail === 'waypoints'
+				? waypointFrames(planned)
+				: interpolatedFrames(planned, { motions: jointMotions })
+		playbackFrames = built.steps
+		waypointIndices = built.waypoints
 	}
 
 	const player = createTrajectoryPlayer({
@@ -158,8 +197,10 @@ export const usePreviewMove = ({
 
 		clearPreviewGhosts(ghosts)
 		forwardKinematics = undefined
+		jointMotions = new Map()
 		trajectory = []
 		playbackFrames = []
+		waypointIndices = []
 		player.reset()
 	}
 
@@ -231,6 +272,7 @@ export const usePreviewMove = ({
 			}
 
 			forwardKinematics = createForwardKinematics(descriptors)
+			jointMotions = jointMotionsOf(descriptors)
 			// The trajectory decides which frames earn a ghost, not just where they go: RDK returns a
 			// column for every component, so the ones it holds still have to be told apart from the ones
 			// it moves.
@@ -244,7 +286,7 @@ export const usePreviewMove = ({
 			}
 
 			trajectory = result.trajectory
-			applyPlayback(result.trajectory)
+			applyDetail(result.trajectory)
 			status = 'ready'
 			renderStep(0)
 		} catch (error_) {
@@ -284,6 +326,22 @@ export const usePreviewMove = ({
 		},
 		get plannedSteps() {
 			return trajectory.length
+		},
+		get waypointIndices() {
+			return waypointIndices
+		},
+		get detail() {
+			return detail
+		},
+		// Switching detail re-frames the same plan, so playback restarts rather than trying to map
+		// the current frame across two different framings of the motion.
+		set detail(next: PreviewDetail) {
+			if (next === detail) return
+			detail = next
+			if (status !== 'ready') return
+			applyDetail(trajectory)
+			player.reset()
+			renderStep(0)
 		},
 		player,
 		requestPreview,

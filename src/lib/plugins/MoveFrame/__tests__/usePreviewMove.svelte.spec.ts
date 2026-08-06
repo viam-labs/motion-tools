@@ -275,7 +275,15 @@ describe('where the ghosts stand before anything is scrubbed', () => {
 	})
 })
 
-/** `trajectory` and `playbackFrames` hold the same steps today, so nothing here tells them apart. */
+/**
+ * The hook keeps two arrays and they answer different questions. `trajectory` is what the planner
+ * said and the only thing `execute` may be handed; `playbackFrames` is that same motion subdivided
+ * for the scrubber, which the robot must never be asked to run.
+ *
+ * Nothing had ever told them apart: returning the playback frames from `get trajectory()` — handing
+ * the robot the interpolated ones — passed the whole suite. Subdividing is what makes the two
+ * observably different, so this is the first PR in which the distinction can be pinned at all.
+ */
 describe('what the scrubber walks', () => {
 	it('plays one frame per configuration the planner returned', async () => {
 		const h = setup()
@@ -286,6 +294,20 @@ describe('what the scrubber walks', () => {
 		expect(h.preview.player.totalSteps).toBe(2)
 		expect(h.preview.plannedSteps).toBe(2)
 		expect(h.preview.trajectory).toEqual(PLAN_REPLY.plan)
+	})
+
+	it('keeps handing out the waypoints when playback is subdivided', async () => {
+		const h = setup()
+		const done = h.preview.requestPreview()
+		h.pending[0]!.resolve(PLAN_REPLY)
+		await done
+
+		h.preview.detail = 'interpolated'
+		h.flush()
+
+		expect(h.preview.player.totalSteps).toBeGreaterThan(2)
+		expect(h.preview.trajectory).toEqual(PLAN_REPLY.plan)
+		expect(h.preview.plannedSteps).toBe(2)
 	})
 })
 
@@ -336,5 +358,57 @@ describe('the request the panel sends', () => {
 			obstacles: [{ referenceFrame: 'world', geometries: [{ sphere: { radiusMm: 50 } }] }],
 		})
 		expect(request.constraints).toEqual({ linearConstraint: [{ lineToleranceMm: 5 }] })
+	})
+})
+
+/**
+ * `waypointIndices` is what the scrubber draws its tick marks from, and it is the only thing telling
+ * a user which of 180 interpolated frames the planner actually chose.
+ */
+describe('marking which played frames are planned waypoints', () => {
+	it('marks every frame when each one is a waypoint', async () => {
+		const h = setup()
+		const done = h.preview.requestPreview()
+		h.pending[0]!.resolve(PLAN_REPLY)
+		await done
+
+		expect(h.preview.waypointIndices).toEqual([0, 1])
+	})
+
+	it('marks the waypoints among the frames subdividing them', async () => {
+		const h = setup()
+		const done = h.preview.requestPreview()
+		h.pending[0]!.resolve(PLAN_REPLY)
+		await done
+
+		h.preview.detail = 'interpolated'
+		h.flush()
+
+		expect(h.preview.waypointIndices).toHaveLength(2)
+		expect(h.preview.waypointIndices[0]).toBe(0)
+		expect(h.preview.waypointIndices.at(-1)).toBe(h.preview.player.lastStep)
+	})
+})
+
+/**
+ * The two detail settings are different framings of one motion, so a frame index does not carry
+ * across. Leaving `currentStep` where it was pointed the scrubber past the end of the shorter
+ * framing and left the ghosts showing a pose from the other one.
+ */
+describe('switching what a frame represents', () => {
+	it('restarts playback rather than keeping an index that no longer means anything', async () => {
+		const h = setup()
+		const done = h.preview.requestPreview()
+		h.pending[0]!.resolve(PLAN_REPLY)
+		await done
+
+		h.preview.player.seek(h.preview.player.lastStep)
+		h.flush()
+		expect(h.preview.player.currentStep).toBe(1)
+
+		h.preview.detail = 'interpolated'
+		h.flush()
+
+		expect(h.preview.player.currentStep).toBe(0)
 	})
 })

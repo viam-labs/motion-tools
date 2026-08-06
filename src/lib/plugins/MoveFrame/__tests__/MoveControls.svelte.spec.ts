@@ -68,6 +68,8 @@ vi.mock('../usePreviewMove.svelte', () => ({
 				return preview.trajectory
 			},
 			plannedSteps: 0,
+			waypointIndices: [],
+			detail: 'waypoints',
 			player: {
 				currentStep: 0,
 				totalSteps: 0,

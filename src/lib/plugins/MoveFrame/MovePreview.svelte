@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Button } from '@viamrobotics/prime-core'
+	import { Button, ToggleButtons } from '@viamrobotics/prime-core'
 
 	import TrajectoryScrubber from '$lib/components/motion/TrajectoryScrubber.svelte'
 
-	import type { PreviewMove } from './usePreviewMove.svelte'
+	import type { PreviewDetail, PreviewMove } from './usePreviewMove.svelte'
 
 	interface Props {
 		preview: PreviewMove
@@ -17,6 +17,23 @@
 
 	const planning = $derived(preview.status === 'planning')
 	const ready = $derived(preview.status === 'ready')
+
+	/**
+	 * Named for what a frame *is*, not for how processed it looks.
+	 *
+	 * "Raw / Smoothed" read as honest-versus-prettified, which is backwards: nothing is eased or
+	 * rounded, the same path is just sampled more finely. Waypoints leads because it is the plan
+	 * exactly as returned.
+	 */
+	const detailLabels: Record<PreviewDetail, string> = {
+		waypoints: 'Waypoints',
+		interpolated: 'Interpolated',
+	}
+	const detailByLabel = new Map<string, PreviewDetail>(
+		Object.entries(detailLabels).map(([value, label]) => [label, value as PreviewDetail])
+	)
+
+	const frameCount = $derived(preview.player.totalSteps)
 </script>
 
 <div class="flex flex-col gap-2">
@@ -63,9 +80,39 @@
 			</p>
 		</div>
 
+		<div class="flex flex-col gap-1">
+			<ToggleButtons
+				options={Object.values(detailLabels)}
+				selected={detailLabels[preview.detail]}
+				on:input={(event) => {
+					const next = detailByLabel.get(event.detail)
+					if (next) preview.detail = next
+				}}
+			>
+				{#snippet legend()}
+					Each frame is
+				{/snippet}
+			</ToggleButtons>
+
+			<!--
+				The labels alone cannot carry this, so the counts do. Seeing "2 frames" against "182
+				frames" for the same move is the fastest way to understand what the setting changes,
+				and it makes a sparse plan's sparseness impossible to miss.
+			-->
+			<p class="text-subtle-2">
+				{#if preview.detail === 'waypoints'}
+					{frameCount} frames — one per configuration the planner returned, and nothing between.
+				{:else}
+					{frameCount} frames across {preview.plannedSteps} planned waypoints, along the straight joint
+					path the planner checks between them.
+				{/if}
+			</p>
+		</div>
+
 		<TrajectoryScrubber
 			player={preview.player}
 			label="{frameName} preview"
+			markers={preview.waypointIndices}
 		/>
 	{/if}
 </div>
