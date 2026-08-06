@@ -43,7 +43,7 @@ export const planDropper = async ({
 				return { success: true, name, content, snapshots, stepCount: snapshots.length }
 			}
 		} catch (error) {
-			console.warn('[MotionPlanReplayer] resolvePlanSnapshots failed, parsing on client:', error)
+			console.warn('[motion] resolvePlanSnapshots failed, parsing on client:', error)
 		}
 	}
 

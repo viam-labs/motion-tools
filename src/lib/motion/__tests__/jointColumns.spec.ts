@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import type { JointJson } from '../model-joint-columns'
+import type { JointJson } from '../jointColumns'
 
-import { modelJointColumns } from '../model-joint-columns'
-import gripperModel from './__fixtures__/rdk-mimic-gripper-model.json'
-import serialModel from './__fixtures__/rdk-mimic-serial-model.json'
+import gripperModel from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/rdk-mimic-gripper-model.json'
+import serialModel from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/rdk-mimic-serial-model.json'
+import { modelJointColumns } from '../jointColumns'
 
 const indices = (joints: JointJson[]): Record<string, number | undefined> =>
 	Object.fromEntries(joints.map((j) => [j.id, modelJointColumns(joints).get(j.id)?.index]))

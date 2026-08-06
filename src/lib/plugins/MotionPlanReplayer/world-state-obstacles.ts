@@ -17,10 +17,9 @@ import {
 	WorldState,
 } from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
+import { parseGeometry } from '$lib/motion/frameDescriptors'
 
 import type { ObstaclesInWorldFrame, ParsedPlan } from './parse-plan'
-
-import { parseGeometry } from './build-frame-descriptors'
 
 // Prefix avoids colliding with frame names that share an obstacle label (pirouette: pallet).
 const namespaced = (label: string, fallback: string): string => `obstacle:${label || fallback}`
@@ -71,7 +70,7 @@ const fromWorldState = (payload: unknown): Transform[] => {
 		// proto would erase every obstacle rather than the one it appears on.
 		parsed = WorldState.fromJson(payload as JsonValue, { ignoreUnknownFields: true })
 	} catch (error) {
-		console.warn('[MotionPlanReplayer] skipping world_state obstacles:', error)
+		console.warn('[motion] skipping world_state obstacles:', error)
 		return []
 	}
 
