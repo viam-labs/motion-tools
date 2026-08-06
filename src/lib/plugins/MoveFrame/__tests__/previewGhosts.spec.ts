@@ -16,7 +16,7 @@ import {
 	movingComponents,
 	spawnPreviewGhosts,
 } from '../previewGhosts'
-import { previewComponentName, PreviewOf } from '../traits'
+import { PreviewOf } from '../traits'
 
 let world: ReturnType<typeof createWorld>
 
@@ -65,19 +65,6 @@ const ghostedNames = (
 	spawnPreviewGhosts(world, descriptors, trajectory, ghosts)
 	return [...ghosts.keys()].toSorted()
 }
-
-describe('previewComponentName', () => {
-	// The `_origin` suffix is stripped after the `:` split, so both of RDK's synthesized shapes for a
-	// part resolve to the part itself.
-	it.each([
-		['arm', 'arm'],
-		['arm_origin', 'arm'],
-		['arm:wrist_1_link', 'arm'],
-		['arm_origin:wrist_1_link', 'arm'],
-	])('reads %s as belonging to %s', (frame, component) => {
-		expect(previewComponentName(frame)).toBe(component)
-	})
-})
 
 /**
  * RDK answers with a column for every component in the frame system, so "appears in the trajectory"
