@@ -24,6 +24,14 @@ export const parsePlyInput = (mesh: string | Uint8Array): BufferGeometry => {
 		return plyLoader.parse(text)
 	}
 
-	// Case 4: binary PLY → pass ArrayBuffer directly
-	return plyLoader.parse(mesh.buffer as ArrayBuffer)
+	// Case 4: binary PLY → pass an ArrayBuffer holding exactly the mesh bytes.
+	// A protobuf-decoded `bytes` field is a subarray view over the whole wire
+	// buffer, so handing over `.buffer` would parse from the start of the
+	// response — the loader finds no header there and yields empty geometry.
+	const exact =
+		mesh.byteOffset === 0 && mesh.byteLength === mesh.buffer.byteLength
+			? (mesh.buffer as ArrayBuffer)
+			: (mesh.slice().buffer as ArrayBuffer)
+
+	return plyLoader.parse(exact)
 }

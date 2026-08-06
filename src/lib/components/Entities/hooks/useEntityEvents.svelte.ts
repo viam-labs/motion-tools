@@ -3,7 +3,7 @@ import type { Entity } from 'koota'
 import { type IntersectionEvent, useCursor } from '@threlte/extras'
 import { MathUtils, Matrix4, Quaternion, Vector2 } from 'three'
 
-import { traits, useTrait, useWorld } from '$lib/ecs'
+import { setOrAddTrait, traits, useTrait, useWorld } from '$lib/ecs'
 import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
 import { OrientationVector } from '$lib/three/OrientationVector'
 
@@ -54,12 +54,13 @@ const createEntityEvents = (
 			} else {
 				composed.copy(tempHoverMatrix)
 			}
-			currentEntity.add(
-				traits.InstancedMatrix({
-					matrix: composed,
-					index: hoverInfo.index,
-				})
-			)
+			// An instanced renderer can drop `Hovered` without dropping
+			// `InstancedMatrix` (see the invisibility handling in `writeAppearance`),
+			// so this has to overwrite a leftover matrix rather than skip it.
+			setOrAddTrait(currentEntity, traits.InstancedMatrix, {
+				matrix: composed,
+				index: hoverInfo.index,
+			})
 		}
 		currentEntity.add(traits.Hovered)
 	}
@@ -162,8 +163,12 @@ const createEntityEvents = (
 			}
 		}
 
-		if (event.instanceId || event.batchId) {
-			currentEntity.add(traits.InstanceId(event.instanceId ?? event.batchId))
+		// `!== undefined`, because instance 0 is a valid hit, and `setOrAddTrait`,
+		// because koota's `add` drops the value when the trait is already there —
+		// the outline would stay pinned to the first instance ever clicked.
+		const instanceId = event.instanceId ?? event.batchId
+		if (instanceId !== undefined) {
+			setOrAddTrait(currentEntity, traits.InstanceId, instanceId)
 		}
 	}
 
