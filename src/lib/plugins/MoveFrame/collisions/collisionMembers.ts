@@ -5,6 +5,7 @@ import { hierarchy, traits } from '$lib/ecs'
 import type { CollisionMember } from './collisionWorld'
 
 import { GhostOf } from '../relations'
+import { PreviewOf } from '../traits'
 import { ENVIRONMENT_BIT } from './interactionGroups'
 
 /** Cycle guard for the parent walk, mirroring `recomputeWorldMatrix`. */
@@ -46,8 +47,15 @@ export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>):
 	return ENVIRONMENT_BIT
 }
 
-/** Whether the entity is a staged-move ghost rather than something really there. */
-export const isGhost = (entity: Entity): boolean => entity.targetFor(GhostOf) !== undefined
+/**
+ * Whether the entity stands in for something rather than being it.
+ *
+ * Two kinds do: a staged-move ghost, which points at the entity it copies, and a preview ghost,
+ * which names the component it is a future moment of. Both are claims about where something *would*
+ * be, which is the distinction the panel draws between "would collide" and "currently touching".
+ */
+export const isGhost = (entity: Entity): boolean =>
+	entity.targetFor(GhostOf) !== undefined || entity.has(PreviewOf)
 
 /**
  * Every collidable entity in the scene, paired with the group bit that decides
@@ -68,9 +76,36 @@ export const collectMembers = (
 	const seen = new Set<Entity>()
 	const bitCache = new Map<Entity, number>()
 
+	// Built in full up front rather than lazily: a ghost can be visited before its subject, and the
+	// query order is not something to depend on.
+	const liveByName = new Map<string, Entity>()
+	for (const entity of world.query(traits.Name)) {
+		const name = entity.get(traits.Name)
+		if (name !== undefined && !liveByName.has(name)) liveByName.set(name, entity)
+	}
+
 	const bitFor = (entity: Entity): number => {
 		const cached = bitCache.get(entity)
 		if (cached !== undefined) return cached
+
+		// A preview ghost names its subject outright — it has no `Name` and no parent for the walk
+		// below to follow. `PreviewOf` carries a *component* name while `armBits` holds arm resource
+		// names, so an arm answers on the first line and a gripper or camera does not: those are their
+		// own components, mounted on an arm, and only the parent walk knows it. Indexing `armBits`
+		// alone dropped them into the environment — where they tested against, and touched, the live
+		// twin they sit exactly on top of.
+		//
+		// Falling through to the environment is the honest answer when the name resolves to nothing
+		// live, or to something with no arm above it: neither says which arm owns the ghost.
+		const previewed = entity.get(PreviewOf)
+		if (previewed !== undefined) {
+			const subject = liveByName.get(previewed)
+			const bit =
+				armBits.get(previewed) ??
+				(subject?.isAlive() ? armBitFor(subject, armBits) : ENVIRONMENT_BIT)
+			bitCache.set(entity, bit)
+			return bit
+		}
 
 		// One hop only — a ghost's source is never itself a ghost, and resolving
 		// through a chain would need a cycle guard for no gain.
