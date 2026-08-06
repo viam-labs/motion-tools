@@ -213,6 +213,28 @@ describe('parsePlanResult', () => {
 	})
 
 	/**
+	 * `typeof NaN === 'number'`, so a numeric-only check lets these through, and neither is a local
+	 * defect once it is in. `interpolateTrajectory` sums every segment's frame cost to decide how
+	 * finely to sample, so one non-finite value makes the total non-finite, which survives
+	 * `Math.ceil` until the interior loop stops running: *every* segment of the plan collapses to
+	 * one frame. That is the raw waypoint teleport interpolation exists to prevent, reached with no
+	 * error raised anywhere and a `NaN` on the scrubber's coarsening readout.
+	 *
+	 * `planCommand` already refuses a non-finite goal on exactly this reasoning; this is the same
+	 * rule applied to the reply.
+	 */
+	it.each([
+		['NaN', Number.NaN],
+		['Infinity', Number.POSITIVE_INFINITY],
+		['-Infinity', Number.NEGATIVE_INFINITY],
+	])('rejects a trajectory carrying %s rather than sampling the whole plan away', (_label, bad) => {
+		const value = { plan: [{ arm: [0, 0] }, { arm: [0.5, bad] }] } as unknown as JsonValue
+
+		expect(() => parsePlanResult(value)).toThrow(PlanCommandError)
+		expect(() => parsePlanResult(value)).toThrow(/cannot read/)
+	})
+
+	/**
 	 * There is no capability or version RPC to probe a machine with, so the only evidence available is
 	 * what came back. An RDK older than ~v0.101 serialises `Input` as `{Value: number}`, which reaches
 	 * us as a successful plan we cannot read — worth saying, rather than reporting it as no plan.

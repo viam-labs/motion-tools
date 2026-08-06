@@ -114,7 +114,7 @@ export const executeCommand = (trajectory: TrajectoryStep[]): Record<string, Jso
 })
 
 /**
- * A step has to be a non-empty object of number arrays.
+ * A step has to be a non-empty object of finite number arrays.
  *
  * The two structural cases are worth naming because `every` says yes to both by default. An array
  * is `typeof 'object'`, so `[[0, 1], [2, 3]]` walked as a step and passed; and `Object.values({})`
@@ -122,6 +122,18 @@ export const executeCommand = (trajectory: TrajectoryStep[]): Record<string, Jso
  * missing column to `0`, so a step with no readable columns draws a plausible arm at the zero
  * configuration instead of reporting a reply this client cannot read. `[[], []]` was worse again —
  * it parsed *and* satisfied `isAlreadyAtGoal`.
+ *
+ * Finite rather than merely numeric, for the same reason {@link planCommand} refuses a non-finite
+ * goal: `typeof NaN === 'number'`, and a single `NaN` anywhere in a reply is not a local defect.
+ * `interpolateTrajectory`'s frame budget sums every segment's cost, so one `NaN` makes the total
+ * `NaN`, which survives `Math.ceil` until the interior loop stops running and *every* segment of
+ * the plan collapses to one frame — the raw waypoint teleport interpolation exists to prevent,
+ * reached with no error anywhere and a `NaN` on the scrubber's coarsening readout.
+ *
+ * Whether RDK can send one is unproven. `protojson` refuses to marshal a non-finite
+ * `structpb.Value`, but a machine connection is WebRTC binary proto, which has no such objection.
+ * Refusing the reply outright is the cheap side of that uncertainty: this client cannot draw a
+ * `NaN` configuration under any reading of it.
  */
 const isTrajectoryStep = (step: unknown): step is TrajectoryStep =>
 	typeof step === 'object' &&
@@ -129,7 +141,7 @@ const isTrajectoryStep = (step: unknown): step is TrajectoryStep =>
 	!Array.isArray(step) &&
 	Object.keys(step).length > 0 &&
 	Object.values(step as Record<string, unknown>).every(
-		(inputs) => Array.isArray(inputs) && inputs.every((input) => typeof input === 'number')
+		(inputs) => Array.isArray(inputs) && inputs.every((input) => Number.isFinite(input))
 	)
 
 const isTrajectory = (value: unknown): value is TrajectoryStep[] =>
