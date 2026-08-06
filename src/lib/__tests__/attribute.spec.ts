@@ -1,3 +1,5 @@
+import type { BufferAttribute } from 'three'
+
 import { describe, expect, it } from 'vitest'
 
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
@@ -31,7 +33,7 @@ describe('updateBufferGeometry', () => {
 
 	it('reuses the existing attribute when the new cloud fits', () => {
 		const geometry = createBufferGeometry(new Float32Array([1, 1, 1, 2, 2, 2]))
-		const before = geometry.getAttribute('position')
+		const before = geometry.getAttribute('position') as BufferAttribute
 		const version = before.version
 
 		updateBufferGeometry(geometry, new Float32Array([9, 9, 9]), rgb)

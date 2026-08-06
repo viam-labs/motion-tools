@@ -163,9 +163,7 @@ const createEntityEvents = (
 			}
 		}
 
-		// `!== undefined`, because instance 0 is a valid hit, and `setOrAddTrait`,
-		// because koota's `add` drops the value when the trait is already there —
-		// the outline would stay pinned to the first instance ever clicked.
+		// `!== undefined`, because instance 0 is a valid hit
 		const instanceId = event.instanceId ?? event.batchId
 		if (instanceId !== undefined) {
 			setOrAddTrait(currentEntity, traits.InstanceId, instanceId)

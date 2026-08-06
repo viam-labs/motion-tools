@@ -21,7 +21,7 @@ export const createBufferGeometry = (positions: Float32Array, metadata?: Metadat
 }
 
 /**
- * Rewrite the colour and opacity attributes in place, reallocating only when the
+ * Rewrite the color and opacity attributes in place, reallocating only when the
  * incoming data outgrows the existing capacity. Leaves positions and the draw
  * range untouched, so it is safe to call on a partially-filled chunked cloud.
  */

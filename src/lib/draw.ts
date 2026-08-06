@@ -505,7 +505,7 @@ const updatePointCloudColors = (entity: Entity, metadata: Metadata): void => {
 	const position = buffer.getAttribute('position')
 	if (!position) return
 
-	// Colours only — routing this through `updateBufferGeometry` would reset the
+	// Colors only — routing this through `updateBufferGeometry` would reset the
 	// draw range to the buffer's full capacity, exposing the unwritten tail of a
 	// chunked cloud as points at the origin.
 	updateBufferGeometryColors(buffer, {
