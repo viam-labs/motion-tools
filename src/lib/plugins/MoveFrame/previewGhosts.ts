@@ -8,7 +8,7 @@
  * merely tidy: `resolveOrphans` indexes parents by name, so a ghost named `left-arm` could capture
  * the live `left-cam`'s `ChildOf` — or lose its own children to the live arm — depending on query
  * order. Staying out of the hierarchy makes the question moot, at the price of composing the chain
- * ourselves (`$lib/motion/descriptorWorldMatrices`).
+ * ourselves (`$lib/motion/forwardKinematics`).
  *
  * The set is spawned once per plan and only its matrices are rewritten as the user scrubs.
  */
