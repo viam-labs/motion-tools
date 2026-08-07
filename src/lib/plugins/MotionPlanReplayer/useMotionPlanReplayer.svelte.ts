@@ -15,8 +15,8 @@ import * as planRelations from './relations'
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
 
-// koota's `set` writes the trait's store slot but will not add an absent trait — the entity's
-// mask is untouched, so `has` stays false and nothing querying the trait ever sees the value.
+// koota's `set` on a trait the entity does not have throws, because it reaches through a store
+// slot that was never allocated: `TypeError: Cannot read properties of undefined (reading 'store')`.
 // Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
 // happens to be present because `drawTransform` adds it unconditionally. Guard both rather than
 // depend on that.
