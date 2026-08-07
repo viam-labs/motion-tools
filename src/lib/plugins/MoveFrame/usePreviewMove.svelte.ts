@@ -14,11 +14,11 @@ import { untrack } from 'svelte'
 
 import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
-import type { ForwardKinematics } from '$lib/motion/descriptorWorldMatrices'
+import type { ForwardKinematics } from '$lib/motion/forwardKinematics'
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
 import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
-import { createForwardKinematics } from '$lib/motion/descriptorWorldMatrices'
+import { createForwardKinematics } from '$lib/motion/forwardKinematics'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
 import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
 import { waypointFrames } from '$lib/motion/interpolateTrajectory'
