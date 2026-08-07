@@ -913,23 +913,89 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:link': 'world' }
 		)
 
-	const geometryCase = (geometry: Record<string, unknown>) => {
-		const d = buildFrameDescriptors(linkWithGeometry(geometry))[0]!
-		return d.kind === 'static' ? (d.geometry?.geometryType.case ?? null) : undefined
+	/**
+	 * The shape and the numbers it was actually built from. Reporting the `case` alone would accept a
+	 * box assembled from the wrong fields or a sphere with no radius, and inference is what routes
+	 * geometries into those branches for the first time, so the dimensions are the half worth
+	 * asserting. Returning `null` only for a genuinely absent geometry keeps that distinct from a
+	 * `Geometry` whose shape is unset, which is a different bug with the same symptom.
+	 */
+	const linkShape = (geometry: Record<string, unknown>) => {
+		const d = buildFrameDescriptors(linkWithGeometry(geometry))[0]
+		expect(d).toBeDefined()
+		expect(d!.kind).toBe('static')
+		const g = d!.kind === 'static' ? d!.geometry : null
+		if (g === null) return null
+
+		const shape = g.geometryType
+		switch (shape.case) {
+			case 'sphere': {
+				return { case: shape.case, r: shape.value.radiusMm }
+			}
+			case 'capsule': {
+				return { case: shape.case, r: shape.value.radiusMm, l: shape.value.lengthMm }
+			}
+			case 'box': {
+				return {
+					case: shape.case,
+					x: shape.value.dimsMm?.x,
+					y: shape.value.dimsMm?.y,
+					z: shape.value.dimsMm?.z,
+				}
+			}
+			default: {
+				return { case: shape.case }
+			}
+		}
 	}
 
+	// Silence matters as much as the null here: an empty type is RDK's "no geometry", so it must not
+	// take the `default:` arm, which warns about a shape it could not draw.
 	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
-		expect(geometryCase({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		try {
+			expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
+			expect(warn).not.toHaveBeenCalled()
+		} finally {
+			warn.mockRestore()
+		}
 	})
 
-	// A model config reaches `buildFrameDescriptors` unresolved — RDK infers the type from whichever
-	// dimensions were set, and an arm's links rely on it (see `inferGeometryType`).
+	/**
+	 * The first three are verbatim xArm6 links from the captures, where every geometry under
+	 * `model.links` spells `"type": ""`. Nothing feeds those to `parseGeometry` yet — `buildDescriptors`
+	 * skips `model` frames — so these pin `inferGeometryType` ahead of the reader that will.
+	 *
+	 * The rest are the distinctions the real links cannot draw, because all three of their box dims
+	 * are non-zero and none sets both a box dim and a length.
+	 */
 	it.each([
-		['sphere', { type: '', r: 1, l: 0 }],
-		['capsule', { type: '', r: 50, l: 320 }],
-		['box', { type: '', x: 80, y: 180, z: 250, r: 0, l: 0 }],
-	])('infers %s from the dimensions of an untyped geometry', (expected, geometry) => {
-		expect(geometryCase(geometry)).toBe(expected)
+		['a sphere from r alone (xArm6 base)', { type: '', r: 1, l: 0 }, { case: 'sphere', r: 1 }],
+		[
+			'a capsule from r and l (xArm6 base_top)',
+			{ type: '', r: 50, l: 320 },
+			{ case: 'capsule', r: 50, l: 320 },
+		],
+		[
+			'a box from x/y/z (xArm6 upper_forearm)',
+			{ type: '', x: 80, y: 180, z: 250, r: 0, l: 0 },
+			{ case: 'box', x: 80, y: 180, z: 250 },
+		],
+		[
+			'a flat box, where only y and z are set',
+			{ type: '', x: 0, y: 180, z: 250, r: 0, l: 0 },
+			{ case: 'box', x: 0, y: 180, z: 250 },
+		],
+		[
+			'a box rather than a capsule when the geometry sets both',
+			{ type: '', x: 80, y: 180, z: 250, r: 50, l: 320 },
+			{ case: 'box', x: 80, y: 180, z: 250 },
+		],
+		// The authored form: `original_file` in the captures decodes to `"geometry": { "r": 1 }`, with
+		// no `type` key at all. Only RDK's marshal adds the empty string.
+		['a sphere when the type key is absent entirely', { r: 1 }, { case: 'sphere', r: 1 }],
+	])('infers %s', (_label, geometry, expected) => {
+		expect(linkShape(geometry)).toEqual(expected)
 	})
 
 	const obstacleWith = (geometry: Record<string, unknown>) =>

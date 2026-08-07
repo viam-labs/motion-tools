@@ -87,14 +87,22 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
- * RDK's `GeometryConfig.ParseConfig` treats an absent `type` as "infer from whichever dimensions
- * were set" — box if any of x/y/z, else capsule if a length, else a sphere — and refuses to guess
- * when nothing was, which is the only case that means "no geometry".
+ * RDK's `GeometryConfig.ParseConfig` treats an empty `type` as "infer from whichever dimensions were
+ * set": box if `r3.Vector{X, Y, Z}.Norm() > 0`, else capsule if `L != 0`, else sphere. The three
+ * predicates below are that chain, in that order.
  *
- * A flattened frame system has already been through that resolution, so its geometries name their
- * type outright. A *model config* has not: an arm's links carry the shapes that draw as spheres and
- * capsules in a plan dump while still spelling `"type": ""`, so reading the field literally loses
- * every one of them.
+ * What this does *not* reproduce is the validation each arm then runs. RDK constructs the shape it
+ * picked and yields no geometry at all when the constructor refuses the dimensions — a negative box
+ * side, a capsule with `r <= 0` or `l < 2r` — and `NewCapsule` returns a *sphere* outright when
+ * `l == 2r`. Every one of those needs a config RDK rejected while configuring the part, so a machine
+ * able to answer at all has already been through those gates. The divergence is written down rather
+ * than guarded, because a guard against input that cannot arrive is a guard nothing can test.
+ *
+ * A flattened frame system has already been through the resolution above: RDK publishes each of a
+ * model's links as its own frame with the type filled in, which is what the captures show and what
+ * the replayer reads. A *model config* has not, and spells `"type": ""` with only dimensions beside
+ * it. Nothing reads one yet — `buildDescriptors` skips `model` frames outright — so this lands ahead
+ * of its consumer, the client-side frame system reader.
  */
 const inferGeometryType = (g: Record<string, unknown>): string => {
 	const declared = (g.type ?? '') as string
@@ -136,9 +144,10 @@ export const parseGeometry = (
 	const g = geom as Record<string, unknown>
 	const type = inferGeometryType(g)
 
-	// Go marshals the zero value rather than omitting it, and `inferGeometryType` returns it
-	// unchanged when nothing was specified — an empty type means "no geometry", not "unrecognized
-	// geometry", which is distinct from the types rejected below.
+	// Go marshals the zero value rather than omitting it, so an empty type is how RDK spells "no
+	// geometry". Inference returns the same empty string when no dimension was set either, which
+	// means the same thing. Neither is an *unrecognized* geometry: that is the `default:` arm below,
+	// and it warns, because a type this file has no case for is a shape going silently missing.
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
