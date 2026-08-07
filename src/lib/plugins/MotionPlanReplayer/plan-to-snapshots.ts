@@ -6,38 +6,30 @@ import type { TrajectoryStep } from '$lib/motion/jointPose'
 import { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
-import { computeJointPose, jointValueAt } from '$lib/motion/jointPose'
+import { descriptorLocalPose } from '$lib/motion/jointPose'
 
 import type { ParsedPlan } from './parse-plan'
 
 import { worldStateObstacleTransforms } from './world-state-obstacles'
 
+/**
+ * The pose comes from `descriptorLocalPose` rather than from a branch written out here, so the two
+ * things that turn a trajectory into geometry derive it identically. Only the geometry differs by
+ * kind: a joint frame carries none, so it has nothing to hang on the transform.
+ */
 const descriptorToTransform = (
 	descriptor: FrameDescriptor,
 	stepInputs: TrajectoryStep
-): Transform => {
-	if (descriptor.kind === 'static') {
-		return new Transform({
-			referenceFrame: descriptor.name,
-			poseInObserverFrame: new PoseInFrame({
-				referenceFrame: descriptor.parent,
-				pose: descriptor.localPose,
-			}),
-			physicalObject: descriptor.geometry ?? undefined,
-			uuid: descriptor.uuid,
-		})
-	}
-
-	const jointValue = jointValueAt(descriptor, stepInputs)
-	return new Transform({
+): Transform =>
+	new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
 			referenceFrame: descriptor.parent,
-			pose: computeJointPose(descriptor, jointValue),
+			pose: descriptorLocalPose(descriptor, stepInputs),
 		}),
+		physicalObject: descriptor.kind === 'static' ? (descriptor.geometry ?? undefined) : undefined,
 		uuid: descriptor.uuid,
 	})
-}
 
 // Reconcile keys on `Transform.uuid`, so the snapshot uuid is unused. This helper keeps one construction path.
 const snapshotUuid = (): Uint8Array<ArrayBuffer> =>
