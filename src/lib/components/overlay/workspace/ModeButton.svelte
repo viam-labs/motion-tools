@@ -4,28 +4,6 @@
 >
 	import type { EnvironmentMode } from '$lib/hooks/useEnvironment.svelte'
 
-	/**
-	 * Each mode owns a hue. Idle buttons wear it as their icon colour so the
-	 * coding is learnable without clicking through every mode; the selected one
-	 * takes the tinted-pill treatment of the machine-connection button it sits
-	 * beside, and reveals its label.
-	 *
-	 * The hues avoid meanings already spoken for in this corner of the toolbar:
-	 * green belongs to that connection pill, and `danger` red is used elsewhere
-	 * for genuine faults.
-	 *
-	 * `border` and `fill` are separate because the brand `-light` extensions are
-	 * alpha values (`cyberpunk-light` is `#a51aff0f`, 6% purple) rather than the
-	 * opaque tints the semantic ones use. The fill therefore goes on the button,
-	 * which composites over the label's white backing instead of over the 3D
-	 * scene behind the toolbar.
-	 *
-	 * The label inherits its hue from `fill` so the word always matches the glyph
-	 * beside it. Note that puts Build's word at 2.9:1 against its own tint, below
-	 * the 4.5:1 needed at 12px — a deliberate trade for keeping the mode's colour
-	 * coding intact. The tooltip and `aria-label` carry the same meaning for
-	 * anyone the amber fails.
-	 */
 	const appearance = {
 		monitor: {
 			label: 'Monitor',
@@ -108,18 +86,10 @@
 		class={[
 			className,
 			'relative block rounded-md border bg-white',
-			isSelected
-				? ['z-4', style.border]
-				: // Opaque surfaces, not `ghost-*` — those are translucent black and would
-					// replace the white backing, letting the 3D scene show through on hover.
-					'border-gray-5 hover:bg-light active:bg-medium',
+			isSelected ? ['z-4', style.border] : 'border-gray-5 hover:bg-light active:bg-medium',
 		]}
 		aria-describedby={tooltipID}
 	>
-		<!--
-			`rounded-[inherit]` keeps the fill inside the label's corners without
-			`overflow-hidden`, which would clip the browser's focus outline.
-		-->
 		<button
 			class={['flex items-center rounded-[inherit] p-1.5', isSelected ? style.fill : style.idle]}
 			role="radio"
@@ -135,11 +105,6 @@
 				<Move3d size="16" />
 			{/if}
 
-			<!--
-				0fr → 1fr collapses the label to nothing without hardcoding its width,
-				so the chip widens to whatever the word needs. The accessible name comes
-				from the button's aria-label, so the clipped text is decorative.
-			-->
 			<span
 				class="font-public-sans grid text-xs font-medium transition-[grid-template-columns] duration-150 ease-out motion-reduce:transition-none"
 				style:grid-template-columns={isSelected ? '1fr' : '0fr'}
