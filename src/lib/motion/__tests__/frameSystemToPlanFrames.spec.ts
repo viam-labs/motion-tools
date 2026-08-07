@@ -1,13 +1,15 @@
 import { Struct } from '@bufbuild/protobuf'
-import { Geometry, PoseInFrame, robotApi, Sphere, Transform } from '@viamrobotics/sdk'
+import { commonApi, Geometry, PoseInFrame, robotApi, Sphere, Transform } from '@viamrobotics/sdk'
 import { describe, expect, it, vi } from 'vitest'
 
+import { Geometry as LocalGeometry } from '$lib/buf/common/v1/common_pb'
+import { Pose } from '$lib/math'
 import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
 import type { FrameDescriptor } from '../frameDescriptors'
 
 import planJson from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/plan.json?raw'
-import { buildFrameDescriptors } from '../frameDescriptors'
+import { buildFrameDescriptors, DECODED_FRAME_TYPE } from '../frameDescriptors'
 import { frameSystemToPlanFrames } from '../frameSystemToPlanFrames'
 
 const dump = parsePlan(planJson)
@@ -80,6 +82,66 @@ describe('parenting', () => {
 	it('ignores a config with no frame at all', () => {
 		expect(frameSystemToPlanFrames([new robotApi.FrameSystemConfig({})]).frames).toEqual({})
 	})
+
+	it('ignores a part whose frame name is empty', () => {
+		const parts = [new robotApi.FrameSystemConfig({ frame: new Transform({ referenceFrame: '' }) })]
+		expect(frameSystemToPlanFrames(parts).frames).toEqual({})
+	})
+
+	/**
+	 * `||` rather than `??`, so an empty observer frame roots at the world too. RDK hard-errors on an
+	 * empty frame name in both directions (`ErrEmptyStringFrameName`), including on the *parent*, so
+	 * a reply carrying one never came from a healthy server - but `??` would pass it straight through
+	 * as `parents[origin] = ''`, an unresolvable parent, where `||` keeps the rest of the scene
+	 * drawable.
+	 */
+	it('roots a part at the world when its stated parent is the empty string', () => {
+		const parts = [
+			new robotApi.FrameSystemConfig({
+				frame: new Transform({
+					referenceFrame: 'a',
+					poseInObserverFrame: new PoseInFrame({ referenceFrame: '' }),
+				}),
+			}),
+		]
+		expect(frameSystemToPlanFrames(parts).parents['a_origin']).toBe('world')
+	})
+})
+
+/**
+ * Holding the part's offset from its parent is the entire reason `p_origin` exists, and nothing
+ * asserted it: every fixture in this file went through `part()`, which defaults the pose to
+ * identity, so the pose could have been discarded or replaced outright without a failure.
+ */
+describe('the mount offset', () => {
+	const pose = { x: 10, y: -20, z: 30, oX: 0, oY: 1, oZ: 0, theta: 90 }
+
+	it('carries the part`s pose on its `_origin`', () => {
+		const { frames } = frameSystemToPlanFrames([part({ name: 'cam', parent: 'table', pose })])
+		const { pose: carried } = frames['cam_origin']!.frame as { pose: Pose }
+
+		expect([carried.x, carried.y, carried.z]).toEqual([10, -20, 30])
+		expect([carried.oX, carried.oY, carried.oZ, carried.theta]).toEqual([0, 1, 0, 90])
+	})
+
+	it('survives the descriptor builder onto the frame`s local pose', () => {
+		const descriptors = byName(
+			buildFrameDescriptors(frameSystemToPlanFrames([part({ name: 'cam', pose })]))
+		)
+
+		const origin = descriptors.get('cam_origin')
+		expect(origin?.kind === 'static' && origin.localPose.x).toBe(10)
+		expect(origin?.kind === 'static' && origin.localPose.theta).toBe(90)
+	})
+
+	// The bare part frame is a placeholder for descendants to hang off; the offset belongs to the
+	// origin above it, and duplicating it there would apply it twice.
+	it('leaves the bare part frame at identity', () => {
+		const { frames } = frameSystemToPlanFrames([part({ name: 'cam', pose })])
+		const { pose: bare } = frames['cam']!.frame as { pose: Pose }
+
+		expect([bare.x, bare.y, bare.z, bare.theta]).toEqual([0, 0, 0, 0])
+	})
 })
 
 describe('geometry placement', () => {
@@ -105,10 +167,10 @@ describe('geometry placement', () => {
 	/**
 	 * Inverted from the assertion this file shipped with, which read "leaves a modelled part's
 	 * geometry to its links rather than drawing it twice". RDK draws no such distinction:
-	 * `createFramesFromPart` builds the `_origin` static frame from the part's frame config at
-	 * `frame_system.go:1105`, before it has looked at the model at all. A configured geometry on an
-	 * arm is a safety envelope, and it was being dropped from the one view meant to show what a move
-	 * would hit.
+	 * `createFramesFromPart` builds the `_origin` static frame from the part's frame config, and
+	 * `ToStaticFrame` attaches the geometry, before either has looked at the model at all. A
+	 * configured geometry on an arm is a safety envelope, and it was being dropped from the one view
+	 * meant to show what a move would hit.
 	 */
 	it('hangs a modelled part`s geometry on its `_origin` too, matching RDK', () => {
 		const descriptors = byName(
@@ -138,10 +200,12 @@ describe('geometry placement', () => {
 })
 
 /**
- * The other half of the same RDK conditional, running the other way. When a model has no degrees of
- * freedom and the part supplied a geometry, RDK replaces the model frame with a bare static one
- * (`frame_system.go:1112-1128`) — the user's shape is meant to *replace* the model's, not sit beside
- * it. A static frame is not flattenable (`:406`), so no `p:<link>` frames are published either.
+ * The other half of the same RDK conditional, running the other way. Its predicate is
+ * `len(modelFrame.DoF()) == 0 && len(offsetGeom.Geometries()) > 0` - degrees of freedom rather than
+ * a joint count, which for an SVA model is the same thing - and when it holds,
+ * `createFramesFromPart` replaces the model frame with a bare static one. The user's shape is meant
+ * to *replace* the model's, not sit beside it. A static frame is not flattenable
+ * (`asFlattenableModel` returns nil for one), so no `p:<link>` frames are published either.
  */
 describe('a jointless model whose part configured a geometry', () => {
 	const linksOnly = Struct.fromJson({
@@ -183,6 +247,22 @@ describe('a jointless model whose part configured a geometry', () => {
 		)
 
 		expect(descriptors.get('grip')?.kind).toBe('static')
+	})
+
+	/**
+	 * The stand-in carries no geometry of its own. Putting the envelope on both it and `grip_origin`
+	 * is the exact doubling this branch exists to prevent - the configured shape was meant to
+	 * *replace* the model's, not join it - and it would report every contact twice.
+	 */
+	it('does not repeat the envelope on the stand-in frame', () => {
+		const descriptors = byName(
+			buildFrameDescriptors(
+				frameSystemToPlanFrames([part({ name: 'grip', kinematics: linksOnly, geometry: envelope })])
+			)
+		)
+
+		const bare = descriptors.get('grip')
+		expect(bare?.kind === 'static' && bare.geometry).toBeNull()
 	})
 
 	// No configured geometry means nothing to replace the model with, so the links are drawn as usual.
@@ -466,8 +546,17 @@ describe('trajectory column order', () => {
 		expect(columns).toEqual({ 'arm:alpha': 0, 'arm:zeta': 1 })
 	})
 
-	// A URDF-converted model names its joints for their index, and a `0` that survived as a JSON
-	// number is falsy — truth-testing the id would drop the joint and everything below it.
+	/**
+	 * Defensive rather than observed. RDK's URDF converter reads `jointElem.Name` - the element's
+	 * name attribute, not its index - and `LinkConfig.ID` / `JointConfig.ID` are Go strings, so
+	 * nothing on this route emits a numeric id. But `kinematics` is a `Struct`, which can carry a
+	 * `NumberValue` whatever RDK meant to put there, and a `0` that arrived as a JSON number is
+	 * falsy: truth-testing the id would drop the joint and everything below it. That is what keeps
+	 * `nodeName`'s explicit `undefined`/`''` test rather than a truthiness check.
+	 *
+	 * Note the fixture feeds a number through a parameter typed `string | undefined`, which is the
+	 * honest signature for what RDK sends and a lie about what this test sends.
+	 */
 	it('treats a numeric joint id as a name rather than as absent', () => {
 		const columns = columnsOf(
 			Struct.fromJson({
@@ -502,7 +591,77 @@ describe('trajectory column order', () => {
 	})
 })
 
+describe('node emission', () => {
+	const model = Struct.fromJson({
+		links: [
+			{ id: 'base', parent: 'world' },
+			{ id: 'tip', parent: 'j1' },
+		],
+		joints: [{ id: 'j1', parent: 'base', type: 'revolute', axis: { X: 0, Y: 0, Z: 1 } }],
+	})
+
+	/**
+	 * Links before joints, which is the order RDK writes its own `transforms` map in
+	 * `UnmarshalModelJSON`. It is not cosmetic: `buildFrameContexts` indexes children by iterating
+	 * `parents`, and the end-effector fallback takes the *first* child of the last joint, so swapping
+	 * these can silently re-parent everything hung off the bare part name on a model that declares no
+	 * output frame.
+	 */
+	it('writes every link before any joint', () => {
+		const { parents } = frameSystemToPlanFrames([part({ name: 'arm', kinematics: model })])
+		const emitted = Object.keys(parents).filter((key) => key.startsWith('arm:'))
+
+		expect(emitted).toEqual(['arm:base', 'arm:tip', 'arm:j1'])
+	})
+
+	// A node with no `parent` field means the model's own mount, the same as one naming `world`.
+	// Without that case it would parent to the literal string `p:undefined`, a frame nothing emits.
+	it('parents a node with no stated parent to the model`s mount', () => {
+		const { parents } = frameSystemToPlanFrames([
+			part({ name: 'arm', kinematics: Struct.fromJson({ links: [{ id: 'base' }] }) }),
+		])
+
+		expect(parents['arm:base']).toBe('arm_origin')
+	})
+})
+
+/**
+ * The SDK and this package generate `common.v1.Geometry` separately, and the byte round-trip is what
+ * bridges them. A mesh is the one shape where the two classes actually differ - the bytes are typed
+ * `ArrayBufferLike` on one side and `ArrayBuffer` on the other - so it is the case a straight cast
+ * would survive in the type checker and fail on. Every other fixture here is a sphere, which a cast
+ * carries perfectly well.
+ */
+describe('geometry crossing between the two generated protos', () => {
+	it('re-decodes a mesh rather than casting it', () => {
+		const bytes = new Uint8Array([112, 108, 121, 10, 0, 255, 7])
+		const geometry = new Geometry({
+			geometryType: {
+				case: 'mesh',
+				value: new commonApi.Mesh({ contentType: 'ply', mesh: bytes }),
+			},
+			label: 'scan',
+		})
+
+		const { frames } = frameSystemToPlanFrames([part({ name: 'scan', geometry })])
+		const { geometry: carried } = frames['scan_origin']!.frame as { geometry: LocalGeometry }
+
+		expect(carried.geometryType.case).toBe('mesh')
+		const mesh = carried.geometryType.case === 'mesh' ? carried.geometryType.value : undefined
+		expect(mesh?.contentType).toBe('ply')
+		expect([...(mesh?.mesh ?? [])]).toEqual([...bytes])
+		// A cast would hand back the SDK's instance; the round trip makes a local one.
+		expect(carried).toBeInstanceOf(LocalGeometry)
+	})
+})
+
 describe('unsupported kinematics', () => {
+	/**
+	 * The fixture carries `dhParams` and no `links` or `joints`, which is what a real DH config looks
+	 * like. That shape is what makes the guard's *position* testable: `hasContent` is false for it, so
+	 * a DH check placed after that test returns model-less one line earlier and the warning never
+	 * prints. A fixture that also declares a link makes both orderings pass and the fix invisible.
+	 */
 	it('warns and drops a DH model rather than drawing an armless chain', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
@@ -512,33 +671,122 @@ describe('unsupported kinematics', () => {
 				kinematics: Struct.fromJson({
 					kinematic_param_type: 'DH',
 					dhParams: [{ id: 'a', parent: 'world' }],
-					links: [{ id: 'base', parent: 'world' }],
 				}),
 			}),
 		])
 
 		expect(frames['dh-arm']?.frame_type).not.toBe('model')
-		expect(frames['dh-arm:base']).toBeUndefined()
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('DH kinematics'))
 		warn.mockRestore()
 	})
 
-	it('warns and skips a joint type RDK itself cannot build a frame for', () => {
+	/**
+	 * The whole model goes, not just the joint, because that is what RDK does:
+	 * `JointConfig.ToFrame` returns `NewUnsupportedJointTypeError` and `UnmarshalModelJSON`
+	 * propagates it, so the part ends up with no model frame at all.
+	 *
+	 * Dropping only the joint is worse than it sounds. `base` would survive, and so would anything
+	 * parented to `arm:spin` - still naming a frame that was never emitted, which resolves to no
+	 * parent at all and draws at the scene origin. The arm does not disappear, it scatters.
+	 */
+	it('warns and drops the whole model for a joint type RDK cannot build a frame for', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-		const { frames } = frameSystemToPlanFrames([
+		const { frames, parents } = frameSystemToPlanFrames([
 			part({
 				name: 'arm',
 				kinematics: Struct.fromJson({
-					links: [{ id: 'base', parent: 'world' }],
+					links: [
+						{ id: 'base', parent: 'world' },
+						{ id: 'tip', parent: 'spin' },
+					],
 					joints: [{ id: 'spin', parent: 'base', type: 'continuous', axis: { X: 0, Y: 0, Z: 1 } }],
 				}),
 			}),
 		])
 
-		expect(frames['arm:base']).toBeDefined()
+		expect(frames['arm:base']).toBeUndefined()
 		expect(frames['arm:spin']).toBeUndefined()
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('unsupported joint type'))
+		expect(frames['arm:tip']).toBeUndefined()
+		// The part itself still draws, as a model-less one: its origin keeps the mount and geometry.
+		expect(frames['arm']?.frame_type).toBe(DECODED_FRAME_TYPE)
+		expect(frames['arm_origin']).toBeDefined()
+		// Nothing is left naming a frame that was not emitted.
+		for (const parent of Object.values(parents)) {
+			if (parent !== 'world') expect(frames[parent]).toBeDefined()
+		}
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('unsupported type'))
+		warn.mockRestore()
+	})
+
+	it.each([
+		['a link', { links: [{ parent: 'world' }], joints: [] }],
+		[
+			'a joint',
+			{
+				links: [{ id: 'base', parent: 'world' }],
+				joints: [{ parent: 'base', type: 'revolute', axis: { X: 0, Y: 0, Z: 1 } }],
+			},
+		],
+	])('warns and drops the whole model for %s with no id', (_label, kinematics) => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+		const { frames, parents } = frameSystemToPlanFrames([
+			part({ name: 'arm', kinematics: Struct.fromJson(kinematics) }),
+		])
+
+		expect(frames['arm']?.frame_type).toBe(DECODED_FRAME_TYPE)
+		expect(Object.keys(frames).some((key) => key.startsWith('arm:'))).toBe(false)
+		for (const parent of Object.values(parents)) {
+			if (parent !== 'world') expect(frames[parent]).toBeDefined()
+		}
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no id'))
+		warn.mockRestore()
+	})
+
+	/**
+	 * `links` and `joints` come off a `Struct` and can be any JSON shape. A non-array used to behave
+	 * three different ways: `{ length: 2 }` passed a length test and then threw on iteration, taking
+	 * every other part down with it; a string iterated character by character; an actual array of
+	 * junk was skipped. All three now read as no model.
+	 */
+	it.each([
+		['an object with a length', { links: { length: 2 } }],
+		['a string', { links: 'abc' }],
+		['a number', { joints: 7 }],
+	])('treats %s in place of a node list as no model', (_label, kinematics) => {
+		const { frames } = frameSystemToPlanFrames([
+			part({ name: 'a', kinematics: Struct.fromJson(kinematics) }),
+		])
+
+		expect(frames['a']?.frame_type).toBe(DECODED_FRAME_TYPE)
+	})
+
+	/**
+	 * `Struct.toJson()` throws on a `Value` with no kind set and on a non-finite number. That used to
+	 * escape the loop and lose every part, so a single malformed one meant no preview at all rather
+	 * than one part missing.
+	 */
+	it('loses only the part whose kinematics cannot be read', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+		// A `Value` submessage with no kind set, which is what an empty `Value` decodes to.
+		const unreadable = Struct.fromBinary(
+			new Uint8Array([10, 9, 10, 5, 108, 105, 110, 107, 115, 18, 0])
+		)
+		const { frames } = frameSystemToPlanFrames([
+			part({ name: 'ok' }),
+			part({ name: 'bad', kinematics: unreadable }),
+			part({ name: 'also-ok' }),
+		])
+
+		expect(frames['ok']).toBeDefined()
+		expect(frames['also-ok']).toBeDefined()
+		expect(frames['bad']).toBeUndefined()
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('could not read the frame config'),
+			expect.anything()
+		)
 		warn.mockRestore()
 	})
 
