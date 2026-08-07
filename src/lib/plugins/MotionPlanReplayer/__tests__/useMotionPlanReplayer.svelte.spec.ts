@@ -1,7 +1,8 @@
 import { render } from '@testing-library/svelte'
 import { type Entity, type World } from 'koota'
+import { flushSync } from 'svelte'
 import { UuidTool } from 'uuid-tool'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { Geometry, PoseInFrame, Sphere, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
@@ -17,16 +18,37 @@ interface Mounted {
 	world: World
 }
 
+const mounted: Mounted[] = []
+
 const mount = (): Mounted => {
-	let mounted: Mounted | undefined
+	let current: Mounted | undefined
 	render(ReplayerHarness, {
-		onReady: (ctx: MotionPlanReplayerContext, world: World) => (mounted = { ctx, world }),
+		onReady: (ctx: MotionPlanReplayerContext, world: World) => (current = { ctx, world }),
 	})
-	if (!mounted) throw new Error('ReplayerHarness never called onReady')
-	return mounted
+	if (!current) throw new Error('ReplayerHarness never called onReady')
+	mounted.push(current)
+	return current
 }
 
-/** Snapshots whose transforms are named for their plan, so an assertion can tell which plan is drawn. */
+/**
+ * `provideWorld` mints a world per harness and nothing gives it back, but koota only hands out 16
+ * ids before it throws `Too many worlds created`. Unmounting the component does not release one, so
+ * without this the spec stops working at the seventeenth test rather than at anything to do with
+ * the replayer.
+ */
+afterEach(() => {
+	for (const { world } of mounted.splice(0)) world.destroy()
+})
+
+/**
+ * Snapshots that say which plan they came from.
+ *
+ * This matters more than it looks. Cycling one fixture's snapshots across every plan makes each
+ * plan's geometry byte-identical, so a test can only ever notice that it read an array of the wrong
+ * *length*. Reading the wrong plan's array of the same length, which is the actual bug this module
+ * had, draws a completely different robot and would go unnoticed. Naming the frame per plan and per
+ * step is what lets the assertions below be about identity rather than about arithmetic.
+ */
 const planSnapshots = (plan: string, steps: number): Snapshot[] =>
 	Array.from(
 		{ length: steps },
@@ -254,5 +276,71 @@ describe('display defaults', () => {
 
 		expect(entity.has(traits.Color)).toBe(true)
 		expect(entity.get(traits.Color)).toEqual({ r: 0, g: 0.47, b: 1 })
+	})
+})
+
+/**
+ * The replayer no longer owns the step index; a shared `TrajectoryPlayer` does, and the scrubber is
+ * a view of it. These cover the seam between the two, which is the part a reader of either file
+ * alone cannot see.
+ */
+describe('playback', () => {
+	it('stops playback when a caller scrubs by hand', () => {
+		const { ctx } = mount()
+		addPlans(ctx, [6])
+		ctx.player.play()
+		flushSync()
+		expect(ctx.player.isPlaying).toBe(true)
+
+		// `setStep` is public API through `./plugins`, and it pauses. Scrubbing without stopping would
+		// leave the timer to overwrite the caller's index on the very next tick.
+		ctx.setStep(3)
+
+		expect(ctx.player.isPlaying).toBe(false)
+		expect(ctx.currentStep).toBe(3)
+	})
+
+	it('rewinds to the first frame when the active plan is reselected', () => {
+		const { ctx } = mount()
+		addPlans(ctx, [6])
+		ctx.setStep(4)
+		expect(ctx.currentStep).toBe(4)
+
+		// Reselecting the active plan re-renders it from the top. Skipping the rewind draws frame 0
+		// while the index, and so the scrubber, still reads 4.
+		ctx.selectPlan(0)
+
+		expect(ctx.currentStep).toBe(0)
+	})
+
+	it('rewinds as soon as the active plan is removed', () => {
+		const { ctx } = mount()
+		addPlans(ctx, [6])
+		ctx.setStep(4)
+
+		ctx.removePlan(0)
+
+		expect(ctx.currentStep).toBe(0)
+	})
+
+	/**
+	 * `addPlan` takes snapshots straight from the host's `resolvePlanSnapshots`, so the array is not
+	 * this module's to trust: a short or gappy one is what a partial server response looks like from
+	 * here, and `stepCount` is taken from its length either way. The player asks to draw a frame, the
+	 * replayer says it cannot, and the index has to stay on the frame that is still on screen rather
+	 * than advance over a scene that never changed.
+	 */
+	it('holds the index on a step with no snapshot behind it', () => {
+		const { ctx } = mount()
+		const [first, , third] = planSnapshots('gappy', 3)
+		ctx.addPlan('gappy', 'content', [first!, undefined as unknown as Snapshot, third!])
+
+		expect(ctx.totalSteps).toBe(3)
+
+		ctx.setStep(1)
+		expect(ctx.currentStep).toBe(0)
+
+		ctx.setStep(2)
+		expect(ctx.currentStep).toBe(2)
 	})
 })

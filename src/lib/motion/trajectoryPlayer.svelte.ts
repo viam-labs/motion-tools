@@ -50,6 +50,13 @@ export interface TrajectoryPlayer {
 
 const DEFAULT_INTERVAL_MS = 100
 
+/**
+ * Must be called where `$effect` is legal: during component initialization, or inside an
+ * `$effect.root` that the caller disposes. The timer lives in an effect, so calling this from a
+ * click handler, from module scope, or after an `await` throws `effect_orphan` rather than
+ * returning a player that quietly never advances. A move panel that builds one per preview
+ * therefore builds it up front and re-points it at new steps, rather than building one per plan.
+ */
 export const createTrajectoryPlayer = ({
 	totalSteps,
 	onStep,
@@ -92,8 +99,12 @@ export const createTrajectoryPlayer = ({
 
 		const intervalId = setInterval(() => {
 			// `pause()` alone only takes the timer down once this effect re-runs, so parking clears the
-			// interval directly: a refused step is refused again next tick, and the ticks in between
-			// would re-attempt it at the frame rate against a scene that cannot change.
+			// interval directly and the refusal takes effect on the tick that produced it. In a browser
+			// that gap is usually invisible, because Svelte flushes effects in a microtask and the
+			// microtask checkpoint drains before the next timer callback. This does not lean on that:
+			// nothing about `setInterval` promises a checkpoint between callbacks, and under fake timers
+			// there is none, so without the `clearInterval` the same refused index is re-attempted
+			// several times against a scene that by definition cannot change.
 			const park = () => {
 				pause()
 				clearInterval(intervalId)
@@ -110,7 +121,11 @@ export const createTrajectoryPlayer = ({
 	})
 
 	// Unloading the steps out from under a running player would otherwise leave it playing an
-	// empty range.
+	// empty range. This writes state from an effect, which the project rule reserves for side
+	// effects rather than derivation, and that is what this is: `isPlaying` and `currentStep` have
+	// independent writers and neither can be `$derived`. It is unreachable through the replayer,
+	// whose four paths to zero steps all call `reset()` first. It is here for a consumer that swaps
+	// its step source without one, which is how the move panel re-plans.
 	$effect(() => {
 		if (total > 0) return
 		isPlaying = false

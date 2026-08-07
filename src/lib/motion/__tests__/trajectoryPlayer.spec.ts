@@ -139,10 +139,17 @@ describe('createTrajectoryPlayer', () => {
 		const { player, steps } = setup(0)
 
 		player.play()
+		// Asserted before the seek below rather than after it: `seek` pauses on its way through, which
+		// would stand in for the guard inside `play` and hide its absence.
+		expect(player.isPlaying).toBe(false)
+
 		player.seek(1)
 
 		expect(player.isPlaying).toBe(false)
 		expect(player.currentStep).toBe(0)
+		// Not -1. `lastStep` is the index a seek clamps to and what a scrubber hands its range input as
+		// `max`, and a negative one there inverts the track.
+		expect(player.lastStep).toBe(0)
 		expect(steps).toEqual([])
 	})
 
