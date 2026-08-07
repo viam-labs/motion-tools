@@ -37,8 +37,7 @@
 	<ModeButton
 		class="-ml-px rounded-l-none"
 		mode="move"
-		icon="move-3d"
-		description="Move frames with the motion service"
+		description="Execute movement with a motion service"
 	/>
 </ModeTogglePortal>
 
