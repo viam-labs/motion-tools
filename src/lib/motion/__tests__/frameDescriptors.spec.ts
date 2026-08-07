@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { protoBase64 } from '@bufbuild/protobuf'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
@@ -1014,17 +1015,33 @@ describe('buildFrameDescriptors', () => {
 		return d!.kind === 'static' ? d!.geometry : null
 	}
 
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+	afterEach(() => warn.mockClear())
+
 	it('skips an unsupported geometry type but keeps the frame', () => {
 		// Rendering nothing is honest; a stand-in box would lie about the collision volume.
 		expect(obstacleGeometry({ type: 'ellipsoid', x: 1, y: 2, z: 3 })).toBeNull()
 	})
 
-	it('reads a mesh geometry into the proto mesh case', () => {
+	/**
+	 * The same bytes in both shapes RDK sends them. A plan dump is marshalled by `encoding/json`,
+	 * which writes a `[]byte` as base64; `frameSystemConfig` is built by
+	 * `protoutils.StructToStructPb`, which reflects over the struct and walks the slice element by
+	 * element, so the field arrives as an array of numbers.
+	 *
+	 * Asserted against the literal rather than against each other: comparing the two shapes only
+	 * proves they agree, which they would if both were broken the same way.
+	 */
+	it.each([
+		['base64, as a plan dump sends it', (b: Uint8Array) => protoBase64.enc(b)],
+		['a number array, as frameSystemConfig sends it', (b: Uint8Array) => [...b]],
+	])('reads mesh data delivered as %s', (_label, encode) => {
 		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
+		const expected = new TextEncoder().encode(ply)
 		const geometry = obstacleGeometry({
 			type: 'mesh',
 			mesh_content_type: 'ply',
-			mesh_data: btoa(ply),
+			mesh_data: encode(expected),
 			Label: 'scoop',
 		})
 
@@ -1034,7 +1051,7 @@ describe('buildFrameDescriptors', () => {
 		if (geometry!.geometryType.case === 'mesh') {
 			// A bad base64 swap shows up here and nowhere else.
 			expect(geometry!.geometryType.value.contentType).toBe('ply')
-			expect(geometry!.geometryType.value.mesh).toEqual(new TextEncoder().encode(ply))
+			expect(geometry!.geometryType.value.mesh).toEqual(expected)
 		}
 	})
 
@@ -1056,58 +1073,55 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	/**
-	 * The same bytes as above, in the shape the *other* route delivers them. A plan dump is
-	 * marshalled by `encoding/json`, which writes a `[]byte` as base64; `frameSystemConfig` is built
-	 * by `protoutils.StructToStructPb`, which reflects over the struct and walks the slice element by
-	 * element, so the field arrives as an array of numbers. Reading only base64 meant every mesh the
-	 * move preview drew threw inside `protoBase64.dec` and was reported as undecodable.
+	 * A number array is only ever bytes. Filtering the bad elements out instead of refusing the
+	 * array shifts every byte after them, and a byte-shifted mesh does not fail loudly: a binary
+	 * STL fails its size check, falls through to the ASCII parser, matches nothing and yields an
+	 * empty geometry. `encoding/json` refuses all of these on the Go side for the same reason.
 	 */
-	it('reads mesh data delivered as a number array, as frameSystemConfig sends it', () => {
-		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
-		const geometry = obstacleGeometry({
-			type: 'mesh',
-			mesh_content_type: 'ply',
-			mesh_data: [...new TextEncoder().encode(ply)],
-			Label: 'scoop',
-		})
-
-		expect(geometry?.geometryType.case).toBe('mesh')
-		if (geometry?.geometryType.case === 'mesh') {
-			expect(geometry.geometryType.value.mesh).toEqual(new TextEncoder().encode(ply))
-		}
-	})
-
-	it('reads the two shapes to the same bytes', () => {
-		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
-		const asBase64 = obstacleGeometry({
-			type: 'mesh',
-			mesh_content_type: 'ply',
-			mesh_data: btoa(ply),
-		})
-		const asNumbers = obstacleGeometry({
-			type: 'mesh',
-			mesh_content_type: 'ply',
-			mesh_data: [...new TextEncoder().encode(ply)],
-		})
-
-		expect(asNumbers?.geometryType.case === 'mesh' && asNumbers.geometryType.value.mesh).toEqual(
-			asBase64?.geometryType.case === 'mesh' ? asBase64.geometryType.value.mesh : undefined
-		)
-	})
-
-	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
-	// Undecodable data must skip too: protoBase64 throws, and an escaping error would fail
-	// the entire plan rather than the one shape.
 	it.each([
-		['an unhandled content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
-		['a missing content type', { mesh_data: btoa('ply\n') }],
-		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
-		['absent mesh data', { mesh_content_type: 'ply' }],
-		['undecodable mesh data', { mesh_content_type: 'ply', mesh_data: '!!!not base64!!!' }],
+		['a non-number element', [112, 'x', 121]],
+		['a value past a byte', [112, 300, 121]],
+		['a negative value', [112, -5, 121]],
+		['a non-integer', [112, 1.5, 121]],
+	])('refuses a number array with %s rather than dropping it', (_label, mesh_data) => {
+		expect(obstacleGeometry({ type: 'mesh', mesh_content_type: 'ply', mesh_data })).toBeNull()
+	})
+
+	/**
+	 * `protoBase64.dec` is not a validator: it ignores whitespace and tolerates missing padding, so
+	 * it returns zero bytes for these rather than throwing. `Uint8Array(0)` is as truthy as `[]`, so
+	 * the length check has to cover the string shape too, not just the array one.
+	 */
+	it.each([['='], ['===='], ['   '], ['\n']])(
+		'skips a mesh whose base64 %s decodes to nothing',
+		(mesh_data) => {
+			expect(obstacleGeometry({ type: 'mesh', mesh_content_type: 'ply', mesh_data })).toBeNull()
+		}
+	)
+
+	/**
+	 * The reason is the point, not just the skip. This decoder's own bug presented as "undecodable
+	 * mesh_data" on data that was perfectly fine, and that was only diagnosable because the message
+	 * distinguished bytes-we-cannot-read from nothing-to-read. Collapsing them would take that back.
+	 */
+	it.each([
+		['an unhandled content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }, 'obj'],
+		['a missing content type', { mesh_data: btoa('ply\n') }, 'content type'],
+		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }, 'no mesh_data'],
+		['absent mesh data', { mesh_content_type: 'ply' }, 'no mesh_data'],
+		[
+			'undecodable mesh data',
+			{ mesh_content_type: 'ply', mesh_data: '!!!not base64!!!' },
+			'undecodable mesh_data',
+		],
 		// Truthy, so a bare presence check let this through as a zero-length mesh.
-		['an empty number array', { mesh_content_type: 'ply', mesh_data: [] }],
-	])('skips a mesh with %s', (_label, geometry) => {
+		['an empty number array', { mesh_content_type: 'ply', mesh_data: [] }, 'empty mesh_data'],
+	])('skips a mesh with %s, and says which', (_label, geometry, reason) => {
 		expect(obstacleGeometry({ type: 'mesh', ...geometry })).toBeNull()
+		// The frame name is in there too: a warning that cannot be traced to a frame is not
+		// actionable on a robot with forty of them.
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('"obstacle"'))
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining(reason))
 	})
 
 	it('keeps the rest of the plan when one mesh fails to decode', () => {

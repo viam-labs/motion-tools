@@ -107,38 +107,62 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 	return ''
 }
 
+/** Why a `mesh_data` field could not be turned into bytes, so the warning can say which. */
+type MeshDataProblem = 'absent' | 'unreadable' | 'empty'
+
 /**
  * `mesh_data` arrives in one of two shapes, decided by the route it took rather than by anything in
  * the data.
  *
  * A plan dump reaches us through `SimpleModel.MarshalJSON`, so Go's `encoding/json` writes the
  * `[]byte` as **base64**. `frameSystemConfig` reaches us through `protoutils.StructToStructPb`,
- * which reflects over the struct instead of marshalling it — `marshalSlice` walks the slice element
- * by element, so the same field arrives as an **array of numbers**
- * (`utils@v0.10.1/protoutils/protoutils.go:239`). RDK records the same asymmetry for
- * `original_file.bytes`.
+ * which reflects over the struct instead of marshalling it: `protoutils.marshalSlice` walks the
+ * slice element by element, so the same field arrives as an **array of numbers**.
  *
- * Reading only the first shape means anything reaching this from `frameSystemConfig` throws inside
- * `protoBase64.dec` and is reported as `undecodable mesh_data`, blaming the robot's data for a
- * decoder that was looking for the wrong thing.
+ * Go itself needs no equivalent of this function, which is why the asymmetry is easy to miss from
+ * that side: `encoding/json` unmarshals *both* a base64 string and a number array into a `[]byte`.
+ * Only a decoder written by hand has to know there are two shapes.
+ *
+ * Reading only the first shape means anything reaching this from `frameSystemConfig` fails inside
+ * `protoBase64.dec` and is reported as undecodable, blaming the robot's data for a decoder that was
+ * looking for the wrong thing.
  */
-const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | undefined => {
+const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | MeshDataProblem => {
+	if (raw === undefined || raw === null || raw === '') return 'absent'
+
+	let bytes: Uint8Array<ArrayBuffer>
+
 	if (Array.isArray(raw)) {
-		const bytes = raw.filter((value) => typeof value === 'number')
-		// An empty array is truthy, so a plain presence check let it through as a zero-length mesh.
-		return bytes.length > 0 ? Uint8Array.from(bytes) : undefined
+		// Rejected whole rather than filtered. Dropping a bad element shifts every byte after it, and
+		// a byte-shifted mesh is not a decode failure: a binary STL fails its size check, falls
+		// through to the ASCII parser, matches nothing and yields an empty geometry with no error. A
+		// collision volume that silently renders as nothing is worse than one we refused to read.
+		// `encoding/json`, the decoder on the other end of this contract, rejects all of these too.
+		const clean = raw.every(
+			(v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 256
+		)
+		if (!clean) return 'unreadable'
+		bytes = Uint8Array.from(raw as number[])
+	} else if (typeof raw === 'string') {
+		try {
+			// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
+			// `dec` throws a bare Error, which `loadPlan` would otherwise report as an unparseable
+			// plan rather than as one unreadable shape. It is not a validator though: it ignores
+			// whitespace and tolerates missing padding, so it returns short or garbage bytes for
+			// plenty of malformed input rather than throwing. The length check below is what catches
+			// the degenerate end of that.
+			bytes = Uint8Array.from(protoBase64.dec(raw))
+		} catch {
+			return 'unreadable'
+		}
+	} else {
+		return 'unreadable'
 	}
 
-	if (typeof raw !== 'string' || raw === '') return undefined
-
-	try {
-		// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects. `dec`
-		// throws a bare Error on malformed input, which `loadPlan` would otherwise report as an
-		// unparseable plan rather than as one unreadable shape.
-		return Uint8Array.from(protoBase64.dec(raw))
-	} catch {
-		return undefined
-	}
+	// Applies to both shapes. `[]` is truthy and so is `Uint8Array(0)`, and `dec` returns zero bytes
+	// without throwing for padding- or whitespace-only strings, so a presence check on either branch
+	// alone lets through a mesh that renders nothing and still costs a draw pass.
+	return bytes.length > 0 ? bytes : 'empty'
 }
 
 /**
@@ -231,8 +255,13 @@ export const parseGeometry = (
 			const contentType = meshContentType(declared)
 			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)
 
+			// Kept distinct: "the robot sent no mesh" and "the mesh it sent would not decode" have
+			// different causes and different owners, and collapsing them is what made the two-shape
+			// bug above read as missing data in the first place.
 			const mesh = meshBytes(g.mesh_data)
-			if (!mesh) return skip('mesh geometry carries no readable mesh_data')
+			if (mesh === 'absent') return skip('mesh geometry carries no mesh_data')
+			if (mesh === 'empty') return skip('mesh geometry carries empty mesh_data')
+			if (mesh === 'unreadable') return skip('mesh geometry carries undecodable mesh_data')
 
 			return new Geometry({
 				center,
