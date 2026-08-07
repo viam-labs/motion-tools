@@ -951,13 +951,17 @@ describe('buildFrameDescriptors', () => {
 
 	// Silence matters as much as the null here: an empty type is RDK's "no geometry", so it must not
 	// take the `default:` arm, which warns about a shape it could not draw.
+	//
+	// `mockClear` rather than `mockRestore`, following the three spies above it. `vi.spyOn` hands back
+	// whichever spy is already on `console.warn`, so restoring here would uninstall a describe-level
+	// spy this test does not own and silently disarm every later assertion that reads it.
 	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 		try {
 			expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
 			expect(warn).not.toHaveBeenCalled()
 		} finally {
-			warn.mockRestore()
+			warn.mockClear()
 		}
 	})
 
