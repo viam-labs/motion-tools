@@ -19,11 +19,16 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 })
 
 /**
- * The regression gate for the output-frame ladder, asserted against every capture at once. A frame
- * parented to a bare model name has to land on that model's declared `primary_output_frame` — read
- * here straight out of the dump rather than from a snapshot, so a wrong answer names itself instead
- * of showing up as a diff nobody can adjudicate. `gantry-plan` contributes nothing, which is why the
- * count is asserted across the set rather than per file.
+ * An equivalence check across every capture at once, not a regression gate: a frame parented to a
+ * bare model name has to land on that model's declared `primary_output_frame`, read here straight
+ * out of the dump rather than from a snapshot, so a wrong answer names itself instead of showing up
+ * as a diff nobody can adjudicate. `gantry-plan` contributes nothing, which is why the count is
+ * asserted across the set rather than per file.
+ *
+ * It cannot tell the rungs apart, and is not meant to. On all 29 captured model frames the declared
+ * value, the sole leaf and the last declared link are the same string, so every rung reproduces the
+ * same answer and this passes with any one of them deleted. What it catches is a ladder that stops
+ * resolving a terminal at all. The rung-by-rung tests are in `model output frame` below.
  */
 describe('captured plans', () => {
 	it('resolve every model-parented frame to that model`s declared output frame', () => {
@@ -296,11 +301,14 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	/**
-	 * Where a model hands off its children. Both cases below declare `links` with the tip *first*, so
-	 * array position answers differently from the model's own declaration and the two are
+	 * Where a model hands off its children, one test per rung of the ladder. Each declares `links` in
+	 * an order that array position would answer differently from, so the new rule and the old one are
 	 * distinguishable — the previous version of this test could not tell them apart, because its last
-	 * link was also its output frame. A URDF arm's link order really is arbitrary: RDK builds it by
-	 * ranging a Go map, so it is fixed at parse time and can differ between robot restarts.
+	 * link was also its output frame. A URDF arm's link order really is arbitrary: RDK collects links
+	 * into a Go map and ranges it into a slice, and map iteration is randomised per range statement.
+	 *
+	 * See `armed` below for the second thing these have to avoid, which is subtler: the fallback that
+	 * catches an unanswered ladder must not agree with the rung under test either.
 	 */
 	describe('model output frame', () => {
 		const staticFrame = {
@@ -329,19 +337,27 @@ describe('buildFrameDescriptors', () => {
 			frame: { inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } } },
 		}
 
+		/**
+		 * `extra_link` is declared *before* `gripper_mount` on purpose. When no rung of the ladder
+		 * answers, `buildFrameContexts` falls through to the first child of the last joint, and that
+		 * child is whichever one this map lists first. Listing `gripper_mount` first made the fallback
+		 * produce the same answer every rung below was asserting, so four of the five tests here
+		 * passed with the rung they are named after deleted. With the order flipped the fallback says
+		 * `arm:extra_link`, which no rung test expects, so each one now fails when its rung goes.
+		 */
 		const armed = (frame: Record<string, unknown>): ParsedPlan =>
 			plan(
 				{
 					arm: { frame_type: 'model', frame },
 					'arm:gripper_rot': rotational,
-					'arm:gripper_mount': staticFrame,
 					'arm:extra_link': staticFrame,
+					'arm:gripper_mount': staticFrame,
 					camera_origin: camera,
 				},
 				{
 					'arm:gripper_rot': 'arm:base',
-					'arm:gripper_mount': 'arm:gripper_rot',
 					'arm:extra_link': 'arm:gripper_rot',
+					'arm:gripper_mount': 'arm:gripper_rot',
 					camera_origin: 'arm',
 				}
 			)
@@ -414,7 +430,9 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:gripper_rot')
 		})
 
-		// Ambiguous shapes must not guess; the last-joint-child path still covers them.
+		// Ambiguous shapes must not guess; the last-joint-child path still covers them. `gripper_mount`
+		// is the first leaf in declaration order, so picking `leaves[0]` rather than refusing would
+		// answer `arm:gripper_mount` and this fails.
 		it('declines to pick when a model has more than one childless frame', () => {
 			const p = armed({
 				name: 'arm',
@@ -428,6 +446,25 @@ describe('buildFrameDescriptors', () => {
 			})
 
 			// Falls through to "what hangs off the last joint", which is insertion-ordered.
+			expect(parentOfCamera(p)).toBe('arm:extra_link')
+		})
+
+		// A bare string would otherwise be indexed as an array and yield its first character, which
+		// the `typeof === 'string'` check downstream would accept.
+		it('ignores an output_frames that is not an array', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					output_frames: 'gripper_mount',
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+					],
+				},
+			})
+
+			// Falls to the sole-leaf rule rather than resolving to `arm:g`.
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
 	})

@@ -192,8 +192,15 @@ interface ModelNode {
 }
 
 /**
- * The model's one childless frame, over links *and* joints. RDK computes `leaves` the same way and
- * refuses to build a model that has more than one, so anything else is a shape we cannot read.
+ * The model's one childless frame, over links *and* joints. RDK computes `leaves` the same way, and
+ * requires exactly one *when the config declares no `output_frames`*: `requireSingleLeaf` is
+ * `len(cfg.OutputFrames) == 0`, and a branching model is legal as long as it names its output. That
+ * condition is the rung above this one, so by the time we get here the single-leaf rule is the only
+ * one RDK would apply, and more than one leaf is a shape we cannot read rather than one to guess at.
+ *
+ * Only reads `links` and `joints`. A `kinematic_param_type: "DH"` model carries its topology in
+ * `dhParams`, from which RDK synthesises `<id>` and `<id>_j` nodes, so this returns undefined for
+ * one rather than a wrong answer. No capture uses DH, and the rung above covers them in practice.
  */
 const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
 	const nodes = [
@@ -212,13 +219,20 @@ const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefi
 /**
  * Which frame a model hands its children to. RDK serialises this on the `SimpleModel` envelope, a
  * *sibling* of `model`; `ModelConfigJSON` has no such field, only `output_frames`. Reading it off
- * `model` therefore never finds it, and the array-position fallback that covered for that is
- * arbitrary. `UnmarshalModelXML` builds its links from a Go map, so for a URDF arm the declaration
- * order is fixed at parse time and can differ between robot restarts.
+ * `model` therefore never finds it: across the four captures it is on the envelope 29 times out of
+ * 29 and inside `model` none, so the array-position fallback was doing all the work.
  *
- * The last resort reproduces RDK's own `leaves[0]` rule, which is why it can name a joint,
- * something `links.at(-1)` never could. It agrees with the declared `primary_output_frame` for all
- * 29 model frames across the four captures, so the ladder is consistent wherever both can answer.
+ * That fallback is arbitrary for a URDF arm specifically. `UnmarshalModelXML` collects links into a
+ * `map[string]*LinkConfig` and then ranges it into a slice, and Go randomises map iteration per
+ * range statement, so two parses in one process can disagree; `joints` is appended in document
+ * order and is unaffected. Reading the *last* link was therefore the one part of the model most
+ * likely to move underneath us.
+ *
+ * The order below is not RDK's. `SimpleModel.UnmarshalJSON` ignores the envelope whenever `model`
+ * is present and recomputes from the config, so RDK reads config first and envelope last. The two
+ * cannot disagree on anything RDK marshalled, because the envelope is written from the value the
+ * config produced, and taking the envelope first means trusting what RDK resolved rather than
+ * re-deriving it. Only a hand-edited dump can tell these two orders apart.
  */
 const modelOutputFrame = (
 	entry: Frames[string],
@@ -227,7 +241,10 @@ const modelOutputFrame = (
 	const declared = (entry.frame as Record<string, unknown>).primary_output_frame
 	if (typeof declared === 'string' && declared !== '') return declared
 
-	const configured = (model?.output_frames as string[] | undefined)?.[0]
+	// `Array.isArray` first: indexing a bare string would yield its first character, which the
+	// `typeof` guard below would then happily accept.
+	const frames = model?.output_frames
+	const configured = Array.isArray(frames) ? (frames[0] as unknown) : undefined
 	if (typeof configured === 'string' && configured !== '') return configured
 
 	return soleLeafOf(model)
@@ -277,6 +294,9 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
 		}
 
+		// Truthiness rather than a null check, deliberately: unlike the two rungs above it, the
+		// sole-leaf rung does not screen an empty id, because Go marshals `id` with no `omitempty`
+		// and a node can carry `""`. That names no frame, so it has to fall through here.
 		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
