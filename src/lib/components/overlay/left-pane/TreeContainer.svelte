@@ -4,6 +4,7 @@
 	import { traits, useWorld } from '$lib/ecs'
 
 	import FloatingPanel from '../FloatingPanel.svelte'
+	import PoseStalenessIndicator from './PoseStalenessIndicator.svelte'
 	import Tree from './Tree.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { type TreeNode, useTree } from './useTree.svelte'
@@ -30,6 +31,10 @@
 	exitable={false}
 	resizable
 >
+	{#snippet headerSuffix()}
+		<PoseStalenessIndicator />
+	{/snippet}
+
 	<Tree
 		{rootNode}
 		onSelectionChange={(event) => {

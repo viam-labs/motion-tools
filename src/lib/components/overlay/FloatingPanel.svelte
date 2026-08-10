@@ -20,6 +20,7 @@
 		bodyClass?: ClassValue
 		children: Snippet
 		headerPrefix?: Snippet
+		headerSuffix?: Snippet
 		onPositionChange?: (details: floatingPanel.PositionChangeDetails) => void
 		onPositionChangeEnd?: (details: floatingPanel.PositionChangeDetails) => void
 		onSizeChange?: (details: floatingPanel.SizeChangeDetails) => void
@@ -36,6 +37,7 @@
 		isOpen = $bindable(false),
 		bodyClass = 'bg-white',
 		headerPrefix,
+		headerSuffix,
 		children,
 		...props
 	}: Props = $props()
@@ -88,19 +90,23 @@
 						</h3>
 					</div>
 
-					{#if exitable}
-						<div
-							{...api.getControlProps()}
-							class="flex gap-3"
-						>
-							<button
-								aria-label="Close connection configs panel"
-								onclick={() => (isOpen = false)}
+					<div class="flex shrink-0 items-center gap-3">
+						{@render headerSuffix?.()}
+
+						{#if exitable}
+							<div
+								{...api.getControlProps()}
+								class="flex gap-3"
 							>
-								<Icon name="close" />
-							</button>
-						</div>
-					{/if}
+								<button
+									aria-label="Close connection configs panel"
+									onclick={() => (isOpen = false)}
+								>
+									<Icon name="close" />
+								</button>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 
