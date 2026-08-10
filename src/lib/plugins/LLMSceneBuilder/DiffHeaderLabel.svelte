@@ -41,7 +41,6 @@
 				bind:this={element}
 				class={['block w-full truncate', textClass]}
 				aria-label={tooltipText ?? text}
-				aria-describedby={tooltipID}
 			>
 				{text}
 			</span>
