@@ -203,9 +203,15 @@ interface ModelNode {
  * one rather than a wrong answer. No capture uses DH, and the rung above covers them in practice.
  */
 const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
+	const links = model?.links
+	const joints = model?.joints
+	// `Array.isArray` guards, same policy as `modelOutputFrame`'s `output_frames` check above: a
+	// hand-edited or malformed capture can declare `links`/`joints` as a non-array (`{}` rather than
+	// `[]`), and spreading a non-iterable throws a bare `TypeError` that takes the whole plan render
+	// down. Treating it as empty degrades to whatever the other list still resolves.
 	const nodes = [
-		...((model?.links ?? []) as ModelNode[]),
-		...((model?.joints ?? []) as ModelNode[]),
+		...(Array.isArray(links) ? (links as ModelNode[]) : []),
+		...(Array.isArray(joints) ? (joints as ModelNode[]) : []),
 	]
 
 	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))

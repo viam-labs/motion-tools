@@ -25,6 +25,11 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
  * as a diff nobody can adjudicate. `gantry-plan` contributes nothing, which is why the count is
  * asserted across the set rather than per file.
  *
+ * The 14 are each model's own `<name>_origin` frame, the one child every model in these captures
+ * parents directly to its bare name (RDK frames a static obstacle group as a model too, so
+ * `obstacle-table_origin` etc. count alongside the arms): 0 from gantry-plan, 1 from
+ * pirouette-plan, 9 from plan.json, 4 from salad-plan.
+ *
  * It cannot tell the rungs apart, and is not meant to. On all 29 captured model frames the declared
  * value, the sole leaf and the last declared link are the same string, so every rung reproduces the
  * same answer and this passes with any one of them deleted. What it catches is a ladder that stops
@@ -43,7 +48,13 @@ describe('captured plans', () => {
 				if (model?.frame_type !== 'model') continue
 
 				const declared = (model.frame as Record<string, unknown>).primary_output_frame
-				expect(parentByName.get(child)).toBe(`${rawParent}:${declared as string}`)
+				// A config-only model with no `primary_output_frame` is a shape none of the four
+				// captures has, but production correctly falls through to `output_frames` or the
+				// sole leaf for it. Asserting the literal string `${rawParent}:undefined` here would
+				// fail on that correct fallback rather than on a regression, so skip rather than coerce.
+				if (typeof declared !== 'string') continue
+
+				expect(parentByName.get(child)).toBe(`${rawParent}:${declared}`)
 				checked += 1
 			}
 		}
@@ -428,6 +439,21 @@ describe('buildFrameDescriptors', () => {
 			})
 
 			expect(parentOfCamera(p)).toBe('arm:gripper_rot')
+		})
+
+		// A non-array `links` (a hand-edited `{}` rather than `[]`) must not reach the spread inside
+		// `soleLeafOf` as anything but empty. Before the `Array.isArray` guard this threw a bare
+		// TypeError trying to spread a non-iterable, taking the whole plan render down with it.
+		it('does not throw when a model`s links is not an array', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					links: {},
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+				},
+			})
+
+			expect(() => parentOfCamera(p)).not.toThrow()
 		})
 
 		// Ambiguous shapes must not guess; the last-joint-child path still covers them. `gripper_mount`
