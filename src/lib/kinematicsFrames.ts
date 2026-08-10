@@ -26,7 +26,6 @@ import {
 	parseKinematicsGeometry,
 	type RawKinematicsLink,
 	type RawKinematicsModel,
-	resolveOutputFrame,
 } from '$lib/kinematicsTransform'
 import { Pose } from '$lib/math'
 import { poseFromJson } from '$lib/spatialJson'
@@ -155,15 +154,13 @@ export const deriveKinematicsFrames = (
 		)
 	}
 
-	// rdk parents the model frame to `_origin` and gives it the whole resolved
-	// chain as its transform. Hanging it off the output link instead puts it at
-	// the same pose by construction — the model's output *is* that frame — and
-	// keeps the chain visible in the tree. Without an unambiguous output frame
-	// there is nothing to follow, so fall back to rdk's own parenting.
-	const outputFrame = resolveOutputFrame(model)
-	const parentFrameName =
-		outputFrame === undefined ? originName : internalFrameName(componentName, outputFrame)
-	frames.push(transform(componentName, parentFrameName, new Pose()))
+	// The model frame, parented to `_origin` exactly as rdk parents it. Its pose
+	// is the whole resolved chain, so `getPose` supplies it — hanging it off the
+	// model's output link instead would put it at the same place without a query,
+	// but only by asking for a pose *relative to* a flattened internal frame, and
+	// `FrameSystem.Frame` returns nil for those names outside the referenceframe
+	// package. `_origin` is a frame the API will answer for.
+	frames.push(transform(componentName, originName, new Pose()))
 
 	return frames
 }

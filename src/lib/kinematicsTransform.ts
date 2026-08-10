@@ -53,8 +53,7 @@ export interface RawKinematicsJoint {
  * `modelConfig` — the parse *input*, not the resolved model — so the fields
  * here are the ones `UnmarshalModelJSON` reads and nothing rdk derived
  * afterwards. In particular there is no `primary_output_frame`; that lives on
- * the serialised model a motion plan carries, and the equivalent here is
- * `output_frames` (see {@link resolveOutputFrame}).
+ * the serialised model a motion plan carries.
  */
 export interface RawKinematicsModel {
 	name?: string
@@ -77,42 +76,6 @@ export interface RawKinematicsModel {
 export const isDHModel = (model: RawKinematicsModel): boolean =>
 	model.kinematic_param_type === 'DH' ||
 	((model.links ?? []).length === 0 && (model.dhParams ?? []).length > 0)
-
-/**
- * The model's output frame: the link whose pose the component's own frame
- * reports. Mirrors `ModelConfigJSON.ParseConfig` — an explicit `output_frames`
- * entry wins, otherwise it is the single leaf nothing else hangs off of.
- *
- * Leaves are taken over joints as well as links because rdk's
- * `buildModelFrameSystem` sorts both together, and a model whose chain ends in
- * a joint has that joint as its output. rdk rejects more than one of either, so
- * anything ambiguous resolves to `undefined` instead of an arbitrary pick.
- */
-export const resolveOutputFrame = (model: RawKinematicsModel): string | undefined => {
-	const declared = model.output_frames ?? []
-	if (declared.length === 1) {
-		return declared[0]
-	}
-	if (declared.length > 1) {
-		console.warn(
-			`[kinematics] model "${model.name ?? '?'}" declares ${declared.length} output frames; rdk supports one`
-		)
-		return undefined
-	}
-
-	const nodes = [...(model.links ?? []), ...(model.joints ?? [])]
-	const parents = new Set(nodes.map((node) => node.parent))
-	const leaves = nodes.map((node) => node.id).filter((id) => !parents.has(id))
-
-	if (leaves.length === 1) {
-		return leaves[0]
-	}
-
-	console.warn(
-		`[kinematics] model "${model.name ?? '?'}" has ${leaves.length} leaf frames and declares no output frame`
-	)
-	return undefined
-}
 
 /**
  * `mesh_data` arrives either base64-encoded (Go's `[]byte` -> JSON string) or

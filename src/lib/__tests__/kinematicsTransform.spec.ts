@@ -1,11 +1,9 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
 	isDHModel,
 	parseKinematicsGeometry,
 	type RawKinematicsGeometry,
-	type RawKinematicsModel,
-	resolveOutputFrame,
 } from '../kinematicsTransform'
 
 /**
@@ -127,89 +125,6 @@ describe('parseKinematicsGeometry', () => {
 
 			expect(parsed.center?.x).toBeCloseTo(15)
 		})
-	})
-})
-
-/**
- * Mirrors `ModelConfigJSON.ParseConfig`: `output_frames` wins, otherwise the one
- * leaf nothing hangs off of. rdk rejects models with more than one of either, so
- * this reports ambiguity rather than picking.
- */
-describe('resolveOutputFrame', () => {
-	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
-
-	/** The xArm6 chain, as it arrives in `kinematics` — alternating link/joint. */
-	const xArm6: RawKinematicsModel = {
-		name: 'xArm6',
-		links: [
-			{ id: 'base', parent: 'world' },
-			{ id: 'base_top', parent: 'waist' },
-			{ id: 'upper_arm', parent: 'shoulder' },
-			{ id: 'upper_forearm', parent: 'elbow' },
-			{ id: 'lower_forearm', parent: 'forearm_rot' },
-			{ id: 'wrist_link', parent: 'wrist' },
-			{ id: 'gripper_mount', parent: 'gripper_rot' },
-		],
-		joints: [
-			{ id: 'waist', parent: 'base' },
-			{ id: 'shoulder', parent: 'base_top' },
-			{ id: 'elbow', parent: 'upper_arm' },
-			{ id: 'forearm_rot', parent: 'upper_forearm' },
-			{ id: 'wrist', parent: 'lower_forearm' },
-			{ id: 'gripper_rot', parent: 'wrist_link' },
-		],
-	}
-
-	it('finds the single leaf of a real arm chain', () => {
-		expect(resolveOutputFrame(xArm6)).toBe('gripper_mount')
-		expect(warn).not.toHaveBeenCalled()
-	})
-
-	it('finds the single leaf of a one-joint gantry', () => {
-		expect(
-			resolveOutputFrame({
-				name: 'test_gantry_model',
-				links: [
-					{ id: 'base', parent: 'world' },
-					{ id: 'carriage', parent: 'gantry_joint' },
-				],
-				joints: [{ id: 'gantry_joint', parent: 'base' }],
-			})
-		).toBe('carriage')
-	})
-
-	it('prefers a declared output frame over the leaf', () => {
-		expect(resolveOutputFrame({ ...xArm6, output_frames: ['wrist_link'] })).toBe('wrist_link')
-	})
-
-	/** Leaves are taken over joints too, matching rdk's `buildModelFrameSystem`. */
-	it('resolves a chain that terminates in a joint', () => {
-		expect(
-			resolveOutputFrame({
-				links: [{ id: 'base', parent: 'world' }],
-				joints: [{ id: 'spin', parent: 'base' }],
-			})
-		).toBe('spin')
-	})
-
-	it('reports ambiguity rather than picking between two leaves', () => {
-		expect(
-			resolveOutputFrame({
-				name: 'forked',
-				links: [
-					{ id: 'base', parent: 'world' },
-					{ id: 'left', parent: 'base' },
-					{ id: 'right', parent: 'base' },
-				],
-			})
-		).toBeUndefined()
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('2 leaf frames'))
-	})
-
-	it('reports more output frames than rdk accepts', () => {
-		expect(resolveOutputFrame({ ...xArm6, output_frames: ['a', 'b'] })).toBeUndefined()
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('rdk supports one'))
 	})
 })
 

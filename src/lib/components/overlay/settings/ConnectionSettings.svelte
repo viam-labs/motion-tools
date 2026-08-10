@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { useGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 	import { useRefetchPoses } from '$lib/hooks/useRefetchPoses'
@@ -7,7 +6,6 @@
 
 	import RefreshRate from '../RefreshRate.svelte'
 
-	const geometries = useGeometries()
 	const pointclouds = usePointClouds()
 	const pointcloudObjects = usePointcloudObjects()
 	const { refetchPoses } = useRefetchPoses()
@@ -22,7 +20,6 @@
 		allowLive
 		onManualRefetch={() => {
 			refetchPoses()
-			geometries.refetch()
 		}}
 	/>
 	<RefreshRate

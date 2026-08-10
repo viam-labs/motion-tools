@@ -38,9 +38,6 @@ describe('deriveKinematicsFrames', () => {
 		it('reads the capture as a link/joint model', () => {
 			expect(model.links).toHaveLength(7)
 			expect(model.joints).toHaveLength(6)
-			// The captured model declares neither, so the leaf rule is what resolves
-			// the output frame — the same fallback rdk uses.
-			expect(model.output_frames).toBeUndefined()
 			expect(model.kinematic_param_type).toBeUndefined()
 		})
 
@@ -67,8 +64,15 @@ describe('deriveKinematicsFrames', () => {
 			})
 		})
 
-		it('hangs the component frame off the resolved output link', () => {
-			expect(parents['arm-1']).toBe('arm-1:gripper_mount')
+		/**
+		 * rdk's own parenting. The component frame's pose is the whole resolved
+		 * chain, which `getPose` supplies — asking for it relative to the model's
+		 * output link instead would name a flattened internal frame, and
+		 * `FrameSystem.Frame` returns nil for those outside the referenceframe
+		 * package.
+		 */
+		it('parents the component frame to its origin', () => {
+			expect(parents['arm-1']).toBe('arm-1_origin')
 		})
 
 		it('emits one frame per link plus the component itself', () => {
@@ -115,7 +119,7 @@ describe('deriveKinematicsFrames', () => {
 			expect(parents).toEqual({
 				'gantry-1:base': 'gantry-1_origin',
 				'gantry-1:carriage': 'gantry-1:base',
-				'gantry-1': 'gantry-1:carriage',
+				'gantry-1': 'gantry-1_origin',
 			})
 		})
 	})
@@ -131,12 +135,8 @@ describe('deriveKinematicsFrames', () => {
 			expect(warn).toHaveBeenCalledWith(expect.stringContaining('DH-parameter model'))
 		})
 
-		/**
-		 * Falling back to rdk's own parenting keeps the component frame present and
-		 * polled, so a forked model still positions its children — it just cannot
-		 * follow the chain.
-		 */
-		it('parents the component to its origin when no output frame resolves', () => {
+		/** A forked model still positions its children off the component frame. */
+		it('handles a model with more than one leaf', () => {
 			const frames = deriveKinematicsFrames('arm-3', {
 				links: [
 					{ id: 'base', parent: 'world' },
@@ -145,7 +145,12 @@ describe('deriveKinematicsFrames', () => {
 				],
 			})
 
-			expect(parentByName(frames)['arm-3']).toBe('arm-3_origin')
+			expect(parentByName(frames)).toEqual({
+				'arm-3:base': 'arm-3_origin',
+				'arm-3:left': 'arm-3:base',
+				'arm-3:right': 'arm-3:base',
+				'arm-3': 'arm-3_origin',
+			})
 		})
 
 		it('roots a link whose parent is missing from the model on the origin', () => {

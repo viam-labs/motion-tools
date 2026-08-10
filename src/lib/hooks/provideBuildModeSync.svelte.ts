@@ -4,7 +4,6 @@ import { setContext, tick } from 'svelte'
 
 import { BUILD_MODE_SYNC_CONTEXT_KEY, createBuildModeSync } from './useBuildModeSync.svelte'
 import { useEnvironment } from './useEnvironment.svelte'
-import { useGeometries } from './useGeometries.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { usePartID } from './usePartID.svelte'
 import { usePoses } from './usePoses.svelte'
@@ -21,7 +20,6 @@ export const provideBuildModeSync = () => {
 	const connectionStatus = useConnectionStatus(() => partID.current)
 	const partConfig = usePartConfig()
 	const poses = usePoses()
-	const geometries = useGeometries()
 
 	setContext(BUILD_MODE_SYNC_CONTEXT_KEY, context)
 
@@ -38,7 +36,7 @@ export const provideBuildModeSync = () => {
 		let cancelled = false
 		void (async () => {
 			await tick()
-			await Promise.allSettled([poses.refetch(), geometries.refetch()])
+			await poses.refetch()
 			await tick()
 			if (!cancelled && environment.current.mode === 'build') context.finish()
 		})()
