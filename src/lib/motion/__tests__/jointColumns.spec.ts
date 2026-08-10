@@ -83,12 +83,14 @@ describe('a mimic joint in the middle of a chain', () => {
 	// Every other case here mimics the first joint, where `index: source.index` and a hardcoded `0`
 	// agree. This is the only one that borrows a column that is not zero.
 	it("borrows the source's own column, not the first one", () => {
-		const columns = modelJointColumns([
-			{ id: 'first' },
-			{ id: 'second' },
-			{ id: 'follows_second', mimic: { joint: 'second' } },
-			{ id: 'after' },
-		])
+		const columns = columnsOf(
+			chain(
+				{ id: 'first' },
+				{ id: 'second' },
+				{ id: 'follows_second', mimic: { joint: 'second' } },
+				{ id: 'after' }
+			)
+		)
 
 		expect(columns.get('follows_second')).toEqual({
 			index: 1,

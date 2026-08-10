@@ -469,7 +469,8 @@ describe('buildFrameDescriptors', () => {
 		 * The fallback reads the last joint of the *walk*, not of the array. `aux_joint` is declared
 		 * last but sorts first under the model root, so the two disagree here: reading the array picks
 		 * `aux_joint`, which nothing is parented to, and the camera would stay hung off the bare model
-		 * name instead of the arm's tip.
+		 * name instead of the arm's tip. The expected frame is whichever child `armed` lists first
+		 * under `gripper_rot`, which is `extra_link` for the reason its own docblock gives.
 		 *
 		 * A model with one leaf or a declared output frame never reaches this line, so the fixture has
 		 * neither. That is the shape of the branch, not a gap in the fixture.
@@ -489,7 +490,7 @@ describe('buildFrameDescriptors', () => {
 				},
 			})
 
-			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+			expect(parentOfCamera(p)).toBe('arm:extra_link')
 		})
 	})
 
