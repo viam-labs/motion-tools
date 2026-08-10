@@ -1,4 +1,4 @@
-type RefetchFn = () => void
+type RefetchFn = () => Promise<unknown>
 
 const queries = new Set<{ refetch: RefetchFn }>()
 
@@ -7,11 +7,7 @@ const addQueryToRefetch = (query: { refetch: RefetchFn }) => {
 	return () => queries.delete(query)
 }
 
-const refetchPoses = () => {
-	for (const query of queries) {
-		query.refetch()
-	}
-}
+const refetchPoses = () => Promise.allSettled([...queries].map((query) => query.refetch()))
 
 export const useRefetchPoses = () => {
 	return {

@@ -400,6 +400,14 @@ describe('setFromFrame', () => {
 		expect(fields(pose)).toEqual({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 	})
 
+	it('falls back to the identity orientation when its value is omitted', () => {
+		const pose = new Pose(1, 2, 3, 1, 0, 0, 44).setFromFrame({
+			orientation: { type: 'ov_degrees' },
+		} as Partial<Frame>)
+
+		expect(fields(pose)).toEqual({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
+	})
+
 	it('agrees across orientation representations of the same rotation', () => {
 		const { x, y, z, w } = composeZYX(tiltedRoll, tiltedPitch, tiltedYaw)
 

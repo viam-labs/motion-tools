@@ -9,7 +9,7 @@ import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -20,6 +20,8 @@ import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {
 	current: Transform[]
+	/** Whether the current part's frame set has been reconciled into the world. */
+	readonly isReady: boolean
 }
 
 const key = Symbol('frames-context')
@@ -97,6 +99,8 @@ export const provideFrames = (partID: () => string) => {
 	const current = $derived(Object.values(frames))
 
 	const entities = new Map<string, Entity | undefined>()
+	let reconciledFrames = $state.raw<Transform[]>()
+	let reconciledPartID = $state<string>()
 
 	$effect(() => {
 		if (revision) {
@@ -121,15 +125,16 @@ export const provideFrames = (partID: () => string) => {
 		const currentResourcesByName = resourceByName.current
 		const currentPartID = partID()
 		const currentComponentSubtypeByName = componentSubtypeByName
+		const currentFrames = current
 
 		// We only want to update whenever "current" or "resourceByName.current" changes
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		current.length
+		currentFrames.length
 
 		untrack(() => {
 			const active: Record<string, boolean> = {}
 
-			for (const frame of current) {
+			for (const frame of currentFrames) {
 				const name = frame.referenceFrame
 				const entityKey = `${currentPartID}:${name}`
 				active[entityKey] = true
@@ -158,12 +163,12 @@ export const provideFrames = (partID: () => string) => {
 					if (color) {
 						const cur = existing.get(traits.Color)
 						if (!cur || cur.r !== color.r || cur.g !== color.g || cur.b !== color.b) {
-							existing.set(traits.Color, color)
+							setOrAddTrait(existing, traits.Color, color)
 						}
 					}
 
 					if (center && !center.equals(existing.get(traits.Center))) {
-						existing.set(traits.Center, center)
+						setOrAddTrait(existing, traits.Center, center)
 					}
 
 					traits.updateGeometryTrait(existing, frame.physicalObject)
@@ -223,6 +228,9 @@ export const provideFrames = (partID: () => string) => {
 				}
 			}
 		})
+
+		reconciledFrames = currentFrames
+		reconciledPartID = currentPartID
 	})
 
 	// Clear all entities on unmount
@@ -239,6 +247,9 @@ export const provideFrames = (partID: () => string) => {
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get isReady() {
+			return reconciledPartID === partID() && reconciledFrames === current
 		},
 	})
 }

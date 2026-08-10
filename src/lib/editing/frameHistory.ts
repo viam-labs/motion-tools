@@ -1,10 +1,13 @@
 import type { Entity, World } from 'koota'
 
+import { Matrix4 } from 'three'
+
 import type { Frame } from '$lib/frame'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 
 import { hierarchy, traits } from '$lib/ecs'
 import { Pose } from '$lib/math'
+import { composeLocalMatrix } from '$lib/transform'
 
 import { applyGeometryTrait, type EditableFrameGeometry } from './FrameEditor'
 
@@ -23,6 +26,7 @@ interface ConfigLike {
 }
 
 const emptyPartConfig = { components: [] }
+const committedLiveMatrix = new Matrix4()
 
 const toJsonValue = (value: unknown): unknown => {
 	if (Array.isArray(value)) {
@@ -142,7 +146,7 @@ export const applyFrameHistorySnapshotToWorld = (
 	world: World,
 	config: FrameHistoryPartConfig,
 	fragmentInfo: Record<string, FragmentInfo>,
-	options: { keepEditedMatrices: boolean }
+	options: { mode: 'edit' | 'save' | 'discard' }
 ): void => {
 	const { frames, unsetFrameNames } = collectFrameHistoryFrames(config, fragmentInfo)
 
@@ -155,17 +159,33 @@ export const applyFrameHistorySnapshotToWorld = (
 		const frame = frames.get(name)
 
 		if (!frame) {
-			if (!options.keepEditedMatrices || unsetFrameNames.has(name)) {
+			if (options.mode !== 'edit' || unsetFrameNames.has(name)) {
 				entity.remove(traits.EditedMatrix)
 			}
 			continue
 		}
 
-		if (options.keepEditedMatrices) {
+		if (options.mode === 'edit') {
 			writeMatrixTrait(entity, traits.EditedMatrix, frame)
 		} else {
+			const edited = entity.get(traits.EditedMatrix)
+			const live = entity.get(traits.LiveMatrix)
+			const baseline = entity.get(traits.Matrix)
+
+			// Bake the rendered pose before replacing the baseline. Copying the
+			// config pose directly into LiveMatrix would discard live kinematics.
+			if (options.mode === 'save' && edited && live && baseline) {
+				composeLocalMatrix(live, baseline, edited, committedLiveMatrix)
+				live.copy(committedLiveMatrix)
+				entity.changed(traits.LiveMatrix)
+			}
+
 			writeMatrixTrait(entity, traits.Matrix, frame)
-			writeMatrixTrait(entity, traits.LiveMatrix, frame)
+			// Fall back to the config pose only when an edited frame lacks the
+			// matrices required to bake its rendered pose.
+			if (options.mode === 'save' && edited && (!live || !baseline)) {
+				writeMatrixTrait(entity, traits.LiveMatrix, frame)
+			}
 			entity.remove(traits.EditedMatrix)
 		}
 

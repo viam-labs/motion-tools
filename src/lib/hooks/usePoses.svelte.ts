@@ -2,13 +2,14 @@ import type { Entity } from 'koota'
 
 import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
-import { untrack } from 'svelte'
+import { getContext, setContext, untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
+import { missingPoseFrameNames } from './poseSnapshot'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
@@ -22,6 +23,18 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
 const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 const tempPose = new Pose()
+
+const key = Symbol('use-poses-context')
+
+export interface Context {
+	/** True once every frame in the selected config has a pose query. */
+	readonly isReady: boolean
+
+	/** Configured frame names whose pose queries have not been registered yet. */
+	readonly missingFrameNames: string[]
+
+	refetch: () => Promise<PromiseSettledResult<unknown>[]>
+}
 
 /**
  * Mirrors each live-machine frame's kinematics-resolved pose into its
@@ -47,7 +60,6 @@ export const providePoses = (partID: () => string) => {
 	const frameEntities = useQuery(traits.FramesAPI)
 
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
-
 	const options = $derived({
 		enabled: interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
@@ -219,4 +231,30 @@ export const providePoses = (partID: () => string) => {
 			})
 		}
 	})
+
+	const expectedFrameNames = () => frames.current.map(({ referenceFrame }) => referenceFrame)
+	const registeredFrameNames = () =>
+		entries.map(({ name }) => name.current).filter((name): name is string => name !== undefined)
+	const missingFrameNames = () =>
+		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
+
+	setContext<Context>(key, {
+		get isReady() {
+			return frames.isReady && missingFrameNames().length === 0
+		},
+		get missingFrameNames() {
+			return missingFrameNames()
+		},
+		refetch: () => {
+			const expected = new Set(expectedFrameNames())
+			const currentEntries = entries.filter(
+				({ name }) => name.current !== undefined && expected.has(name.current)
+			)
+			return Promise.allSettled(currentEntries.map(({ query }) => query.refetch()))
+		},
+	})
+}
+
+export const usePoses = () => {
+	return getContext<Context>(key)
 }

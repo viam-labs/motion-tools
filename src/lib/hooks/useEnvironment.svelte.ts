@@ -23,12 +23,12 @@ interface Environment {
 
 interface Context {
 	current: Environment
-	/**
-	 * Whether the scene follows live machine data. True in every mode but `build`,
-	 * where the part config is the source of truth and the pose / geometry /
-	 * pointcloud polls are paused.
-	 */
+	/** Whether live scene queries may run. Normally follows mode, but remains true
+	 * temporarily while build mode captures its initial machine snapshot. */
 	readonly isLive: boolean
+	/** Updates the live-query gate; used by build-mode synchronization to open and
+	 * close its temporary snapshot window. */
+	setLive: (value: boolean) => void
 }
 
 /** Where the persisted mode lives. Exported so tests can reset it. */
@@ -40,13 +40,14 @@ export const createEnvironment = (): Context => {
 	// The mode is the user's choice of tool, so it outlives the session. The rest
 	// describes the host and is set on mount.
 	const stored = new PersistedState<EnvironmentMode>(ENVIRONMENT_MODE_STORAGE_KEY, 'monitor')
-
+	let isLive = $state(stored.current !== 'build')
 	const environment = $state<Environment>({
 		get mode() {
 			return modes.has(stored.current) ? stored.current : 'monitor'
 		},
 		set mode(value: EnvironmentMode) {
 			stored.current = value
+			isLive = value !== 'build'
 		},
 		isStandalone: true,
 		inputBindingsEnabled: true,
@@ -57,7 +58,10 @@ export const createEnvironment = (): Context => {
 			return environment
 		},
 		get isLive() {
-			return environment.mode !== 'build'
+			return isLive
+		},
+		setLive(value) {
+			isLive = value
 		},
 	}
 

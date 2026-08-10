@@ -2,4 +2,4 @@
 "@viamrobotics/motion-tools": patch
 ---
 
-POV widget improvements
+Enable horizontal scrolling in treeview
