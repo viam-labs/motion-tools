@@ -6,10 +6,16 @@ import { parseStlInput } from '$lib/stl'
 export type MeshContentType = 'ply' | 'stl'
 
 /**
- * RDK writes a bare `ply` or `stl` into `mesh_content_type`, but the field is a free string that also
- * carries whatever a URDF or a HTTP fetch put there, so `model/stl` and `STL` reach us too. Anything
- * unrecognised returns undefined and is a decision for the caller: the plan parser skips the
- * geometry, while the renderer keeps its long-standing PLY assumption.
+ * Both of RDK's producers write a bare lowercase token, so the case folding and the `;`/`/` trimming
+ * below are defense rather than a response to anything observed on the wire: `GeometryConfig` writes
+ * `string(fileType)`, which is only ever `ply` or `stl`, and the URDF loader picks one of the same
+ * two off the file extension and errors on any other. The field is still a free string on a proto
+ * this repo does not own, and a value it does not recognise is a decision for the caller: the plan
+ * parser skips the geometry, while the renderer keeps its long-standing PLY assumption.
+ *
+ * This reads a content type, not a path. `meshes/base.stl` is deliberately not accepted — that form
+ * belongs in `mesh_file_path`, and guessing from an extension here would mean guessing for
+ * `package://` URIs too.
  */
 export const meshContentType = (raw: string | undefined): MeshContentType | undefined => {
 	const value = (raw ?? '').toLowerCase().split(';')[0]?.trim().split('/').at(-1)
@@ -18,8 +24,9 @@ export const meshContentType = (raw: string | undefined): MeshContentType | unde
 
 /**
  * Picks a parser for the bytes RDK sent. PLY is the fallback rather than an error because it is what
- * every caller assumed before STL was handled at all, so an unlabelled mesh behaves exactly as it
- * always has.
+ * the renderer assumed before STL was handled at all, so an unlabelled mesh behaves exactly as it
+ * always has. The plan parser does not rely on that: it gates on `meshContentType` first and skips
+ * anything unrecognised, so the fallback is only ever reached from the render path.
  */
 export const parseMeshInput = (mesh: string | Uint8Array, contentType?: string): BufferGeometry =>
 	meshContentType(contentType) === 'stl' ? parseStlInput(mesh) : parsePlyInput(mesh)

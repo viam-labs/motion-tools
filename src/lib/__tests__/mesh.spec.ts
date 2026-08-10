@@ -31,9 +31,39 @@ end_header
 
 const bytes = (text: string) => new TextEncoder().encode(text)
 
+/**
+ * A real binary STL: an 80 byte header, the triangle count as a little-endian uint32, then 50 bytes
+ * per triangle (a normal and three vertices as float32, plus a 2 byte attribute count).
+ *
+ * The ASCII form above cannot stand in for this. `STLLoader` decides binary versus ASCII by checking
+ * whether `80 + 4 + 50n` equals the buffer length, so binary is the only form that notices being
+ * handed the wrong number of bytes — which is exactly what the subarray and short-input cases exist
+ * to check. It is also the only form RDK produces: `newMeshFromSTLBytes` parses binary and nothing
+ * else, and keeps the raw bytes it was given.
+ */
+const binaryStl = (triangles = 1): Uint8Array => {
+	const buffer = new ArrayBuffer(84 + 50 * triangles)
+	const view = new DataView(buffer)
+	view.setUint32(80, triangles, true)
+
+	let offset = 84
+	for (let i = 0; i < triangles; i += 1) {
+		// normal (0,0,1) then the three corners of a unit triangle
+		for (const value of [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]) {
+			view.setFloat32(offset, value, true)
+			offset += 4
+		}
+		offset += 2
+	}
+
+	return new Uint8Array(buffer)
+}
+
+const base64 = (data: Uint8Array) => btoa(String.fromCodePoint(...data))
+
 describe('meshContentType', () => {
-	// RDK writes a bare `ply`/`stl`, but the field is a free string that a URDF or an HTTP fetch
-	// also writes into, so the noisy spellings have to land on the same answer.
+	// Both RDK producers write a bare lowercase token, so everything past the first two rows is
+	// defense against a field this repo does not own rather than a shape anyone has observed.
 	it.each([
 		['ply', 'ply'],
 		['stl', 'stl'],
@@ -48,6 +78,15 @@ describe('meshContentType', () => {
 	it.each([['obj'], ['dae'], [''], [undefined]])('does not claim to handle %s', (raw) => {
 		expect(meshContentType(raw)).toBeUndefined()
 	})
+
+	// A path is not a content type. It belongs in `mesh_file_path`, and reading an extension here
+	// would commit us to reading one out of a `package://` URI too.
+	it.each([['meshes/ur20/collision/base.stl'], ['package://arm/link_1.stl'], ['/etc/thing.ply']])(
+		'does not read a file path like %s as a content type',
+		(raw) => {
+			expect(meshContentType(raw)).toBeUndefined()
+		}
+	)
 })
 
 describe('parseMeshInput', () => {
@@ -73,16 +112,50 @@ describe('parseMeshInput', () => {
 		expect(parseMeshInput(new Uint8Array(), contentType).getAttribute('position')).toBeUndefined()
 	})
 
-	it('accepts a base64 string as well as bytes', () => {
-		expect(parseMeshInput(btoa(asciiStl), 'stl').getAttribute('position').count).toBe(3)
+	it('parses a binary stl mesh into real vertices', () => {
+		expect(parseMeshInput(binaryStl(2), 'stl').getAttribute('position').count).toBe(6)
 	})
 
-	// A view into a larger buffer must not hand the loader its neighbours.
-	it('parses an stl mesh held in a subarray', () => {
-		const padded = new Uint8Array(bytes(asciiStl).length + 8)
-		padded.set(bytes(asciiStl), 4)
-		const view = padded.subarray(4, 4 + bytes(asciiStl).length)
+	it.each([
+		['ascii', () => btoa(asciiStl)],
+		['binary', () => base64(binaryStl())],
+	])('accepts a base64 %s stl as well as bytes', (_label, encode) => {
+		expect(parseMeshInput(encode(), 'stl').getAttribute('position').count).toBe(3)
+	})
+
+	/**
+	 * A view into a larger buffer must not hand the loader its neighbours. The fixture has to be
+	 * binary for this to mean anything: an ASCII payload still parses out of an oversized buffer
+	 * because `STLLoader` finds `solid` and falls back to a regex, so an ASCII version of this test
+	 * passes with the guard deleted. Binary fails closed instead, and silently — the triangle count
+	 * is read from the wrong offset and the loader returns zero vertices rather than throwing.
+	 */
+	it('parses a binary stl mesh held in a subarray', () => {
+		const stl = binaryStl()
+		const padded = new Uint8Array(stl.length + 8)
+		padded.set(stl, 4)
+		const view = padded.subarray(4, 4 + stl.length)
 
 		expect(parseMeshInput(view, 'stl').getAttribute('position').count).toBe(3)
+	})
+
+	/**
+	 * `STLLoader` reads the triangle count as a uint32 at offset 80 before it checks the length, so
+	 * anything shorter throws a `RangeError` out of the `DataView`. PLY answers the same input with
+	 * an empty geometry, and these run inside an unguarded loop over every geometry on a resource,
+	 * so one truncated mesh throwing would cost the ones behind it.
+	 */
+	it.each([[1], [19], [83]])(
+		'returns an empty geometry for a %i byte stl rather than throwing',
+		(length) => {
+			expect(parseMeshInput(new Uint8Array(length), 'stl').getAttribute('position')).toBeUndefined()
+		}
+	)
+
+	it.each([
+		['an empty string', ''],
+		['a truncated base64 payload', btoa('solid t\nendsolid t\n')],
+	])('returns an empty geometry for %s rather than throwing', (_label, encoded) => {
+		expect(parseMeshInput(encoded, 'stl').getAttribute('position')).toBeUndefined()
 	})
 })

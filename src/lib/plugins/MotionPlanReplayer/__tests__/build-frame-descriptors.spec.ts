@@ -633,9 +633,17 @@ describe('buildFrameDescriptors', () => {
 	 * A geometry that declares no orientation is not unrotated in its *own* frame, it is unrotated in
 	 * its parent's, which is the same claim an explicit identity quaternion makes. The two therefore
 	 * have to land in the same place. Only the explicit form used to get the parent rotation undone,
-	 * so an unoriented shape on a rotated link was drawn off by the link's own rotation. RDK's own
-	 * kinematics take the bare form: `ur20.json`, `xarm6.json` and `lite6.json` all declare link
-	 * geometries with dimensions and a translation and no `orientation` at all.
+	 * so an unoriented shape on a rotated link was drawn off by the link's own rotation.
+	 *
+	 * The shape is idiomatic in RDK's own kinematics rather than invented here: a bare geometry on a
+	 * link that is itself rotated appears four times across `ur20.json` (`base_link`, `wrist_1_link`),
+	 * `xarm6.json` and `lite6.json` (`gripper_mount` in both). `ur20.json`'s `wrist_1_link` is the
+	 * clearest — a capsule with a translation and no orientation, on a link turned by `euler_angles`.
+	 *
+	 * Those are hand-authored model files, which is the whole reason this is worth pinning: RDK's
+	 * marshaller always writes an orientation (`NewGeometryConfig` assigns `OrientationOffset`
+	 * unconditionally, and `omitempty` does nothing for a struct), so no captured dump reaches this
+	 * branch today. It guards frame JSON that was authored rather than marshalled.
 	 */
 	it('treats an absent geometry orientation the same as an explicit identity', () => {
 		const link = (orientation?: unknown): ParsedPlan =>
@@ -907,8 +915,8 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	// RDK treats stl as a first-class mesh format and URDF collision meshes are usually stl, so
-	// dropping them cost an arm its whole collision volume. The content type is normalized on the
-	// way in, because the field is a free string that a URDF or an HTTP fetch also writes into.
+	// dropping them cost an arm its whole collision volume. `GeometryConfig` writes a bare lowercase
+	// token, so the noisier rows are defense on a field this repo does not own.
 	it.each([
 		['stl', 'stl'],
 		['STL', 'stl'],
@@ -921,10 +929,11 @@ describe('buildFrameDescriptors', () => {
 			mesh_data: btoa('solid t\nendsolid t\n'),
 		})
 
-		expect(geometry).not.toBeNull()
-		if (geometry!.geometryType.case === 'mesh') {
-			expect(geometry!.geometryType.value.contentType).toBe(expected)
-		}
+		// Asserted unconditionally: reading the content type inside an `if` on the case would let any
+		// mutation that returns a different shape skip the only assertion that matters here.
+		expect(geometry?.geometryType.case).toBe('mesh')
+		const mesh = geometry?.geometryType.case === 'mesh' ? geometry.geometryType.value : undefined
+		expect(mesh?.contentType).toBe(expected)
 	})
 
 	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
