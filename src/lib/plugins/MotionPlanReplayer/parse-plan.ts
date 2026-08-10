@@ -42,7 +42,7 @@ const PlanChunkSchema = z.object({
 
 export type ObstaclesInWorldFrame = z.infer<typeof ObstaclesInWorldFrameSchema>
 
-export type RawFrame = z.infer<typeof RawFrameSchema>
+type RawFrame = z.infer<typeof RawFrameSchema>
 
 export class PlanParseError extends Error {
 	constructor(message: string) {

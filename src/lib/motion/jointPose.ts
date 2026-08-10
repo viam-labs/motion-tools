@@ -37,8 +37,8 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
  * column means the component contributed no inputs to this plan, which reads the same as zero.
  *
  * A mimic joint has no column of its own, so `jointIndex` addresses its *source* and the linear map
- * on the descriptor turns that value into this joint's — the same derivation RDK applies at
- * `referenceframe/model.go:585`.
+ * on the descriptor turns that value into this joint's — the same derivation RDK applies when it
+ * forks a model's schema, `multiplier * inputs[source] + offset`.
  */
 export const jointValueAt = (
 	descriptor: JointFrameDescriptor,

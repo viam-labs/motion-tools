@@ -180,7 +180,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			applyStep(snapshots, 0)
 		} catch (error) {
 			const msg = error instanceof PlanParseError ? error.message : 'Failed to parse plan.'
-			console.warn('[motion] loadPlan error:', msg)
+			console.warn('[MotionPlanReplayer] loadPlan error:', msg)
 			plans[index] = { ...planState, status: 'error', error: msg }
 		}
 	}

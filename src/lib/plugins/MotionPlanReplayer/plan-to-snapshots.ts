@@ -8,6 +8,7 @@
 import { UuidTool } from 'uuid-tool'
 
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+import type { TrajectoryStep } from '$lib/motion/jointPose'
 
 import { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
@@ -20,7 +21,7 @@ import { worldStateObstacleTransforms } from './world-state-obstacles'
 
 const descriptorToTransform = (
 	descriptor: FrameDescriptor,
-	stepInputs: Record<string, number[]>
+	stepInputs: TrajectoryStep
 ): Transform => {
 	if (descriptor.kind === 'static') {
 		return new Transform({
