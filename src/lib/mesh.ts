@@ -27,6 +27,12 @@ export const meshContentType = (raw: string | undefined): MeshContentType | unde
  * the renderer assumed before STL was handled at all, so an unlabelled mesh behaves exactly as it
  * always has. The plan parser does not rely on that: it gates on `meshContentType` first and skips
  * anything unrecognised, so the fallback is only ever reached from the render path.
+ *
+ * `parsePlyInput` and `parseStlInput` each cut an exact `ArrayBuffer` out of a `Uint8Array` view
+ * before handing it to their loader: protobuf-es decodes a `bytes` field as a subarray over the whole
+ * wire buffer, and passing `.buffer` unmodified would hand the loader its neighbours too. They write
+ * that cut in different idioms — `new Uint8Array(mesh).buffer` versus `.slice(byteOffset, byteOffset +
+ * byteLength)` — but the two are equivalent; neither is more correct than the other.
  */
 export const parseMeshInput = (mesh: string | Uint8Array, contentType?: string): BufferGeometry =>
 	meshContentType(contentType) === 'stl' ? parseStlInput(mesh) : parsePlyInput(mesh)

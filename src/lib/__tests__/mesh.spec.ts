@@ -155,6 +155,7 @@ describe('parseMeshInput', () => {
 	it.each([
 		['an empty string', ''],
 		['a truncated base64 payload', btoa('solid t\nendsolid t\n')],
+		['malformed base64', '!!!not base64!!!'],
 	])('returns an empty geometry for %s rather than throwing', (_label, encoded) => {
 		expect(parseMeshInput(encoded, 'stl').getAttribute('position')).toBeUndefined()
 	})

@@ -25,7 +25,15 @@ export const parseStlInput = (mesh: string | Uint8Array): BufferGeometry => {
 	// Case 1: base64, which is how a mesh arrives over the JSON transports. Not plain ASCII STL text:
 	// that would have to skip the decode, and no caller sends it.
 	if (typeof mesh === 'string') {
-		const decoded = atob(mesh)
+		// `atob` throws `InvalidCharacterError` on malformed base64, ahead of the length check below.
+		// Callers loop over every geometry on a resource with no per-item guard, so a bad decode here
+		// has to answer empty rather than take the rest of the batch down with it.
+		let decoded: string
+		try {
+			decoded = atob(mesh)
+		} catch {
+			return new BufferGeometry()
+		}
 		return decoded.length < STL_MIN_BYTES ? new BufferGeometry() : stlLoader.parse(decoded)
 	}
 
