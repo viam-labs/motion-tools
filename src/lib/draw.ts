@@ -13,6 +13,7 @@ import {
 	createBufferGeometry,
 	preAllocateBufferGeometry,
 	updateBufferGeometry,
+	updateBufferGeometryColors,
 	writeBufferGeometryRange,
 } from '$lib/attribute'
 import {
@@ -502,10 +503,13 @@ const updatePointCloudColors = (entity: Entity, metadata: Metadata): void => {
 	}
 
 	const position = buffer.getAttribute('position')
-	const count = position?.count ?? 0
-	const array = position?.array as Float32Array
-	updateBufferGeometry(buffer, array, {
-		colors: parseColors(metadata.colors, count),
+	if (!position) return
+
+	// Colors only — routing this through `updateBufferGeometry` would reset the
+	// draw range to the buffer's full capacity, exposing the unwritten tail of a
+	// chunked cloud as points at the origin.
+	updateBufferGeometryColors(buffer, {
+		colors: parseColors(metadata.colors, position.count),
 		colorFormat: metadata.colorFormat,
 	})
 }
