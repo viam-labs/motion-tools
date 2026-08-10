@@ -1,23 +1,16 @@
 /**
  * Which slot of a trajectory step drives each joint of one model.
  *
- * RDK answers this in a single loop, `referenceframe/model.go:238-247`:
+ * RDK answers this in one loop, in `NewModelWithMimics`: it walks `bfsFrameNames(fs)`, skips any
+ * frame that has a mimic mapping, and gives each survivor a slot as wide as its degrees of freedom.
+ * Links survive the walk too and contribute nothing, because a static frame has no DoF.
  *
- * ```go
- * // Build zero inputs in BFS order, skipping mimic frames.
- * for _, fn := range bfsFrameNames(fs) {
- *     if mimics[fn] != nil {
- *         continue
- *     }
- * ```
+ * Two independent facts live in that loop, and reading either one alone misnumbers a real machine:
  *
- * Two independent facts live in those four lines, and reading either one alone misnumbers a real
- * machine:
- *
- * - **The order is the model's internal frame system, not its config.** `bfsFrameNames`
- *   (`frame_system.go:1279-1306`) walks breadth-first from `world`, sorting each node's children
- *   alphabetically (`:1290`). Declaration order agrees only when links and joints are declared down
- *   the chain, which an xArm6 and every fixture here happen to be.
+ * - **The order is the model's internal frame system, not its config.** `bfsFrameNames` walks
+ *   breadth-first from `world`, sorting each node's children with `sort.Strings`. Declaration order
+ *   agrees only when links and joints are declared down the chain, which an xArm6 and every fixture
+ *   here happen to be.
  * - **A mimic joint has degrees of freedom and no column.** Its value is derived from its source's,
  *   so every joint the walk reaches after it sits one slot earlier than its position suggests.
  *   Common in URDF grippers, where both fingers are driven from one.
@@ -37,10 +30,8 @@ interface MimicJson {
 }
 
 /**
- * Both fields are Go `string`s, and every route here preserves that: `StructToStructPb` can only
- * emit a StringValue for one, and a numeric id fails `json.Unmarshal` before a model is ever built.
- * The URDF converter reads `jointElem.Name` rather than an index, so it cannot produce one either.
- * Only a missing or empty name is real, and it means "unnamed".
+ * Both fields are Go `string`s on `LinkConfig` and `JointConfig`, so the only absent value that can
+ * reach here is a missing key or the empty string, never a number. Both mean "unnamed".
  */
 export interface ModelNodeJson {
 	id?: string
@@ -51,13 +42,24 @@ export interface JointJson extends ModelNodeJson {
 	mimic?: MimicJson
 }
 
-/** The two members of a model config that decide the chain. */
+/** The members of a model config that decide the chain. */
 export interface ModelJson {
 	links?: ModelNodeJson[]
 	joints?: JointJson[]
+	/**
+	 * Read by `modelOutputFrame`, not here. Declared so a model with more than one leaf can be
+	 * written down: RDK refuses to build one without it, so a fixture that omits it is a shape no
+	 * machine can send.
+	 */
+	output_frames?: string[]
 }
 
-export const nodeName = (value: string | undefined): string | undefined =>
+/**
+ * An unnamed node cannot be addressed, so it is dropped from the tree rather than joined into it:
+ * left in, every one of them would collide on the same empty key and claim each other's children.
+ * Not exported, because the behaviour that matters is what {@link modelJointColumns} does with it.
+ */
+const nodeName = (value: string | undefined): string | undefined =>
 	value === undefined || value === '' ? undefined : value
 
 export interface JointColumn {
@@ -132,11 +134,22 @@ export const modelJointColumns = (
 	}
 	const isJoint = new Set(jointIds)
 
+	const nodes = [...links, ...joints]
+	const declared = new Set(nodes.map((node) => nodeName(node.id)).filter((id) => id !== undefined))
+
 	const childrenOf = new Map<string, string[]>()
-	for (const node of [...links, ...joints]) {
+	for (const node of nodes) {
 		const id = nodeName(node.id)
 		if (id === undefined) continue
-		const parent = nodeName(node.parent) ?? MODEL_ROOT
+
+		// RDK roots a node whose parent is not itself a declared node, rather than only one that names
+		// no parent at all: `buildModelFrameSystem` seeds its queue with every child whose parent is
+		// absent from `transforms`, then attaches it to `fs.World()`. So a link parented to a name that
+		// does not exist is an ordinary world-rooted frame to RDK, with a real position in the walk,
+		// not a disconnected one.
+		const named = nodeName(node.parent)
+		const parent = named !== undefined && declared.has(named) ? named : MODEL_ROOT
+
 		const siblings = childrenOf.get(parent)
 		if (siblings) siblings.push(id)
 		else childrenOf.set(parent, [id])
@@ -154,9 +167,11 @@ export const modelJointColumns = (
 		queue.push(...(childrenOf.get(current) ?? []))
 	}
 
-	// A joint the walk never reached means the chain does not resolve the way RDK's would, so its
-	// column is a guess. Declaration order is the better guess than dropping it, which would take
-	// the joint's whole subtree out of the drawing with it.
+	// Now that an undeclared parent roots at the model instead of stranding its child, the only way
+	// to miss a joint is a parent cycle, which RDK refuses to build at all (`ErrCircularReference`).
+	// So this is defensive rather than a path real data takes, and it stays because the alternative
+	// is silent: dropping the joint would take its whole subtree out of the drawing with it, where
+	// appending it in declaration order costs one warning and keeps the arm on screen.
 	const unreached = jointIds.filter((id) => !seen.has(id))
 	if (unreached.length > 0) {
 		console.warn(

@@ -304,8 +304,14 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 			continue
 		}
 
-		// `order`, not `columns`: a mimic joint holds no column but still sits in the chain, and on a
-		// gripper it is routinely the last thing before the tool.
+		// Walk order, not declaration order, for the same reason the columns use it: the two disagree
+		// on any model whose joints are not declared down their own chain. `order` keeps mimics, as
+		// the array this replaced did, so that is not what changed.
+		//
+		// Only reached by a model that declares no `primary_output_frame`, no `output_frames`, and has
+		// no single leaf. RDK writes the first of those on every model it marshals, and refuses to
+		// build a multi-leaf model without the second, so this is a floor under hand-written input
+		// rather than a path a machine's own payload takes.
 		const lastJointId = order.at(-1)
 		if (!lastJointId) continue
 		const terminal = childMap.get(`${modelName}:${lastJointId}`)?.[0]

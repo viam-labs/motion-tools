@@ -464,6 +464,33 @@ describe('buildFrameDescriptors', () => {
 			// Falls to the sole-leaf rule rather than resolving to `arm:g`.
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
+
+		/**
+		 * The fallback reads the last joint of the *walk*, not of the array. `aux_joint` is declared
+		 * last but sorts first under the model root, so the two disagree here: reading the array picks
+		 * `aux_joint`, which nothing is parented to, and the camera would stay hung off the bare model
+		 * name instead of the arm's tip.
+		 *
+		 * A model with one leaf or a declared output frame never reaches this line, so the fixture has
+		 * neither. That is the shape of the branch, not a gap in the fixture.
+		 */
+		it('hangs the camera off the last joint of the walk, not the last one declared', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [
+						{ id: 'gripper_rot', parent: 'base' },
+						{ id: 'aux_joint', parent: 'base' },
+					],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
 	})
 
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
