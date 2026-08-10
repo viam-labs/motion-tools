@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { ClassValue } from 'svelte/elements'
 
-	import { TooltipContainer, TooltipTarget, TooltipText } from '@viamrobotics/prime-core'
 	import { useResizeObserver } from 'runed'
+
+	import Tooltip from '$lib/components/overlay/Tooltip.svelte'
 
 	interface Props {
 		text: string
@@ -28,21 +29,21 @@
 </script>
 
 <div class={['min-w-0', containerClass]}>
-	<TooltipContainer hoverDelayMS={250}>
-		<TooltipTarget>
-			<span
-				bind:this={element}
-				class={['block w-full truncate', textClass]}
-				aria-label={tooltipText ?? text}
-			>
-				{text}
-			</span>
-		</TooltipTarget>
+	<!-- Only worth a tooltip when the label is actually cut off. -->
+	<Tooltip
+		placement="top-start"
+		openDelay={250}
+		disabled={!showTooltip}
+		triggerClass="w-full min-w-0"
+	>
+		<span
+			bind:this={element}
+			class={['block w-full truncate', textClass]}
+			aria-label={tooltipText ?? text}
+		>
+			{text}
+		</span>
 
-		{#if showTooltip}
-			<TooltipText location="top-start">
-				{tooltipText ?? text}
-			</TooltipText>
-		{/if}
-	</TooltipContainer>
+		{#snippet content()}{tooltipText ?? text}{/snippet}
+	</Tooltip>
 </div>
