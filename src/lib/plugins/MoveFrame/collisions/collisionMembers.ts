@@ -21,12 +21,12 @@ const COLLIDABLE = [traits.Box, traits.Capsule, traits.Sphere] as const
  * The group bit of the arm that owns `entity`, or `ENVIRONMENT_BIT` when
  * nothing above it is an arm.
  *
- * `useGeometries` parents every collider directly to a frame named after its
- * owning component, so an arm's own links resolve in one hop. The walk
- * continues past that because a gripper is its own component: its colliders
- * hang off the gripper frame, which is mounted on the arm. Stopping at the
- * direct parent would put the gripper in the environment and report it hitting
- * the flange it is bolted to.
+ * An arm's colliders are its kinematics link frames, so the walk climbs the link
+ * chain before reaching the frame named after the component. It continues past
+ * that too, because a gripper is its own component: its colliders hang off the
+ * gripper frame, which is mounted on the arm. Stopping at the direct parent
+ * would put the gripper in the environment and report it hitting the flange it
+ * is bolted to.
  */
 export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>): number => {
 	let current: Entity | undefined = entity

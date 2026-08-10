@@ -7,15 +7,17 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
-import { Vector3 } from 'three'
+
+import type { RawKinematicsModel } from '$lib/kinematicsTransform'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import {
-	createPoseFromOrientation,
-	parseKinematicsGeometry,
-	type RawKinematicsModel,
-} from '$lib/kinematicsTransform'
+	componentOfOriginFrame,
+	deriveKinematicsFrames,
+	originFrameName,
+	ownerOfInternalFrame,
+} from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -24,21 +26,10 @@ import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
-interface TransformMetadata {
-	fromKinematics: boolean
-	isEndEffector: boolean
-}
-
 interface FramesContext {
-	current: (Transform & Partial<TransformMetadata>)[]
+	current: Transform[]
 	/** Whether the current part's frame set has been reconciled into the world. */
 	readonly isReady: boolean
-}
-
-interface KinematicNode {
-	id: string
-	parent?: string
-	isLink: boolean
 }
 
 const key = Symbol('frames-context')
@@ -90,105 +81,49 @@ export const provideFrames = (partID: () => string) => {
 	})
 
 	const kinematicsDerivedFrames = $derived.by(() => {
-		const kinematicsFrames: Record<string, Transform & TransformMetadata> = {}
+		const frames: Record<string, Transform> = {}
 
-		for (const [componentName, kinematicJson] of Object.entries(kinematicsByComponent)) {
-			const links = kinematicJson.links ?? []
-			// Scoped per component: two arms of the same model share link ids.
-			const nodes: Record<string, KinematicNode> = {}
-
-			for (const link of links) {
-				nodes[link.id] = {
-					id: link.id,
-					parent: link.parent,
-					isLink: true,
-				}
-			}
-			for (const joint of kinematicJson.joints ?? []) {
-				nodes[joint.id] = {
-					id: joint.id,
-					parent: joint.parent,
-					isLink: false,
-				}
-			}
-
-			// A link nothing else hangs off of terminates the chain. Array order in
-			// the model JSON is not a guarantee, so don't read it as one.
-			const parentIds = new Set(Object.values(nodes).map((node) => node.parent))
-
-			for (const link of links) {
-				const frameName = `${componentName}:${link.id}`
-				const pose = createPoseFromOrientation(link.translation, link.orientation)
-				// Joints carry no static offset at zero configuration, so a link hangs
-				// off its nearest link ancestor. `seen` guards against a malformed
-				// model whose parent chain loops back on itself.
-				let parent: KinematicNode | undefined =
-					link.parent === undefined ? undefined : nodes[link.parent]
-				const seen = new Set<string>()
-				while (parent && !parent.isLink) {
-					if (seen.has(parent.id)) {
-						parent = undefined
-						break
-					}
-					seen.add(parent.id)
-					parent = parent.parent === undefined ? undefined : nodes[parent.parent]
-				}
-				const parentFrameName = parent ? `${componentName}:${parent.id}` : componentName
-
-				kinematicsFrames[frameName] = {
-					fromKinematics: true,
-					isEndEffector: !parentIds.has(link.id),
-					uuid: new Uint8Array(0),
-					referenceFrame: frameName,
-					poseInObserverFrame: {
-						referenceFrame: parentFrameName,
-						pose,
-					},
-				}
-
-				if (link.geometry) {
-					const geo = parseKinematicsGeometry(link.geometry)
-					if (geo.center) {
-						// `Center` renders local to this frame (`WorldMatrix × Center`), and
-						// geometries only land correctly once the link's own rotation is
-						// divided back out — so `link.geometry`'s pose behaves as though it
-						// is expressed in the same frame as `link.translation`/`link.orientation`
-						// rather than in the link's own rotated frame. Compute the link-local
-						// pose as `P_link⁻¹ ∘ P_geometry`.
-						//
-						// This reads against rdk, where `LinkConfig.ParseConfig` passes the
-						// geometry through untouched and `staticFrame.Geometries()` tags it
-						// with the link's *own* frame name — which would make this a double
-						// transform. Placement is correct in practice; revisit here first if
-						// a link with both a rotation and a geometry offset looks wrong.
-
-						const frameQuat = pose.toQuaternion()
-						const invFrameQuat = frameQuat.clone().invert()
-
-						const geoQuat = new Pose().copy(geo.center).toQuaternion()
-
-						const offset = new Vector3(
-							geo.center.x - pose.x,
-							geo.center.y - pose.y,
-							geo.center.z - pose.z
-						).applyQuaternion(invFrameQuat)
-
-						geo.center.x = offset.x
-						geo.center.y = offset.y
-						geo.center.z = offset.z
-
-						invFrameQuat.multiply(geoQuat)
-
-						// setFromQuaternion only updates orientation. Copy the center first so the
-						// link-local translation calculated above is not reset to the origin.
-						geo.center = new Pose().copy(geo.center).setFromQuaternion(invFrameQuat)
-					}
-
-					kinematicsFrames[frameName].physicalObject = geo
-				}
+		for (const [componentName, model] of Object.entries(kinematicsByComponent)) {
+			for (const frame of deriveKinematicsFrames(componentName, model)) {
+				frames[frame.referenceFrame] = frame
 			}
 		}
-		return kinematicsFrames
+
+		return frames
+	})
+
+	/**
+	 * A component that supplies kinematics owns two frames in rdk: `<name>_origin`
+	 * carries the config `frame`'s placement, and `<name>` is the model frame at
+	 * the end effector. Renaming the incoming entry frees `<name>` for the frame
+	 * {@link deriveKinematicsFrames} synthesizes, which is what lets a child
+	 * configured `parent: arm-1` mount to the tip without any special case.
+	 *
+	 * Only a frame's *own* name is rewritten. Parent references are left alone
+	 * precisely so they keep resolving to the tip.
+	 */
+	const toOriginName = $derived((name: string) =>
+		name in kinematicsByComponent ? originFrameName(name) : name
+	)
+
+	/**
+	 * The component a derived frame belongs to — `arm-1` for both `arm-1_origin`
+	 * and `arm-1:upper_arm` — or the name itself for an ordinary frame. Both
+	 * lookups are gated on the name actually being a kinematics component, so a
+	 * component genuinely called `foo_origin` isn't mistaken for one.
+	 */
+	const ownerComponent = $derived((frameName: string) => {
+		const namespaced = ownerOfInternalFrame(frameName)
+		if (namespaced !== undefined && namespaced in kinematicsByComponent) {
+			return namespaced
+		}
+
+		const origin = componentOfOriginFrame(frameName)
+		if (origin !== undefined && origin in kinematicsByComponent) {
+			return origin
+		}
+
+		return frameName
 	})
 
 	const frames = $derived.by(() => {
@@ -199,7 +134,8 @@ export const provideFrames = (partID: () => string) => {
 				continue
 			}
 
-			frames[frame.referenceFrame] = frame
+			const name = toOriginName(frame.referenceFrame)
+			frames[name] = name === frame.referenceFrame ? frame : { ...frame, referenceFrame: name }
 		}
 
 		// Let config frames take priority in build mode (the user is authoring
@@ -209,9 +145,17 @@ export const provideFrames = (partID: () => string) => {
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
 		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
-			const mergedFrames = {
-				...frames,
-				...configFrames.current,
+			const mergedFrames = { ...frames }
+
+			// A config frame describes the component's mount, so it merges onto
+			// `<name>_origin` for a kinematics component — the same key the live
+			// frame system just wrote. Without the rename the two sources would
+			// disagree on which node the config `frame` positions, and switching
+			// modes would move the arm.
+			for (const [name, frame] of Object.entries(configFrames.current)) {
+				const originName = toOriginName(name)
+				mergedFrames[originName] =
+					originName === name ? frame : { ...frame, referenceFrame: originName }
 			}
 
 			/**
@@ -219,7 +163,7 @@ export const provideFrames = (partID: () => string) => {
 			 * or frames that have been removed by fragment overrides
 			 */
 			for (const name of configFrames.unsetFrames) {
-				delete mergedFrames[name]
+				delete mergedFrames[toOriginName(name)]
 			}
 
 			return mergedFrames
@@ -281,10 +225,13 @@ export const provideFrames = (partID: () => string) => {
 				const center = frame.physicalObject?.center
 					? new Pose().copy(frame.physicalObject.center)
 					: undefined
-				const resourceName = currentResourcesByName[frame.referenceFrame]
+				// Colors resolve against the owning component, so an arm's links and
+				// its origin keep the arm's color. Looking them up by their own name
+				// finds nothing — neither is a resource.
+				const owner = ownerComponent(name)
+				const resourceName = currentResourcesByName[owner]
 				const color =
-					resourceNameToColor(resourceName) ??
-					subtypeToColor(currentComponentSubtypeByName[frame.referenceFrame])
+					resourceNameToColor(resourceName) ?? subtypeToColor(currentComponentSubtypeByName[owner])
 
 				const existing = entities.get(entityKey)
 

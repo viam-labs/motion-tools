@@ -1,92 +1,21 @@
-import { MathUtils, Quaternion, Vector3 } from 'three'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-	createPoseFromOrientation,
+	isDHModel,
 	parseKinematicsGeometry,
 	type RawKinematicsGeometry,
-	type RawKinematicsOrientation,
+	type RawKinematicsModel,
+	resolveOutputFrame,
 } from '../kinematicsTransform'
 
 /**
  * These cover the wire boundary: rdk marshals `LinkConfig` / `GeometryConfig`
  * with Go's capitalisation quirks (`{ X, Y, Z }` translations, a bare `Label`)
  * and infers geometry shape from whichever params are set when `type` is
- * omitted. The conversions themselves belong to `Pose` — `pose.spec.ts` owns
- * those — so what's asserted here is the reshaping.
+ * omitted. Orientation decoding and the geometry-center frame convention live in
+ * `spatialJson.spec.ts`; what's asserted here is the reshaping and the model
+ * hierarchy questions.
  */
-
-/** Compare orientations by the rotation they produce, not by field values. */
-const rotates = (pose: ReturnType<typeof createPoseFromOrientation>, from: Vector3) =>
-	from.clone().applyQuaternion(pose.toQuaternion())
-
-const expectVectorClose = (actual: Vector3, expected: [number, number, number]) => {
-	expect(actual.x).toBeCloseTo(expected[0], 5)
-	expect(actual.y).toBeCloseTo(expected[1], 5)
-	expect(actual.z).toBeCloseTo(expected[2], 5)
-}
-
-describe('createPoseFromOrientation', () => {
-	it('reads capitalised translation fields as millimetres', () => {
-		const pose = createPoseFromOrientation({ X: 10, Y: -20, Z: 30 })
-
-		expect(pose.x).toBe(10)
-		expect(pose.y).toBe(-20)
-		expect(pose.z).toBe(30)
-	})
-
-	it('defaults to the identity orientation when translation-only', () => {
-		const pose = createPoseFromOrientation({ X: 1 })
-
-		expect(pose.oX).toBe(0)
-		expect(pose.oY).toBe(0)
-		expect(pose.oZ).toBe(1)
-		expect(pose.theta).toBe(0)
-	})
-
-	it('defaults a missing pose to the origin', () => {
-		const pose = createPoseFromOrientation()
-
-		expect(pose.x).toBe(0)
-		expect(pose.y).toBe(0)
-		expect(pose.z).toBe(0)
-		expect(pose.oZ).toBe(1)
-	})
-
-	/**
-	 * Every case is the same rotation — 90° about +X — spelled four ways, so the
-	 * assertion can be shared: +Y maps to +Z.
-	 */
-	const quarterTurnAboutX: [string, RawKinematicsOrientation][] = [
-		['ov_degrees (default, no type)', { value: { x: 0, y: -1, z: 0, th: 90 } }],
-		['ov_degrees', { type: 'ov_degrees', value: { x: 0, y: -1, z: 0, th: 90 } }],
-		[
-			'ov_radians',
-			{ type: 'ov_radians', value: { x: 0, y: -1, z: 0, th: MathUtils.degToRad(90) } },
-		],
-		['quaternion', { type: 'quaternion', value: { X: Math.SQRT1_2, Y: 0, Z: 0, W: Math.SQRT1_2 } }],
-		['euler_angles', { type: 'euler_angles', value: { roll: Math.PI / 2, pitch: 0, yaw: 0 } }],
-	]
-
-	it.each(quarterTurnAboutX)('reads a 90° turn about +X from %s', (_label, orientation) => {
-		const pose = createPoseFromOrientation(undefined, orientation)
-
-		expectVectorClose(rotates(pose, new Vector3(0, 1, 0)), [0, 0, 1])
-	})
-
-	it('agrees with three.js on a quaternion round trip', () => {
-		const source = new Quaternion().setFromAxisAngle(new Vector3(1, 2, 3).normalize(), 0.7)
-		const pose = createPoseFromOrientation(undefined, {
-			type: 'quaternion',
-			value: { X: source.x, Y: source.y, Z: source.z, W: source.w },
-		})
-
-		const point = new Vector3(4, 5, 6)
-		const expected = point.clone().applyQuaternion(source)
-
-		expectVectorClose(rotates(pose, point), [expected.x, expected.y, expected.z])
-	})
-})
 
 describe('parseKinematicsGeometry', () => {
 	const geometry = (raw: RawKinematicsGeometry) => parseKinematicsGeometry(raw)
@@ -172,5 +101,136 @@ describe('parseKinematicsGeometry', () => {
 		it('infers nothing from an empty config', () => {
 			expect(geometry({}).geometryType.case).toBeUndefined()
 		})
+	})
+
+	/**
+	 * A link geometry's offset is measured from the link's parent, so passing the
+	 * link's own pose is what keeps it from being applied twice. Without it the
+	 * offset is read as already-local — correct for an obstacle, wrong for a link.
+	 */
+	describe('relative to the owning link', () => {
+		it('subtracts the link pose when one is given', () => {
+			const parsed = parseKinematicsGeometry(
+				{ type: 'sphere', r: 5, translation: { X: 15, Y: 0, Z: 0 } },
+				{ translation: { X: 10, Y: 0, Z: 0 } }
+			)
+
+			expect(parsed.center?.x).toBeCloseTo(5)
+		})
+
+		it('treats the offset as already-local when no link pose is given', () => {
+			const parsed = parseKinematicsGeometry({
+				type: 'sphere',
+				r: 5,
+				translation: { X: 15, Y: 0, Z: 0 },
+			})
+
+			expect(parsed.center?.x).toBeCloseTo(15)
+		})
+	})
+})
+
+/**
+ * Mirrors `ModelConfigJSON.ParseConfig`: `output_frames` wins, otherwise the one
+ * leaf nothing hangs off of. rdk rejects models with more than one of either, so
+ * this reports ambiguity rather than picking.
+ */
+describe('resolveOutputFrame', () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+	afterEach(() => warn.mockClear())
+
+	/** The xArm6 chain, as it arrives in `kinematics` — alternating link/joint. */
+	const xArm6: RawKinematicsModel = {
+		name: 'xArm6',
+		links: [
+			{ id: 'base', parent: 'world' },
+			{ id: 'base_top', parent: 'waist' },
+			{ id: 'upper_arm', parent: 'shoulder' },
+			{ id: 'upper_forearm', parent: 'elbow' },
+			{ id: 'lower_forearm', parent: 'forearm_rot' },
+			{ id: 'wrist_link', parent: 'wrist' },
+			{ id: 'gripper_mount', parent: 'gripper_rot' },
+		],
+		joints: [
+			{ id: 'waist', parent: 'base' },
+			{ id: 'shoulder', parent: 'base_top' },
+			{ id: 'elbow', parent: 'upper_arm' },
+			{ id: 'forearm_rot', parent: 'upper_forearm' },
+			{ id: 'wrist', parent: 'lower_forearm' },
+			{ id: 'gripper_rot', parent: 'wrist_link' },
+		],
+	}
+
+	it('finds the single leaf of a real arm chain', () => {
+		expect(resolveOutputFrame(xArm6)).toBe('gripper_mount')
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	it('finds the single leaf of a one-joint gantry', () => {
+		expect(
+			resolveOutputFrame({
+				name: 'test_gantry_model',
+				links: [
+					{ id: 'base', parent: 'world' },
+					{ id: 'carriage', parent: 'gantry_joint' },
+				],
+				joints: [{ id: 'gantry_joint', parent: 'base' }],
+			})
+		).toBe('carriage')
+	})
+
+	it('prefers a declared output frame over the leaf', () => {
+		expect(resolveOutputFrame({ ...xArm6, output_frames: ['wrist_link'] })).toBe('wrist_link')
+	})
+
+	/** Leaves are taken over joints too, matching rdk's `buildModelFrameSystem`. */
+	it('resolves a chain that terminates in a joint', () => {
+		expect(
+			resolveOutputFrame({
+				links: [{ id: 'base', parent: 'world' }],
+				joints: [{ id: 'spin', parent: 'base' }],
+			})
+		).toBe('spin')
+	})
+
+	it('reports ambiguity rather than picking between two leaves', () => {
+		expect(
+			resolveOutputFrame({
+				name: 'forked',
+				links: [
+					{ id: 'base', parent: 'world' },
+					{ id: 'left', parent: 'base' },
+					{ id: 'right', parent: 'base' },
+				],
+			})
+		).toBeUndefined()
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('2 leaf frames'))
+	})
+
+	it('reports more output frames than rdk accepts', () => {
+		expect(resolveOutputFrame({ ...xArm6, output_frames: ['a', 'b'] })).toBeUndefined()
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('rdk supports one'))
+	})
+})
+
+/**
+ * rdk builds a `"DH"` model from `dhParams` instead of `links`/`joints`, so one
+ * yields no frames at all. Detecting it is what turns silence into a warning.
+ */
+describe('isDHModel', () => {
+	it('recognises the declared param type', () => {
+		expect(isDHModel({ kinematic_param_type: 'DH', dhParams: [{}] })).toBe(true)
+	})
+
+	it('recognises dhParams standing in for absent links', () => {
+		expect(isDHModel({ dhParams: [{}, {}] })).toBe(true)
+	})
+
+	it('leaves an SVA model alone', () => {
+		expect(isDHModel({ kinematic_param_type: 'SVA', links: [{ id: 'base' }] })).toBe(false)
+	})
+
+	it('leaves an untyped link model alone', () => {
+		expect(isDHModel({ links: [{ id: 'base' }] })).toBe(false)
 	})
 })

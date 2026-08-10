@@ -1,67 +1,22 @@
 import type { Geometry } from '@viamrobotics/sdk'
 
-import type { Frame } from '$lib/frame'
+import type { Pose } from '$lib/math'
 
-import { Pose } from '$lib/math'
-
-export interface RawKinematicsTranslation {
-	X?: number
-	Y?: number
-	Z?: number
-}
-
-export interface RawKinematicsOrientation {
-	type?: string
-	value?: {
-		// ov_degrees / ov_radians
-		x?: number
-		y?: number
-		z?: number
-		th?: number
-		// quaternion (Go's default, un-tagged field capitalisation)
-		X?: number
-		Y?: number
-		Z?: number
-		W?: number
-		// euler_angles (radians)
-		roll?: number
-		pitch?: number
-		yaw?: number
-	}
-}
+import {
+	type FramePoseJson,
+	geometryCenterInFrame,
+	poseFromJson,
+	type RawOrientation,
+	type Vec3Json,
+} from '$lib/spatialJson'
 
 /**
- * Restate a raw kinematics orientation as the config `Frame` orientation shape,
- * so `Pose.setFromFrame` owns the actual conversion. Raw kinematics
- * orientations may be `ov_degrees` (default, `{ x, y, z, th }` in degrees),
- * `ov_radians`, `quaternion` (`{ X, Y, Z, W }` — Go's un-tagged field
- * capitalisation), or `euler_angles` (`{ roll, pitch, yaw }` in radians).
+ * Both are rdk's `spatialmath` JSON shapes, aliased here so a reader of the
+ * kinematics types does not have to jump files to learn that a translation is
+ * capitalised and an orientation is a tagged union.
  */
-const toFrameOrientation = (orientation?: RawKinematicsOrientation): Frame['orientation'] => {
-	const value = orientation?.value
-	const vector = { x: value?.x ?? 0, y: value?.y ?? 0, z: value?.z ?? 1, th: value?.th ?? 0 }
-
-	switch (orientation?.type) {
-		case 'quaternion': {
-			return {
-				type: 'quaternion',
-				value: { x: value?.X ?? 0, y: value?.Y ?? 0, z: value?.Z ?? 0, w: value?.W ?? 1 },
-			}
-		}
-		case 'euler_angles': {
-			return {
-				type: 'euler_angles',
-				value: { roll: value?.roll ?? 0, pitch: value?.pitch ?? 0, yaw: value?.yaw ?? 0 },
-			}
-		}
-		case 'ov_radians': {
-			return { type: 'ov_radians', value: vector }
-		}
-		default: {
-			return { type: 'ov_degrees', value: vector }
-		}
-	}
-}
+export type RawKinematicsTranslation = Vec3Json
+export type RawKinematicsOrientation = RawOrientation
 
 export interface RawKinematicsGeometry {
 	x?: number
@@ -91,11 +46,72 @@ export interface RawKinematicsJoint {
 	parent?: string
 }
 
-/** rdk's `ModelConfigJSON`, as it arrives in `FrameSystemConfig.kinematics`. */
+/**
+ * rdk's `ModelConfigJSON`, as it arrives in `FrameSystemConfig.kinematics`.
+ *
+ * `FrameSystemPart.ToProtobuf` fills `kinematics` from the model's
+ * `modelConfig` — the parse *input*, not the resolved model — so the fields
+ * here are the ones `UnmarshalModelJSON` reads and nothing rdk derived
+ * afterwards. In particular there is no `primary_output_frame`; that lives on
+ * the serialised model a motion plan carries, and the equivalent here is
+ * `output_frames` (see {@link resolveOutputFrame}).
+ */
 export interface RawKinematicsModel {
 	name?: string
+	/** `"SVA"` or absent for link/joint models; `"DH"` for Denavit–Hartenberg. */
+	kinematic_param_type?: string
 	links?: RawKinematicsLink[]
 	joints?: RawKinematicsJoint[]
+	/** Only set on `"DH"` models, where `links` and `joints` are both empty. */
+	dhParams?: unknown[]
+	/** rdk accepts at most one entry and errors on more. */
+	output_frames?: string[]
+}
+
+/**
+ * Whether rdk built this model from `dhParams` rather than `links`/`joints`.
+ *
+ * Such a model carries no links, so frame derivation yields nothing at all —
+ * worth reporting rather than rendering an empty component.
+ */
+export const isDHModel = (model: RawKinematicsModel): boolean =>
+	model.kinematic_param_type === 'DH' ||
+	((model.links ?? []).length === 0 && (model.dhParams ?? []).length > 0)
+
+/**
+ * The model's output frame: the link whose pose the component's own frame
+ * reports. Mirrors `ModelConfigJSON.ParseConfig` — an explicit `output_frames`
+ * entry wins, otherwise it is the single leaf nothing else hangs off of.
+ *
+ * Leaves are taken over joints as well as links because rdk's
+ * `buildModelFrameSystem` sorts both together, and a model whose chain ends in
+ * a joint has that joint as its output. rdk rejects more than one of either, so
+ * anything ambiguous resolves to `undefined` instead of an arbitrary pick.
+ */
+export const resolveOutputFrame = (model: RawKinematicsModel): string | undefined => {
+	const declared = model.output_frames ?? []
+	if (declared.length === 1) {
+		return declared[0]
+	}
+	if (declared.length > 1) {
+		console.warn(
+			`[kinematics] model "${model.name ?? '?'}" declares ${declared.length} output frames; rdk supports one`
+		)
+		return undefined
+	}
+
+	const nodes = [...(model.links ?? []), ...(model.joints ?? [])]
+	const parents = new Set(nodes.map((node) => node.parent))
+	const leaves = nodes.map((node) => node.id).filter((id) => !parents.has(id))
+
+	if (leaves.length === 1) {
+		return leaves[0]
+	}
+
+	console.warn(
+		`[kinematics] model "${model.name ?? '?'}" has ${leaves.length} leaf frames and declares no output frame`
+	)
+	return undefined
 }
 
 /**
@@ -120,21 +136,6 @@ const toMeshBytes = (data?: string | number[]): Uint8Array => {
 }
 
 /**
- * Build a Pose from kinematics orientation + translation JSON. The raw
- * kinematics JSON uses capitalised `{ X, Y, Z }` for translation and an
- * `{ type, value: { x, y, z, th } }` wrapper for orientation.
- */
-export const createPoseFromOrientation = (
-	translation?: RawKinematicsTranslation,
-	orientation?: RawKinematicsOrientation
-): Pose => {
-	return new Pose().setFromFrame({
-		translation: { x: translation?.X ?? 0, y: translation?.Y ?? 0, z: translation?.Z ?? 0 },
-		orientation: toFrameOrientation(orientation),
-	})
-}
-
-/**
  * Convert a raw kinematics link geometry JSON blob into the SDK `Geometry`
  * shape expected by the ECS trait system.
  *
@@ -146,9 +147,19 @@ export const createPoseFromOrientation = (
  *
  * `type` is authoritative; when it is absent rdk infers the shape from whichever
  * params are set, and so do we.
+ *
+ * Pass `linkPose` — the owning link's own translation/orientation — for a link
+ * geometry, whose offset is measured from the link's parent rather than from the
+ * link (see `geometryCenterInFrame`). Omit it only for a geometry that is
+ * already frame-local.
  */
-export const parseKinematicsGeometry = (raw: RawKinematicsGeometry): Geometry => {
-	const center: Pose = createPoseFromOrientation(raw.translation, raw.orientation)
+export const parseKinematicsGeometry = (
+	raw: RawKinematicsGeometry,
+	linkPose?: FramePoseJson
+): Geometry => {
+	const center: Pose = linkPose
+		? geometryCenterInFrame(raw.translation, raw.orientation, linkPose)
+		: poseFromJson(raw.translation, raw.orientation)
 	const label = raw.Label ?? ''
 
 	const box = (): Geometry => ({

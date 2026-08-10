@@ -14,14 +14,7 @@ import { missingPoseFrameNames } from './poseSnapshot'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
-import { useResourceByName } from './useResourceByName.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
-
-/**
- * Component subtypes whose live kinematics pose is reported under a
- * `<name>_origin` frame rather than the bare component name.
- */
-const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 /**
  * How long pose fetches must keep failing before the scene is reported stale.
@@ -70,7 +63,6 @@ export const providePoses = (partID: () => string) => {
 	const logs = useLogs()
 	const robotClient = useRobotClient(partID)
 	const connectionStatus = useConnectionStatus(partID)
-	const resourceByName = useResourceByName()
 	const frames = useFrames()
 	const { addQueryToRefetch } = useRefetchPoses()
 
@@ -90,34 +82,22 @@ export const providePoses = (partID: () => string) => {
 	 * over the frame list, which would tear down and re-fetch *every* frame's
 	 * query whenever a single frame is added or removed.
 	 *
-	 * Within a stable entry, name / parent / subtype reactivity flows through
-	 * the query's args closure, so a reparent or subtype update refetches
-	 * without rebuilding anything.
+	 * Within a stable entry, name / parent reactivity flows through the query's
+	 * args closure, so a reparent refetches without rebuilding anything.
+	 *
+	 * Frame names go out verbatim. `useFrames` derives `<name>_origin` and
+	 * `<name>` the way rdk's frame system does, so every entity here is already
+	 * named after a real frame — there is nothing left to rewrite on the way out.
 	 */
 	const buildEntry = (entity: Entity) => {
 		const name = useTrait(() => entity, traits.Name)
 		const parentName = useParentName(() => entity)
 
-		// Resolve the `<name>_origin` frame names inside the query's (already
-		// reactive) args closure, so name / parent / subtype changes refetch
-		// without turning each frame into its own module-level `$derived`s.
 		const query = createRobotQuery(
 			robotClient,
 			'getPose',
 			() => {
-				const frameName = name.current
-				const parentFrameName = parentName.current
-				const resource = frameName ? resourceByName.current[frameName] : undefined
-				const parentResource = parentFrameName ? resourceByName.current[parentFrameName] : undefined
-
-				const resolvedName = originFrameComponentTypes.has(resource?.subtype ?? '')
-					? `${frameName}_origin`
-					: frameName
-				const resolvedParent = originFrameComponentTypes.has(parentResource?.subtype ?? '')
-					? `${parentFrameName}_origin`
-					: parentFrameName
-
-				return [resolvedName, resolvedParent ?? 'world', []] as [
+				return [name.current, parentName.current ?? 'world', []] as [
 					string,
 					string,
 					commonApi.Transform[],
