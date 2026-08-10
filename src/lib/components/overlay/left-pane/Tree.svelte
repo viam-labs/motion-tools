@@ -66,28 +66,41 @@
 	const rootChildren = $derived(collection.rootNode.children ?? [])
 
 	$effect(() => {
-		const element = document.querySelector(
-			`[data-scope="tree-view"][data-value="${selected.current.at(-1)}"]`
-		)
+		const value = selected.current.at(-1)
+		if (value === undefined) return
 
-		requestAnimationFrame(() => {
-			element?.scrollIntoView({ block: 'nearest' })
+		const frame = requestAnimationFrame(() => {
+			const row = document.querySelector(`[data-scope="tree-view"][data-value="${value}"]`)
+
+			// Rows span the full scroll width, so scrolling one into view can never
+			// reveal a deeply indented name. Aim at the label instead.
+			const label = row?.querySelector('[data-part="item-text"], [data-part="branch-text"]')
+			const target = label ?? row
+
+			target?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 		})
+
+		return () => cancelAnimationFrame(frame)
 	})
 </script>
 
 <div
 	{...api.getRootProps()}
-	class="h-full overflow-auto text-xs"
+	class="h-full scrollbar-thin overflow-auto text-xs"
 >
-	<div {...api.getTreeProps()}>
+	<!--
+		Sized to the widest row instead of the panel, so deep nesting scrolls
+		horizontally rather than wrapping; `min-w-full` keeps rows full width (and
+		with them the hover and selection fills) when the tree is shallow.
+	-->
+	<div
+		{...api.getTreeProps()}
+		class="w-max min-w-full"
+	>
 		{#if rootChildren.length === 0}
 			<p class="text-subtle-2 px-2 py-4">No objects displayed</p>
 		{:else if rootChildren.length > 200}
-			<VirtualList
-				class="w-full"
-				items={rootChildren}
-			>
+			<VirtualList items={rootChildren}>
 				{#snippet vl_slot({ index, item: node })}
 					<TreeNode
 						{node}
@@ -107,3 +120,17 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	/*
+	 * svelte-virtuallists stretches its track to its own scroll port, which would
+	 * clamp rows back to the panel width. Let it grow with the rows instead, so
+	 * names in a virtualized branch scroll horizontally like every other row.
+	 * `:global` because the track belongs to VirtualList; the rule lives here
+	 * because only this component renders an ancestor it can hang off.
+	 */
+	[data-part='tree'] :global(.vtlist-inner) {
+		width: max-content;
+		min-width: 100%;
+	}
+</style>
