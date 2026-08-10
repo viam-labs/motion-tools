@@ -27,9 +27,9 @@ import {
 } from '$lib/math/spatialJson'
 import { meshContentType } from '$lib/mesh'
 
-import type { ModelJson, ModelNodeJson } from './jointColumns'
+import type { ModelJson } from './jointColumns'
 
-import { modelJointColumns } from './jointColumns'
+import { modelJointColumns, nodeName } from './jointColumns'
 
 /** One entry of a flattened frame system: `frame_type` names the encoding, `frame` carries it. */
 export interface RawFrame {
@@ -204,27 +204,29 @@ export const parseGeometry = (
 
 type Frames = FrameSystemJson['frames']
 
-const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
-	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
+const modelOf = (entry: Frames[string]): ModelJson | undefined =>
+	(entry.frame as Record<string, unknown>).model as ModelJson | undefined
 
 /**
  * The model's one childless frame, over links and joints. Undefined when there is more than one,
  * which RDK also refuses, and for a DH model, whose topology lives in `dhParams` not either list.
  */
-const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
+const soleLeafOf = (model: ModelJson | undefined): string | undefined => {
 	const links = model?.links
 	const joints = model?.joints
 	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
 	// non-iterable throws, taking the whole plan render down.
-	const nodes = [
-		...(Array.isArray(links) ? (links as ModelNodeJson[]) : []),
-		...(Array.isArray(joints) ? (joints as ModelNodeJson[]) : []),
-	]
+	const nodes = [...(Array.isArray(links) ? links : []), ...(Array.isArray(joints) ? joints : [])]
 
-	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))
-	const leaves = nodes.flatMap((node) =>
-		node.id !== undefined && !claimed.has(node.id) ? node.id : []
-	)
+	// `nodeName` normalises an empty id the same way `modelJointColumns` does. Left as a bare
+	// `node.id !== undefined` check, a node whose id is the empty string (Go marshals it rather
+	// than omitting it) reads as an unclaimed leaf of its own, and one unnamed link is enough to
+	// turn a real sole leaf into "more than one" and fall through to the wrong terminal.
+	const claimed = new Set(nodes.flatMap((node) => nodeName(node.parent) ?? []))
+	const leaves = nodes.flatMap((node) => {
+		const id = nodeName(node.id)
+		return id !== undefined && !claimed.has(id) ? id : []
+	})
 
 	return leaves.length === 1 ? leaves[0] : undefined
 }
@@ -235,7 +237,7 @@ const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefi
  */
 const modelOutputFrame = (
 	entry: Frames[string],
-	model: Record<string, unknown> | undefined
+	model: ModelJson | undefined
 ): string | undefined => {
 	const declared = (entry.frame as Record<string, unknown>).primary_output_frame
 	if (typeof declared === 'string' && declared !== '') return declared
@@ -287,7 +289,7 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 
 		// Which slot of a trajectory step drives which frame. Keyed by frame name because that is how
 		// the frame asks — the join between the two is the `${model}:${id}` convention, nothing else.
-		const { order, columns } = modelJointColumns(model as ModelJson | undefined, modelName)
+		const { order, columns } = modelJointColumns(model, modelName)
 		for (const [jointId, column] of columns) {
 			jointOwners.set(`${modelName}:${jointId}`, {
 				componentName: modelName,
@@ -296,8 +298,7 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 			})
 		}
 
-		// Truthiness, not a null check: `soleLeafOf` can return `''`, since Go marshals `id` without
-		// `omitempty`. An empty id names no frame.
+		// Truthy rather than `!== undefined`: all three branches filter an empty id, so this never sees `''`.
 		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)

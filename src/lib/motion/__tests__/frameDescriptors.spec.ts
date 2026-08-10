@@ -447,6 +447,24 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:extra_link')
 		})
 
+		// Go marshals an empty `id` rather than omitting it. Unfiltered that reads as a second
+		// unclaimed leaf, and the model falls to "declines to pick".
+		it('does not let an unnamed node masquerade as a second leaf', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+						{ id: '', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
 		// A bare string would be indexed as an array and yield its first character, resolving `arm:g`.
 		it('ignores an output_frames that is not an array', () => {
 			const p = armed({

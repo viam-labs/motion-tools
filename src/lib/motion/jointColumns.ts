@@ -47,9 +47,11 @@ export interface ModelJson {
 	links?: ModelNodeJson[]
 	joints?: JointJson[]
 	/**
-	 * Read by `modelOutputFrame`, not here. Declared so a model with more than one leaf can be
-	 * written down: RDK refuses to build one without it, so a fixture that omits it is a shape no
-	 * machine can send.
+	 * Not read by anything in this file — `modelJointColumns` only looks at `links` and `joints`.
+	 * `modelOutputFrame` in `frameDescriptors.ts` is the actual reader, and now receives this same
+	 * type rather than an untyped record. Declared here anyway so a model with more than one leaf
+	 * can be written down: RDK refuses to build one without it, so a fixture that omits it is a
+	 * shape no machine can send.
 	 */
 	output_frames?: string[]
 }
@@ -57,9 +59,11 @@ export interface ModelJson {
 /**
  * An unnamed node cannot be addressed, so it is dropped from the tree rather than joined into it:
  * left in, every one of them would collide on the same empty key and claim each other's children.
- * Not exported, because the behaviour that matters is what {@link modelJointColumns} does with it.
+ * Exported because `soleLeafOf` in `frameDescriptors.ts` reads the same `model.links`/`model.joints`
+ * and needs the identical rule — left unapplied there, an unnamed node reads as an extra childless
+ * frame instead of no frame at all.
  */
-const nodeName = (value: string | undefined): string | undefined =>
+export const nodeName = (value: string | undefined): string | undefined =>
 	value === undefined || value === '' ? undefined : value
 
 export interface JointColumn {
@@ -121,8 +125,14 @@ export const modelJointColumns = (
 	model: ModelJson | undefined,
 	modelName: string
 ): ModelJointColumns => {
-	const links = model?.links ?? []
-	const joints = model?.joints ?? []
+	// `Array.isArray` rather than `??`: the nullish default only catches an absent list, and a
+	// hand-edited or malformed capture can declare `links`/`joints` as `{}` rather than `[]`. `??`
+	// passes that straight through to the spread below, which throws a bare `TypeError` and takes the
+	// whole plan render down. `soleLeafOf` in `frameDescriptors.ts` guards the identical hazard.
+	const rawLinks = model?.links
+	const rawJoints = model?.joints
+	const links = Array.isArray(rawLinks) ? rawLinks : []
+	const joints = Array.isArray(rawJoints) ? rawJoints : []
 
 	const mimics = new Map<string, MimicJson>()
 	const jointIds: string[] = []
