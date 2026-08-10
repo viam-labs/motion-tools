@@ -571,7 +571,14 @@ describe('trajectory column order', () => {
 		expect(columns).toEqual({ 'arm:0': 0, 'arm:1': 1 })
 	})
 
-	it('warns rather than dropping a joint the walk never reaches', () => {
+	/**
+	 * A parent naming something the model never declares is a second root to RDK, not a broken chain:
+	 * `buildModelFrameSystem` seeds its walk with every child whose parent is absent from `transforms`
+	 * and hangs it off `fs.World()`. So `stray` sorts against `base` rather than trailing the walk, and
+	 * nothing is guessed. Confirmed against `go.viam.com/rdk v0.122.0`, which builds this model and
+	 * reports its schema as `[stray j1]`.
+	 */
+	it('roots a joint whose parent is not a declared node, the way RDK does', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
 		const columns = columnsOf(
@@ -584,9 +591,8 @@ describe('trajectory column order', () => {
 			})
 		)
 
-		// Dropping it would take its whole subtree out of the drawing with it.
-		expect(columns).toEqual({ 'arm:j1': 0, 'arm:stray': 1 })
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('not connected to its base'))
+		expect(columns).toEqual({ 'arm:stray': 0, 'arm:j1': 1 })
+		expect(warn).not.toHaveBeenCalled()
 		warn.mockRestore()
 	})
 })
