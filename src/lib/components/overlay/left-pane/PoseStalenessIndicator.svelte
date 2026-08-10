@@ -18,7 +18,7 @@
 	// Build mode pauses live polling to protect staged edits, so its scene is a
 	// deliberate snapshot. Warning that poses aren't updating there would report
 	// the mode back to the user as a fault.
-	const visible = true // $derived(environment.current.mode !== 'build' && poses.isStale)
+	const visible = $derived(environment.current.mode !== 'build' && poses.isStale)
 
 	const unhealthy = $derived(unhealthyResources(machineStatus.current?.resources))
 	const summary = $derived(poseStalenessSummary(unhealthy))
