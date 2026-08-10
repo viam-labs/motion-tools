@@ -7,21 +7,21 @@
 	const appearance = {
 		monitor: {
 			label: 'Monitor',
-			idle: 'text-info-dark',
+			idle: 'text-gray-8',
 			border: 'border-info-medium',
 			fill: 'bg-info-light text-info-dark',
 		},
 		build: {
 			label: 'Build',
-			idle: 'text-warning-dark',
-			border: 'border-warning-medium',
-			fill: 'bg-warning-light text-warning-dark',
+			idle: 'text-gray-8',
+			border: 'border-info-medium',
+			fill: 'bg-info-light text-info-dark',
 		},
 		move: {
 			label: 'Move',
-			idle: 'text-cyberpunk-dark',
-			border: 'border-cyberpunk-medium',
-			fill: 'bg-cyberpunk-light text-cyberpunk-dark',
+			idle: 'text-gray-8',
+			border: 'border-info-medium',
+			fill: 'bg-info-light text-info-dark',
 		},
 	} as const satisfies Record<
 		EnvironmentMode,
