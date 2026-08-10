@@ -12,7 +12,7 @@
 	import { draggable } from '@neodrag/svelte'
 	import { useThrelte } from '@threlte/core'
 	import { Portal, PortalTarget } from '@threlte/extras'
-	import { Icon, Tooltip } from '@viamrobotics/prime-core'
+	import { Icon } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 
@@ -23,6 +23,8 @@
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { Pose } from '$lib/math'
+
+	import Tooltip from '../Tooltip.svelte'
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
@@ -168,116 +170,116 @@ just the inputs) raises it via `focus-within:z-5`. -->
 			</div>
 
 			{#if focusable}
-				<Tooltip
-					let:tooltipID
-					location="bottom"
-				>
-					<button
-						class="text-subtle-2"
-						aria-describedby={tooltipID}
-						onclick={() => {
-							const padding = 0.4
+				<Tooltip placement="bottom">
+					{#snippet children(tooltipID)}
+						<button
+							class="text-subtle-2"
+							aria-describedby={tooltipID}
+							onclick={() => {
+								const padding = 0.4
 
-							const currentControls = controls.current
+								const currentControls = controls.current
 
-							if (!currentControls || !('fitToBox' in currentControls)) return
+								if (!currentControls || !('fitToBox' in currentControls)) return
 
-							focusBox.makeEmpty()
-							expandBoxByEntity(focusBox, entity, scene)
-							if (focusBox.isEmpty()) return
+								focusBox.makeEmpty()
+								expandBoxByEntity(focusBox, entity, scene)
+								if (focusBox.isEmpty()) return
 
-							const { azimuthAngle, polarAngle } = currentControls
+								const { azimuthAngle, polarAngle } = currentControls
 
-							currentControls.fitToBox(focusBox, true, {
-								paddingTop: padding,
-								paddingBottom: padding,
-								paddingLeft: padding,
-								paddingRight: padding,
-							})
+								currentControls.fitToBox(focusBox, true, {
+									paddingTop: padding,
+									paddingBottom: padding,
+									paddingLeft: padding,
+									paddingRight: padding,
+								})
 
-							// Preserve previous rotation
-							currentControls.rotateAzimuthTo(azimuthAngle, true)
-							currentControls.rotatePolarTo(polarAngle, true)
-						}}
-					>
-						<Icon name="image-filter-center-focus" />
-					</button>
-					<p slot="description">Zoom to object</p>
+								// Preserve previous rotation
+								currentControls.rotateAzimuthTo(azimuthAngle, true)
+								currentControls.rotatePolarTo(polarAngle, true)
+							}}
+						>
+							<Icon name="image-filter-center-focus" />
+						</button>
+					{/snippet}
+
+					{#snippet content()}Zoom to object{/snippet}
 				</Tooltip>
 			{/if}
 
 			{#if name.current}
-				<Tooltip
-					let:tooltipID
-					location="bottom"
-				>
-					<button
-						class="text-subtle-2"
-						aria-describedby={tooltipID}
-						aria-label="Open view from this frame"
-						onclick={() => {
-							const frameName = name.current
-							if (!frameName) return
-							const list = settings.current.openFramePovWidgets[partID.current] ?? []
-							if (list.includes(frameName)) return
-							settings.current.openFramePovWidgets = {
-								...settings.current.openFramePovWidgets,
-								[partID.current]: [...list, frameName],
-							}
-						}}
-					>
-						<Icon name="camera-outline" />
-					</button>
-					<p slot="description">View from this frame</p>
+				<Tooltip placement="bottom">
+					{#snippet children(tooltipID)}
+						<button
+							class="text-subtle-2"
+							aria-describedby={tooltipID}
+							aria-label="Open view from this frame"
+							onclick={() => {
+								const frameName = name.current
+								if (!frameName) return
+								const list = settings.current.openFramePovWidgets[partID.current] ?? []
+								if (list.includes(frameName)) return
+								settings.current.openFramePovWidgets = {
+									...settings.current.openFramePovWidgets,
+									[partID.current]: [...list, frameName],
+								}
+							}}
+						>
+							<Icon name="camera-outline" />
+						</button>
+					{/snippet}
+
+					{#snippet content()}View from this frame{/snippet}
 				</Tooltip>
 			{/if}
 
 			<PortalTarget id="details-header-actions" />
 
 			{#if removable.current}
-				<Tooltip
-					let:tooltipID
-					location="bottom"
-				>
-					<button
-						class="text-subtle-2"
-						aria-describedby={tooltipID}
-						onclick={() => {
-							if (world.has(entity)) {
-								entity.destroy()
-							}
-						}}
-					>
-						<Icon name="trash-can-outline" />
-					</button>
-					<p slot="description">Remove from scene</p>
+				<Tooltip placement="bottom">
+					{#snippet children(tooltipID)}
+						<button
+							class="text-subtle-2"
+							aria-describedby={tooltipID}
+							onclick={() => {
+								if (world.has(entity)) {
+									entity.destroy()
+								}
+							}}
+						>
+							<Icon name="trash-can-outline" />
+						</button>
+					{/snippet}
+
+					{#snippet content()}Remove from scene{/snippet}
 				</Tooltip>
 			{/if}
 
-			<Tooltip
-				let:tooltipID
-				location="bottom"
-			>
-				<button
-					class="text-subtle-2"
-					aria-describedby={tooltipID}
-					onclick={async () => {
-						try {
-							await navigator.clipboard.writeText(getCopyClipboardText())
-						} catch {
-							// clipboard unavailable (non-secure context or permission denied)
-						}
-						copied = true
-						setTimeout(() => (copied = false), 1000)
-					}}
-				>
-					{#if copied}
-						<Check size={14} />
-					{:else}
-						<Copy size={14} />
-					{/if}
-				</button>
-				<p slot="description">Copy details to clipboard</p>
+			<Tooltip placement="bottom">
+				{#snippet children(tooltipID)}
+					<button
+						class="text-subtle-2"
+						aria-describedby={tooltipID}
+						onclick={async () => {
+							try {
+								await navigator.clipboard.writeText(getCopyClipboardText())
+							} catch {
+								// clipboard unavailable (non-secure context or permission denied)
+							}
+							copied = true
+							setTimeout(() => (copied = false), 1000)
+						}}
+					>
+						{#if copied}
+							<Check size={14} />
+						{:else}
+							<Copy size={14} />
+						{/if}
+					</button>
+				{/snippet}
+
+				{#snippet content()}Copy details to clipboard{/snippet}
 			</Tooltip>
 		</div>
 
