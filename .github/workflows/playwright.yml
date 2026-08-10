@@ -54,7 +54,7 @@ jobs:
         run: ./e2e/setup.sh
 
       - name: Run Playwright tests
-        run: pnpm playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts -u
+        run: pnpm playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts e2e/arm.test.ts --config playwright.ci.config.ts -u
 
       - name: Open or update PR with refreshed snapshots
         id: snapshot-pr
