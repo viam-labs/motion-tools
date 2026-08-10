@@ -220,6 +220,13 @@ describe('parsedPlanToSnapshots with mesh geometry present', () => {
 const worldPointOf = (transforms: Transform[], frame: string): Vector3 => {
 	const byName = new Map(transforms.map((t) => [t.referenceFrame, t]))
 
+	// Without this, an unknown name walks zero links and composes to the origin, so a test asserting a
+	// frame is at zero would pass for a frame that is not in the scene at all. The `${model}:${id}`
+	// convention these names are built from is exactly the kind of thing a rename breaks quietly.
+	if (!byName.has(frame)) {
+		throw new Error(`no transform named "${frame}" in [${[...byName.keys()].join(', ')}]`)
+	}
+
 	const chain: PoseInFrame[] = []
 	for (let name = frame; byName.has(name); ) {
 		const parented = byName.get(name)!.poseInObserverFrame!
@@ -244,9 +251,13 @@ const worldPointOf = (transforms: Transform[], frame: string): Vector3 => {
 /**
  * A mimic joint moves but has no column of its own, so a step is shorter than the model's joint list
  * and reading it positionally walks off the end. Both models are byte-for-byte copies of
- * `referenceframe/testfiles/`, and every point below is one RDK's own tests assert
- * (`referenceframe/model_test.go:407,453`) — so what is being checked is agreement with RDK, not
- * self-consistency.
+ * `referenceframe/testfiles/`, verified against upstream, and the tip points below are the ones
+ * `TestMimicGripperModel` and `TestMimicSerialModel` assert, so what is being checked is agreement
+ * with RDK rather than self-consistency.
+ *
+ * The two finger assertions are ours. RDK checks those fingers by their geometry centers, which sit
+ * 15 mm below the frame origins composed here; the y it pins is the same, which is the axis the
+ * mimic actually drives.
  */
 describe('parsedPlanToSnapshots with a model whose joints mimic', () => {
 	// RDK: 1 DoF. Opening to 25 mm drives both fingers, the right one through its mimic.
@@ -284,6 +295,39 @@ describe('parsedPlanToSnapshots with a model whose joints mimic', () => {
 			expect(tip.x).toBeCloseTo(200, 6)
 			expect(tip.y).toBeCloseTo(0, 6)
 			expect(tip.z).toBeCloseTo(100, 6)
+		})
+	})
+
+	/**
+	 * Derived, not upstream: `test_mimic_serial` with one field changed. Both RDK fixtures set
+	 * `"offset": 0`, so the offset half of the linear map is carried through the column map and then
+	 * never reaches a rendered pose. Dropping it, negating it, or folding it inside the multiply all
+	 * agree with every other test here.
+	 *
+	 * With `joint3 = -joint1 + π/2` and both real joints at zero, joint3 alone turns a quarter, so the
+	 * last 100 mm link leaves the Z axis: the two links below it stack to z = 200 and the tip swings
+	 * out to x = 100. Dropping the offset leaves it at (0, 0, 300); negating it puts it at (-100, 0,
+	 * 200).
+	 */
+	describe('a mimic that applies an offset as well as a multiplier', () => {
+		const offsetSerial = {
+			...serialModel,
+			joints: serialModel.joints.map((joint) =>
+				joint.id === 'joint3'
+					? { ...joint, mimic: { joint: 'joint1', multiplier: -1, offset: Math.PI / 2 } }
+					: joint
+			),
+		}
+
+		it('turns the joint by its source`s value plus the offset', () => {
+			const [snapshot] = parsedPlanToSnapshots(
+				rdkModelPlan(offsetSerial, [{ test_mimic_serial: [0, 0] }])
+			)
+			const tip = worldPointOf(snapshot!.transforms, 'test_mimic_serial:link3')
+
+			expect(tip.x).toBeCloseTo(100, 6)
+			expect(tip.y).toBeCloseTo(0, 6)
+			expect(tip.z).toBeCloseTo(200, 6)
 		})
 	})
 })

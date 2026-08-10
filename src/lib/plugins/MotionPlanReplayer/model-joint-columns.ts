@@ -1,10 +1,16 @@
 /**
  * Which slot of a trajectory step drives each joint of one model.
  *
- * The array order of `model.joints` is *not* the answer on its own: RDK seeds a model's input schema
- * by walking its joints and skipping the mimic ones (`NewModelWithMimics`,
- * `referenceframe/model.go:227`). A mimic joint therefore has real degrees of freedom and no column,
- * and every joint declared after it sits one slot earlier than its position suggests.
+ * The array order of `model.joints` is *not* the answer on its own. `NewModelWithMimics` seeds a
+ * model's input schema by walking `bfsFrameNames` over the model's internal frame system, skipping
+ * any frame that has a mimic mapping. A mimic joint therefore has real degrees of freedom and no
+ * column, and every joint the walk reaches after it sits one slot earlier than its position suggests.
+ *
+ * This reproduces the mimic half of that rule and not the order half: it numbers the declared array
+ * rather than walking the tree. The two agree for a serial chain declared root to tip, which is what
+ * every model in RDK's own test data and in all four captures here happens to be, and disagree for a
+ * branching one, where `bfsFrameNames` sorts each node's children alphabetically. A two-finger
+ * gripper is exactly that shape, so the gap is not hypothetical. #918 replaces this with the walk.
  */
 
 /** Only the fields that decide a column. The rest of `JointConfig` is read where the frame is built. */
@@ -24,8 +30,8 @@ export interface JointColumn {
 	index: number
 	/**
 	 * Present iff the joint mimics another one, in which case `index` addresses its *source* and the
-	 * value is `multiplier * step[index] + offset` — RDK derives it the same way at
-	 * `referenceframe/model.go:585`.
+	 * value is `multiplier * step[index] + offset` — RDK derives it the same way wherever it resolves
+	 * a mimic, in `SimpleModel.Transform` and again in `Geometries`.
 	 */
 	mimic?: { multiplier: number; offset: number }
 }

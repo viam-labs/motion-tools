@@ -3,7 +3,7 @@ import type { ParsedPlan } from '../../parse-plan'
 /**
  * Publishes one of RDK's own model configs the way a plan reply carries it.
  *
- * `flattenModel` (`referenceframe/frame_system.go:1225`) re-publishes every frame inside a model —
+ * `flattenModelIntoFS` re-publishes every frame inside a model —
  * mimic joints included — under `component:internalName`, attaching anything parented to the model's
  * internal world to whatever the model itself hangs off. That is the only reason a mimic joint is
  * drawable at all: it reaches us as an ordinary frame, with nothing on it to say it has no column.
@@ -13,6 +13,13 @@ import type { ParsedPlan } from '../../parse-plan'
  * RDK marshals `r3.Vector` back out under its Go field names, so a real dump spells those `{X,Y,Z}` —
  * the one difference this bridges. Geometry is dropped rather than translated: these tests are about
  * which column drives a joint, and a shape would only add a second thing that could be wrong.
+ *
+ * Where this is *not* faithful, and deliberately: the envelope carries `name` and `model` only. A
+ * real dump also carries `primary_output_frame`, `limits` and `internal_fs`, and all 29 model frames
+ * across the four captures here have the first of those set. So `modelOutputFrame` takes its first
+ * rung on real data and its later ones here. That is fine for what these tests ask, which is which
+ * column drives which joint, but it does mean nothing in this file exercises the path a machine
+ * actually takes, and a test written against this shape is not evidence about that path.
  */
 
 interface Vec3 {
