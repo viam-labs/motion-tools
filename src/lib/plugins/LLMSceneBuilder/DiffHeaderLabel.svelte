@@ -36,15 +36,13 @@
 		disabled={!showTooltip}
 		triggerClass="w-full min-w-0"
 	>
-		{#snippet children(tooltipID)}
-			<span
-				bind:this={element}
-				class={['block w-full truncate', textClass]}
-				aria-label={tooltipText ?? text}
-			>
-				{text}
-			</span>
-		{/snippet}
+		<span
+			bind:this={element}
+			class={['block w-full truncate', textClass]}
+			aria-label={tooltipText ?? text}
+		>
+			{text}
+		</span>
 
 		{#snippet content()}{tooltipText ?? text}{/snippet}
 	</Tooltip>
