@@ -50,9 +50,6 @@ export interface Context {
 	 */
 	readonly isStale: boolean
 
-	/** Frames whose most recent pose fetch failed. */
-	readonly staleFrameNames: string[]
-
 	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
@@ -290,9 +287,6 @@ export const providePoses = (partID: () => string) => {
 		},
 		get isStale() {
 			return isStale.current
-		},
-		get staleFrameNames() {
-			return staleFrameNames
 		},
 		refetch: () => {
 			const expected = new Set(expectedFrameNames())
