@@ -20,21 +20,12 @@ export const createBufferGeometry = (positions: Float32Array, metadata?: Metadat
 	return geometry
 }
 
-export const updateBufferGeometry = (
-	geometry: BufferGeometry,
-	positions: Float32Array,
-	metadata: Metadata
-) => {
-	const positionAttr = geometry.getAttribute('position')
-
-	if (positionAttr && positionAttr.array.length >= positions.length) {
-		positionAttr.array.set(positions, 0)
-		geometry.setDrawRange(0, positions.length)
-		positionAttr.needsUpdate = true
-	} else {
-		geometry.setAttribute('position', new BufferAttribute(positions, 3))
-	}
-
+/**
+ * Rewrite the color and opacity attributes in place, reallocating only when the
+ * incoming data outgrows the existing capacity. Leaves positions and the draw
+ * range untouched, so it is safe to call on a partially-filled chunked cloud.
+ */
+export const updateBufferGeometryColors = (geometry: BufferGeometry, metadata: Metadata) => {
 	if (metadata.colors) {
 		const stride = colorStride(metadata.colorFormat)
 		const colorAttr = geometry.getAttribute('color')
@@ -55,6 +46,35 @@ export const updateBufferGeometry = (
 			geometry.setAttribute('opacity', new BufferAttribute(metadata.opacities, 1, true))
 		}
 	}
+}
+
+export const updateBufferGeometry = (
+	geometry: BufferGeometry,
+	positions: Float32Array,
+	metadata: Metadata
+) => {
+	const positionAttr = geometry.getAttribute('position')
+
+	if (positionAttr && positionAttr.array.length >= positions.length) {
+		positionAttr.array.set(positions, 0)
+		// `count` is in vertices, not array elements. Passing the element count
+		// leaves the tail of a shrinking cloud renderable: three.js clamps the
+		// range to the attribute's capacity, which a 3× count exceeds.
+		geometry.setDrawRange(0, positions.length / positionAttr.itemSize)
+		positionAttr.needsUpdate = true
+	} else {
+		geometry.setAttribute('position', new BufferAttribute(positions, 3))
+		// A fresh attribute defines the whole range; a leftover count from the
+		// previous, shorter cloud would truncate it.
+		geometry.setDrawRange(0, Infinity)
+	}
+
+	// Neither writing through an attribute nor replacing one invalidates the
+	// cached sphere, so a cloud whose extent changed would keep being frustum
+	// culled against wherever its first version sat.
+	geometry.boundingSphere = null
+
+	updateBufferGeometryColors(geometry, metadata)
 }
 
 export const preAllocateBufferGeometry = (
@@ -119,4 +139,7 @@ export const writeBufferGeometryRange = (
 	if (endPoint > currentEnd) {
 		geometry.setDrawRange(0, endPoint)
 	}
+
+	// Each chunk can extend the cloud past the sphere computed from the last one.
+	geometry.boundingSphere = null
 }
