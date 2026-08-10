@@ -99,7 +99,7 @@
 								class="flex gap-3"
 							>
 								<button
-									aria-label="Close connection configs panel"
+									aria-label="Close panel"
 									onclick={() => (isOpen = false)}
 								>
 									<Icon name="close" />
