@@ -41,14 +41,28 @@ export const createPreviewGhosts = (): PreviewGhosts => new Map()
 /**
  * The components whose joint values actually change over the plan.
  *
- * RDK answers with a column for every component in the frame system, not just the ones it moved — a
- * component the plan holds still carries its current configuration, repeated byte-identically in
- * every step. Exact equality is the right test for that: any difference at all means the planner put
- * motion there, however small, and a component that moves a hair is still moving.
+ * RDK answers with a column for every component in the frame system, not just the ones it moved, and
+ * this used to compare those columns for exact equality on the premise that a component the plan
+ * holds still repeats its configuration byte-identically in every step. That premise is false:
+ * `salad-plan.json`'s 52-step capture holds `left-arm` still throughout, yet its values drift by up
+ * to 8.312169424984361e-10 rad from step 0 — floating-point noise trajectory optimisation leaves on a
+ * column it never touches, not motion. The same capture's `right-arm` genuinely moves, by
+ * 2.724693022178968 rad, nine orders of magnitude above that noise, so exact equality classified the
+ * noise as a move and ghosted an idle arm for the whole of playback: precisely the failure this
+ * function exists to prevent. Every 2-step fixture in the repo (`plan.json`, `gantry-plan.json`,
+ * `pirouette-plan.json`) is too short to show this — the drift comes from solving across intermediate
+ * steps, so a start/end-only plan never accumulates any.
  *
- * A component named in only some steps counts as moving, because appearing or vanishing is itself a
- * change.
+ * `MOTION_TOLERANCE` draws the line instead: three orders above the measured noise floor and, read as
+ * millimetres on a prismatic joint, a nanometre below any slide worth ghosting. One constant serves
+ * both units a step can hold (radians for a revolute joint, millimetres for a prismatic one — see
+ * `TrajectoryStep`), rather than a per-kind threshold neither unit needs.
+ *
+ * A component named in only some steps counts as moving regardless of tolerance, because appearing or
+ * vanishing is a structural change, not a magnitude to compare against a threshold.
  */
+const MOTION_TOLERANCE = 1e-6
+
 export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<string> => {
 	const moving = new Set<string>()
 	const [first] = trajectory
@@ -56,20 +70,27 @@ export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<str
 
 	for (const [component, values] of Object.entries(first)) {
 		const changes = trajectory.some((step) => {
+			// `hasOwn` rather than testing `step[component]` for undefined: a plain index into a step
+			// that does not own the component reads through to `Object.prototype`, so a component named
+			// `toString` read back as a member function whose `.length` happens to be a valid DoF count
+			// instead of `undefined`. `sameInputs` (`planDoCommand.ts`) guards the identical hazard.
+			if (!Object.hasOwn(step, component)) return true
+
 			const other = step[component]
 			return (
-				other === undefined ||
 				other.length !== values.length ||
-				values.some((value, index) => value !== other[index])
+				values.some((value, index) => Math.abs(value - other[index]) > MOTION_TOLERANCE)
 			)
 		})
 		if (changes) moving.add(component)
 	}
 
-	// A component absent from step 0 but present later is moving by the same argument.
+	// A component absent from step 0 but present later is moving by the same argument. `hasOwn`, not
+	// `in`: `in` walks the prototype chain too, so `'toString' in first` is true even when no step ever
+	// names a `toString` component, and the component would never be counted as appearing.
 	for (const step of trajectory) {
 		for (const component of Object.keys(step)) {
-			if (!(component in first)) moving.add(component)
+			if (!Object.hasOwn(first, component)) moving.add(component)
 		}
 	}
 

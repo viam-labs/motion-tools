@@ -9,6 +9,8 @@ import { Geometry } from '$lib/buf/common/v1/common_pb'
 import { relations, traits } from '$lib/ecs'
 import { Pose } from '$lib/math'
 
+import saladPlan from '../../MotionPlanReplayer/__tests__/__fixtures__/salad-plan.json?raw'
+import { parsePlan } from '../../MotionPlanReplayer/parse-plan'
 import {
 	applyPreviewStep,
 	clearPreviewGhosts,
@@ -85,9 +87,30 @@ describe('movingComponents', () => {
 		expect(movingComponents(trajectory)).toEqual(new Set(['left-arm']))
 	})
 
-	// Any difference at all is motion; a component that moves a hair still moves.
-	it('counts the smallest possible difference as movement', () => {
-		expect(movingComponents([{ arm: [0] }, { arm: [Number.EPSILON] }])).toEqual(new Set(['arm']))
+	/**
+	 * `Number.EPSILON` (~2.22e-16) sits well inside the noise floor trajectory optimisation leaves on
+	 * a component the plan holds still (measured up to 8.312169424984361e-10 rad in
+	 * `salad-plan.json`'s `left-arm`), so on its own it is not motion. A difference has to clear
+	 * `MOTION_TOLERANCE` to register.
+	 */
+	it('treats a difference inside the tolerance as still', () => {
+		expect(movingComponents([{ arm: [0] }, { arm: [Number.EPSILON] }])).toEqual(new Set())
+	})
+
+	it('treats a difference outside the tolerance as moving', () => {
+		expect(movingComponents([{ arm: [0] }, { arm: [1e-5] }])).toEqual(new Set(['arm']))
+	})
+
+	/**
+	 * The falsifying case that retired the exact-equality rule, taken from the capture itself rather
+	 * than synthesised: `salad-plan.json`'s 52-step `left-arm` is held by the plan, but drifts by up
+	 * to 8.312169424984361e-10 rad from step 0 as trajectory optimisation runs, floating-point noise
+	 * no byte-identity check could absorb. `right-arm` in the same capture genuinely moves, by
+	 * 2.724693022178968 rad. Ghosting `left-arm` here would be `previewGhosts`'s founding failure,
+	 * reintroduced by the very check meant to prevent it.
+	 */
+	it("holds a captured plan's idle left-arm still while its moving right-arm registers", () => {
+		expect(movingComponents(parsePlan(saladPlan).trajectory)).toEqual(new Set(['right-arm']))
 	})
 
 	// Appearing partway is a change in its own right; the held `arm` alongside it is not.
@@ -111,6 +134,24 @@ describe('movingComponents', () => {
 			])
 		).toEqual(new Set(['arm']))
 	})
+
+	/**
+	 * `sameInputs` (`planDoCommand.ts`) guards the identical hazard on the pair of steps it compares:
+	 * a plain index into a step that does not own the component reads straight through to
+	 * `Object.prototype`, so a component named `toString` read back as a member function whose
+	 * `.length` happens to be a valid DoF count instead of `undefined`. The second loop has the same
+	 * hole through `in`: `'toString' in first` is true even when no step ever names a `toString`
+	 * component.
+	 */
+	it.each<[string, TrajectoryStep[], string[]]>([
+		['vanishes after the first step', [{ toString: [], arm: [0] }, { arm: [0] }], ['toString']],
+		['appears after the first step', [{ arm: [0] }, { arm: [0], toString: [1] }], ['toString']],
+	])(
+		'reads a component sharing a name with an Object member as data when it %s',
+		(_label, trajectory, expected) => {
+			expect(movingComponents(trajectory)).toEqual(new Set(expected))
+		}
+	)
 
 	it('is empty for a trajectory with no steps', () => {
 		expect(movingComponents([])).toEqual(new Set())
