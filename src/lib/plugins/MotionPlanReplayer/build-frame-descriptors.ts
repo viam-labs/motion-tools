@@ -65,7 +65,6 @@ export interface JointFrameDescriptor {
 
 export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 
-// Still owned here: the only local decode is an obstacle's already-local center.
 const tmpQ = new Quaternion()
 
 /**

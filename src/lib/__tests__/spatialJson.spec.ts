@@ -5,17 +5,6 @@ import type { RawOrientation } from '../spatialJson'
 
 import { geometryCenterInFrame, poseFromJson } from '../spatialJson'
 
-/**
- * `build-frame-descriptors.spec.ts` already covers these conversions as the
- * replayer reaches them. What is asserted here is the decoding itself, so a
- * second reader of the same JSON — `FrameSystemConfig.kinematics` — inherits
- * proven behaviour rather than a second hand-rolled converter.
- *
- * The trigonometry belongs to `Pose` / `OrientationVector` and their own specs;
- * these tests are about which encoding names are recognised, and which frame a
- * geometry offset is measured from.
- */
-
 /** Compare orientations by the rotation they produce, not by field values. */
 const rotates = (pose: ReturnType<typeof poseFromJson>, from: Vector3) =>
 	from.clone().applyQuaternion(pose.toQuaternion())
