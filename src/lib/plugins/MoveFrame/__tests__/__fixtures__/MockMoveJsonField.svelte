@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
-	 * The real field is a CodeMirror editor behind a collapsed `Expandable`, which is a lot of
-	 * machinery to drive for the one thing the panel cares about: that editing the text reaches
-	 * `onChange`. A textarea says the same thing and can be typed into.
+	 * The real field is a CodeMirror editor behind a collapsed `Expandable`. A textarea reaches
+	 * `onChange` the same way and can be typed into.
 	 */
 
 	interface Props {

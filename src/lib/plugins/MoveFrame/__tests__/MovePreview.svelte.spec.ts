@@ -1,17 +1,3 @@
-/**
- * `MovePreview` is the only place a preview's status becomes visible: the panel that mounts it drives
- * `preview.status` and leaves rendering the two live regions and the scrubber entirely to this
- * component. `MoveControls.svelte.spec.ts` stubs `usePreviewMove` for its own purposes and, until
- * fixed alongside this file, held the stub's `message` as a plain literal rather than a getter —
- * which meant it could never change after mount, so neither `role="alert"` nor `role="status"` below
- * could ever render under any test in the repo.
- *
- * This file drives `MovePreview` directly off plain `PreviewMove`-shaped objects, the same way
- * `TrajectoryScrubber.svelte.spec.ts` drives that component off a `stubPlayer` — no module is mocked,
- * so a broken guard in the component fails here rather than in whatever mock happened to be stubbed
- * for a different file's purposes.
- */
-
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
@@ -22,7 +8,6 @@ import type { PreviewMove, PreviewStatus } from '../usePreviewMove.svelte'
 
 import MovePreview from '../MovePreview.svelte'
 
-/** Deliberately inert, matching `TrajectoryScrubber.svelte.spec.ts`'s `stubPlayer`. */
 const player = (overrides: Partial<TrajectoryPlayer> = {}): TrajectoryPlayer => ({
 	currentStep: 0,
 	totalSteps: 0,
@@ -59,11 +44,6 @@ describe('MovePreview', () => {
 		expect(screen.queryByRole('slider')).not.toBeInTheDocument()
 	})
 
-	/**
-	 * The entire user-visible error and status surface of the feature. Both live regions are guarded
-	 * on `preview.message` being truthy, and it is exactly that guard a literal, never-changing
-	 * `message` in a mock leaves unreachable.
-	 */
 	it.each([
 		['error', 'No geometry in the frame system to draw this plan with.', 'alert'],
 		['error', 'No frame system available to draw the plan against.', 'alert'],

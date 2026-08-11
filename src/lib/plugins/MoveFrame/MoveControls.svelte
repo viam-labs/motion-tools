@@ -92,11 +92,8 @@
 	)
 
 	/**
-	 * A resource *name* is not a client. `useResourceNames` serves names from cache with
-	 * `staleTime: Infinity`, while `createResourceClient` yields `undefined` for as long as the
-	 * connection is not `CONNECTED` — so on a dropped socket, or in the gap after selecting a part,
-	 * `service` is set and `motion.current` is not. Gating the buttons on `!service` alone left them
-	 * lit and inert, which is the thing the comment on `Execute preview` argues against.
+	 * A resource *name* is not a client: names come from cache, while `createResourceClient` yields
+	 * `undefined` until the connection is `CONNECTED`, so `service` can be set when `motion` is not.
 	 */
 	const canCommand = $derived(motion.current !== undefined && service !== undefined)
 
@@ -199,15 +196,6 @@
 		stagePose(pose)
 	}
 
-	/**
-	 * Ask the motion service to plan this move without running it, and draw the answer as a ghost
-	 * twin of the machine.
-	 *
-	 * `invalidateOn` names every input the plan was computed from, not just the goal. Editing the
-	 * world state to describe an obstacle the preview just revealed is the whole reason that field
-	 * exists — and with only the goal in the key, the ghosts, the scrubber and `Execute preview` all
-	 * survived the edit, still describing a path planned as though the obstacle were not there.
-	 */
 	const preview = usePreviewMove({
 		world,
 		frames,
@@ -221,9 +209,8 @@
 			worldStateJson.current,
 			constraintsJson.current,
 			service,
-			// The kinematics the ghosts are drawn through, not just the problem that was posed.
-			// `useFrames` refetches on every config revision, and a frame system that has changed
-			// underneath a drawn plan puts the ghosts somewhere the machine never was.
+			// `useFrames` refetches on every config revision, and kinematics that changed underneath a
+			// drawn plan put the ghosts somewhere the machine never was.
 			frames.parts,
 		],
 	})
@@ -240,20 +227,12 @@
 	}
 
 	/**
-	 * Run the trajectory the preview drew, exactly as drawn — `execute` does not replan.
-	 *
-	 * That is the point: the preview is what is being approved. Two things can have gone stale since
-	 * it was drawn, and only one of them is checked. `executeCommand` arms RDK's own start-state
-	 * guard, so a component that has drifted away from the configuration the plan begins at refuses
-	 * rather than flying a path nothing validated. The world it was planned against is still a
-	 * snapshot — a dynamic obstacle that has moved since is invisible to both sides, which is why
-	 * `executeMove`, which replans, stays available alongside this.
+	 * Runs the trajectory the preview drew, exactly as drawn. `execute` does not replan, which is
+	 * the point: the preview is what is being approved.
 	 */
 	const executePreviewedMove = async () => {
 		const client = motion.current
 		if (!client || preview.status !== 'ready') return
-		// RDK cannot arbitrate this one for us: `execute` goes through `DoCommand`, which carries no
-		// operation label, so nothing on the server cancels a move another panel started.
 		if (!moveExecutionOwner.claim(frameName)) return
 
 		try {
@@ -271,8 +250,8 @@
 				variant: ToastVariant.Danger,
 			})
 			// A failed `execute` is not a move that never happened: RDK batches the waypoints to the
-			// component and can stop anywhere along them. Whatever configuration the machine is in now,
-			// it is not the one this plan starts from, so the drawing on screen is no longer about it.
+			// component, which can stop anywhere along them, so the plan no longer starts where the
+			// machine is.
 			preview.clear()
 		} finally {
 			moveExecutionOwner.release(frameName)
@@ -284,9 +263,8 @@
 		if (!client || !targetPose || !service || !staged) return
 		if (!moveExecutionOwner.claim(frameName)) return
 
-		// This replans from wherever the machine is when RDK gets to it, so any drawn plan is
-		// superseded the moment we commit. Clearing here rather than after also cancels a plan still
-		// in flight, which would otherwise land and draw ghosts for a configuration already left.
+		// Clearing before rather than after also cancels a plan still in flight, which would otherwise
+		// land and draw ghosts for a configuration the machine has already left.
 		preview.clear()
 
 		try {
@@ -410,13 +388,8 @@
 	<div class="flex flex-wrap items-center gap-2">
 		{#if preview.status === 'ready'}
 			<!--
-				Not `!staged` as well, the way its siblings read: this button only exists while the
-				preview is `ready`, which is a stronger claim — a plan was drawn for a staged goal, and
-				dropping the goal clears the preview with it. Repeating the weaker condition would only
-				add a way for the button to be on screen and inert. `canCommand` is not redundant: it
-				covers the client as well as the service name, which is the half that actually goes
-				undefined on a dropped connection, and an armed-looking button that silently does nothing
-				is worse than a disabled one.
+				No `!staged`, unlike its siblings: this button only exists while the preview is `ready`,
+				and dropping the goal clears the preview with it.
 			-->
 			<Button
 				variant="success"
