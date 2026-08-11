@@ -102,7 +102,7 @@
 					/>
 				{/snippet}
 
-				<div class="border-medium m-2 border bg-white p-2 text-xs">
+				<div class="font-public-sans text-default p-2 text-xs">
 					<div class="flex items-center gap-2">
 						Selection type
 						<ToggleGroup
