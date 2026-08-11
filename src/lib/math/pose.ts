@@ -4,8 +4,8 @@ import { Euler, MathUtils, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
 
 import type { Frame } from '../frame'
 
-import { OrientationVector } from './OrientationVector'
 import { quatFromJson } from './orientationJson'
+import { OrientationVector } from './OrientationVector'
 
 const ov = new OrientationVector()
 const quaternion = new Quaternion()

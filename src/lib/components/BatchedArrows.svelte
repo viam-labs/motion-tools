@@ -5,8 +5,8 @@
 	import { Color, Quaternion, Vector3 } from 'three'
 
 	import { traits, useWorld } from '$lib/ecs'
-	import { BatchedArrow } from '$lib/three/BatchedArrow'
 	import { OrientationVector } from '$lib/math/OrientationVector'
+	import { BatchedArrow } from '$lib/three/BatchedArrow'
 
 	const batched = new BatchedArrow()
 
