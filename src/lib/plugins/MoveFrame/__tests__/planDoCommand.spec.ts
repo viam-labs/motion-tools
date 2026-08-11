@@ -141,7 +141,7 @@ describe('executeCommand', () => {
 	})
 
 	/**
-	 * The key's presence is the switch (`builtin.go:376`). Without it epsilon is `math.MaxFloat64`,
+	 * The key's presence is the switch (`builtin.go`). Without it epsilon is `math.MaxFloat64`,
 	 * so RDK compares the trajectory's first step against where the components actually are and can
 	 * never find them too far away — a plan validated from one configuration runs from any other.
 	 */
@@ -167,19 +167,23 @@ describe('parsePlanResult', () => {
 	/**
 	 * Throwing beats an empty result, which would read as "planned fine, nothing to show".
 	 *
-	 * Each row asserts its own message, not just that something threw. The four paths say four
-	 * different things to a user — one of them tells them to go and upgrade RDK — and a bare
-	 * `toThrow(PlanCommandError)` cannot tell them apart, so any of them could drift into the
-	 * version-blaming text unnoticed.
+	 * Each row asserts its own message, not just that something threw. A bare `toThrow(PlanCommandError)`
+	 * cannot tell a non-array plan apart from a null step or a non-numeric joint value, so any of them
+	 * could silently drift into sharing one message that only actually describes one cause — the defect
+	 * this file used to have, where every one of these asserted the same RDK-version-blaming text.
 	 */
 	it.each([
 		['a non-object reply', 'nope' as JsonValue, /unexpected plan response/],
 		['a reply with no plan key', { execute: true } as JsonValue, /no trajectory/],
 		['a null plan, which is how a Go nil marshals', { plan: null } as JsonValue, /no trajectory/],
-		['a plan that is not an array', { plan: { arm: [0] } } as JsonValue, /cannot read/],
-		['joint values that are not numbers', { plan: [{ arm: ['0'] }] } as JsonValue, /cannot read/],
-		['a null step', { plan: [{ arm: [0] }, null] } as JsonValue, /cannot read/],
-		['a null joint value', { plan: [{ arm: [0, null] }] } as JsonValue, /cannot read/],
+		['a plan that is not an array', { plan: { arm: [0] } } as JsonValue, /not a list of steps/],
+		[
+			'joint values that are not numbers',
+			{ plan: [{ arm: ['0'] }] } as JsonValue,
+			/non-numeric joint value/,
+		],
+		['a null step', { plan: [{ arm: [0] }, null] } as JsonValue, /null trajectory step/],
+		['a null joint value', { plan: [{ arm: [0, null] }] } as JsonValue, /null joint value/],
 		['an empty trajectory', { plan: [] } as JsonValue, /empty trajectory/],
 	])('rejects %s', (_label, value, message) => {
 		expect(() => parsePlanResult(value)).toThrow(PlanCommandError)
@@ -193,9 +197,13 @@ describe('parsePlanResult', () => {
 	 * The result was a plausible-looking arm drawn at the zero configuration rather than a reply
 	 * reported as unreadable. `[[], []]` also satisfied `isAlreadyAtGoal`, so the panel claimed the
 	 * machine was already there.
+	 *
+	 * `{}` and `[]` share a message: both name zero components, and that is the whole of what is
+	 * wrong with either. A non-empty array step is a different defect — a list where a map of
+	 * component names was expected — so it gets its own.
 	 */
 	it.each([
-		['a step with no columns', { plan: [{ arm: [0] }, {}] } as JsonValue],
+		['a step with no columns', { plan: [{ arm: [0] }, {}] } as JsonValue, /naming no components/],
 		[
 			'a step that is an array',
 			{
@@ -206,10 +214,11 @@ describe('parsePlanResult', () => {
 					],
 				],
 			} as JsonValue,
+			/unnamed joint values/,
 		],
-		['nothing but empty steps', { plan: [[], []] } as JsonValue],
-	])('rejects %s rather than reading it as the zero configuration', (_label, value) => {
-		expect(() => parsePlanResult(value)).toThrow(/cannot read/)
+		['nothing but empty steps', { plan: [[], []] } as JsonValue, /naming no components/],
+	])('rejects %s rather than reading it as the zero configuration', (_label, value, message) => {
+		expect(() => parsePlanResult(value)).toThrow(message)
 	})
 
 	/**
@@ -218,7 +227,7 @@ describe('parsePlanResult', () => {
 	 * finely to sample, so one non-finite value makes the total non-finite, which survives
 	 * `Math.ceil` until the interior loop stops running: *every* segment of the plan collapses to
 	 * one frame. That is the raw waypoint teleport interpolation exists to prevent, reached with no
-	 * error raised anywhere and a `NaN` on the scrubber's coarsening readout.
+	 * error raised anywhere.
 	 *
 	 * `planCommand` already refuses a non-finite goal on exactly this reasoning; this is the same
 	 * rule applied to the reply.
@@ -231,7 +240,7 @@ describe('parsePlanResult', () => {
 		const value = { plan: [{ arm: [0, 0] }, { arm: [0.5, bad] }] } as unknown as JsonValue
 
 		expect(() => parsePlanResult(value)).toThrow(PlanCommandError)
-		expect(() => parsePlanResult(value)).toThrow(/cannot read/)
+		expect(() => parsePlanResult(value)).toThrow(/non-finite joint value/)
 	})
 
 	/**
@@ -242,8 +251,8 @@ describe('parsePlanResult', () => {
 	it('tells an unreadable trajectory apart from an absent one', () => {
 		const old = { plan: [{ arm: [{ Value: 0.1 }] }] } as JsonValue
 
-		expect(() => parsePlanResult(old)).toThrow(/older than/)
-		expect(() => parsePlanResult({ execute: true })).not.toThrow(/older than/)
+		expect(() => parsePlanResult(old)).toThrow(/older joint-value format/)
+		expect(() => parsePlanResult({ execute: true })).not.toThrow(/older joint-value format/)
 	})
 })
 

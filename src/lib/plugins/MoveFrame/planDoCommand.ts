@@ -89,7 +89,7 @@ export const planCommand = ({
 }
 
 /**
- * Selects RDK's own `defaultExecuteEpsilon` rather than naming a tolerance here. `builtin.go:376`
+ * Selects RDK's own `defaultExecuteEpsilon` rather than naming a tolerance here. `builtin.go`
  * reads any value ≤ 0 — or anything that is not a float — as "use the default", which is the right
  * answer: how far an arm may have drifted before its plan is stale is a property of the arm, not
  * something a viewer should be deciding for it.
@@ -100,7 +100,7 @@ const RDK_DEFAULT_EPSILON = 0
  * Builds the `execute` command for a trajectory a previous `plan` produced.
  *
  * `executeCheckStart` is what arms RDK's own start-state guard. Its *presence* is the switch
- * (`builtin.go:376`); omit it and epsilon is `math.MaxFloat64`, so the comparison at `builtin.go:621`
+ * (`builtin.go`); omit it and epsilon is `math.MaxFloat64`, so the comparison in `builtin.go`
  * can never trip and the trajectory runs from wherever the components happen to be. Since `execute`
  * never replans, that is precisely the case worth refusing: the plan was validated from one starting
  * configuration, and running it from a different one flies a path nothing checked.
@@ -128,7 +128,7 @@ export const executeCommand = (trajectory: TrajectoryStep[]): Record<string, Jso
  * `interpolateTrajectory`'s frame budget sums every segment's cost, so one `NaN` makes the total
  * `NaN`, which survives `Math.ceil` until the interior loop stops running and *every* segment of
  * the plan collapses to one frame — the raw waypoint teleport interpolation exists to prevent,
- * reached with no error anywhere and a `NaN` on the scrubber's coarsening readout.
+ * reached with no error raised anywhere.
  *
  * Whether RDK can send one is unproven. `protojson` refuses to marshal a non-finite
  * `structpb.Value`, but a machine connection is WebRTC binary proto, which has no such objection.
@@ -146,6 +146,76 @@ const isTrajectoryStep = (step: unknown): step is TrajectoryStep =>
 
 const isTrajectory = (value: unknown): value is TrajectoryStep[] =>
 	Array.isArray(value) && value.every((step) => isTrajectoryStep(step))
+
+/**
+ * RDK older than ~v0.101 serialised `Input` as `{Value: number}`, a struct, rather than the float
+ * alias it is today, so a plan that *succeeded* comes back looking like this instead of a number.
+ * Checked on its own so that one explainable shape gets its own message instead of folding into the
+ * generic malformed-reply diagnosis below, which is not evidence of any particular RDK version.
+ */
+const isOldInputShape = (inputs: unknown): boolean =>
+	Array.isArray(inputs) &&
+	inputs.some((input) => typeof input === 'object' && input !== null && 'Value' in input)
+
+const hasOldInputShape = (trajectory: unknown): boolean =>
+	Array.isArray(trajectory) &&
+	trajectory.some(
+		(step) =>
+			typeof step === 'object' &&
+			step !== null &&
+			!Array.isArray(step) &&
+			Object.values(step as Record<string, unknown>).some((value) => isOldInputShape(value))
+	)
+
+/**
+ * Diagnoses a trajectory that already failed {@link isTrajectory}, so the several structurally
+ * different ways a reply can be malformed each say what is actually wrong instead of collapsing into
+ * one message that guesses at an RDK version — a guess only {@link hasOldInputShape}'s shape
+ * supports, and `parsePlanResult` never reaches this function for that shape.
+ */
+const describeMalformedTrajectory = (value: unknown): string => {
+	if (!Array.isArray(value)) {
+		return 'Motion service returned a trajectory that is not a list of steps.'
+	}
+
+	for (const step of value) {
+		if (Array.isArray(step)) {
+			return step.length === 0
+				? 'Motion service returned a trajectory step naming no components.'
+				: 'Motion service returned a trajectory step with unnamed joint values.'
+		}
+
+		if (step === null || typeof step !== 'object') {
+			return 'Motion service returned a null trajectory step.'
+		}
+
+		const columns = Object.entries(step)
+		if (columns.length === 0) {
+			return 'Motion service returned a trajectory step naming no components.'
+		}
+
+		for (const [name, inputs] of columns) {
+			if (!Array.isArray(inputs)) {
+				return `Motion service returned a non-list joint value for component "${name}".`
+			}
+			for (const input of inputs) {
+				if (input === null) {
+					return `Motion service returned a null joint value for component "${name}".`
+				}
+				if (typeof input !== 'number') {
+					return `Motion service returned a non-numeric joint value for component "${name}".`
+				}
+				if (!Number.isFinite(input)) {
+					return `Motion service returned a non-finite joint value for component "${name}".`
+				}
+			}
+		}
+	}
+
+	// Unreachable from `parsePlanResult`: every caller already knows `isTrajectory` returned false,
+	// and the walk above covers every way `isTrajectoryStep` can say no to a step.
+	return 'Motion service returned a trajectory this client cannot read.'
+}
 
 export class PlanCommandError extends Error {
 	constructor(message: string) {
@@ -172,15 +242,21 @@ export const parsePlanResult = (value: JsonValue): PlanResult => {
 		throw new PlanCommandError('Motion service returned no trajectory for this move.')
 	}
 
-	// Told apart from an absent key deliberately. An RDK older than ~v0.101 answers a plan that
-	// *succeeded* with `[{"Value": 0.1}]`, because `Input` was a struct rather than a float alias —
-	// and the same versions take `component_name` as a `ResourceName`, so the request would not have
-	// unmarshalled either. There is no capability or version RPC to probe with, so the shape of the
-	// reply is the only evidence available for saying so.
-	if (!isTrajectory(trajectory)) {
+	// Told apart from every other malformed shape deliberately. An RDK older than ~v0.101 answers a
+	// plan that *succeeded* with `[{"Value": 0.1}]`, because `Input` was a struct rather than a float
+	// alias — and the same versions take `component_name` as a `ResourceName`, so the request would
+	// not have unmarshalled either. There is no capability or version RPC to probe with, so the shape
+	// of the reply is the only evidence available for saying so, and it is evidence for this one
+	// shape only: every other way a reply can fail `isTrajectory` is not something an RDK upgrade
+	// explains, so each gets its own diagnosis instead of borrowing this one.
+	if (hasOldInputShape(trajectory)) {
 		throw new PlanCommandError(
-			'Motion service returned a trajectory this client cannot read. The machine may be running a version of RDK older than v0.101.'
+			'Motion service returned a trajectory using an older joint-value format. The machine may be running an older version of RDK.'
 		)
+	}
+
+	if (!isTrajectory(trajectory)) {
+		throw new PlanCommandError(describeMalformedTrajectory(trajectory))
 	}
 
 	if (trajectory.length === 0) {
@@ -214,7 +290,7 @@ const sameInputs = (a: TrajectoryStep, b: TrajectoryStep): boolean => {
 /**
  * Whether the planner answered "there is nothing to do".
  *
- * RDK seeds its trajectory with the start configuration (`plan_manager.go:51`) and then appends the
+ * RDK seeds its trajectory with the start configuration (`plan_manager.go`) and then appends the
  * IK solution, so a move whose goal is already satisfied comes back as two steps — never as an empty
  * plan, and never as an error.
  *

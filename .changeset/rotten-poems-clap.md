@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Ask RDK to check the start state before executing a previewed plan
+Add a client for the motion service's `plan` and `execute` do-commands
