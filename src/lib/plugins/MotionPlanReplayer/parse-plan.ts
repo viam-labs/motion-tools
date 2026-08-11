@@ -1,15 +1,9 @@
 import { z } from 'zod'
 
 /**
- * Structurally the same shape as `$lib/motion/frameDescriptors.ts`'s `RawFrame` and
- * `FrameSystemJson`, declared separately rather than imported: this file's whole job is decoding
- * untyped JSON zod has not yet validated, and that file's is reading an already-trusted shape, so
- * sharing a type would either hand this file a zod-free interface or hand that one a zod dependency
- * it does not need. The coupling is load-bearing rather than coincidental: `parsedPlanToSnapshots`
- * passes a `ParsedPlan` straight into `buildFrameDescriptors(frameSystem: FrameSystemJson)`, and it
- * typechecks only because this schema's inferred `frame_system` is a structural superset of that
- * interface. Widen either shape and the other still passes; narrow this one and the call site stops
- * compiling rather than failing at runtime, which is the whole reason to keep the two aligned.
+ * Duplicates `frameDescriptors.ts`'s `RawFrame` rather than importing it: this file decodes
+ * untrusted JSON, that one reads a trusted shape. Narrow this and `buildFrameDescriptors` stops
+ * compiling.
  */
 const RawFrameSchema = z.object({
 	frame_type: z.string(),
