@@ -161,8 +161,8 @@ type MeshDataProblem = 'absent' | 'unreadable' | 'empty'
  * that side: `encoding/json` unmarshals *both* a base64 string and a number array into a `[]byte`.
  * Only a decoder written by hand has to know there are two shapes.
  *
- * Reading only the first shape meant every mesh on the preview path threw inside `protoBase64.dec`
- * and was reported as `undecodable mesh_data`, blaming the robot's data for a decoder that was
+ * Reading only the first shape means anything reaching this from `frameSystemConfig` fails inside
+ * `protoBase64.dec` and is reported as undecodable, blaming the robot's data for a decoder that was
  * looking for the wrong thing.
  */
 const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | MeshDataProblem => {

@@ -246,6 +246,24 @@ const addPart = (
 	if (!transform || !name || name === WORLD) return
 
 	const origin = originName(name)
+
+	// `originName` derives `<part>_origin` mechanically, with no idea whether some other part in
+	// this same reply is literally named that. A part `cam` and a part `cam_origin` produce the
+	// same key: `cam`'s mount-offset frame (`frames[origin]`, written below) and `cam_origin`'s own
+	// bare-part frame (`frames[name]`, written further down for the `cam_origin` part) both land on
+	// `frames['cam_origin']`. Whichever part is processed second would silently overwrite the
+	// first's mount offset and entire collision volume and reparent its descendants — array order
+	// decides which "second" means, so it would not even be deterministic across replies. Checking
+	// both keys catches the collision from either direction: it fires whether this part's `origin`
+	// was already claimed as someone else's bare name, or this part's own bare `name` was already
+	// claimed as someone else's `origin`.
+	if (frames[origin] !== undefined || frames[name] !== undefined) {
+		console.warn(
+			`[motion] "${name}" collides with a frame name another part already generated — not drawn`
+		)
+		return
+	}
+
 	// Not a documented default: RDK hard-errors with `ErrEmptyStringFrameName` on an empty frame
 	// name, encoding and decoding alike, so a reply carrying one never came from a healthy server.
 	// Rooting it at the world keeps the rest of the scene drawable instead of dropping the part.

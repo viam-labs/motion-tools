@@ -144,6 +144,41 @@ describe('the mount offset', () => {
 	})
 })
 
+/**
+ * `originName` derives `<part>_origin` mechanically and nothing checks whether some other part in
+ * the same reply is literally named that. A part `cam` and a part `cam_origin` both want the key
+ * `frames['cam_origin']` — the first as its own mount-offset frame, the second as its own bare-part
+ * frame — and until the guard under test existed, whichever was processed second silently overwrote
+ * the first's mount offset and entire collision volume and reparented its descendants. Array order
+ * decides which part comes first, and `cam` is listed first below.
+ */
+describe('a part named after another part`s generated origin', () => {
+	const sphere = new Geometry({
+		geometryType: { case: 'sphere', value: new Sphere({ radiusMm: 12 }) },
+		label: 'cam-body',
+	})
+
+	it('keeps the earlier part`s mount offset and geometry, and warns and skips the collider', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+		const { frames, parents } = frameSystemToPlanFrames([
+			part({ name: 'cam', parent: 'table', geometry: sphere }),
+			part({ name: 'cam_origin', parent: 'table' }),
+		])
+
+		// `cam`'s mount offset and geometry survive untouched.
+		expect(parents['cam_origin']).toBe('table')
+		const { geometry: carried } = frames['cam_origin']!.frame as { geometry: LocalGeometry | null }
+		expect(carried?.geometryType.case).toBe('sphere')
+
+		// The colliding part contributes nothing at all, not even its own origin.
+		expect(frames['cam_origin_origin']).toBeUndefined()
+
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('cam_origin'))
+		warn.mockRestore()
+	})
+})
+
 describe('geometry placement', () => {
 	const sphere = new Geometry({
 		geometryType: { case: 'sphere', value: new Sphere({ radiusMm: 12 }) },
@@ -483,6 +518,31 @@ describe('a model that branches', () => {
 
 		expect(columnOf(shuffled, 'alpha_joint')).toBe(0)
 		expect(columnOf(shuffled, 'zeta_joint')).toBe(1)
+	})
+
+	/**
+	 * This file's own module doc says `primary_output_frame` never arrives on this route, because
+	 * `FrameSystemPart.ToProtobuf` sends only `model`. For a serial chain that is harmless — the
+	 * declared envelope value always equals the sole leaf — but `grip` here branches into two
+	 * leaves, `zeta_finger` and `alpha_finger`, so `soleLeafOf` sees both and returns `undefined`.
+	 * `buildFrameContexts` then falls back to the first child of the last joint in the walk order
+	 * (`grip:zeta_joint`), which happens to be `grip:zeta_finger` — not because RDK said so, there is
+	 * no envelope on this route to say anything, but because that is the joint declared last and
+	 * `zeta_finger` is the only frame parented to it. `alpha_finger` would be just as legitimate a
+	 * guess, or the intended one; this test pins current behaviour rather than endorsing it. Which
+	 * fallback is actually intended is a human call, not something to decide here.
+	 */
+	it('remaps a child of the bare part name onto the last joint`s child in the walk order', () => {
+		const descriptors = byName(
+			buildFrameDescriptors(
+				frameSystemToPlanFrames([
+					part({ name: 'grip', kinematics: branched }),
+					part({ name: 'grip-child', parent: 'grip' }),
+				])
+			)
+		)
+
+		expect(descriptors.get('grip-child_origin')?.parent).toBe('grip:zeta_finger')
 	})
 })
 
