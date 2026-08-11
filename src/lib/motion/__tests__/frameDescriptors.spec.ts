@@ -1055,6 +1055,31 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	/**
+	 * An untyped geometry sets none of `x/y/z`, `l` or `r`, so a mesh with no `type` key was
+	 * indistinguishable from "no geometry" and dropped without a warning. `original_file` in the
+	 * captures already omits `type` entirely for other shapes; nothing pairs that with a mesh yet
+	 * (`buildDescriptors` skips `model` frames), so this pins the fallback ahead of a caller that
+	 * reaches it.
+	 */
+	it('reaches the mesh branch, not the silent no-geometry arm, when type is absent', () => {
+		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
+		const geometry = obstacleGeometry({ mesh_content_type: 'ply', mesh_data: btoa(ply) })
+
+		expect(geometry).not.toBeNull()
+		expect(geometry!.geometryType.case).toBe('mesh')
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	it('names the frame when an untyped mesh cannot be read, rather than dropping it silently', () => {
+		expect(obstacleGeometry({ mesh_content_type: 'ply', mesh_data: 'not base64' })).toBeNull()
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('"obstacle"'))
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('undecodable mesh_data'))
+	})
+
+	// RDK treats stl as a first-class mesh format and URDF collision meshes are usually stl, so
+	// dropping them cost an arm its whole collision volume. `GeometryConfig` writes a bare lowercase
+	// token, so the noisier rows are defense on a field this repo does not own.
 	it.each([
 		['stl', 'stl'],
 		['STL', 'stl'],

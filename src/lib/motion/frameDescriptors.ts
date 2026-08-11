@@ -104,6 +104,10 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 	if (((g.l as number) ?? 0) !== 0) return 'capsule'
 	if (((g.r as number) ?? 0) > 0) return 'sphere'
 
+	// A mesh sets none of x/y/z/l/r, so it is invisible to the chain above; without this it reads
+	// as "no geometry" and drops silently instead of reaching the mesh branch's named warnings.
+	if (g.mesh_data !== undefined || g.mesh_content_type !== undefined) return 'mesh'
+
 	return ''
 }
 
