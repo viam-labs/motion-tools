@@ -26,7 +26,7 @@
 	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-	import { setOrientationFromEuler } from '$lib/transform'
+	import { setOrientationFromEuler } from '$lib/math/transform'
 
 	import Collisions from './collisions/Collisions.svelte'
 	import { defaultMotionService, motionServiceNames } from './moveControls'

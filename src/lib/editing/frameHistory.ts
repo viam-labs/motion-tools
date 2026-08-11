@@ -7,7 +7,7 @@ import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 
 import { hierarchy, traits } from '$lib/ecs'
 import { Pose } from '$lib/math'
-import { composeLocalMatrix } from '$lib/transform'
+import { composeLocalMatrix } from '$lib/math/transform'
 
 import { applyGeometryTrait, type EditableFrameGeometry } from './FrameEditor'
 

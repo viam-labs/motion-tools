@@ -50,10 +50,32 @@ export class OrientationVector {
 		this.#vec.set(x, y, z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#th = th
+	}
+
+	/**
+	 * Scales the vector to unit length. A zero-length vector becomes +Z.
+	 *
+	 * That fallback is what rdk does: `OrientationVector.Normalize` treats a
+	 * zero vector as unset and sets `OZ = 1`, and every conversion runs it first.
+	 *
+	 * It matters because protobuf decodes absent numbers as `0`. A
+	 * `common.v1.Pose` that sets only a position arrives with an all-zero
+	 * orientation vector, which rdk reads as no rotation. Three.js'
+	 * `Vector3.normalize` leaves a zero vector alone, so without the fallback
+	 * `toQuaternion` computes `acos(0)` and the pose renders as a 90° turn
+	 * about +Y.
+	 */
+	#normalize() {
+		if (this.#vec.lengthSq() === 0) {
+			this.#vec.set(0, 0, 1)
+			return
+		}
+
+		this.#vec.normalize()
 	}
 
 	get units(): 'degrees' | 'radians' {
@@ -72,7 +94,7 @@ export class OrientationVector {
 		this.#vec.setX(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -90,7 +112,7 @@ export class OrientationVector {
 		this.#vec.setY(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -108,7 +130,7 @@ export class OrientationVector {
 		this.#vec.setZ(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -150,7 +172,7 @@ export class OrientationVector {
 		this.#vec.set(x, y, z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.th = th
@@ -177,7 +199,7 @@ export class OrientationVector {
 	 * Normalizes the vector component.
 	 */
 	normalize() {
-		this.#vec.normalize()
+		this.#normalize()
 		return this
 	}
 
@@ -188,7 +210,7 @@ export class OrientationVector {
 		this.#vec.set(ov.x, ov.y, ov.z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.th = ov.th

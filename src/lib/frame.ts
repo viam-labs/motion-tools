@@ -16,11 +16,30 @@ type FrameGeometryMap = {
 
 export type FrameGeometry = keyof FrameGeometryMap
 
+/**
+ * A quaternion reaches a config in either spelling: rdk marshals one from
+ * untagged Go fields as `{ W, X, Y, Z }`, the frame editor writes
+ * `{ w, x, y, z }`, and Go's unmarshal is case-insensitive so rdk accepts both.
+ */
+type FrameQuaternion =
+	| { w: number; x: number; y: number; z: number }
+	| { W: number; X: number; Y: number; Z: number }
+
+/**
+ * The orientation encodings rdk's `spatialmath.OrientationConfig` accepts. A
+ * machine config is authored against rdk rather than against this app, so every
+ * one of these can arrive even though the editor only ever writes `ov_degrees`.
+ * `axis_angles` in particular shares `{ x, y, z, th }` with the two
+ * orientation-vector encodings, so a missing case reads as a plausible wrong
+ * rotation rather than as bad input.
+ */
 type FrameOrientationMap = {
-	quaternion: { type: 'quaternion'; value: { x: number; y: number; z: number; w: number } }
+	quaternion: { type: 'quaternion'; value: FrameQuaternion }
 	euler_angles: { type: 'euler_angles'; value: { roll: number; pitch: number; yaw: number } }
 	ov_degrees: { type: 'ov_degrees'; value: { x: number; y: number; z: number; th: number } }
 	ov_radians: { type: 'ov_radians'; value: { x: number; y: number; z: number; th: number } }
+	/** rdk's `R4AA`: an axis plus a rotation about it, in radians. */
+	axis_angles: { type: 'axis_angles'; value: { x: number; y: number; z: number; th: number } }
 }
 
 export type FrameOrientation = keyof FrameOrientationMap

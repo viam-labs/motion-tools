@@ -4,7 +4,8 @@ import { Euler, MathUtils, Matrix4, Object3D, Quaternion, Vector3 } from 'three'
 
 import type { Frame } from '../frame'
 
-import { OrientationVector } from '../three/OrientationVector'
+import { OrientationVector } from './OrientationVector'
+import { quatFromJson } from './orientationJson'
 
 const ov = new OrientationVector()
 const quaternion = new Quaternion()
@@ -122,28 +123,27 @@ export class Pose implements ViamPose {
 	}
 
 	setFromFrame(frame: Partial<Frame>) {
+		const orientation = frame.orientation
+
 		// Stored configs can contain the orientation discriminator without its
 		// value (for example after a partial frame edit is discarded). Treat that
 		// wire-level default the same as an omitted orientation.
-		if (!frame.orientation?.value) {
+		if (!orientation?.value) {
 			ov.set(0, 0, 1, 0)
-		} else if (frame.orientation.type === 'quaternion') {
-			quaternion.copy(frame.orientation.value)
-			ov.setFromQuaternion(quaternion)
-		} else if (frame.orientation.type === 'euler_angles') {
-			euler.set(
-				frame.orientation.value.roll,
-				frame.orientation.value.pitch,
-				frame.orientation.value.yaw,
-				'ZYX'
-			)
-			quaternion.setFromEuler(euler)
-			ov.setFromQuaternion(quaternion)
-		} else if (frame.orientation.type === 'ov_radians') {
-			ov.copy(frame.orientation.value)
+		} else if (orientation.type === 'ov_degrees' || orientation.type === 'ov_radians') {
+			// Read orientation vectors across directly rather than through a
+			// quaternion: this class already stores one, and the round trip is
+			// lossy for the tuple even where it is exact for the rotation —
+			// `th: 180` comes back as `-180`. These values are what a config
+			// round-trips and what the details panel shows.
+			const { x, y, z, th } = orientation.value
+			ov.set(x, y, z, orientation.type === 'ov_radians' ? th : MathUtils.degToRad(th ?? 0))
 		} else {
-			const th = MathUtils.degToRad(frame.orientation.value.th ?? 0)
-			ov.set(frame.orientation.value.x, frame.orientation.value.y, frame.orientation.value.z, th)
+			// Everything else rdk accepts — `quaternion`, `euler_angles`,
+			// `axis_angles` — goes through the decoder shared with the motion-plan
+			// and kinematics readers, which is where that list is maintained.
+			quatFromJson(orientation, quaternion)
+			ov.setFromQuaternion(quaternion)
 		}
 
 		// Frame translations come from the machine config, already in millimetres.

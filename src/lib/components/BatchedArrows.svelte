@@ -6,7 +6,7 @@
 
 	import { traits, useWorld } from '$lib/ecs'
 	import { BatchedArrow } from '$lib/three/BatchedArrow'
-	import { OrientationVector } from '$lib/three/OrientationVector'
+	import { OrientationVector } from '$lib/math/OrientationVector'
 
 	const batched = new BatchedArrow()
 

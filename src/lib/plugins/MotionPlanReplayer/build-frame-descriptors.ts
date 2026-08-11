@@ -4,7 +4,7 @@
  * this file cannot import — frame types (`referenceframe/register.go`) and the model-terminal
  * resolution — so each switch is a place the copy can fall behind its original without failing.
  *
- * Orientation encodings and the two geometry-center conventions live in `$lib/spatialJson`, which
+ * Orientation encodings and the two geometry-center conventions live in `$lib/math/spatialJson`, which
  * decodes the same `spatialmath` JSON wherever it arrives from.
  */
 
@@ -28,7 +28,7 @@ import {
 	quatFromJson,
 	type RawOrientation,
 	type Vec3Json,
-} from '$lib/spatialJson'
+} from '$lib/math/spatialJson'
 
 import type { ParsedPlan } from './parse-plan'
 

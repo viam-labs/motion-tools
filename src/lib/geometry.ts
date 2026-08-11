@@ -8,6 +8,7 @@ import type {
 } from '@viamrobotics/sdk'
 
 import { Pose } from '$lib/math'
+import { inferGeometryType } from '$lib/math/geometryJson'
 
 import type { Frame } from './frame'
 
@@ -16,6 +17,45 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
 		center: new Pose(),
 		label,
 		geometryType: geometryType ?? { case: undefined, value: undefined },
+	}
+}
+
+/**
+ * Read a geometry the frame editor cannot write but rdk still accepts: one that
+ * leaves `type` off for rdk to infer, and the three shapes with no counterpart
+ * in the SDK's `Geometry` union.
+ *
+ * `cylinder`, `point` and `mesh` are real rdk geometries that cannot be carried
+ * over the wire as a `common.v1.Geometry` — rdk's own `Cylinder.ToProtobuf`
+ * panics rather than pick a stand-in — so they are reported and skipped. Better
+ * a logged gap than a shape the viewer invented.
+ */
+const createGeometryFromRdkConfig = (raw: Record<string, unknown>): Geometry | undefined => {
+	const x = (raw.x as number) ?? 0
+	const y = (raw.y as number) ?? 0
+	const z = (raw.z as number) ?? 0
+	const r = (raw.r as number) ?? 0
+	const l = (raw.l as number) ?? 0
+
+	switch (inferGeometryType(raw)) {
+		case 'box': {
+			return createGeometry({ case: 'box', value: { dimsMm: { x, y, z } } })
+		}
+		case 'capsule': {
+			return createGeometry({ case: 'capsule', value: { radiusMm: r, lengthMm: l } })
+		}
+		case 'sphere': {
+			return createGeometry({ case: 'sphere', value: { radiusMm: r } })
+		}
+		// Inference returns the empty string when nothing was set, which is rdk's
+		// own spelling of "no geometry".
+		case '': {
+			return undefined
+		}
+		default: {
+			console.warn(`[frame] geometry type "${raw.type as string}" cannot be drawn — skipping it`)
+			return undefined
+		}
 	}
 }
 
@@ -59,8 +99,13 @@ export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undef
 			})
 		}
 		default: {
+			// The assignment is the compile-time half: it fails if a shape is added
+			// to the editor's union without a case above. The call is the runtime
+			// half, and they answer different questions — a machine config is
+			// authored against rdk, so what actually arrives is a
+			// `spatialmath.GeometryConfig`, which the union does not bound.
 			const _exhaustive: never = geometry
-			return _exhaustive
+			return createGeometryFromRdkConfig(_exhaustive)
 		}
 	}
 }

@@ -408,6 +408,59 @@ describe('setFromFrame', () => {
 		expect(fields(pose)).toEqual({ x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 })
 	})
 
+	/**
+	 * RDK marshals a quaternion from untagged Go fields, so it writes
+	 * `{ W, X, Y, Z }` while the frame editor writes `{ w, x, y, z }`. Go's
+	 * unmarshal is case-insensitive, so both spell the same valid config and
+	 * both have to read as the same rotation.
+	 */
+	it.each([
+		['lowercase', { x: Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 }],
+		['capitalised', { X: Math.SQRT1_2, Y: 0, Z: 0, W: Math.SQRT1_2 }],
+	])('reads a %s quaternion', (_label, value) => {
+		const pose = new Pose().setFromFrame({ orientation: { type: 'quaternion', value } })
+
+		expect(pose.isFinite()).toBe(true)
+		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
+	})
+
+	/**
+	 * RDK's `R4AA` is a true axis-angle in radians, and it tags its fields
+	 * `th/x/y/z` — the same names as both orientation-vector encodings. Reading
+	 * one as the other parses cleanly and yields a plausible wrong rotation, so
+	 * the assertion is the rotation itself rather than the stored fields.
+	 */
+	it('reads axis_angles as an axis-angle in radians', () => {
+		const pose = new Pose().setFromFrame({
+			orientation: { type: 'axis_angles', value: { x: 1, y: 0, z: 0, th: Math.PI / 2 } },
+		})
+
+		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
+	})
+
+	/** RDK normalizes the axis inside `R4AA.ToQuat`, so an unscaled one is the same rotation. */
+	it('normalizes an axis_angles axis', () => {
+		const pose = new Pose().setFromFrame({
+			orientation: { type: 'axis_angles', value: { x: 5, y: 0, z: 0, th: Math.PI / 2 } },
+		})
+
+		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
+	})
+
+	/**
+	 * The orientation-vector encodings are read across rather than through a
+	 * quaternion: the round trip is exact for the rotation but not for the tuple,
+	 * and `th: 180` returning as `-180` would change what a config round-trips
+	 * and what the details panel shows.
+	 */
+	it('keeps ov_degrees theta at 180 rather than -180', () => {
+		const pose = new Pose().setFromFrame({
+			orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 180 } },
+		})
+
+		expect(pose.theta).toBe(180)
+	})
+
 	it('agrees across orientation representations of the same rotation', () => {
 		const { x, y, z, w } = composeZYX(tiltedRoll, tiltedPitch, tiltedYaw)
 
