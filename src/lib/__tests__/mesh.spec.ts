@@ -31,19 +31,21 @@ end_header
 const bytes = (text: string) => new TextEncoder().encode(text)
 
 /**
- * The subarray cases below need *binary* fixtures to mean anything. Both loaders reach a text path
- * for an ASCII mesh, and text is decoded from the view, which carries its own offset. Only the
- * binary path reads the underlying `ArrayBuffer`, which is where an unsliced view hands the loader
- * whatever sits in front of the mesh.
+ * Binary on purpose: the subarray cases below reach a text path for an ASCII mesh, which is decoded
+ * from the view and so carries its own offset. Only the binary path reads the underlying buffer.
  */
-const binaryStl = (): Uint8Array<ArrayBuffer> => {
+const binaryStl = (triangles = 1): Uint8Array<ArrayBuffer> => {
 	// 80-byte header, uint32 triangle count, then 50 bytes per triangle.
-	const buffer = new ArrayBuffer(80 + 4 + 50)
+	const buffer = new ArrayBuffer(80 + 4 + 50 * triangles)
 	const view = new DataView(buffer)
-	view.setUint32(80, 1, true)
-	// Normal, then three vertices, as 12 little-endian floats.
+	view.setUint32(80, triangles, true)
+	// Normal, then three vertices, as 12 little-endian floats. The remaining 2 bytes of each
+	// triangle are the attribute count, which the loader ignores.
 	const floats = [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
-	for (const [i, value] of floats.entries()) view.setFloat32(84 + i * 4, value, true)
+	for (let triangle = 0; triangle < triangles; triangle += 1) {
+		const start = 84 + triangle * 50
+		for (const [i, value] of floats.entries()) view.setFloat32(start + i * 4, value, true)
+	}
 	return new Uint8Array(buffer)
 }
 
@@ -135,11 +137,13 @@ describe('parseMeshInput', () => {
 		expect(parseMeshInput(build(), contentType).getAttribute('position').count).toBe(3)
 	})
 
+	it('reads the stl triangle count rather than assuming one', () => {
+		expect(parseMeshInput(binaryStl(2), 'stl').getAttribute('position').count).toBe(6)
+	})
+
 	/**
-	 * A view into a larger buffer must not hand the loader its neighbours. Both loaders take an
-	 * `ArrayBuffer` for a binary mesh, so an unsliced view starts them four bytes early: the header
-	 * lands at the wrong offset and they return an empty geometry rather than throwing, which is a
-	 * failure nobody sees until the collision volume is missing.
+	 * An unsliced view starts a binary loader four bytes early, and both answer that with an empty
+	 * geometry rather than a throw, so this fails silently if the guard goes.
 	 */
 	it.each([
 		['stl', binaryStl],

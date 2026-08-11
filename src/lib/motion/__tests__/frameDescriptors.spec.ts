@@ -1,5 +1,5 @@
 import { protoBase64 } from '@bufbuild/protobuf'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
@@ -1016,7 +1016,6 @@ describe('buildFrameDescriptors', () => {
 	}
 
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	it('skips an unsupported geometry type but keeps the frame', () => {
 		// Rendering nothing is honest; a stand-in box would lie about the collision volume.
@@ -1024,11 +1023,6 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	/**
-	 * The same bytes in both shapes RDK sends them. A plan dump is marshalled by `encoding/json`,
-	 * which writes a `[]byte` as base64; `frameSystemConfig` is built by
-	 * `protoutils.StructToStructPb`, which reflects over the struct and walks the slice element by
-	 * element, so the field arrives as an array of numbers.
-	 *
 	 * Asserted against the literal rather than against each other: comparing the two shapes only
 	 * proves they agree, which they would if both were broken the same way.
 	 */
@@ -1056,11 +1050,8 @@ describe('buildFrameDescriptors', () => {
 	})
 
 	/**
-	 * An untyped geometry sets none of `x/y/z`, `l` or `r`, so a mesh with no `type` key was
-	 * indistinguishable from "no geometry" and dropped without a warning. `original_file` in the
-	 * captures already omits `type` entirely for other shapes; nothing pairs that with a mesh yet
-	 * (`buildDescriptors` skips `model` frames), so this pins the fallback ahead of a caller that
-	 * reaches it.
+	 * Not reachable from any capture yet: `buildDescriptors` skips `model` frames, and nothing pairs
+	 * an absent `type` with a mesh. This pins the fallback ahead of a caller that reaches it.
 	 */
 	it('reaches the mesh branch, not the silent no-geometry arm, when type is absent', () => {
 		const ply = 'ply\nformat ascii 1.0\nelement vertex 0\nend_header\n'
@@ -1077,9 +1068,8 @@ describe('buildFrameDescriptors', () => {
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('undecodable mesh_data'))
 	})
 
-	// RDK treats stl as a first-class mesh format and URDF collision meshes are usually stl, so
-	// dropping them cost an arm its whole collision volume. `GeometryConfig` writes a bare lowercase
-	// token, so the noisier rows are defense on a field this repo does not own.
+	// RDK treats stl as first-class and URDF collision meshes are usually stl, so dropping them cost an
+	// arm its whole collision volume.
 	it.each([
 		['stl', 'stl'],
 		['STL', 'stl'],
@@ -1097,12 +1087,6 @@ describe('buildFrameDescriptors', () => {
 		expect(mesh?.contentType).toBe(expected)
 	})
 
-	/**
-	 * A number array is only ever bytes. Filtering the bad elements out instead of refusing the
-	 * array shifts every byte after them, and a byte-shifted mesh does not fail loudly: a binary
-	 * STL fails its size check, falls through to the ASCII parser, matches nothing and yields an
-	 * empty geometry. `encoding/json` refuses all of these on the Go side for the same reason.
-	 */
 	it.each([
 		['a non-number element', [112, 'x', 121]],
 		['a value past a byte', [112, 300, 121]],
@@ -1112,11 +1096,8 @@ describe('buildFrameDescriptors', () => {
 		expect(obstacleGeometry({ type: 'mesh', mesh_content_type: 'ply', mesh_data })).toBeNull()
 	})
 
-	/**
-	 * `protoBase64.dec` is not a validator: it ignores whitespace and tolerates missing padding, so
-	 * it returns zero bytes for these rather than throwing. `Uint8Array(0)` is as truthy as `[]`, so
-	 * the length check has to cover the string shape too, not just the array one.
-	 */
+	// `protoBase64.dec` ignores whitespace and tolerates missing padding, so these return zero bytes
+	// rather than throwing.
 	it.each([['='], ['===='], ['   '], ['\n']])(
 		'skips a mesh whose base64 %s decodes to nothing',
 		(mesh_data) => {
@@ -1124,11 +1105,6 @@ describe('buildFrameDescriptors', () => {
 		}
 	)
 
-	/**
-	 * The reason is the point, not just the skip. This decoder's own bug presented as "undecodable
-	 * mesh_data" on data that was perfectly fine, and that was only diagnosable because the message
-	 * distinguished bytes-we-cannot-read from nothing-to-read. Collapsing them would take that back.
-	 */
 	it.each([
 		['an unhandled content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }, 'obj'],
 		['a missing content type', { mesh_data: btoa('ply\n') }, 'content type'],
@@ -1139,12 +1115,9 @@ describe('buildFrameDescriptors', () => {
 			{ mesh_content_type: 'ply', mesh_data: '!!!not base64!!!' },
 			'undecodable mesh_data',
 		],
-		// Truthy, so a bare presence check let this through as a zero-length mesh.
 		['an empty number array', { mesh_content_type: 'ply', mesh_data: [] }, 'empty mesh_data'],
 	])('skips a mesh with %s, and says which', (_label, geometry, reason) => {
 		expect(obstacleGeometry({ type: 'mesh', ...geometry })).toBeNull()
-		// The frame name is in there too: a warning that cannot be traced to a frame is not
-		// actionable on a robot with forty of them.
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('"obstacle"'))
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining(reason))
 	})
