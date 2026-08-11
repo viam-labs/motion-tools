@@ -15,17 +15,6 @@ import * as planRelations from './relations'
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
 
-// Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
-// happens to be present because `drawTransform` adds it unconditionally. Neither can be assumed
-// present, so both go through `setOrAddTrait` (`$lib/ecs`) rather than a raw `entity.set`.
-//
-// koota's `entity.set` on a trait this entity lacks does not throw here: it writes the trait's
-// store slot without touching the entity's mask, so `has()` stays false and the write is silently
-// lost to every query that reads it. `set` only throws when the trait was never registered on the
-// *world* at all (`TypeError: Cannot read properties of undefined (reading 'store')`) — a
-// different precondition than "this entity doesn't have it", and not one plan entities can hit,
-// since other entities register `Color`/`Opacity` on this world well before a plan ever loads.
-
 export interface PlanEntry {
 	name: string
 	content: string
@@ -33,10 +22,7 @@ export interface PlanEntry {
 
 // Only primitives here — proto objects (Snapshot[]) live outside $state to avoid Svelte 5 deep proxy
 interface PlanState {
-	/**
-	 * Survives the reindexing that `removePlan` does to `plans`, which a position cannot. Everything
-	 * held outside `plans` is keyed by this rather than by where the plan currently sits.
-	 */
+	/** Survives the reindexing `removePlan` does to `plans`, which a position does not. */
 	id: number
 	name: string
 	content: string
@@ -65,9 +51,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const world = useWorld()
 	const relationships = useRelationships()
 
-	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy.
-	// Keyed by `PlanState.id`: keyed by position, removing any plan ahead of the active one left every
-	// later entry pointing at its neighbour's snapshots.
+	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy
+	// Keyed by `PlanState.id`, not by position in `plans`.
 	const snapshotStore = new Map<number, Snapshot[]>()
 
 	let nextPlanId = 0
@@ -225,8 +210,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		if (activePlanIndex === index) clearActivePlan()
 		snapshotStore.delete(removed.id)
 		plans = plans.filter((_, i) => i !== index)
-		// Every remaining plan keeps its snapshots because they were never keyed by position; only
-		// `activePlanIndex`, which is one, has to follow the shift.
 		if (activePlanIndex !== null && activePlanIndex > index) {
 			activePlanIndex = activePlanIndex - 1
 		}

@@ -1,9 +1,7 @@
 <script lang="ts">
 	/**
-	 * Stands up the world, the relationship registry and the replayer context, then renders the
-	 * panel itself. `provideMotionPlanReplayer` publishes to a module-level singleton rather than
-	 * Svelte context (see its own comment), so it only has to run before `MotionPlanReplayerUI`
-	 * mounts, not be its ancestor.
+	 * `provideMotionPlanReplayer` publishes to a module-level singleton rather than to Svelte
+	 * context, so it only has to run before `MotionPlanReplayerUI` mounts, not be its ancestor.
 	 */
 
 	import { untrack } from 'svelte'
@@ -22,8 +20,7 @@
 
 	provideWorld()
 	provideRelationships()
-	// `untrack`, matching `MotionPlanReplayer.svelte`: only the initial value of `plans` is ever
-	// read, seeding the store once at mount.
+	// `untrack`, matching `MotionPlanReplayer.svelte`: `plans` seeds the store once at mount.
 	provideMotionPlanReplayer(untrack(() => plans))
 </script>
 

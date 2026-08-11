@@ -97,11 +97,8 @@
 			</div>
 		{/if}
 
-		<!--
-			Keyed by `plan.id`, not by name. Only the upload path rejects a duplicate name; neither
-			`addPlan` nor the `plans` prop does, and Svelte throws `each_key_duplicate` in production
-			builds as well as dev, so two plans sharing a name would take the panel down on mount.
-		-->
+		<!-- Keyed by id: only the upload path rejects a duplicate name, and a repeated key throws
+		`each_key_duplicate` in production builds as well as dev. -->
 		{#each ctx.plans as plan, i (plan.id)}
 			{@const isActive = ctx.activePlanIndex === i}
 			<div

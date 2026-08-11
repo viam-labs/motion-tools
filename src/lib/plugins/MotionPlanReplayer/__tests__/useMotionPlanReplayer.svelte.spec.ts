@@ -27,28 +27,21 @@ const mount = (): Mounted => {
 }
 
 /**
- * Snapshots that say which plan they came from.
- *
- * This matters more than it looks. Cycling one fixture's snapshots across every plan makes each
- * plan's geometry byte-identical, so a test can only ever notice that it read an array of the wrong
- * *length*. Reading the wrong plan's array of the same length, which is the actual bug this module
- * had, draws a completely different robot and would go unnoticed. Naming the frame per plan and per
- * step is what lets the assertions below be about identity rather than about arithmetic.
+ * Snapshots that name their plan. One fixture cycled across every plan makes each plan's geometry
+ * byte-identical, so a test could only notice an array of the wrong length, not the wrong plan.
  */
 const planSnapshots = (plan: string, steps: number): Snapshot[] =>
 	Array.from(
 		{ length: steps },
-		(_, step) =>
+		() =>
 			new Snapshot({
 				transforms: [
 					new Transform({
 						referenceFrame: `${plan}-frame`,
 						poseInObserverFrame: new PoseInFrame({ referenceFrame: 'world' }),
-						// Stable across steps and distinct across plans, matching a real plan: reconcile keys
-						// on this, so repeating it is what makes a scrub update rather than respawn.
-						uuid: Uint8Array.from(
-							UuidTool.toBytes(`${plan}-0000-4000-8000-00000000000${step % 10}`)
-						),
+						// Stable across a plan's steps, distinct across plans: reconcile keys on this, so
+						// repeating it is what makes a scrub update the entity rather than respawn it.
+						uuid: Uint8Array.from(UuidTool.toBytes(`${plan}-0000-4000-8000-000000000000`)),
 					}),
 				],
 			})
@@ -61,8 +54,8 @@ const addPlans = (ctx: MotionPlanReplayerContext, lengths: number[]) => {
 }
 
 /**
- * Which plan's geometry is actually in the world right now. The `-frame` suffix separates the
- * drawn transforms from the plan's own root entity, which carries the plan's name.
+ * Which plan's geometry is in the world now. The `-frame` suffix separates the drawn transforms
+ * from the plan's own root entity, which is named for the plan.
  */
 const drawnFrames = (world: World): string[] =>
 	world
@@ -71,22 +64,10 @@ const drawnFrames = (world: World): string[] =>
 		.filter((name): name is string => typeof name === 'string' && name.endsWith('-frame'))
 		.toSorted()
 
-/** The entity drawn for a transform, as opposed to the plan root that shares the `Name` trait. */
 const drawnEntity = (world: World): Entity =>
 	world.query(traits.Name).find((entity) => entity.get(traits.Name)?.endsWith('-frame'))!
 
 describe('removing a plan', () => {
-	/**
-	 * Snapshots used to be keyed by the plan's position in `plans`, which `removePlan` reindexes. The
-	 * active plan then read whichever array had inherited its old slot, so it drew a different plan's
-	 * geometry while its own step count still came from `plans[i].stepCount`.
-	 *
-	 * Nothing threw. `setStep` clamped against the array it had just fetched, so the read was always
-	 * in range. What the user got was worse than a wrong drawing: with `currentStep` pinned to the
-	 * short array's last index and `lastStepIdx` still derived from the plan's own count, `atEnd` was
-	 * never true, so the scrubber's play loop re-reconciled one frame at 10 Hz forever with the
-	 * counter stuck partway and every forward control still enabled.
-	 */
 	it('leaves the active plan reading its own snapshots, not its neighbour’s', () => {
 		const { ctx, world } = mount()
 		addPlans(ctx, [2, 2, 6])
@@ -98,7 +79,6 @@ describe('removing a plan', () => {
 
 		expect(ctx.activePlanIndex).toBe(1)
 		expect(ctx.totalSteps).toBe(6)
-		// The identity assertion, not just the arithmetic one: plan-2 is on screen, not plan-1.
 		expect(drawnFrames(world)).toEqual(['plan-2-frame'])
 
 		ctx.setStep(5)
@@ -120,12 +100,8 @@ describe('removing a plan', () => {
 		expect(ctx.currentStep).toBe(5)
 	})
 
-	/**
-	 * The same bug in its destructive form, and the one the fix's own call site could still have had:
-	 * `addPlan` computes `index = plans.length`, so after a removal that index belongs to a plan that
-	 * is still loaded. Keyed by position, the new plan's snapshots overwrite the survivor's outright
-	 * rather than merely being read in its place.
-	 */
+	// `addPlan` computes `index = plans.length`, which after a removal is a position another plan
+	// still holds.
 	it('does not overwrite a surviving plan when a new one is added after a removal', () => {
 		const { ctx, world } = mount()
 		addPlans(ctx, [2, 3, 7])
@@ -151,7 +127,6 @@ describe('removing a plan', () => {
 		expect(ctx.activePlanIndex).toBeNull()
 		expect(ctx.totalSteps).toBe(0)
 		expect(ctx.plans.map((p) => p.name)).toEqual(['plan-0'])
-		// The removed plan's geometry goes with it rather than being left in the world.
 		expect(drawnFrames(world)).toEqual([])
 	})
 
@@ -166,16 +141,8 @@ describe('removing a plan', () => {
 		expect(ctx.totalSteps).toBe(2)
 	})
 
-	/**
-	 * An index naming no plan now returns before anything else happens. That is not only tidiness:
-	 * the id lookup needs the entry, and the shift below used to run unconditionally, so a negative
-	 * or fractional index moved the active plan onto its neighbour without removing anything. Those
-	 * are only reachable from outside, `removePlan` being public API through `./plugins`, but they
-	 * are the same class of bug as the one this fixes.
-	 */
-	// The active plan is the last one so that a negative or fractional index would satisfy the
-	// `activePlanIndex > index` shift. Held at index 1 instead, both compare false and the case
-	// would pass whether or not the guard exists.
+	// The active plan is last on purpose: only from there does a negative or fractional index
+	// satisfy the `activePlanIndex > index` shift, so held at 1 the case would pass without a guard.
 	it.each([
 		['out of range', 7],
 		['negative', -1],
@@ -194,11 +161,6 @@ describe('removing a plan', () => {
 })
 
 describe('plan identity', () => {
-	/**
-	 * Ids, not names, are what the store and the panel's `{#each}` key on. Names are only deduplicated
-	 * on the upload path, so `addPlan` and the `plans` prop can both produce a collision, and a
-	 * duplicate `{#each}` key throws in production builds as well as in dev.
-	 */
 	it('gives two plans with the same name distinct ids', () => {
 		const { ctx } = mount()
 		ctx.addPlan('same.json', 'content-a', planSnapshots('plan-a', 2))
@@ -207,19 +169,14 @@ describe('plan identity', () => {
 		const [first, second] = ctx.plans
 		expect(first!.id).not.toBe(second!.id)
 
-		// And they keep their own snapshots, which is the whole point of the id.
 		ctx.selectPlan(0)
 		expect(ctx.totalSteps).toBe(2)
 		ctx.selectPlan(1)
 		expect(ctx.totalSteps).toBe(5)
 	})
 
-	/**
-	 * Every other test hands `addPlan` precomputed snapshots, which is the hosted path. Without a
-	 * `resolvePlanSnapshots` the plan is parsed here instead, and that branch is the one that writes
-	 * the store itself and rewrites `plans[index]` through a spread. The spread has to carry the id
-	 * across, or the plan is left pointing at snapshots it can no longer find.
-	 */
+	// The only case on the parse path: every other test hands `addPlan` precomputed snapshots, so
+	// nothing else reaches the `plans[index]` spread that has to carry the id across.
 	it('keys a plan it parsed itself the same way, without landing on a live plan', () => {
 		const { ctx, world } = mount()
 		// A removal first, so the parsed plan's position and its id genuinely differ. Added straight
@@ -232,8 +189,6 @@ describe('plan identity', () => {
 		expect(ctx.plans[1]!.status).toBe('ready')
 		expect(ctx.totalSteps).toBe(2)
 
-		// plan-1 now sits at the position the parsed plan was written from. Its snapshots have to be
-		// untouched, which is the same corruption as the one above, on the branch that parses.
 		ctx.selectPlan(0)
 
 		expect(ctx.totalSteps).toBe(3)
@@ -266,12 +221,6 @@ describe('scrubbing', () => {
 		expect(drawnFrames(world)).toEqual([])
 	})
 
-	/**
-	 * Reconcile runs `updateMetadata` on every step, which resets `Opacity` to its default and drops
-	 * `Invisible` / `ShowAxesHelper`. Without the capture-and-restore around it, scrubbing wipes
-	 * whatever the user set from the Details panel or the tree, one frame at a time. That is a
-	 * regression this module has already had once, and nothing was holding it.
-	 */
 	it('keeps display edits made while scrubbing', () => {
 		const { ctx, world } = mount()
 		addPlans(ctx, [4])
@@ -292,18 +241,8 @@ describe('scrubbing', () => {
 })
 
 describe('display defaults', () => {
-	/**
-	 * `setOrAddColor` used to be a local reimplementation of `setOrAddTrait`; the spawn path now
-	 * calls the shared helper directly. Plan transforms carry no color metadata, so this is the
-	 * "entity doesn't have the trait yet" branch `setOrAddTrait` exists for — the one koota's own
-	 * `entity.set` would write into an unallocated store slot and lose silently, since `has()`
-	 * would stay false and no query would ever see it.
-	 *
-	 * Needs a `physicalObject` on the transform: `drawTransform` only pushes `traits.Geometry`
-	 * (here, `Sphere`) when one is present, and `applyStep` only colors entities that got real
-	 * geometry rather than the bare `ReferenceFrame` marker — `planSnapshots` above omits it, so it
-	 * can't be reused for this one.
-	 */
+	// Needs its own `physicalObject`: `applyStep` colors only entities that got real geometry, and
+	// `planSnapshots` above spawns bare `ReferenceFrame` markers.
 	it('colors a freshly spawned plan entity even though Color is always absent on spawn', () => {
 		const { ctx, world } = mount()
 		ctx.addPlan('plan-0', 'content-0', [
