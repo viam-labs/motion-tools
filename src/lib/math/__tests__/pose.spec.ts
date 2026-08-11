@@ -411,14 +411,19 @@ describe('setFromFrame', () => {
 	/**
 	 * RDK marshals a quaternion from untagged Go fields, so it writes
 	 * `{ W, X, Y, Z }` while the frame editor writes `{ w, x, y, z }`. Go's
-	 * unmarshal is case-insensitive, so both spell the same valid config and
-	 * both have to read as the same rotation.
+	 * unmarshal is case-insensitive, so both spell the same valid config and both
+	 * have to read as the same rotation.
+	 *
+	 * The cast is the point rather than a workaround: `Frame` bounds what this app
+	 * authors, and the capitalised form is a shape only rdk produces. Reading it
+	 * is `quatFromJson`'s job, which is why nothing here has to widen the type.
 	 */
 	it.each([
 		['lowercase', { x: Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 }],
 		['capitalised', { X: Math.SQRT1_2, Y: 0, Z: 0, W: Math.SQRT1_2 }],
 	])('reads a %s quaternion', (_label, value) => {
-		const pose = new Pose().setFromFrame({ orientation: { type: 'quaternion', value } })
+		const orientation = { type: 'quaternion', value } as Frame['orientation']
+		const pose = new Pose().setFromFrame({ orientation })
 
 		expect(pose.isFinite()).toBe(true)
 		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
