@@ -5,15 +5,12 @@ import type { Frame } from '$lib/frame'
 import { createGeometryFromFrame } from '$lib/geometry'
 
 /**
- * `createGeometryFromFrame` reads a machine config's `frame.geometry`, which is
- * authored against rdk's `spatialmath.GeometryConfig` rather than against the
- * four shapes the frame editor writes. Everything below is a config rdk accepts,
- * so the contract is that none of them throw and each resolves the way
- * `GeometryConfig.ParseConfig` would.
+ * Every geometry below is one rdk accepts, so none may throw and each resolves
+ * the way `GeometryConfig.ParseConfig` would. The cast is what a config does.
  */
 const asFrame = (geometry: unknown): Partial<Frame> => ({ geometry }) as Partial<Frame>
 
-/** The shape plus the numbers it was built from: a box assembled from the wrong fields still reads as a box. */
+/** Shape plus the numbers behind it: a box built from the wrong fields still reads as a box. */
 const shapeOf = (geometry: unknown) => {
 	const result = createGeometryFromFrame(asFrame(geometry))
 	if (!result) return undefined
@@ -67,11 +64,7 @@ describe('createGeometryFromFrame', () => {
 		})
 	})
 
-	/**
-	 * With no `type`, rdk infers from whichever dimensions are set: box if the
-	 * dimension vector has a norm, else capsule if `l` is set, else sphere. A
-	 * capsule sets `r` too, which is why length is checked first.
-	 */
+	/** A capsule sets `r` as well as `l`, which is why rdk checks length first. */
 	describe('an untyped geometry, the way rdk infers it', () => {
 		it.each([
 			[
@@ -103,11 +96,7 @@ describe('createGeometryFromFrame', () => {
 		})
 	})
 
-	/**
-	 * Real rdk geometries with no counterpart in the SDK's `Geometry` union —
-	 * `Cylinder.ToProtobuf` panics rather than pick a stand-in. Dropping them is
-	 * the point; reporting is what keeps that from being silent.
-	 */
+	/** Dropping these is the intent; the warning is what keeps it from being silent. */
 	describe('shapes the SDK union cannot carry', () => {
 		it.each([
 			['cylinder', { type: 'cylinder', r: 10, l: 100 }],

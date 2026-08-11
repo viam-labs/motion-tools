@@ -1,12 +1,7 @@
 /**
- * Decoder for the orientation encodings rdk's `spatialmath.OrientationConfig`
- * writes. A hand conversion of Go this file cannot import
- * (`spatialmath/orientation_json.go`), so the switch below is a place the copy
- * can fall behind its original without failing.
- *
- * Split out from `./spatialJson`, which re-exports it: `Pose` needs this decoder
- * for the machine config's `frame`, and the rest of that module is built on
- * `Pose`.
+ * A hand conversion of `spatialmath/orientation_json.go`, so the switch below
+ * can fall behind its original without failing. Separate from `./spatialJson`,
+ * which re-exports it, because `Pose` needs it.
  */
 
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three'
@@ -21,10 +16,8 @@ const tmpAxis = new Vector3()
 const tmpOv = new OrientationVector()
 
 /**
- * RDK marshals a quaternion from untagged Go fields, so it writes
- * `{ W, X, Y, Z }`, while the frame editor writes `{ w, x, y, z }`. Go's
- * unmarshal is case-insensitive, so a machine config may legitimately hold
- * either spelling and both have to be read.
+ * Either spelling: RDK marshals untagged Go fields as `{ W, X, Y, Z }`, the
+ * frame editor writes `{ w, x, y, z }`, and Go's unmarshal accepts both.
  */
 type QuatJson = Partial<Record<'W' | 'X' | 'Y' | 'Z' | 'w' | 'x' | 'y' | 'z', number>>
 type EulerJson = { roll: number; pitch: number; yaw: number }
@@ -47,10 +40,9 @@ export const quatFromJson = (orientation: RawOrientation | undefined, out: Quate
 		switch (orientation?.type) {
 			case 'quaternion': {
 				const v = value as QuatJson
-				// RDK writes the scalar first; Three.js takes it last. An omitted
-				// field is Go's zero value, so the scalar defaults to 0 rather than
-				// 1, and `quaternionJSON.toQuaternion` normalizes what it read —
-				// which the orientation-vector conversion downstream relies on.
+				// RDK writes the scalar first; Three.js takes it last. Omitted fields
+				// default to Go's zero and the result is normalized, as
+				// `quaternionJSON.toQuaternion` does.
 				out.set(v.X ?? v.x ?? 0, v.Y ?? v.y ?? 0, v.Z ?? v.z ?? 0, v.W ?? v.w ?? 0).normalize()
 				return true
 			}
@@ -73,9 +65,8 @@ export const quatFromJson = (orientation: RawOrientation | undefined, out: Quate
 			// R4AA tags its fields th/x/y/z, so it arrives shaped like an orientation vector.
 			case 'axis_angles': {
 				const v = value as OvJson
-				// RDK normalizes the axis inside `R4AA.ToQuat`, and `setFromAxisAngle`
-				// assumes a unit one. A zero axis names no rotation at all — rdk
-				// panics on it rather than defining one — so report it and fall back.
+				// RDK normalizes inside `R4AA.ToQuat`, and `setFromAxisAngle` assumes a
+				// unit axis. RDK panics on a zero one rather than defining it.
 				tmpAxis.set(v.x, v.y, v.z)
 				if (tmpAxis.lengthSq() > 0) {
 					out.setFromAxisAngle(tmpAxis.normalize(), v.th ?? 0)

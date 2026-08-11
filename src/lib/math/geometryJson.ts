@@ -1,11 +1,6 @@
 /**
- * Shape resolution for rdk's Go-marshalled `spatialmath.GeometryConfig`. A hand
- * conversion of Go this file cannot import (`spatialmath/geometry.go`).
- *
- * Split out from `./spatialJson`, which re-exports it, so the two readers of
- * that JSON — a machine config's `frame` and a motion plan's `frame_system` —
- * resolve a shape the same way. They arrive by different routes and neither one
- * gets to disagree with rdk about what an untyped geometry means.
+ * A hand conversion of `spatialmath/geometry.go`, shared by the config and
+ * motion plan readers so neither can disagree about an untyped geometry.
  */
 
 /** The `GeometryConfig` fields a shape can be inferred from. */

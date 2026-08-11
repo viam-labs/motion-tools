@@ -409,14 +409,8 @@ describe('setFromFrame', () => {
 	})
 
 	/**
-	 * RDK marshals a quaternion from untagged Go fields, so it writes
-	 * `{ W, X, Y, Z }` while the frame editor writes `{ w, x, y, z }`. Go's
-	 * unmarshal is case-insensitive, so both spell the same valid config and both
-	 * have to read as the same rotation.
-	 *
-	 * The cast is the point rather than a workaround: `Frame` bounds what this app
-	 * authors, and the capitalised form is a shape only rdk produces. Reading it
-	 * is `quatFromJson`'s job, which is why nothing here has to widen the type.
+	 * Both spell the same valid config: RDK marshals `{ W, X, Y, Z }`, the editor
+	 * writes `{ w, x, y, z }`, and Go's unmarshal accepts either.
 	 */
 	it.each([
 		['lowercase', { x: Math.SQRT1_2, y: 0, z: 0, w: Math.SQRT1_2 }],
@@ -430,10 +424,9 @@ describe('setFromFrame', () => {
 	})
 
 	/**
-	 * RDK's `R4AA` is a true axis-angle in radians, and it tags its fields
-	 * `th/x/y/z` — the same names as both orientation-vector encodings. Reading
-	 * one as the other parses cleanly and yields a plausible wrong rotation, so
-	 * the assertion is the rotation itself rather than the stored fields.
+	 * `R4AA` tags its fields `th/x/y/z`, the names both orientation-vector
+	 * encodings use, so a misread yields a plausible wrong rotation. Hence
+	 * asserting the rotation, not the fields.
 	 */
 	it('reads axis_angles as an axis-angle in radians', () => {
 		const pose = new Pose().setFromFrame({
@@ -452,12 +445,7 @@ describe('setFromFrame', () => {
 		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
 	})
 
-	/**
-	 * The orientation-vector encodings are read across rather than through a
-	 * quaternion: the round trip is exact for the rotation but not for the tuple,
-	 * and `th: 180` returning as `-180` would change what a config round-trips
-	 * and what the details panel shows.
-	 */
+	/** A quaternion round trip is exact for the rotation but not for the tuple. */
 	it('keeps ov_degrees theta at 180 rather than -180', () => {
 		const pose = new Pose().setFromFrame({
 			orientation: { type: 'ov_degrees', value: { x: 0, y: 0, z: 1, th: 180 } },

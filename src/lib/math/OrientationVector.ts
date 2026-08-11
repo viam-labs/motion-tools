@@ -57,19 +57,12 @@ export class OrientationVector {
 	}
 
 	/**
-	 * Scales the vector to unit length. A zero-length vector becomes +Z.
-	 *
-	 * That fallback is what rdk does: `OrientationVector.Normalize` treats a
-	 * zero vector as unset and sets `OZ = 1`, and every conversion runs it first.
-	 *
-	 * It matters because protobuf decodes absent numbers as `0`. A
-	 * `common.v1.Pose` that sets only a position arrives with an all-zero
-	 * orientation vector, which rdk reads as no rotation. Three.js'
-	 * `Vector3.normalize` leaves a zero vector alone, so without the fallback
-	 * `toQuaternion` computes `acos(0)` and the pose renders as a 90° turn
-	 * about +Y.
+	 * Scales the vector to unit length, reading zero length as unset and
+	 * substituting +Z — what rdk's `OrientationVector.Normalize` does.
 	 */
 	#normalize() {
+		// A protobuf pose carrying only a position decodes to an all-zero vector,
+		// which is identity to rdk but `acos(0)` — a quarter turn — to us.
 		if (this.#vec.lengthSq() === 0) {
 			this.#vec.set(0, 0, 1)
 			return

@@ -1,17 +1,7 @@
 /**
- * Decoders for rdk's Go-marshalled `spatialmath` JSON: the `GeometryConfig`
- * offset conventions, plus the `OrientationConfig` encodings re-exported from
- * `./orientationJson`.
- *
- * These are hand conversions of Go this file cannot import
- * (`spatialmath/orientation_json.go`, `referenceframe/frame_system.go`), so each
- * switch is a place the copy can fall behind its original without failing.
- *
- * Shared rather than duplicated because that JSON reaches the client by more
- * than one route — a machine config's `frame`, a motion plan's `frame_system`,
- * and `FrameSystemConfig`'s `kinematics` — and they need the same two
- * subtleties: the encoding list, and which frame a geometry offset is measured
- * from.
+ * The entry point for reading rdk's `spatialmath` JSON: geometry offsets here,
+ * orientation and shape decoding re-exported. Shared by the config, motion plan
+ * and kinematics readers so none can drift.
  */
 
 import { Quaternion, Vector3 } from 'three'

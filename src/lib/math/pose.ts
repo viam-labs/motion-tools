@@ -131,17 +131,12 @@ export class Pose implements ViamPose {
 		if (!orientation?.value) {
 			ov.set(0, 0, 1, 0)
 		} else if (orientation.type === 'ov_degrees' || orientation.type === 'ov_radians') {
-			// Read orientation vectors across directly rather than through a
-			// quaternion: this class already stores one, and the round trip is
-			// lossy for the tuple even where it is exact for the rotation —
-			// `th: 180` comes back as `-180`. These values are what a config
-			// round-trips and what the details panel shows.
+			// Read across directly: a quaternion round trip is exact for the rotation
+			// but not the tuple, and `th: 180` returning as `-180` would change what
+			// the config round-trips.
 			const { x, y, z, th } = orientation.value
 			ov.set(x, y, z, orientation.type === 'ov_radians' ? th : MathUtils.degToRad(th ?? 0))
 		} else {
-			// Everything else rdk accepts — `quaternion`, `euler_angles`,
-			// `axis_angles` — goes through the decoder shared with the motion-plan
-			// and kinematics readers, which is where that list is maintained.
 			quatFromJson(orientation, quaternion)
 			ov.setFromQuaternion(quaternion)
 		}

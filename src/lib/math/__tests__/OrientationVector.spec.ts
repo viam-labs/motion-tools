@@ -124,11 +124,9 @@ describe('OrientationVector', () => {
 	})
 
 	/**
-	 * RDK's `OrientationVector.Normalize` reads a zero-norm vector as unset and
-	 * assigns `OZ = 1`, and `Quaternion()` runs it before converting. Protobuf
-	 * materialises absent scalars as `0`, so this is the shape a `common.v1.Pose`
-	 * that sets only a position decodes to — identity to RDK, and a quarter turn
-	 * about +Y to anything that takes `acos(0)` at face value.
+	 * What a `common.v1.Pose` carrying only a position decodes to, since protobuf
+	 * materialises absent scalars as `0`. RDK's `Normalize` reads it as unset and
+	 * assigns `OZ = 1` before every conversion.
 	 */
 	describe('zero-length vector', () => {
 		it.each([
