@@ -18,13 +18,6 @@
 	const planning = $derived(preview.status === 'planning')
 	const ready = $derived(preview.status === 'ready')
 
-	/**
-	 * Named for what a frame *is*, not for how processed it looks.
-	 *
-	 * "Raw / Smoothed" read as honest-versus-prettified, which is backwards: nothing is eased or
-	 * rounded, the same path is just sampled more finely. Waypoints leads because it is the plan
-	 * exactly as returned.
-	 */
 	const detailLabels: Record<PreviewDetail, string> = {
 		waypoints: 'Waypoints',
 		interpolated: 'Interpolated',
@@ -94,11 +87,6 @@
 				{/snippet}
 			</ToggleButtons>
 
-			<!--
-				The labels alone cannot carry this, so the counts do. Seeing "2 frames" against "182
-				frames" for the same move is the fastest way to understand what the setting changes,
-				and it makes a sparse plan's sparseness impossible to miss.
-			-->
 			<p class="text-subtle-2">
 				{#if preview.detail === 'waypoints'}
 					{frameCount} frames — one per configuration the planner returned, and nothing between.

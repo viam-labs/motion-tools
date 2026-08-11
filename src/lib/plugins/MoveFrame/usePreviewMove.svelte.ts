@@ -44,25 +44,14 @@ import {
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 /**
- * What one frame of playback represents. Not a fidelity setting — both show the same motion, and
- * neither is faster or slower than the real move, since a trajectory carries no timing at all.
- *
- *   - `waypoints` gives each configuration the planner returned its own frame, and nothing between.
- *   - `interpolated` adds frames along the straight joint path between waypoints, in proportion to
- *     travel. That path is not invented — it is the one RDK collision-checks when it validates the
- *     segment — but it is what the planner *approved*, not a promise of what the arm traces: the
- *     component is handed the whole waypoint list so it can blend between them.
+ * What one frame of playback represents: `waypoints` gives each configuration the planner returned
+ * its own frame, `interpolated` fills in along the straight joint path RDK collision-checks.
  */
 export type PreviewDetail = 'waypoints' | 'interpolated'
 
 /**
- * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than to a
- * frame rate is what makes the two detail settings comparable: `waypoints` and `interpolated`
- * describe the same motion with wildly different frame counts, so a fixed per-frame interval would
- * race through a two-waypoint plan and crawl through a two-hundred-waypoint one.
- *
- * It is also the honest unit here. A trajectory carries no timing, so no frame rate is more correct
- * than another — but "the whole move takes about this long" is at least a consistent claim.
+ * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than a frame
+ * rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable.
  */
 const PREVIEW_DURATION_MS = 4000
 
@@ -129,20 +118,10 @@ export const usePreviewMove = ({
 }: PreviewMoveOptions): PreviewMove => {
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
-	// Raw: all three are replaced wholesale — a new array assigned outright, never mutated in place —
-	// so the fine-grained reactivity `$state`'s proxy buys elsewhere would go unused here. `trajectory`
-	// and `playbackFrames` are also large, and nothing in this file reads into either of them
-	// reactively; only `playbackFrames.length`, through the player. `waypointIndices` is smaller — one
-	// entry per waypoint, not per frame — and it is read into: `MovePreview.svelte` hands it to
-	// `TrajectoryScrubber` as `markers`, which maps, iterates and length-compares it directly. That
-	// reads elements of a wholesale-replaced array, which `$state.raw` still serves correctly; it is
-	// only element-level *mutation* that a plain array would miss.
-	//
-	// Three arrays rather than one because they answer different questions. `trajectory` is what the
-	// planner said and what `execute` must receive; `playbackFrames` is that same motion subdivided for
-	// playback, which the robot must never be asked to run; `waypointIndices` marks which entries of
-	// `playbackFrames` are planner waypoints rather than frames interpolated in between.
+	// Raw: all three are replaced wholesale rather than mutated, so the deep proxy would go unused,
+	// `waypointIndices` included — the scrubber reads it element-wise but never writes into it.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
+	// What the scrubber walks. Only `trajectory` may ever be handed to `execute`.
 	let playbackFrames = $state.raw<TrajectoryStep[]>([])
 	let waypointIndices = $state.raw<number[]>([])
 	let detail = $state<PreviewDetail>('waypoints')
@@ -340,8 +319,8 @@ export const usePreviewMove = ({
 		get detail() {
 			return detail
 		},
-		// Switching detail re-frames the same plan, so playback restarts rather than trying to map
-		// the current frame across two different framings of the motion.
+		// A frame index does not carry across the two framings, so playback restarts rather than
+		// trying to map it.
 		set detail(next: PreviewDetail) {
 			if (next === detail) return
 			detail = next

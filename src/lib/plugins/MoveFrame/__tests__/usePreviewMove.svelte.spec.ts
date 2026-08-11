@@ -18,17 +18,11 @@ import {
 } from './__fixtures__/previewMoveHarness.svelte'
 
 const dump = parsePlan(planJson)
-/**
- * The rig `plan-gantry.json` (`interpolateTrajectory.spec.ts`) was lifted from: a 40 mm prismatic
- * slide, captured rather than hand-written so the joint is genuinely `type: "prismatic"` in the
- * model JSON and not just labelled that way by a test double.
- */
 const gantryDump = parsePlan(gantryPlanJson)
 
 /**
- * A part's `kinematics` carries the same `ModelConfigJSON` a dump nests under
- * `frames[partName].frame.model`, so a realistic frame system can be lifted out of a fixture instead
- * of hand-written — geometry, joint chain and all.
+ * A part's `kinematics` is the same `ModelConfigJSON` a dump nests under `frames[part].frame.model`,
+ * so a fixture yields a realistic frame system: geometry, joint chain and all.
  */
 const kinematicsFromDump = (source: ParsedPlan, partName: string): Struct => {
 	const entry = source.frames[partName]
@@ -65,11 +59,7 @@ const SHAPELESS = part(
 	} as never)
 )
 
-/**
- * One prismatic joint, real rather than hand-labelled: `gantry-plan.json`'s model has a `carriage`
- * link riding a `type: "prismatic"` joint, so a descriptor built from it is what `jointMotionsOf`
- * would actually see off a machine, not a stand-in built to say `'translational'`.
- */
+/** A captured `type: "prismatic"` joint, not a double hand-labelled `'translational'`. */
 const GANTRY = part('gantry-1', kinematicsFromDump(gantryDump, 'gantry-1'))
 
 /** Two distinct configurations, so it never reads as "already at the goal". */
@@ -77,11 +67,7 @@ const PLAN_REPLY: JsonValue = {
 	plan: [{ 'left-arm': [0, 0, 0, 0, 0, 0] }, { 'left-arm': [1, 0, 0, 0, 0, 0] }],
 }
 
-/**
- * The same 40 mm slide `gantry-plan.json` captures: `gantry-1` moving from 50 to
- * 90.00000000000001, everything else held. Read as radians instead of millimetres, that stroke is
- * over 2291°, which is the gap `interpolatedFrames`'s `motions` argument exists to close.
- */
+/** The 40 mm slide `gantry-plan.json` captures. Read as radians rather than millimetres it is 2291°. */
 const GANTRY_SLIDE: JsonValue = {
 	plan: [{ 'gantry-1': [50] }, { 'gantry-1': [90.00000000000001] }],
 }
@@ -303,13 +289,8 @@ describe('where the ghosts stand before anything is scrubbed', () => {
 })
 
 /**
- * The hook keeps two arrays and they answer different questions. `trajectory` is what the planner
- * said and the only thing `execute` may be handed; `playbackFrames` is that same motion subdivided
- * for the scrubber, which the robot must never be asked to run.
- *
- * Nothing had ever told them apart: returning the playback frames from `get trajectory()` — handing
- * the robot the interpolated ones — passed the whole suite. Subdividing is what makes the two
- * observably different, so this is the first PR in which the distinction can be pinned at all.
+ * `trajectory` is the only thing `execute` may be handed; `playbackFrames` is that same motion
+ * subdivided for the scrubber, which the robot must never be asked to run.
  */
 describe('what the scrubber walks', () => {
 	it('plays one frame per configuration the planner returned', async () => {
@@ -388,10 +369,6 @@ describe('the request the panel sends', () => {
 	})
 })
 
-/**
- * `waypointIndices` is what the scrubber draws its tick marks from, and it is the only thing telling
- * a user which of 180 interpolated frames the planner actually chose.
- */
 describe('marking which played frames are planned waypoints', () => {
 	it('marks every frame when each one is a waypoint', async () => {
 		const h = setup()
@@ -417,11 +394,6 @@ describe('marking which played frames are planned waypoints', () => {
 	})
 })
 
-/**
- * The two detail settings are different framings of one motion, so a frame index does not carry
- * across. Leaving `currentStep` where it was pointed the scrubber past the end of the shorter
- * framing and left the ghosts showing a pose from the other one.
- */
 describe('switching what a frame represents', () => {
 	it('restarts playback rather than keeping an index that no longer means anything', async () => {
 		const h = setup()
@@ -440,12 +412,8 @@ describe('switching what a frame represents', () => {
 	})
 
 	/**
-	 * `interpolatedFrames` costs a joint's travel in degrees unless told otherwise, so a component the
-	 * hook does not label as prismatic has its millimetres read as radians — a 40 mm slide costs the
-	 * same as 40 radians of arm travel, over 200 turns. `jointMotionsOf(descriptors)` is what supplies
-	 * that label; `interpolateTrajectory.spec.ts` measures the unlabelled cost of this exact slide at
-	 * 1,529 frames against 10 labelled, so anything under 50 here is only reachable with the label
-	 * wired through.
+	 * Where the 50 comes from: without `jointMotionsOf`'s labels, `interpolateTrajectory.spec.ts`
+	 * measures this exact slide at 1,529 frames against 10 labelled.
 	 */
 	it('keeps a gantry slide within its millimetre budget instead of costing it in radians', async () => {
 		const h = setup([GANTRY])
