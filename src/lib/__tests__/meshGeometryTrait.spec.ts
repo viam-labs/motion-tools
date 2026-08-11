@@ -4,16 +4,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { traits } from '$lib/ecs'
 
-/**
- * `mesh.spec.ts` proves `parseMeshInput` picks the right parser for a declared content type.
- * `build-frame-descriptors.spec.ts` proves a plan's `mesh_content_type` survives into the proto.
- * Neither runs the seam this rung actually edited: a `Geometry` proto with a mesh case, in through
- * `traits.Geometry` / `traits.updateGeometryTrait`, out as a `BufferGeometry` trait with real
- * vertices. If either function reverted to calling `parsePlyInput` unconditionally, the STL bytes
- * below would still reach an entity — just as a zero-vertex geometry, since `PLYLoader` answers a
- * payload it cannot parse with nothing rather than throwing.
- */
-
 const asciiStl = `solid tri
 facet normal 0 0 1
   outer loop
@@ -36,6 +26,10 @@ const stlGeometry = (): ViamGeometry =>
 		},
 	})
 
+/**
+ * Not covered by `mesh.spec.ts`: a regression to `parsePlyInput` here still puts an entity in the
+ * world, since `PLYLoader` answers STL bytes with an empty geometry rather than throwing.
+ */
 describe('mesh geometry reaches the trait layer', () => {
 	let world: World
 	afterEach(() => world?.destroy())

@@ -224,8 +224,7 @@ export const provideDrawAPI = () => {
 		const geometryTrait = () => {
 			if ('mesh' in data) {
 				// The draw service speaks proto JSON, so `mesh` is base64 and `content_type` arrives
-				// camel-cased. Reading it here is what keeps "renders STL" true of every mesh path
-				// rather than only the two that go through the ECS traits.
+				// camel-cased.
 				const geometry = parseMeshInput(data.mesh.mesh, data.mesh.contentType)
 				return traits.BufferGeometry(geometry)
 			} else if ('box' in data) {

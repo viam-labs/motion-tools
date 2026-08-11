@@ -147,15 +147,14 @@ export const parseGeometry = (
 			})
 		}
 
-		// Bytes pass through unscaled: PLY and STL vertices are already metres, and only the
-		// center pose is millimetres.
+		// Bytes pass through unscaled: PLY and STL vertices are already meters, and only the
+		// center pose is millimeters.
 		case 'mesh': {
 			const declared = g.mesh_content_type as string | undefined
 			const meshData = g.mesh_data as string | undefined
 
-			// `parseMeshInput` handles ply and stl and falls back to ply for anything else, which is
-			// right for the renderer and wrong here: a plan is parsed once, so an unreadable label is
-			// worth a named warning now rather than an entity that silently draws nothing later.
+			// The renderer falls back to PLY for a label it cannot read; a plan is parsed once, so
+			// name the skip here rather than draw nothing later.
 			if (!meshData) return skip('mesh geometry carries no mesh_data')
 			const contentType = meshContentType(declared)
 			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)

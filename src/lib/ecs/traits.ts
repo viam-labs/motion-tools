@@ -365,11 +365,9 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 					}
 				}
 
-				// When the point count changes, attributes must be reallocated. An
-				// entity can hold an attribute-less geometry — `parseMeshInput` returns
-				// one for empty PLY bytes and for STL bytes under its minimum header
-				// size — so treat a missing attribute as a count of zero rather than
-				// reading `.count` off undefined.
+				// Attributes must be reallocated when the point count changes, and an
+				// entity can hold an attribute-less geometry: `parseMeshInput` returns
+				// one for empty or truncated bytes.
 				const oldCount = buffer.getAttribute('position')?.count ?? 0
 				const newCount = parsed.positions.length / 3
 				if (oldCount === newCount) {
