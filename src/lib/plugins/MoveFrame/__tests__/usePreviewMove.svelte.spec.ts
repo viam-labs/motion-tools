@@ -18,11 +18,7 @@ import {
 
 const dump = parsePlan(planJson)
 
-/**
- * A part's `kinematics` carries the same `ModelConfigJSON` the dump nests under
- * `frames['arm-1'].frame.model`, so a realistic frame system can be lifted out of the fixture
- * instead of hand-written — geometry, joint chain and all.
- */
+/** A part's `kinematics` is the same `ModelConfigJSON` a dump nests under `frame.model`. */
 const kinematicsFromDump = (partName: string): Struct => {
 	const entry = dump.frames[partName]
 	if (!entry || entry.frame_type !== 'model') {
@@ -70,8 +66,6 @@ const setup = (parts = [ARM]) => {
 	return harness
 }
 
-// `destroy` rather than `dispose`: koota hands out 16 world ids and only `destroy` returns one, so
-// a spec that merely unmounts starves whatever runs after it in the same browser context.
 afterEach(() => {
 	harness?.destroy()
 	harness = undefined
@@ -94,8 +88,6 @@ describe('a preview that resolves', () => {
 		expect(ghostCount(h)).toBeGreaterThan(0)
 	})
 
-	// The map the hook holds is the only handle its teardown has, so what spawn filled and what
-	// clear empties have to be the same one.
 	it('drops every ghost it drew when the preview is cleared', async () => {
 		const h = setup()
 		const done = h.preview.requestPreview()
@@ -109,11 +101,7 @@ describe('a preview that resolves', () => {
 	})
 })
 
-/**
- * Scrubbing has to move something. Gutting `applyPreviewStep` to a no-op also passed the whole
- * suite: the ghosts spawn, the scrubber counts, and every assertion about either still holds while
- * the scene sits perfectly still.
- */
+/** The only assertion in this file that fails when `applyPreviewStep` is gutted to a no-op. */
 describe('scrubbing the preview', () => {
 	it('moves the ghosts it drew', async () => {
 		const h = setup()
@@ -136,12 +124,6 @@ describe('scrubbing the preview', () => {
 	})
 })
 
-/**
- * A plan describes one goal. The reply can land after the user has moved on, and everything the
- * resume writes — ghosts, trajectory, `status: 'ready'` — is what the panel arms `Execute preview`
- * from. `clear()` cannot reach into an awaited promise, and it leaves `status` at `idle`, so the
- * panel would go from reporting nothing pending to offering to run a plan for the abandoned goal.
- */
 describe('a preview whose goal moved while it was in flight', () => {
 	it('discards the answer instead of arming the panel with it', async () => {
 		const h = setup()
@@ -158,7 +140,6 @@ describe('a preview whose goal moved while it was in flight', () => {
 		expect(ghostCount(h)).toBe(0)
 	})
 
-	// Cancelled rather than merely ignored: the machine is planning, and nobody is waiting.
 	it('cancels the request rather than letting it run to completion', () => {
 		const h = setup()
 
@@ -184,9 +165,8 @@ describe('a preview whose goal moved while it was in flight', () => {
 })
 
 /**
- * The world outlives the panel, and a ghost carries no `Name` by design — so anything spawned after
- * teardown is unreachable by every sweep in the codebase, and only a page reload clears it. One
- * click reaches this: leaving move mode, or deselecting the frame.
+ * The world outlives the panel, and a ghost carries no `Name`, so anything left behind is
+ * unreachable by every sweep in the codebase and only a page reload clears it.
  */
 describe('a preview whose panel closed while it was in flight', () => {
 	it('leaves nothing behind in the world', async () => {
@@ -200,12 +180,7 @@ describe('a preview whose panel closed while it was in flight', () => {
 		expect(ghostCount(h)).toBe(0)
 	})
 
-	/**
-	 * The commoner half, and the one the in-flight case cannot reach: by the time the panel closes
-	 * the ghosts are already drawn, so teardown has something to actually clear. Skipping the clear
-	 * leaks a dozen entities that carry no `Name` and no `ChildOf`, which is to say nothing in the
-	 * codebase can find them again.
-	 */
+	/** Not a duplicate of the case above: here teardown has ghosts to actually clear. */
 	it('clears ghosts it had already drawn', async () => {
 		const h = setup()
 		const done = h.preview.requestPreview()
@@ -219,44 +194,26 @@ describe('a preview whose panel closed while it was in flight', () => {
 	})
 })
 
-/**
- * Descriptors are not ghosts. Joints and geometry-less mounts make up most of them, so a frame
- * system whose shapes all failed to decode still produces plenty — and reporting `ready` on that
- * gives a working scrubber, a frame count and an armed `Execute preview` over an empty scene.
- */
 describe('a frame system with nothing to draw', () => {
-	it('says so rather than reporting a ready preview', async () => {
-		const h = setup([SHAPELESS])
+	// The two messages must stay distinguishable, so each pattern has to reject the other's message.
+	it.each([
+		{ cause: 'shapes it could not decode', parts: [SHAPELESS], message: /no geometry/i },
+		{ cause: 'no frame system at all', parts: [], message: /no frame system/i },
+	])('reports $cause rather than a ready preview', async ({ parts, message }) => {
+		const h = setup(parts)
 
 		const done = h.preview.requestPreview()
 		h.pending[0]!.resolve(PLAN_REPLY)
 		await done
 
 		expect(h.preview.status).toBe('error')
-		expect(h.preview.message).toMatch(/geometry/i)
+		expect(h.preview.message).toMatch(message)
 		expect(ghostCount(h)).toBe(0)
-	})
-
-	// A different failure with a different cause, so it must not borrow the other's message: no
-	// kinematics at all is build mode or a disconnect, not shapes that failed to decode.
-	it('distinguishes no frame system from no geometry in one', async () => {
-		const h = setup([])
-
-		const done = h.preview.requestPreview()
-		h.pending[0]!.resolve(PLAN_REPLY)
-		await done
-
-		expect(h.preview.status).toBe('error')
-		expect(h.preview.message).toMatch(/frame system/i)
 	})
 })
 
-/**
- * RDK answered, and its answer was "there is nothing to do" — the trajectory is the start
- * configuration written twice. Routing that through the error path put a live-region alert in danger
- * red on a correct result, and left no way to tell it from a plan that actually failed.
- */
 describe('a goal the machine is already at', () => {
+	/** RDK's answer for "nothing to do": the start configuration written twice. */
 	const AT_GOAL: JsonValue = {
 		plan: [{ 'left-arm': [1, 0, 0, 0, 0, 0] }, { 'left-arm': [1, 0, 0, 0, 0, 0] }],
 	}
@@ -284,11 +241,6 @@ describe('a goal the machine is already at', () => {
 	})
 })
 
-/**
- * The ghosts have to be standing at the first configuration the moment the plan lands, not at the
- * identity they spawn with — otherwise the whole set sits stacked at the world origin until the user
- * happens to scrub, and the panel reports `ready` over it.
- */
 describe('where the ghosts stand before anything is scrubbed', () => {
 	const poses = (h: PreviewMoveHarness) =>
 		h.world
@@ -312,6 +264,7 @@ describe('where the ghosts stand before anything is scrubbed', () => {
 		h.pending[0]!.resolve(PLAN_REPLY)
 		await done
 		const atStart = poses(h)
+		expect(atStart.length).toBeGreaterThan(0)
 
 		h.preview.player.seek(h.preview.player.lastStep)
 		h.flush()
@@ -322,11 +275,7 @@ describe('where the ghosts stand before anything is scrubbed', () => {
 	})
 })
 
-/**
- * One frame per planned waypoint, so the scrubber walks exactly what the planner returned. The two
- * arrays hold the same steps at this point, which is why nothing here can tell them apart — the test
- * that does arrives with the second detail mode.
- */
+/** `trajectory` and `playbackFrames` hold the same steps today, so nothing here tells them apart. */
 describe('what the scrubber walks', () => {
 	it('plays one frame per configuration the planner returned', async () => {
 		const h = setup()
@@ -340,12 +289,6 @@ describe('what the scrubber walks', () => {
 	})
 })
 
-/**
- * `useFrames` refetches on every config revision, so the frame system really can be replaced while a
- * plan is in flight. The kinematics the ghosts are drawn through must be the ones the plan was
- * computed against; reading them after the await drew the whole chain against a model the plan knew
- * nothing about.
- */
 describe('a frame system that changes while the plan is in flight', () => {
 	it('draws the plan through the kinematics it was requested with', async () => {
 		const h = setup()
@@ -360,10 +303,7 @@ describe('a frame system that changes while the plan is in flight', () => {
 	})
 })
 
-/**
- * What the panel sends is the whole point of the preview: it has to pose the same problem the move
- * would. `planDoCommand.spec.ts` covers the builder; this covers the wiring into it.
- */
+/** `planDoCommand.spec.ts` covers the builder; this covers the wiring into it. */
 describe('the request the panel sends', () => {
 	it('names the frame it is open on and the service it selected', () => {
 		const h = setup()
@@ -376,11 +316,8 @@ describe('the request the panel sends', () => {
 	})
 
 	/**
-	 * The preview has to plan the same problem `execute` would actually run, or it draws a path
-	 * through an obstacle the panel already knows about. Every other spec in this file takes the
-	 * harness default of `moveOptions: () => ({ worldState: undefined, constraints: undefined })`,
-	 * the one input for which "forwarded" and "silently dropped" look identical — so none of them can
-	 * tell a hook that passes these through from one that quietly drops them on the floor.
+	 * The only case that builds its own `moveOptions`: on the harness default of two `undefined`s,
+	 * forwarded and silently dropped look identical, so no other test here can tell them apart.
 	 */
 	it('passes through the world state and constraints the panel parsed', () => {
 		harness = createPreviewMoveHarness([ARM], {

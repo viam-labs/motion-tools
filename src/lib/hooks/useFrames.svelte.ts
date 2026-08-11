@@ -24,15 +24,8 @@ import { useResourceByName } from './useResourceByName.svelte'
 export interface FramesContext {
 	current: Transform[]
 	/**
-	 * The raw `frameSystemConfig` reply, kept alongside the flattened `current` because it is the
-	 * only place `kinematics` survives — the model JSON a client needs to run forward kinematics
-	 * for itself (see `$lib/motion/frameSystemToPlanFrames`).
-	 *
-	 * Empty only until the first successful fetch. It is **not** cleared on entering build mode or on
-	 * a disconnect: the query stops refetching, but a disabled TanStack query keeps its data and the
-	 * observer stays mounted. So a non-empty `parts` does not mean the reply is current, and callers
-	 * must not read it as "we are live" — `current` may meanwhile have fallen back to locally edited
-	 * config frames that carry no kinematics at all.
+	 * The raw `frameSystemConfig` reply, the only place `kinematics` survives. A disabled query keeps
+	 * its data, so non-empty does not mean live: `current` may have fallen back to config frames.
 	 */
 	parts: robotApi.FrameSystemConfig[]
 	/** Whether the current part's frame set has been reconciled into the world. */

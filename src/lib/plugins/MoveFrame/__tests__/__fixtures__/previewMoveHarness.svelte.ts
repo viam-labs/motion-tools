@@ -1,10 +1,6 @@
 /**
- * `usePreviewMove` owns `$state` and two `$effect`s, and runes only compile in a `.svelte.ts` file —
+ * `usePreviewMove` owns `$state` and two `$effect`s, and runes only compile in a `.svelte.ts` file,
  * so the reactive scaffolding lives here and the assertions stay in the spec.
- *
- * The hook takes its world and frame system as arguments, which is what makes this possible at all:
- * a bare `createWorld()` and a hand-built parts list stand in for two Svelte contexts, and no
- * component has to be mounted to reach the plan lifecycle.
  */
 
 import type { JsonValue } from '@bufbuild/protobuf'
@@ -66,16 +62,21 @@ export const createPreviewMoveHarness = (
 	// Raw: replaced wholesale, and the hook reads it without wanting a proxy around protobuf classes.
 	let parts = $state.raw(initialParts)
 
-	const client = {
-		doCommand: (command: Record<string, JsonValue>, callOptions?: { signal?: AbortSignal }) =>
-			new Promise<JsonValue>((resolve, reject) => {
-				pending.push({ command, signal: callOptions?.signal, resolve, reject })
-			}),
-	} as unknown as MotionClient
+	// Typed off the real method so a changed `doCommand` signature fails here rather than compiling.
+	const doCommand: MotionClient['doCommand'] = (command, callOptions) =>
+		new Promise<JsonValue>((resolve, reject) => {
+			pending.push({
+				command: command as Record<string, JsonValue>,
+				signal: callOptions?.signal,
+				resolve,
+				reject,
+			})
+		})
 
-	// `isReady` is the reconciler's business, and the preview never asks: it reads `parts` for the
-	// kinematics rather than the world for the entities. Fixed rather than a knob for that reason.
-	// A getter, so swapping the frame system is visible to the hook the way a refetch would be.
+	const client = { doCommand } as unknown as MotionClient
+
+	// `isReady` is fixed because the preview never asks: it reads `parts`, not the world. A getter, so
+	// swapping the frame system is visible to the hook the way a refetch would be.
 	const frames: FramesContext = {
 		current: [],
 		get parts() {

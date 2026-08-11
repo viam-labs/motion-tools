@@ -1,10 +1,6 @@
 /**
- * Ties the three halves of a move preview together: ask the builtin motion service to plan without
- * executing, reconstruct enough kinematics to draw the answer, and hand a scrubber something to
- * drive.
- *
- * One instance per open move panel — move mode renders a panel per selected frame, and each plans
- * its own frame independently.
+ * Ask the builtin motion service to plan without executing, reconstruct enough kinematics to draw
+ * the answer, and drive a scrubber with it. One instance per open move panel.
  */
 
 import type { MotionClient } from '@viamrobotics/sdk'
@@ -37,20 +33,14 @@ import {
 } from './previewGhosts'
 
 /**
- * `already-at-goal` is deliberately not `error`. RDK answered successfully; the trajectory it
- * returned is the start configuration written twice, which is the correct answer to "how do I get
- * somewhere I already am". Reporting it in red under `role="alert"` told the user something had gone
- * wrong when nothing had.
+ * `already-at-goal` is not `error`: RDK answered, and the trajectory it returned is the start
+ * configuration written twice, the correct answer to "how do I get somewhere I already am".
  */
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 /**
- * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than to a
- * frame rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable, where a fixed
- * per-frame interval would race through the first and crawl through the second.
- *
- * It is also the honest unit here. A trajectory carries no timing, so no frame rate is more correct
- * than another — but "the whole move takes about this long" is at least a consistent claim.
+ * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than a frame
+ * rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable.
  */
 const PREVIEW_DURATION_MS = 4000
 
@@ -59,9 +49,8 @@ const MIN_FRAME_MS = 16
 
 export interface PreviewMoveOptions {
 	/**
-	 * Passed in rather than read off Svelte context here, so the caller owns where they come from.
-	 * The panel hands over `useWorld()` and `useFrames()`; a test hands over a bare world and a
-	 * fixed frame system, and needs no component to do it.
+	 * Passed in rather than read off Svelte context, so a spec can drive this hook with a bare world
+	 * and a fixed frame system and no component mounted.
 	 */
 	world: World
 	frames: FramesContext
@@ -77,13 +66,8 @@ export interface PreviewMoveOptions {
 	 */
 	moveOptions: () => MoveOptions
 	/**
-	 * Every input the plan was computed from, not just the goal. A plan is the answer to one
-	 * particular problem — the goal, the world state, the constraints, which service was asked and
-	 * which frame system it was asked against — and a change to any of them discards the plan rather
-	 * than leaving a ghost on screen that describes a problem nobody is asking any more. Naming only
-	 * the goal here once left an edited obstacle invisible to a preview already drawn: the ghosts, the
-	 * scrubber and `Execute preview` all survived the edit, still describing a path planned as though
-	 * the obstacle were not there.
+	 * Every input the plan was computed from, not just the goal: world state, constraints, service,
+	 * frame system. A change to any discards the plan rather than leaving a ghost of a stale problem.
 	 */
 	invalidateOn: () => unknown
 }
@@ -120,13 +104,8 @@ export const usePreviewMove = ({
 }: PreviewMoveOptions): PreviewMove => {
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
-	// Raw: both are large arrays of plain numbers, replaced wholesale, and nothing reads into them
-	// reactively — only `playbackFrames.length`, through the player.
-	//
-	// Two arrays rather than one because they answer different questions. `trajectory` is what the
-	// planner said and what `execute` must receive; `playbackFrames` is what the scrubber walks. They
-	// hold the same steps today, and keeping them apart is what lets playback be reframed later
-	// without any chance of the reframed version reaching the robot.
+	// `$state.raw`: replaced wholesale, and only `playbackFrames.length` is read reactively. Two
+	// arrays because `execute` must receive what the planner said, never what the scrubber walks.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
 	let playbackFrames = $state.raw<TrajectoryStep[]>([])
 
@@ -135,9 +114,8 @@ export const usePreviewMove = ({
 		Math.max(MIN_FRAME_MS, PREVIEW_DURATION_MS / Math.max(1, playbackFrames.length - 1))
 	)
 
-	// Outside `$state` — koota entities and Three.js matrices, neither of which wants a deep proxy.
-	// `const`: this map is the only handle the teardown below has, and `spawnPreviewGhosts` fills it
-	// in place precisely so that stays true across an await.
+	// Outside `$state`: koota entities and Three.js matrices want no deep proxy. `const` because
+	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
 	const ghosts: PreviewGhosts = createPreviewGhosts()
 	let forwardKinematics: ForwardKinematics | undefined
 
@@ -168,15 +146,12 @@ export const usePreviewMove = ({
 	})
 
 	/**
-	 * Drop everything a preview owns. The three callers below (`clear`, `settle`, and the top of
-	 * `requestPreview`) differ only in the `status` and `message` they leave behind, so this is
-	 * factored out to keep the teardown itself — cancelling the request, clearing the ghosts,
-	 * resetting the arrays and the player — from having to be spelled out identically in all three.
+	 * Drop everything a preview owns. The three callers (`clear`, `settle`, and the top of
+	 * `requestPreview`) differ only in the `status` and `message` they leave behind.
 	 */
 	const resetPreview = () => {
-		// Cancelled, not merely ignored: without this the request runs to completion on the machine
-		// and its reply is thrown away, and `generation` alone would let a resolved promise write
-		// over a preview the user has since replaced.
+		// Cancelled, not merely ignored: otherwise the request runs to completion on the machine, and
+		// `generation` alone would let a resolved promise write over a preview the user has replaced.
 		generation += 1
 		inFlight?.abort()
 		inFlight = undefined
@@ -207,12 +182,8 @@ export const usePreviewMove = ({
 		const motion = client()
 		const serviceName = service()
 		const goal = destination()
-		// Unlike every other failure below, this leaves `status` exactly where it was rather than
-		// routing through `fail()` — there is no sentence to report, because it is the caller that is
-		// missing a client, a service or a goal, not the plan. Deliberately not this hook's problem:
-		// whoever triggers `requestPreview` is relied on to gate the action on those three being
-		// present, the same way it must already gate on a client existing at all to construct this
-		// hook's `client` option in the first place.
+		// Leaves `status` where it was rather than routing through `fail()`: nothing failed, the caller
+		// is missing a client, a service or a goal, and is relied on to gate the action on all three.
 		if (!motion || !serviceName || !goal) return
 
 		// The reply lands in `trajectory`, and the ghosts are rebuilt from it — so drop the old
@@ -227,10 +198,8 @@ export const usePreviewMove = ({
 
 		try {
 			const { worldState, constraints } = moveOptions()
-			// Read with the rest of the inputs rather than after the await. `useFrames` refetches
-			// whenever the machine's config revision changes, so the frame system can be replaced while
-			// the plan is in flight — and drawing that plan through kinematics it was not computed
-			// against puts the whole ghost chain somewhere the machine never was.
+			// Read with the rest of the inputs, not after the await: `useFrames` refetches on every
+			// config revision, and kinematics the plan was not computed against misplace every ghost.
 			const parts = frames.parts
 			const response = await motion.doCommand(
 				planCommand({
@@ -243,10 +212,8 @@ export const usePreviewMove = ({
 				{ signal: attempt.signal }
 			)
 
-			// Everything below writes the state the panel arms `Execute preview` from, so it must not
-			// run for a plan the user has moved on from. `clear()` cannot reach into an awaited
-			// promise, and it leaves `status` at `idle` — so without this check the panel would go
-			// from reporting nothing pending to offering to execute a plan for the abandoned goal.
+			// `clear()` cannot reach into an awaited promise, and it leaves `status` at `idle`, so
+			// without this the panel would go from nothing pending to offering an abandoned goal.
 			if (mine !== generation) return
 
 			const result = parsePlanResult(response)
@@ -269,9 +236,8 @@ export const usePreviewMove = ({
 			// it moves.
 			spawnPreviewGhosts(world, descriptors, result.trajectory, ghosts)
 
-			// Descriptors are not ghosts: joints and geometry-less mounts make up most of them, and a
-			// frame system whose shapes all failed to decode still produces plenty. Reporting `ready`
-			// on that gives a working scrubber and an armed `Execute preview` over an empty scene.
+			// Descriptors are not ghosts: joints and geometry-less mounts make up most of them, so
+			// `ready` here would arm `Execute preview` and a working scrubber over an empty scene.
 			if (ghosts.size === 0) {
 				fail('No geometry in the frame system to draw this plan with.')
 				return
