@@ -914,11 +914,8 @@ describe('buildFrameDescriptors', () => {
 		)
 
 	/**
-	 * The shape and the numbers it was actually built from. Reporting the `case` alone would accept a
-	 * box assembled from the wrong fields or a sphere with no radius, and inference is what routes
-	 * geometries into those branches for the first time, so the dimensions are the half worth
-	 * asserting. Returning `null` only for a genuinely absent geometry keeps that distinct from a
-	 * `Geometry` whose shape is unset, which is a different bug with the same symptom.
+	 * Dimensions, not just the discriminant: a box built from the wrong fields reports the same
+	 * `case`. Null only for an absent geometry, which a `Geometry` with an unset shape is not.
 	 */
 	const linkShape = (geometry: Record<string, unknown>) => {
 		const d = buildFrameDescriptors(linkWithGeometry(geometry))[0]
@@ -949,32 +946,15 @@ describe('buildFrameDescriptors', () => {
 		}
 	}
 
-	// Silence matters as much as the null here: an empty type is RDK's "no geometry", so it must not
-	// take the `default:` arm, which warns about a shape it could not draw.
-	//
-	// `mockClear` rather than `mockRestore`, following the three spies above it. `vi.spyOn` hands back
-	// whichever spy is already on `console.warn`, so restoring here would uninstall a describe-level
-	// spy this test does not own and silently disarm every later assertion that reads it.
+	// Silence is half the assertion: an empty type must not reach the `default:` arm, which warns.
 	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-		try {
-			warn.mockClear()
-			expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
-			expect(warn).not.toHaveBeenCalled()
-		} finally {
-			warn.mockClear()
-		}
+		expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
+		expect(warn).not.toHaveBeenCalled()
 	})
 
-	/**
-	 * The first three are verbatim xArm6 links from the captures, where every geometry under
-	 * `model.links` spells `"type": ""`. `buildDescriptors` itself skips `model` frames, so these
-	 * wrap each geometry in a synthetic static frame to exercise `inferGeometryType` and
-	 * `parseGeometry` directly against real dimension combinations.
-	 *
-	 * The rest are the distinctions the real links cannot draw, because all three of their box dims
-	 * are non-zero and none sets both a box dim and a length.
-	 */
+	// `buildDescriptors` skips `model` frames, so each case wraps its geometry in a synthetic static
+	// frame to reach `inferGeometryType` at all.
 	it.each([
 		['a sphere from r alone (xArm6 base)', { type: '', r: 1, l: 0 }, { case: 'sphere', r: 1 }],
 		[
@@ -1000,11 +980,11 @@ describe('buildFrameDescriptors', () => {
 		// The authored form: `original_file` in the captures decodes to `"geometry": { "r": 1 }`, with
 		// no `type` key at all. Only RDK's marshal adds the empty string.
 		['a sphere when the type key is absent entirely', { r: 1 }, { case: 'sphere', r: 1 }],
-		// `r`'s check is `> 0`, `l`'s is `!== 0` — only a negative value tells the two apart, since
-		// both already agree that zero means "unset".
+		// `r`'s check is `> 0`, `l`'s is `!== 0`, so only a negative value tells the two apart: both
+		// already agree that zero means unset.
 		['nothing when r is negative, unlike a zero r', { type: '', r: -5 }, null],
 		[
-			'a capsule even when l is negative — unguarded, unlike r',
+			'a capsule even when l is negative, unguarded unlike r',
 			{ type: '', r: 50, l: -320 },
 			{ case: 'capsule', r: 50, l: -320 },
 		],

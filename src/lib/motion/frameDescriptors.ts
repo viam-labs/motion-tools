@@ -87,22 +87,8 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
- * RDK's `GeometryConfig.ParseConfig` treats an empty `type` as "infer from whichever dimensions were
- * set": box if `r3.Vector{X, Y, Z}.Norm() > 0`, else capsule if `L != 0`, else sphere. The three
- * predicates below are that chain, in that order.
- *
- * What this does *not* reproduce is the validation each arm then runs. RDK constructs the shape it
- * picked and yields no geometry at all when the constructor refuses the dimensions — a negative box
- * side, a capsule with `r <= 0` or `l < 2r` — and `NewCapsule` returns a *sphere* outright when
- * `l == 2r`. Every one of those needs a config RDK rejected while configuring the part, so a machine
- * able to answer at all has already been through those gates. The divergence is written down rather
- * than guarded, because a guard against input that cannot arrive is a guard nothing can test.
- *
- * A flattened frame system has already been through the resolution above: RDK publishes each of a
- * model's links as its own frame with the type filled in, which is what the captures show and what
- * the replayer reads. A *model config* has not, and spells `"type": ""` with only dimensions beside
- * it. Nothing reads one yet — `buildDescriptors` skips `model` frames outright — so this lands ahead
- * of its consumer, the client-side frame system reader.
+ * RDK's `GeometryConfig.ParseConfig` reads an empty `type` as "infer from the dimensions that were
+ * set": box, then capsule, then sphere. This is that chain, without RDK's per-shape validation.
  */
 const inferGeometryType = (g: Record<string, unknown>): string => {
 	const declared = (g.type ?? '') as string
@@ -113,9 +99,8 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 	const z = (g.z as number) ?? 0
 	if (Math.hypot(x, y, z) > 0) return 'box'
 
-	// `l` before `r`: a capsule sets both, and RDK checks the length first for the same reason.
-	// `r` checks `> 0` rather than `!== 0`: a negative radius describes no real sphere, and this
-	// keeps that struct falling through to `''` — "no geometry" — instead of building one.
+	// `l` before `r`: a capsule sets both. `r` checks `> 0`, not `!== 0`, so a negative radius falls
+	// through to `''` rather than building a sphere.
 	if (((g.l as number) ?? 0) !== 0) return 'capsule'
 	if (((g.r as number) ?? 0) > 0) return 'sphere'
 
@@ -146,10 +131,8 @@ export const parseGeometry = (
 	const g = geom as Record<string, unknown>
 	const type = inferGeometryType(g)
 
-	// Go marshals the zero value rather than omitting it, so an empty type is how RDK spells "no
-	// geometry". Inference returns the same empty string when no dimension was set either, which
-	// means the same thing. Neither is an *unrecognized* geometry: that is the `default:` arm below,
-	// and it warns, because a type this file has no case for is a shape going silently missing.
+	// An empty type means "no geometry": Go marshals the zero value rather than omitting it, and
+	// inference returns the same when nothing was set. An unrecognized type warns below instead.
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
