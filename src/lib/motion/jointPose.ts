@@ -1,10 +1,6 @@
 /**
- * The one piece of forward kinematics a trajectory step needs: a step carries joint values, not
- * poses, so this reproduces RDK's `rotationalFrame.Transform` / `translationalFrame.Transform`
- * — motion about the joint's declared axis.
- *
- * Split out of `plan-to-snapshots.ts`, which is about assembling `Snapshot` messages. This is the
- * kinematics underneath that, and nothing here knows a plan is being replayed.
+ * The one piece of forward kinematics a trajectory step needs: it carries joint values, not poses,
+ * so this reproduces RDK's `rotationalFrame.Transform` and `translationalFrame.Transform`.
  */
 
 import { Quaternion, Vector3 } from 'three'
@@ -19,7 +15,7 @@ export type TrajectoryStep = Record<string, number[]>
 const quat = new Quaternion()
 const vec3 = new Vector3()
 
-/** RDK reads the step value as radians for a revolute joint and millimetres for a prismatic one. */
+/** RDK reads the step value as radians for a revolute joint and millimeters for a prismatic one. */
 export const computeJointPose = (descriptor: JointFrameDescriptor, value: number): Pose => {
 	// RDK normalizes on unmarshal; the JSON itself does not guarantee a unit axis.
 	vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize()
@@ -33,13 +29,10 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
 }
 
 /**
- * A step addresses joints positionally per component (`{'left-arm': [0.1, -0.3, …]}`). A missing
- * column means the component contributed no inputs to this plan, which reads the same as zero.
- *
- * A mimic joint has no column of its own, so `jointIndex` addresses its *source* and the linear map
- * on the descriptor turns that value into this joint's — the same derivation RDK applies when it
- * forks a model's schema, `multiplier * inputs[source] + offset`.
+ * A step addresses joints positionally per component; a missing column reads as zero, where RDK's
+ * `FrameSystem.Transform` errors instead.
  */
+// `offset` is in the column's unit, radians or mm, not degrees like the sibling `min`/`max`.
 export const jointValueAt = (
 	descriptor: JointFrameDescriptor,
 	stepInputs: TrajectoryStep

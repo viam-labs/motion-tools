@@ -1,8 +1,6 @@
 /**
- * The snapshot half of the client-side fallback (see `parse-plan.ts`): it pairs the frame chain
- * from `$lib/motion/frameDescriptors` with a trajectory to produce one `Snapshot` per step. Server
- * FK via `ComputePlanFrames` is the path that shares RDK's own implementation; this one agrees with
- * it only for the frame types the fallback covers.
+ * The snapshot half of the client-side fallback (see `parse-plan.ts`): pairs the frame chain from
+ * `$lib/motion/frameDescriptors` with a trajectory to produce one `Snapshot` per step.
  */
 
 import { UuidTool } from 'uuid-tool'

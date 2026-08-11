@@ -1,16 +1,7 @@
 /**
  * A TypeScript reconstruction of how RDK resolves a flattened frame system into a drawable chain.
- * Every conversion below mirrors Go this file cannot import — frame types
- * (`referenceframe/register.go`) and the model-terminal resolution — so each switch is a place the
- * copy can fall behind its original without failing.
- *
- * Orientation encodings and the two geometry-center conventions live in `$lib/math/spatialJson`, which
- * decodes the same `spatialmath` JSON wherever it arrives from.
- *
- * It lives here rather than under the plan replayer because the shape it reads, {@link
- * FrameSystemJson}, is not specific to a plan dump: it is `frames` plus `parents`, and anything that
- * can produce those can be drawn. The replayer parses them out of RDK's dump (`parse-plan.ts`) and
- * passes its `ParsedPlan` straight in, which still typechecks because that type is a superset.
+ * Each switch mirrors `register.go` and can fall behind. Spatialmath decoding lives in
+ * `$lib/math/spatialJson`.
  */
 
 import { protoBase64 } from '@bufbuild/protobuf'
