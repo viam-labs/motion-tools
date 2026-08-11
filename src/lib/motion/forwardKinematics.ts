@@ -4,8 +4,7 @@
  * The plan replayer never needs this: it emits one `Transform` per frame relative to its parent and
  * lets the ECS world-matrix system chain them. The move panel's preview ghosts deliberately stay out
  * of that system — they carry no `Name` and no `ChildOf`, so nothing composes their parents for
- * them — which leaves the composition here. That consumer arrives at the top of this stack; nothing
- * imports this yet.
+ * them — which leaves the composition here. `usePreviewMove` is that consumer.
  *
  * The trade is worth it in the other direction too: the ghost set is spawned once and only its
  * matrices are rewritten as the user scrubs, where the replayer respawns entities every step.

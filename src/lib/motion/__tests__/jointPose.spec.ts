@@ -69,8 +69,25 @@ describe('computeJointPose', () => {
 
 		expect(scaled.toQuaternion().angleTo(unit.toQuaternion())).toBeCloseTo(0)
 	})
+
+	/**
+	 * `axis` comes off an unchecked cast in `frameDescriptors.ts`, so the type's guarantee of a
+	 * well-formed vector does not hold at runtime. An absent axis used to throw an unhelpful
+	 * "Cannot read properties of undefined" out of `vec3.set`; a zero-length axis is the worse case,
+	 * since Three's `normalize()` guards `length() || 1` and lets `(0,0,0)` through unchanged, so it
+	 * used to produce a silently meaningless orientation rather than an error.
+	 */
+	it.each([
+		['an absent axis', undefined],
+		['a zero-length axis', { X: 0, Y: 0, Z: 0 }],
+	] as const)('throws a named error for %s', (_label, axis) => {
+		expect(() => computeJointPose(joint({ motion: 'rotational', axis }), 1)).toThrow(/axis/)
+	})
 })
 
+// NaN / Infinity in a trajectory step is not covered below. `Struct.toJson()` throws on a
+// non-finite value before a trajectory can be built with one, so no route to reach `jointValueAt`
+// with one was found; this is left for whoever next touches this function with a reason to add one.
 describe('jointValueAt', () => {
 	const step = { arm: [0.1, 0.2] }
 
