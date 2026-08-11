@@ -59,7 +59,7 @@
 			Timing is the obvious one. The deviation is the easy one to miss and the one worth being
 			careful about: what the planner guarantees is that this path is collision-free, not that
 			the arm traces it exactly. `builtin.execute` hands the whole waypoint list to the
-			component in one batch precisely so it can blend between them (`builtin.go:598-599`), and
+			component in one batch precisely so it can blend between them (`builtin.go`), and
 			what it does with them is its own decision. Saying "the path is exactly what will happen"
 			would be the same kind of overclaim as implying the speed is real.
 

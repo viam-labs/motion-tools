@@ -10,7 +10,7 @@ let movingFrame = $state<string | undefined>(undefined)
  *
  * `client.move` needs no such thing: `builtIn.Move` opens with
  * `operation.CancelOtherWithLabel(ctx, builtinOpLabel)`, so a second move cancels the first inside
- * RDK (`services/motion/builtin/builtin.go:243`). `builtIn.DoCommand` does neither — it takes only a
+ * RDK (`services/motion/builtin/builtin.go`). `builtIn.DoCommand` does neither — it takes only a
  * read lock and carries no operation label — so the `execute` this panel sends is mutually exclusive
  * with nothing on the server. Two panels executing at once would batch `GoToInputs` for the same arm
  * from two different trajectories.

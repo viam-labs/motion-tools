@@ -53,6 +53,11 @@ const preview = vi.hoisted(() => ({
 	// What `execute` must be handed. Distinct from the frames a scrubber plays, which the robot must
 	// never be asked to run — see `usePreviewMove`'s two arrays.
 	trajectory: [] as TrajectoryStep[],
+	// Why there is nothing to play, for `error` and `already-at-goal`. A getter, matching `status` and
+	// `trajectory` below — a plain literal here never changes, which left both of `MovePreview`'s live
+	// regions (`role="alert"` and `role="status"`) structurally unreachable under every test in this
+	// file, since both are guarded on `preview.message` being truthy.
+	message: undefined as string | undefined,
 	requestPreview: vi.fn(),
 	clear: vi.fn(),
 	// The options the panel wired up, so a test can ask what the preview was told to watch.
@@ -66,7 +71,9 @@ vi.mock('../usePreviewMove.svelte', () => ({
 			get status() {
 				return preview.status
 			},
-			message: undefined,
+			get message() {
+				return preview.message
+			},
 			get trajectory() {
 				return preview.trajectory
 			},
@@ -157,6 +164,7 @@ describe('MoveControls', () => {
 		moved.matrix = undefined
 		preview.status = 'idle'
 		preview.trajectory = []
+		preview.message = undefined
 		client.current = motionClient
 		framesContext.parts = []
 
@@ -387,6 +395,28 @@ describe('MoveControls', () => {
 		await fireEvent.change(x, { target: { value: '500' } })
 
 		expect(invalidateOn()).not.toEqual(before)
+	})
+
+	/**
+	 * The one line that makes the whole feature do anything: every other test in this file drives
+	 * `preview.status` directly from the hoisted stub, which is the state `Preview move` is supposed to
+	 * *produce* — none of them presses the button itself. Deleting `MovePreview`'s `onclick` failed
+	 * nothing until this test existed.
+	 */
+	it('asks the preview for a plan when Preview move is clicked', async () => {
+		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		moved.matrix = new Pose(100, -250, 40).toMatrix4()
+
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
+
+		const position = await screen.findByLabelText('move target position')
+		const x = position.querySelector('input')
+		if (!x) throw new Error('expected a position field')
+		await fireEvent.change(x, { target: { value: '500' } })
+
+		await fireEvent.click(screen.getByRole('button', { name: /preview move/i }))
+
+		expect(preview.requestPreview).toHaveBeenCalled()
 	})
 
 	// The kinematics the ghosts are drawn through are as much an input as the goal: `useFrames`
