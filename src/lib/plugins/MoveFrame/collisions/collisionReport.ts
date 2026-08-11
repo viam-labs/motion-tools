@@ -10,15 +10,8 @@ import { previewedComponent } from '../traits'
 import { isGhost } from './collisionMembers'
 
 /**
- * What to call an entity in the panel. A ghost has no `Name` of its own, so it
- * borrows its subject's — the pair reads "gripper ↔ table" whether it describes
- * where the gripper is or where it would end up, and `staged` carries the
- * difference.
- *
- * Two kinds of ghost, and they carry the answer differently: a staged-move ghost
- * points at the entity it copies, while a preview ghost holds the component name
- * outright, having no source entity to point at. Missing the second one left
- * every previewed collision reading as the literal `unnamed`.
+ * What to call an entity in the panel. A ghost has no `Name` of its own, so it borrows its
+ * subject's, and `staged` carries the difference between where a thing is and where it would end up.
  */
 const displayName = (entity: Entity): string => {
 	const own = entity.get(traits.Name)

@@ -11,10 +11,8 @@ let world: ReturnType<typeof createWorld>
 
 const named = (name: string) => world.spawn(traits.Name(name))
 
-/** A staged-move ghost: it points at the entity it copies. */
 const movedGhost = (source: Entity) => world.spawn(GhostOf(source))
 
-/** A preview ghost: no source entity to point at, so it holds the component name. */
 const previewGhost = (component: string) => world.spawn(PreviewOf(component))
 
 beforeEach(() => {
@@ -67,13 +65,6 @@ describe('a staged move that would collide', () => {
 	})
 })
 
-/**
- * `collectMembers` learned about preview ghosts and this layer did not, so a previewed path sweeping
- * an obstacle rendered as `obstacle-table ↔ unnamed` under "Currently touching" — a claim about the
- * machine right now — while the red "Move would collide" banner, the one thing in the panel meant to
- * stop you pressing Execute, stayed empty. The `live:` key also collapsed every ghost hitting the
- * same object into a single row.
- */
 describe('a previewed plan that would collide', () => {
 	it('names the ghost after the component it previews', () => {
 		const table = named('obstacle-table')
@@ -87,7 +78,7 @@ describe('a previewed plan that would collide', () => {
 		const table = named('obstacle-table')
 		const reports = toReports([{ a: previewGhost('left-arm'), b: table }])
 
-		expect(reports.every((report) => report.staged)).toBe(true)
+		expect(reports.map((report) => report.staged)).toEqual([true])
 	})
 
 	it('keeps two components hitting the same obstacle as two rows', () => {
@@ -101,7 +92,6 @@ describe('a previewed plan that would collide', () => {
 		expect(reports.map((report) => report.a)).toEqual(['left-arm', 'left-gripper'])
 	})
 
-	// A move that would collide is the more urgent warning, so it goes above what is merely touching.
 	it('sorts ahead of a live pair', () => {
 		const table = named('obstacle-table')
 		const wall = named('obstacle-wall')
@@ -125,9 +115,8 @@ describe('an entity with nothing to name it', () => {
 	})
 
 	/**
-	 * A moved ghost hangs its whole identity on a relation, so losing the source loses the name *and*
-	 * the fact that it was ever a ghost — koota drops the relation with the target. A preview ghost
-	 * carries its subject's name on itself and has no such hole, which is the case below.
+	 * Koota drops a relation along with its target, so a moved ghost loses the fact that it was ever
+	 * a ghost. A preview ghost carries the name on itself and has no such hole.
 	 */
 	it('lets a moved ghost lose both name and staged-ness when its source is destroyed', () => {
 		const source = named('gripper')

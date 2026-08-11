@@ -13,15 +13,9 @@ describe('previewComponentName', () => {
 		expect(previewComponentName(frameName)).toBe(expected)
 	})
 
-	/**
-	 * Known limitation, not a regression: `_origin` is stripped before the colon split ever runs, on
-	 * the premise that `_origin` is only ever appended to a whole part name by
-	 * `frameSystemToPlanFrames`. Nothing enforces that premise — a URDF may legally name a link
-	 * `wrist_origin` — so a link with that literal name mis-parses. Pinned here rather than "fixed" so
-	 * a future change to this function has to notice it is changing this answer on purpose. See the
-	 * docstring on `previewComponentName` for why colon-first isn't a fix either.
-	 */
-	it('mis-parses a link literally named `<link>_origin` as part of the known limitation', () => {
+	// Pinned, not endorsed: `_origin` is stripped before the colon split, so a link a URDF legally
+	// names `wrist_origin` mis-parses. Changing this answer should be a deliberate act.
+	it('mis-parses a link literally named `<link>_origin`', () => {
 		expect(previewComponentName('arm:wrist_origin')).toBe('arm:wrist')
 	})
 })

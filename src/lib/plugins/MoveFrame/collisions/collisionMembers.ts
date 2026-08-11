@@ -48,11 +48,8 @@ export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>):
 }
 
 /**
- * Whether the entity stands in for something rather than being it.
- *
- * Two kinds do: a staged-move ghost, which points at the entity it copies, and a preview ghost,
- * which names the component it is a future moment of. Both are claims about where something *would*
- * be, which is the distinction the panel draws between "would collide" and "currently touching".
+ * Whether the entity stands in for something rather than being it: a staged-move ghost points at the
+ * entity it copies, a preview ghost names the component it is a future moment of.
  */
 export const isGhost = (entity: Entity): boolean =>
 	entity.targetFor(GhostOf) !== undefined || previewedComponent(entity) !== undefined
@@ -88,15 +85,8 @@ export const collectMembers = (
 		const cached = bitCache.get(entity)
 		if (cached !== undefined) return cached
 
-		// A preview ghost names its subject outright — it has no `Name` and no parent for the walk
-		// below to follow. `PreviewOf` carries a *component* name while `armBits` holds arm resource
-		// names, so an arm answers on the first line and a gripper or camera does not: those are their
-		// own components, mounted on an arm, and only the parent walk knows it. Indexing `armBits`
-		// alone dropped them into the environment — where they tested against, and touched, the live
-		// twin they sit exactly on top of.
-		//
-		// Falling through to the environment is the honest answer when the name resolves to nothing
-		// live, or to something with no arm above it: neither says which arm owns the ghost.
+		// `armBits` holds arm resource names, so an arm answers from the name alone. A gripper or a
+		// camera is its own component mounted on an arm, and only the parent walk knows which one.
 		const previewed = previewedComponent(entity)
 		if (previewed !== undefined) {
 			const subject = liveByName.get(previewed)
