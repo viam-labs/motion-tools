@@ -29,12 +29,21 @@
 		/>
 	{/snippet}
 
-	<Pane
-		position="inline"
-		{title}
-		expanded
-		userExpandable={false}
-	>
-		{@render children()}
-	</Pane>
+	<div class="flex min-w-48 flex-col">
+		<!--
+			The header is ours rather than tweakpane's own title bar: tweakpane paints
+			that bar in its container gray, which the popover's arrow — a white square
+			joined to this edge — would read as a diamond sitting on top of.
+		-->
+		<h3 class="border-medium font-public-sans text-gray-7 truncate border-b p-2 text-xs">
+			{title}
+		</h3>
+
+		<!-- Tweakpane insets its rows by 4px; the extra 4px lands them on the header's 8px inset. -->
+		<div class="px-1">
+			<Pane position="inline">
+				{@render children()}
+			</Pane>
+		</div>
+	</div>
 </Popover>
