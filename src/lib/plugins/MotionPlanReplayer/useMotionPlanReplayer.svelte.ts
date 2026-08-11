@@ -4,7 +4,7 @@ import { onDestroy } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { traits, useWorld } from '$lib/ecs'
+import { setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
@@ -15,20 +15,16 @@ import * as planRelations from './relations'
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
 
-// koota's `set` on a trait the entity does not have throws, because it reaches through a store
-// slot that was never allocated: `TypeError: Cannot read properties of undefined (reading 'store')`.
 // Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
-// happens to be present because `drawTransform` adds it unconditionally. Guard both rather than
-// depend on that.
-const setOrAddColor = (entity: Entity, value: typeof PLAN_COLOR) => {
-	if (entity.has(traits.Color)) entity.set(traits.Color, value)
-	else entity.add(traits.Color(value))
-}
-
-const setOrAddOpacity = (entity: Entity, value: number) => {
-	if (entity.has(traits.Opacity)) entity.set(traits.Opacity, value)
-	else entity.add(traits.Opacity(value))
-}
+// happens to be present because `drawTransform` adds it unconditionally. Neither can be assumed
+// present, so both go through `setOrAddTrait` (`$lib/ecs`) rather than a raw `entity.set`.
+//
+// koota's `entity.set` on a trait this entity lacks does not throw here: it writes the trait's
+// store slot without touching the entity's mask, so `has()` stays false and the write is silently
+// lost to every query that reads it. `set` only throws when the trait was never registered on the
+// *world* at all (`TypeError: Cannot read properties of undefined (reading 'store')`) — a
+// different precondition than "this entity doesn't have it", and not one plan entities can hit,
+// since other entities register `Color`/`Opacity` on this world well before a plan ever loads.
 
 export interface PlanEntry {
 	name: string
@@ -136,14 +132,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 			// Defaults land on first appearance only. Re-forcing them every step is what wiped
 			// the user's Details-panel edits.
-			if (!spawned.entity.has(traits.ReferenceFrame)) setOrAddColor(spawned.entity, PLAN_COLOR)
-			setOrAddOpacity(spawned.entity, PLAN_OPACITY)
+			if (!spawned.entity.has(traits.ReferenceFrame))
+				setOrAddTrait(spawned.entity, traits.Color, PLAN_COLOR)
+			setOrAddTrait(spawned.entity, traits.Opacity, PLAN_OPACITY)
 		}
 
 		// Restore captured config onto entities that survived this step.
 		for (const [entity, prev] of preserved) {
 			if (!entity.isAlive()) continue
-			setOrAddOpacity(entity, prev.opacity)
+			setOrAddTrait(entity, traits.Opacity, prev.opacity)
 			if (prev.invisible) entity.add(traits.Invisible)
 			else entity.remove(traits.Invisible)
 			if (prev.showAxes) entity.add(traits.ShowAxesHelper)

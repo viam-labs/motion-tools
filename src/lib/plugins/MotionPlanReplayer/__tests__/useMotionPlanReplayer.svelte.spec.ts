@@ -3,7 +3,7 @@ import { type Entity, type World } from 'koota'
 import { UuidTool } from 'uuid-tool'
 import { describe, expect, it } from 'vitest'
 
-import { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
+import { Geometry, PoseInFrame, Sphere, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 import { traits } from '$lib/ecs'
 
@@ -288,5 +288,42 @@ describe('scrubbing', () => {
 		expect(entity.get(traits.Opacity)).toBeCloseTo(0.25)
 		expect(entity.has(traits.Invisible)).toBe(true)
 		expect(entity.has(traits.ShowAxesHelper)).toBe(true)
+	})
+})
+
+describe('display defaults', () => {
+	/**
+	 * `setOrAddColor` used to be a local reimplementation of `setOrAddTrait`; the spawn path now
+	 * calls the shared helper directly. Plan transforms carry no color metadata, so this is the
+	 * "entity doesn't have the trait yet" branch `setOrAddTrait` exists for — the one koota's own
+	 * `entity.set` would write into an unallocated store slot and lose silently, since `has()`
+	 * would stay false and no query would ever see it.
+	 *
+	 * Needs a `physicalObject` on the transform: `drawTransform` only pushes `traits.Geometry`
+	 * (here, `Sphere`) when one is present, and `applyStep` only colors entities that got real
+	 * geometry rather than the bare `ReferenceFrame` marker — `planSnapshots` above omits it, so it
+	 * can't be reused for this one.
+	 */
+	it('colors a freshly spawned plan entity even though Color is always absent on spawn', () => {
+		const { ctx, world } = mount()
+		ctx.addPlan('plan-0', 'content-0', [
+			new Snapshot({
+				transforms: [
+					new Transform({
+						referenceFrame: 'plan-0-frame',
+						poseInObserverFrame: new PoseInFrame({ referenceFrame: 'world' }),
+						physicalObject: new Geometry({
+							geometryType: { case: 'sphere', value: new Sphere({ radiusMm: 10 }) },
+						}),
+						uuid: Uint8Array.from(UuidTool.toBytes('plan-0-0000-4000-8000-000000000000')),
+					}),
+				],
+			}),
+		])
+
+		const entity = drawnEntity(world)
+
+		expect(entity.has(traits.Color)).toBe(true)
+		expect(entity.get(traits.Color)).toEqual({ r: 0, g: 0.47, b: 1 })
 	})
 })
