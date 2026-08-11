@@ -18,9 +18,8 @@ import {
 const goal = new Pose(100, -200, 350).merge({ oX: 0.6, oY: -0.8, oZ: 1, theta: 45 })
 
 /**
- * The message's own field shape with no prototype, which is what the SDK's `WorldState` *type* means
- * (`sdk/dist/types.d.ts:51` aliases it to `PlainMessage`). A spread keeps the fields, including the
- * `{case, value}` oneofs, and drops the methods.
+ * The message's own field shape with no prototype, which is what the SDK's `WorldState` type means:
+ * it aliases to `PlainMessage`. A spread keeps the fields, including the `{case, value}` oneofs.
  */
 const asPlainMessage = <T extends object>(message: T): T => ({ ...message })
 
@@ -46,17 +45,10 @@ describe('planCommand', () => {
 	it('serializes the destination with protojson field names and units', () => {
 		expect(moveRequestOf(request()).destination).toEqual({
 			referenceFrame: 'world',
-			// Millimetres, with `theta` in degrees — what `toDestinationPose` produces.
 			pose: { x: 100, y: -200, z: 350, oX: 0.6, oY: -0.8, oZ: 1, theta: 45 },
 		})
 	})
 
-	/**
-	 * The whole payload, not just the fields we care about. RDK unmarshals this with
-	 * `protojson.Unmarshal` and default options, so `DiscardUnknown` is false and *any* key that is
-	 * not a `MoveRequest` field is a hard RPC error. A stray or misspelled key would break every real
-	 * plan call while a field-by-field spec stayed green.
-	 */
 	it('sends exactly the fields `MoveRequest` declares and no others', () => {
 		expect(Object.keys(moveRequestOf(request())).toSorted()).toEqual([
 			'componentName',
@@ -65,12 +57,6 @@ describe('planCommand', () => {
 		])
 	})
 
-	/**
-	 * `JSON.stringify` writes `null` for a non-finite number, and Go's protojson skips a null scalar
-	 * rather than rejecting it — so RDK would read the field's zero, plan a valid move to a
-	 * destination nobody asked for, and hand back a trajectory that looks fine. `client.move` cannot
-	 * do this: a proto double carries the NaN and the planner refuses it.
-	 */
 	it.each(['x', 'theta'])('refuses a goal whose %s is not finite', (field) => {
 		const broken = goal.clone().merge({ [field]: Number.NaN })
 
@@ -79,14 +65,12 @@ describe('planCommand', () => {
 		)
 	})
 
-	it('omits world state and constraints when the panel`s fields are empty', () => {
+	it("omits world state and constraints when the panel's fields are empty", () => {
 		const moveRequest = moveRequestOf(request(parseMoveOptions('', '')))
 		expect(moveRequest.worldState).toBeUndefined()
 		expect(moveRequest.constraints).toBeUndefined()
 	})
 
-	// The preview has to plan the same problem the subsequent move would, or it previews a
-	// different one.
 	it('passes through the same world state and constraints `move` would receive', () => {
 		const options = parseMoveOptions(
 			'{"obstacles":[{"referenceFrame":"world","geometries":[{"sphere":{"radiusMm":50}}]}]}',
@@ -101,9 +85,8 @@ describe('planCommand', () => {
 	})
 
 	/**
-	 * What the *type* promises. `parseMoveOptions` happens to return real message instances, for which
-	 * the rebuild is a no-op — so with only that input, deleting the rebuild passes every test and
-	 * then dies on `worldState.toJson is not a function` the first time a caller honours the signature.
+	 * `parseMoveOptions` returns real message instances, for which the rebuild is a no-op, so with
+	 * only that input deleting the rebuild passes every other test here.
 	 */
 	it('accepts the plain-message shape its signature actually describes', () => {
 		const options = parseMoveOptions(
@@ -118,8 +101,8 @@ describe('planCommand', () => {
 			})
 		)
 
-		// The sphere in particular: a geometry's shape is a oneof, which is the part a careless rebuild
-		// drops, leaving an obstacle with no volume and a preview that plans straight through it.
+		// A geometry's shape is a oneof, the part a careless rebuild drops, leaving an obstacle with no
+		// volume and a preview that plans straight through it.
 		expect(moveRequest.worldState).toEqual({
 			obstacles: [{ referenceFrame: 'world', geometries: [{ sphere: { radiusMm: 50 } }] }],
 		})
@@ -131,8 +114,7 @@ describe('executeCommand', () => {
 	const trajectory: TrajectoryStep[] = [{ 'left-arm': [0, 0.5] }, { 'left-arm': [0.1, 0.4] }]
 
 	// Against a literal, not against `trajectory` itself: the command holds the same array reference,
-	// so comparing it to its own source is a tautology that any in-place reordering or rounding of
-	// the steps would survive — and the arm would run whatever the mutation left behind.
+	// so comparing it to its own source is a tautology any in-place reordering would survive.
 	it('sends the trajectory back verbatim', () => {
 		expect(executeCommand(trajectory).execute).toEqual([
 			{ 'left-arm': [0, 0.5] },
@@ -140,23 +122,17 @@ describe('executeCommand', () => {
 		])
 	})
 
-	/**
-	 * The key's presence is the switch (`builtin.go`). Without it epsilon is `math.MaxFloat64`,
-	 * so RDK compares the trajectory's first step against where the components actually are and can
-	 * never find them too far away — a plan validated from one configuration runs from any other.
-	 */
 	it('arms the start-state check RDK will not run unasked', () => {
 		expect(executeCommand(trajectory)).toHaveProperty('executeCheckStart')
 	})
 
-	// Anything ≤ 0 selects `defaultExecuteEpsilon`, so the tolerance stays RDK's to choose.
 	it('defers the tolerance to RDK rather than naming one', () => {
 		expect(executeCommand(trajectory).executeCheckStart).toBeLessThanOrEqual(0)
 	})
 })
 
 describe('parsePlanResult', () => {
-	it('reads the trajectory RDK returns under the command`s own key', () => {
+	it("reads the trajectory RDK returns under the command's own key", () => {
 		const { trajectory } = parsePlanResult({
 			plan: [{ 'left-arm': [0, 0.5], 'left-gripper': [] }],
 		})
@@ -165,12 +141,8 @@ describe('parsePlanResult', () => {
 	})
 
 	/**
-	 * Throwing beats an empty result, which would read as "planned fine, nothing to show".
-	 *
-	 * Each row asserts its own message, not just that something threw. A bare `toThrow(PlanCommandError)`
-	 * cannot tell a non-array plan apart from a null step or a non-numeric joint value, so any of them
-	 * could silently drift into sharing one message that only actually describes one cause — the defect
-	 * this file used to have, where every one of these asserted the same RDK-version-blaming text.
+	 * Each row asserts its own message. A bare `toThrow(PlanCommandError)` cannot tell a non-array
+	 * plan from a null step, so they could drift into sharing one message that fits only one cause.
 	 */
 	it.each([
 		['a non-object reply', 'nope' as JsonValue, /unexpected plan response/],
@@ -191,16 +163,8 @@ describe('parsePlanResult', () => {
 	})
 
 	/**
-	 * Steps that are structurally present but carry nothing readable. `every` says yes to both by
-	 * default — an array is `typeof 'object'`, and `Object.values({})` is vacuously fine — and
-	 * downstream nothing complains either, because `jointValueAt` resolves a missing column to `0`.
-	 * The result was a plausible-looking arm drawn at the zero configuration rather than a reply
-	 * reported as unreadable. `[[], []]` also satisfied `isAlreadyAtGoal`, so the panel claimed the
-	 * machine was already there.
-	 *
-	 * `{}` and `[]` share a message: both name zero components, and that is the whole of what is
-	 * wrong with either. A non-empty array step is a different defect — a list where a map of
-	 * component names was expected — so it gets its own.
+	 * `{}` and `[]` share a message: both name zero components, and that is the whole of what is wrong
+	 * with either. A non-empty array step is a different defect, a list where a map was expected.
 	 */
 	it.each([
 		['a step with no columns', { plan: [{ arm: [0] }, {}] } as JsonValue, /naming no components/],
@@ -221,17 +185,6 @@ describe('parsePlanResult', () => {
 		expect(() => parsePlanResult(value)).toThrow(message)
 	})
 
-	/**
-	 * `typeof NaN === 'number'`, so a numeric-only check lets these through, and neither is a local
-	 * defect once it is in. `interpolateTrajectory` sums every segment's frame cost to decide how
-	 * finely to sample, so one non-finite value makes the total non-finite, which survives
-	 * `Math.ceil` until the interior loop stops running: *every* segment of the plan collapses to
-	 * one frame. That is the raw waypoint teleport interpolation exists to prevent, reached with no
-	 * error raised anywhere.
-	 *
-	 * `planCommand` already refuses a non-finite goal on exactly this reasoning; this is the same
-	 * rule applied to the reply.
-	 */
 	it.each([
 		['NaN', Number.NaN],
 		['Infinity', Number.POSITIVE_INFINITY],
@@ -243,11 +196,6 @@ describe('parsePlanResult', () => {
 		expect(() => parsePlanResult(value)).toThrow(/non-finite joint value/)
 	})
 
-	/**
-	 * There is no capability or version RPC to probe a machine with, so the only evidence available is
-	 * what came back. An RDK older than ~v0.101 serialises `Input` as `{Value: number}`, which reaches
-	 * us as a successful plan we cannot read — worth saying, rather than reporting it as no plan.
-	 */
 	it('tells an unreadable trajectory apart from an absent one', () => {
 		const old = { plan: [{ arm: [{ Value: 0.1 }] }] } as JsonValue
 
@@ -256,25 +204,16 @@ describe('parsePlanResult', () => {
 	})
 })
 
-/**
- * RDK seeds the trajectory with the start configuration before planning towards the goal, so a move
- * that is already satisfied comes back as two identical steps. It never comes back empty, and never
- * as an error — so a check keyed on emptiness never fires and the user gets a two-frame scrubber
- * that appears to do nothing.
- */
 describe('isAlreadyAtGoal', () => {
-	it('recognises the start configuration returned twice', () => {
+	it('recognizes the start configuration returned twice', () => {
 		expect(isAlreadyAtGoal([{ arm: [0, 1.5] }, { arm: [0, 1.5] }])).toBe(true)
 	})
 
 	/**
-	 * A real reply keys every frame in the system, including the zero-DoF ones RDK pads with `[]` —
-	 * the shape `plan-gantry.json` carries. With only single-component steps the per-component loop
-	 * is never a loop, so `every` and `some` behave identically and the difference between "all
-	 * components held still" and "any one of them did" goes untested. Under `some`, the `_origin`
-	 * frames alone satisfy it and every real move reads as already-at-goal.
+	 * With only single-component steps `every` and `some` behave identically, so "all components held
+	 * still" versus "any one of them did" goes untested. RDK pads zero-DoF frames with `[]`.
 	 */
-	it('recognises a full multi-component step, padding and all', () => {
+	it('recognizes a full multi-component step, padding and all', () => {
 		const step: TrajectoryStep = {
 			'arm-1': [0, 0, 0, 0, 0, 0],
 			'arm-1_origin': [],
@@ -311,11 +250,8 @@ describe('isAlreadyAtGoal', () => {
 	})
 
 	/**
-	 * The arm goes somewhere and comes back. Hiding that would be worse than showing it.
-	 *
-	 * The second case is the one that pins the length check itself: destructuring reads indices 0 and
-	 * 1, so a plan whose *first two* steps differ stays false even if the length test is loosened.
-	 * Here the seeded start is repeated, so only `length !== 2` keeps it false.
+	 * The second case pins the length check itself: destructuring reads indices 0 and 1, so a plan
+	 * whose first two steps differ stays false even if the length test is loosened.
 	 */
 	it.each<[string, TrajectoryStep[]]>([
 		['ending where it started', [{ arm: [0] }, { arm: [1] }, { arm: [0] }]],
