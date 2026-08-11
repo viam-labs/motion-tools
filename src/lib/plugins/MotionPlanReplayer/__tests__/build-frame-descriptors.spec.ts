@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { ParsedPlan } from '../parse-plan'
 
@@ -19,24 +19,11 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 })
 
 /**
- * An equivalence check across every capture at once, not a regression gate: a frame parented to a
- * bare model name has to land on that model's declared `primary_output_frame`, read here straight
- * out of the dump rather than from a snapshot, so a wrong answer names itself instead of showing up
- * as a diff nobody can adjudicate. `gantry-plan` contributes nothing, which is why the count is
- * asserted across the set rather than per file.
- *
- * The 14 are each model's own `<name>_origin` frame, the one child every model in these captures
- * parents directly to its bare name (RDK frames a static obstacle group as a model too, so
- * `obstacle-table_origin` etc. count alongside the arms): 0 from gantry-plan, 1 from
- * pirouette-plan, 9 from plan.json, 4 from salad-plan.
- *
- * It cannot tell the rungs apart, and is not meant to. On all 29 captured model frames the declared
- * value, the sole leaf and the last declared link are the same string, so every rung reproduces the
- * same answer and this passes with any one of them deleted. What it catches is a ladder that stops
- * resolving a terminal at all. The rung-by-rung tests are in `model output frame` below.
+ * Equivalence check, not a regression gate: on all 29 captured model frames every branch
+ * resolves the same string, so this passes with any one branch deleted.
  */
 describe('captured plans', () => {
-	it('resolve every model-parented frame to that model`s declared output frame', () => {
+	it("resolve every model-parented frame to that model's declared output frame", () => {
 		let checked = 0
 
 		for (const raw of [gantryPlan, pirouettePlan, planDump, saladPlan]) {
@@ -48,10 +35,8 @@ describe('captured plans', () => {
 				if (model?.frame_type !== 'model') continue
 
 				const declared = (model.frame as Record<string, unknown>).primary_output_frame
-				// A config-only model with no `primary_output_frame` is a shape none of the four
-				// captures has, but production correctly falls through to `output_frames` or the
-				// sole leaf for it. Asserting the literal string `${rawParent}:undefined` here would
-				// fail on that correct fallback rather than on a regression, so skip rather than coerce.
+				// Skip rather than coerce: production correctly falls through here, so asserting
+				// `${rawParent}:undefined` would fail on that fallback rather than on a regression.
 				if (typeof declared !== 'string') continue
 
 				expect(parentByName.get(child)).toBe(`${rawParent}:${declared}`)
@@ -63,11 +48,10 @@ describe('captured plans', () => {
 	})
 })
 
-// Identity is right for an absent orientation and wrong for an unrecognised one; both halves matter,
+// Identity is right for an absent orientation and wrong for an unrecognized one; both halves matter,
 // since a warning on every pure translation would be as useless as none.
-describe('unrecognised orientation encodings', () => {
+describe('unrecognized orientation encodings', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	const framed = (orientation: unknown, geometry?: unknown): ParsedPlan =>
 		plan(
@@ -97,7 +81,7 @@ describe('unrecognised orientation encodings', () => {
 		}
 	})
 
-	it('stays silent when orientation is absent — a pure translation is not a defect', () => {
+	it('stays silent when orientation is absent, a pure translation is not a defect', () => {
 		buildFrameDescriptors(framed(undefined))
 		expect(warn).not.toHaveBeenCalled()
 	})
@@ -111,7 +95,7 @@ describe('unrecognised orientation encodings', () => {
 	// Guarded by `hasOrientJson`, so a warn placed only in `quatFromJson` would miss this path.
 	// `rotation_matrix` is a real spatialmath type that `NewOrientationConfig` refuses to marshal,
 	// so it stands in for an encoding this file will never convert.
-	it('warns for an unrecognised orientation on a geometry, not just on a frame', () => {
+	it('warns for an unrecognized orientation on a geometry, not just on a frame', () => {
 		buildFrameDescriptors(
 			framed(
 				{ type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
@@ -136,7 +120,6 @@ describe('unrecognised orientation encodings', () => {
 // and no output — the frame simply wasn't in the scene.
 describe('unhandled frame types', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	it('warns and emits nothing for an unregistered outer frame type', () => {
 		const descriptors = buildFrameDescriptors(
@@ -311,16 +294,6 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	/**
-	 * Where a model hands off its children, one test per rung of the ladder. Each declares `links` in
-	 * an order that array position would answer differently from, so the new rule and the old one are
-	 * distinguishable — the previous version of this test could not tell them apart, because its last
-	 * link was also its output frame. A URDF arm's link order really is arbitrary: RDK collects links
-	 * into a Go map and ranges it into a slice, and map iteration is randomised per range statement.
-	 *
-	 * See `armed` below for the second thing these have to avoid, which is subtler: the fallback that
-	 * catches an unanswered ladder must not agree with the rung under test either.
-	 */
 	describe('model output frame', () => {
 		const staticFrame = {
 			frame_type: 'named',
@@ -349,12 +322,8 @@ describe('buildFrameDescriptors', () => {
 		}
 
 		/**
-		 * `extra_link` is declared *before* `gripper_mount` on purpose. When no rung of the ladder
-		 * answers, `buildFrameContexts` falls through to the first child of the last joint, and that
-		 * child is whichever one this map lists first. Listing `gripper_mount` first made the fallback
-		 * produce the same answer every rung below was asserting, so four of the five tests here
-		 * passed with the rung they are named after deleted. With the order flipped the fallback says
-		 * `arm:extra_link`, which no rung test expects, so each one now fails when its rung goes.
+		 * `extra_link` first on purpose: an unanswered ladder falls through to the first child of the
+		 * last joint, so listing `gripper_mount` first makes that fallback match what each branch asserts.
 		 */
 		const armed = (frame: Record<string, unknown>): ParsedPlan =>
 			plan(
@@ -376,8 +345,6 @@ describe('buildFrameDescriptors', () => {
 		const parentOfCamera = (p: ParsedPlan): string | undefined =>
 			buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')?.parent
 
-		// RDK puts this on the SimpleModel envelope, a sibling of `model`. All four captures have it
-		// there; none has it inside `model`, so reading it off `model` never found it.
 		it('reads primary_output_frame off the model envelope, not out of `model`', () => {
 			const p = armed({
 				name: 'arm',
@@ -394,9 +361,7 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
 
-		// `ModelConfigJSON` has no primary_output_frame — `output_frames` is its analogue, and RDK
-		// refuses to build a model that declares more than one.
-		it('falls back to the model config`s own output_frames', () => {
+		it("falls back to the model config's own output_frames", () => {
 			const p = armed({
 				name: 'arm',
 				model: {
@@ -412,8 +377,8 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
 
-		// RDK's own rule when nothing is declared. `extra_link` is declared last but is not the tip.
-		it('falls back to the model`s sole childless frame rather than its last link', () => {
+		// `extra_link` is declared last but is not the tip.
+		it("falls back to the model's sole childless frame rather than its last link", () => {
 			const p = armed({
 				name: 'arm',
 				model: {
@@ -428,7 +393,6 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
 
-		// The leaf can be a joint, which the old array-position fallback could never name.
 		it('accepts a joint as the terminal frame', () => {
 			const p = armed({
 				name: 'arm',
@@ -441,10 +405,7 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:gripper_rot')
 		})
 
-		// A non-array `links` (a hand-edited `{}` rather than `[]`) must not reach the spread inside
-		// `soleLeafOf` as anything but empty. Before the `Array.isArray` guard this threw a bare
-		// TypeError trying to spread a non-iterable, taking the whole plan render down with it.
-		it('does not throw when a model`s links is not an array', () => {
+		it("does not throw when a model's links is not an array", () => {
 			const p = armed({
 				name: 'arm',
 				model: {
@@ -456,9 +417,7 @@ describe('buildFrameDescriptors', () => {
 			expect(() => parentOfCamera(p)).not.toThrow()
 		})
 
-		// Ambiguous shapes must not guess; the last-joint-child path still covers them. `gripper_mount`
-		// is the first leaf in declaration order, so picking `leaves[0]` rather than refusing would
-		// answer `arm:gripper_mount` and this fails.
+		// `gripper_mount` is the first leaf in declaration order, so `leaves[0]` would answer it.
 		it('declines to pick when a model has more than one childless frame', () => {
 			const p = armed({
 				name: 'arm',
@@ -475,8 +434,7 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:extra_link')
 		})
 
-		// A bare string would otherwise be indexed as an array and yield its first character, which
-		// the `typeof === 'string'` check downstream would accept.
+		// A bare string would be indexed as an array and yield its first character, resolving `arm:g`.
 		it('ignores an output_frames that is not an array', () => {
 			const p = armed({
 				name: 'arm',
@@ -577,6 +535,7 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 		const d = descriptors[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.geometry).not.toBeNull()
 			expect(d.geometry!.geometryType.case).toBe('capsule')
@@ -615,6 +574,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:base_top': 'arm:waist' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.z).toBeCloseTo(267)
 			// geo z=160 and frame z=267 both in parent (waist) → local center 107mm below frame
@@ -658,6 +618,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'left-arm:link_2': 'left-arm:joint_2' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.x).toBeCloseTo(390)
 			// R_frame⁻¹ * (geo − frame): not a naive component-wise subtract
@@ -690,6 +651,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:link': 'world' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			// Identity would be oX:0 oY:0 oZ:1 theta:0 — assert it's not identity and
 			// specifically a 90 degree rotation about Z.
@@ -779,6 +741,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'left-arm:link_1': 'left-arm:joint_1' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.theta).not.toBeCloseTo(0)
 			// geometry center offset is rotated into link-local, not left in parent Y/Z
@@ -807,6 +770,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:link': 'world' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.theta).toBeCloseTo(90)
 			expect(d.localPose.oZ).toBeCloseTo(1)
@@ -834,6 +798,7 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 		const d = descriptors[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') expect(d.geometry).toBeNull()
 	})
 

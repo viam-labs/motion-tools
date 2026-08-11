@@ -192,23 +192,14 @@ interface ModelNode {
 }
 
 /**
- * The model's one childless frame, over links *and* joints. RDK computes `leaves` the same way, and
- * requires exactly one *when the config declares no `output_frames`*: `requireSingleLeaf` is
- * `len(cfg.OutputFrames) == 0`, and a branching model is legal as long as it names its output. That
- * condition is the rung above this one, so by the time we get here the single-leaf rule is the only
- * one RDK would apply, and more than one leaf is a shape we cannot read rather than one to guess at.
- *
- * Only reads `links` and `joints`. A `kinematic_param_type: "DH"` model carries its topology in
- * `dhParams`, from which RDK synthesises `<id>` and `<id>_j` nodes, so this returns undefined for
- * one rather than a wrong answer. No capture uses DH, and the rung above covers them in practice.
+ * The model's one childless frame, over links and joints. Undefined when there is more than one,
+ * which RDK also refuses, and for a DH model, whose topology lives in `dhParams` not either list.
  */
 const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
 	const links = model?.links
 	const joints = model?.joints
-	// `Array.isArray` guards, same policy as `modelOutputFrame`'s `output_frames` check above: a
-	// hand-edited or malformed capture can declare `links`/`joints` as a non-array (`{}` rather than
-	// `[]`), and spreading a non-iterable throws a bare `TypeError` that takes the whole plan render
-	// down. Treating it as empty degrades to whatever the other list still resolves.
+	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
+	// non-iterable throws, taking the whole plan render down.
 	const nodes = [
 		...(Array.isArray(links) ? (links as ModelNode[]) : []),
 		...(Array.isArray(joints) ? (joints as ModelNode[]) : []),
@@ -223,22 +214,8 @@ const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefi
 }
 
 /**
- * Which frame a model hands its children to. RDK serialises this on the `SimpleModel` envelope, a
- * *sibling* of `model`; `ModelConfigJSON` has no such field, only `output_frames`. Reading it off
- * `model` therefore never finds it: across the four captures it is on the envelope 29 times out of
- * 29 and inside `model` none, so the array-position fallback was doing all the work.
- *
- * That fallback is arbitrary for a URDF arm specifically. `UnmarshalModelXML` collects links into a
- * `map[string]*LinkConfig` and then ranges it into a slice, and Go randomises map iteration per
- * range statement, so two parses in one process can disagree; `joints` is appended in document
- * order and is unaffected. Reading the *last* link was therefore the one part of the model most
- * likely to move underneath us.
- *
- * The order below is not RDK's. `SimpleModel.UnmarshalJSON` ignores the envelope whenever `model`
- * is present and recomputes from the config, so RDK reads config first and envelope last. The two
- * cannot disagree on anything RDK marshalled, because the envelope is written from the value the
- * config produced, and taking the envelope first means trusting what RDK resolved rather than
- * re-deriving it. Only a hand-edited dump can tell these two orders apart.
+ * Which frame a model hands its children to: the envelope's `primary_output_frame`, then the
+ * config's `output_frames[0]`, then the sole leaf.
  */
 const modelOutputFrame = (
 	entry: Frames[string],
@@ -300,9 +277,8 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
 		}
 
-		// Truthiness rather than a null check, deliberately: unlike the two rungs above it, the
-		// sole-leaf rung does not screen an empty id, because Go marshals `id` with no `omitempty`
-		// and a node can carry `""`. That names no frame, so it has to fall through here.
+		// Truthiness, not a null check: `soleLeafOf` can return `''`, since Go marshals `id` without
+		// `omitempty`. An empty id names no frame.
 		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
