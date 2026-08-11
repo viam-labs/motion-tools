@@ -114,6 +114,8 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 	if (Math.hypot(x, y, z) > 0) return 'box'
 
 	// `l` before `r`: a capsule sets both, and RDK checks the length first for the same reason.
+	// `r` checks `> 0` rather than `!== 0`: a negative radius describes no real sphere, and this
+	// keeps that struct falling through to `''` — "no geometry" — instead of building one.
 	if (((g.l as number) ?? 0) !== 0) return 'capsule'
 	if (((g.r as number) ?? 0) > 0) return 'sphere'
 

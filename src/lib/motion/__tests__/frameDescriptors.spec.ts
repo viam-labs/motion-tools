@@ -958,6 +958,7 @@ describe('buildFrameDescriptors', () => {
 	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 		try {
+			warn.mockClear()
 			expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
 			expect(warn).not.toHaveBeenCalled()
 		} finally {
@@ -967,8 +968,9 @@ describe('buildFrameDescriptors', () => {
 
 	/**
 	 * The first three are verbatim xArm6 links from the captures, where every geometry under
-	 * `model.links` spells `"type": ""`. Nothing feeds those to `parseGeometry` yet — `buildDescriptors`
-	 * skips `model` frames — so these pin `inferGeometryType` ahead of the reader that will.
+	 * `model.links` spells `"type": ""`. `buildDescriptors` itself skips `model` frames, so these
+	 * wrap each geometry in a synthetic static frame to exercise `inferGeometryType` and
+	 * `parseGeometry` directly against real dimension combinations.
 	 *
 	 * The rest are the distinctions the real links cannot draw, because all three of their box dims
 	 * are non-zero and none sets both a box dim and a length.
@@ -998,6 +1000,14 @@ describe('buildFrameDescriptors', () => {
 		// The authored form: `original_file` in the captures decodes to `"geometry": { "r": 1 }`, with
 		// no `type` key at all. Only RDK's marshal adds the empty string.
 		['a sphere when the type key is absent entirely', { r: 1 }, { case: 'sphere', r: 1 }],
+		// `r`'s check is `> 0`, `l`'s is `!== 0` — only a negative value tells the two apart, since
+		// both already agree that zero means "unset".
+		['nothing when r is negative, unlike a zero r', { type: '', r: -5 }, null],
+		[
+			'a capsule even when l is negative — unguarded, unlike r',
+			{ type: '', r: 50, l: -320 },
+			{ case: 'capsule', r: 50, l: -320 },
+		],
 	])('infers %s', (_label, geometry, expected) => {
 		expect(linkShape(geometry)).toEqual(expected)
 	})
