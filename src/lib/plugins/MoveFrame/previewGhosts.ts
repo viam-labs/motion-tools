@@ -1,16 +1,6 @@
 /**
- * The scene a previewed plan is drawn as: a ghost twin of every frame the plan touches, laid over
- * the live machine rather than replacing it. The twin is the point — the arm on screen is not
- * moving, and a preview that animated the real frames would say the opposite.
- *
- * Like `moveGhosts`, these are display-only entities the scene's existing renderers pick up, and
- * like those they carry **no `Name` and no `ChildOf`**. That is load-bearing here rather than
- * merely tidy: `resolveOrphans` indexes parents by name, so a ghost named `left-arm` could capture
- * the live `left-cam`'s `ChildOf` — or lose its own children to the live arm — depending on query
- * order. Staying out of the hierarchy makes the question moot, at the price of composing the chain
- * ourselves (`$lib/motion/forwardKinematics`).
- *
- * The set is spawned once per plan and only its matrices are rewritten as the user scrubs.
+ * A previewed plan drawn as a ghost twin of every frame it moves, laid over the live machine rather
+ * than replacing it: the real arm is not moving, and animating its frames would say otherwise.
  */
 
 import { type ConfigurableTrait, type Entity, type World } from 'koota'
@@ -25,8 +15,8 @@ import { MOVE_GHOST_COLOR } from './moveGhostColor'
 import { previewComponentName, PreviewOf } from './traits'
 
 /**
- * Lower than the staged-goal ghost's 0.5. The two are on screen together — a whole ghosted machine
- * behind the single ghosted subtree at the goal — and the goal is the thing being decided on.
+ * Lower than the staged-goal ghost's 0.5: the two are on screen together, a whole ghosted machine
+ * behind the single ghosted subtree at the goal, and the goal is the thing being decided on.
  */
 const PREVIEW_OPACITY = 0.35
 
@@ -39,30 +29,15 @@ export type PreviewGhosts = Map<string, Entity>
 export const createPreviewGhosts = (): PreviewGhosts => new Map()
 
 /**
- * The components whose joint values actually change over the plan.
- *
- * RDK answers with a column for every component in the frame system, not just the ones it moved, and
- * this used to compare those columns for exact equality on the premise that a component the plan
- * holds still repeats its configuration byte-identically in every step. That premise is false:
- * `salad-plan.json`'s 52-step capture holds `left-arm` still throughout, yet its values drift by up
- * to 8.312169424984361e-10 rad from step 0 — floating-point noise trajectory optimisation leaves on a
- * column it never touches, not motion. The same capture's `right-arm` genuinely moves, by
- * 2.724693022178968 rad, nine orders of magnitude above that noise, so exact equality classified the
- * noise as a move and ghosted an idle arm for the whole of playback: precisely the failure this
- * function exists to prevent. Every 2-step fixture in the repo (`plan.json`, `gantry-plan.json`,
- * `pirouette-plan.json`) is too short to show this — the drift comes from solving across intermediate
- * steps, so a start/end-only plan never accumulates any.
- *
- * `MOTION_TOLERANCE` draws the line instead: three orders above the measured noise floor and, read as
- * millimetres on a prismatic joint, a nanometre below any slide worth ghosting. One constant serves
- * both units a step can hold (radians for a revolute joint, millimetres for a prismatic one — see
- * `TrajectoryStep`), rather than a per-kind threshold neither unit needs.
- *
- * A component named in only some steps counts as moving regardless of tolerance, because appearing or
- * vanishing is a structural change, not a magnitude to compare against a threshold.
+ * Three orders above the noise trajectory optimization leaves on a component the plan holds still
+ * (up to 8.3e-10 rad in `salad-plan.json`), and below any prismatic slide worth ghosting.
  */
 const MOTION_TOLERANCE = 1e-6
 
+/**
+ * The components whose joint values actually change over the plan. RDK answers with a column for
+ * every component in the frame system, not just the ones it moved.
+ */
 export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<string> => {
 	const moving = new Set<string>()
 	const [first] = trajectory
@@ -70,10 +45,9 @@ export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<str
 
 	for (const [component, values] of Object.entries(first)) {
 		const changes = trajectory.some((step) => {
-			// `hasOwn` rather than testing `step[component]` for undefined: a plain index into a step
-			// that does not own the component reads through to `Object.prototype`, so a component named
-			// `toString` read back as a member function whose `.length` happens to be a valid DoF count
-			// instead of `undefined`. `sameInputs` (`planDoCommand.ts`) guards the identical hazard.
+			// `hasOwn`, not a plain index: a step that does not own the component reads through to
+			// `Object.prototype`, where `toString` reads back as a function whose `.length` is a
+			// valid DoF count.
 			if (!Object.hasOwn(step, component)) return true
 
 			const other = step[component]
@@ -85,9 +59,8 @@ export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<str
 		if (changes) moving.add(component)
 	}
 
-	// A component absent from step 0 but present later is moving by the same argument. `hasOwn`, not
-	// `in`: `in` walks the prototype chain too, so `'toString' in first` is true even when no step ever
-	// names a `toString` component, and the component would never be counted as appearing.
+	// `hasOwn`, not `in`: `in` walks the prototype chain, so `'toString' in first` is true even when
+	// no step names a `toString` component.
 	for (const step of trajectory) {
 		for (const component of Object.keys(step)) {
 			if (!Object.hasOwn(first, component)) moving.add(component)
@@ -98,18 +71,8 @@ export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<str
 }
 
 /**
- * Whether a joint that *this plan actually moves* sits anywhere above this frame.
- *
- * The parent-chain walk is what keeps a mounted gripper: it owns no column of its own, but the arm
- * joints above it do, so it rides along and must be ghosted. What the walk alone could not tell is
- * that a second arm the plan holds still is not moving either — its links do sit under joints, so
- * the earlier "is there any joint above me" rule ghosted all of them, laying a translucent copy over
- * a live arm for the whole of playback. That is the same failure that rules scenery out, arriving by
- * a different route, so the joint has to be one whose component changes.
- *
- * Memoized because a chain is walked once per frame hanging off it, and the answer for a link is
- * the answer for its parent. Writing `false` before recursing doubles as the cycle guard, so no
- * depth counter is needed: a loop cannot reach a joint, which makes `false` its right answer too.
+ * Whether a joint this plan actually moves sits anywhere above this frame. The walk is what keeps a
+ * mounted gripper: it owns no column of its own, but the arm joints above it do.
  */
 const drivenByMovingJoint = (
 	name: string,
@@ -119,11 +82,13 @@ const drivenByMovingJoint = (
 ): boolean => {
 	const cached = memo.get(name)
 	if (cached !== undefined) return cached
+	// Seeded before recursing, which doubles as the cycle guard: a loop cannot reach a joint, so
+	// `false` is also its right answer.
 	memo.set(name, false)
 
 	const descriptor = byName.get(name)
 	// A joint whose component is held still is not the end of the walk: an ancestor may still move,
-	// which is exactly the gripper-on-a-moving-arm case.
+	// as on a gripper bolted to a moving arm.
 	const driven =
 		descriptor !== undefined &&
 		((descriptor.kind === 'joint' && moving.has(descriptor.componentName)) ||
@@ -134,13 +99,8 @@ const drivenByMovingJoint = (
 }
 
 /**
- * Frame names the user has hidden, by way of the live entity that carries the name.
- *
- * Ghosts are built from descriptors and carry no `ChildOf`, so `InheritedInvisible` — which the
- * hierarchy cascade maintains — can never reach them on its own. Without this they come back from
- * behind a `/` focus at 0.35 opacity and re-enter `collectMembers`, re-reporting the very pairs the
- * user hid to silence. `moveGhosts` and the collision layer both already treat hiding as "do not
- * consider this"; this keeps the preview saying the same thing.
+ * Frame names the user has hidden, read off the live entity that carries the name. A ghost has no
+ * `ChildOf`, so the `InheritedInvisible` cascade can never reach one on its own.
  */
 const hiddenFrameNames = (world: World): Set<string> => {
 	const hidden = new Set<string>()
@@ -155,30 +115,8 @@ const hiddenFrameNames = (world: World): Set<string> => {
 }
 
 /**
- * Fills `ghosts` in place, the way `syncMoveGhosts` does, and for the same reason: the caller holds
- * the only handle it will ever tear down by. Returning a fresh map instead let a caller that spawned
- * after an `await` leave its teardown pointed at the map it held *before* — entities in a world that
- * outlives the panel, carrying no `Name` for anything to find them by again.
- *
- * Three things are skipped, for different reasons.
- *
- * Frames with no geometry, because a ghost of one would be an axes triad. `moveGhosts` does the
- * opposite and is right to: there the bare frame is the one the user selected and dragged, so its
- * pose is the whole subject. Here every joint and mount in the chain would qualify — on the
- * reference dual-arm rig, dozens of triads for a dozen visible shapes.
- *
- * Frames this plan does not move, because a ghost of one is a translucent copy laid exactly on the
- * original for the whole of playback: both walls, the ceiling, the table and both cameras on that
- * same rig, and — until the rule accounted for it — the entire second arm, which has joints but is
- * held still. They z-fight with what they duplicate, they add colliders that can only ever report
- * touching themselves, and they say a plan moves something it does not. The test walks the parent
- * chain rather than reading which components the trajectory names, because a gripper bolted to an
- * arm moves without having a column of its own and dropping it would be the worse error; it asks for
- * a *moving* joint rather than any joint, which is what separates that gripper from the idle arm
- * across the table.
- *
- * Frames the user has hidden, because hiding is a statement that this geometry should not be
- * considered — the same one `moveGhosts` and the collision layer already honour.
+ * Fills `ghosts` in place, the way `syncMoveGhosts` does: the caller holds the only handle it will
+ * ever tear down by, and a ghost carries no `Name` for anything to find it by again.
  */
 export const spawnPreviewGhosts = (
 	world: World,
@@ -194,8 +132,12 @@ export const spawnPreviewGhosts = (
 	const memo = new Map<string, boolean>()
 
 	for (const descriptor of descriptors) {
+		// A ghost of a shapeless frame is an axes triad, and every joint and mount in the chain would
+		// qualify. `moveGhosts` is right to do the opposite: there the bare frame is the whole subject.
 		if (descriptor.kind !== 'static' || !descriptor.geometry) continue
 		if (hidden.has(descriptor.name)) continue
+		// A ghost of a frame the plan holds still is a copy laid exactly on the original for the whole
+		// scrub: it z-fights with what it duplicates and collides only with itself.
 		if (!drivenByMovingJoint(descriptor.parent, byName, moving, memo)) continue
 
 		const shape: ConfigurableTrait[] = [traits.Geometry(descriptor.geometry)]
