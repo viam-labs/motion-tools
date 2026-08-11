@@ -160,6 +160,10 @@ export interface PreviewFrames {
  * Max rather than sum because it is the fastest-moving joint that decides whether a step reads as
  * a jump. Deliberately unit-blind: this compares configurations, and budgeting frames is
  * {@link segmentFrameCost}'s job.
+ *
+ * **No production caller.** `interpolatedFrames` costs segments with {@link segmentFrameCost}
+ * instead, which normalises per joint kind before taking the max. This stays as the unit-blind
+ * comparison primitive `interpolateTrajectory.spec.ts` measures plans against.
  */
 export const jointTravelRadians = (from: TrajectoryStep, to: TrajectoryStep): number => {
 	let worst = 0
@@ -240,8 +244,9 @@ export const lerpTrajectoryStep = (
  * the finest budget expressible, which costs a quarter-turn at 8.1e17 frames and pins every plan to
  * the cap; a `NaN` propagated through the cost, the total and `Math.ceil` until the interior loop
  * stopped running and every segment collapsed to one frame — the raw waypoint teleport this module
- * exists to prevent, arrived at silently. A budget of zero is what an emptied numeric input or a
- * slider at its minimum sends, so this is not only a guard against nonsense.
+ * exists to prevent, arrived at silently. Nothing today constructs a `FrameBudget` with either value,
+ * but nothing stops a future caller assembling one from a bad computation from doing exactly that,
+ * so the guard defends against that argument rather than against any particular source of it.
  */
 const perFrame = (value: number | undefined, fallback: number): number =>
 	value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback

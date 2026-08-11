@@ -2,4 +2,4 @@
 '@viamrobotics/motion-tools': patch
 ---
 
-Budget preview frames per joint unit, so a prismatic axis no longer swallows the allowance
+Add `interpolateTrajectory`, expanding a planned trajectory into preview playback frames budgeted per joint unit (degrees for revolute joints, millimetres for prismatic)
