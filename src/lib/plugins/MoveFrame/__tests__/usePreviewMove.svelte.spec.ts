@@ -9,6 +9,7 @@ import { traits } from '$lib/ecs'
 import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
 import planJson from '../../MotionPlanReplayer/__tests__/__fixtures__/plan.json?raw'
+import { parseMoveOptions } from '../parseMoveOptions'
 import { PreviewOf } from '../traits'
 import {
 	createPreviewMoveHarness,
@@ -372,5 +373,31 @@ describe('the request the panel sends', () => {
 		const request = JSON.parse(h.pending[0]!.command.plan as string) as Record<string, unknown>
 		expect(request.componentName).toBe('left-arm')
 		expect(request.name).toBe('builtin')
+	})
+
+	/**
+	 * The preview has to plan the same problem `execute` would actually run, or it draws a path
+	 * through an obstacle the panel already knows about. Every other spec in this file takes the
+	 * harness default of `moveOptions: () => ({ worldState: undefined, constraints: undefined })`,
+	 * the one input for which "forwarded" and "silently dropped" look identical — so none of them can
+	 * tell a hook that passes these through from one that quietly drops them on the floor.
+	 */
+	it('passes through the world state and constraints the panel parsed', () => {
+		harness = createPreviewMoveHarness([ARM], {
+			moveOptions: () =>
+				parseMoveOptions(
+					'{"obstacles":[{"referenceFrame":"world","geometries":[{"sphere":{"radiusMm":50}}]}]}',
+					'{"linearConstraint":[{"lineToleranceMm":5}]}'
+				),
+		})
+		const h = harness
+
+		void h.preview.requestPreview()
+
+		const request = JSON.parse(h.pending[0]!.command.plan as string) as Record<string, unknown>
+		expect(request.worldState).toEqual({
+			obstacles: [{ referenceFrame: 'world', geometries: [{ sphere: { radiusMm: 50 } }] }],
+		})
+		expect(request.constraints).toEqual({ linearConstraint: [{ lineToleranceMm: 5 }] })
 	})
 })

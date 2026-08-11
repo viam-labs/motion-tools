@@ -77,8 +77,13 @@ export interface PreviewMoveOptions {
 	 */
 	moveOptions: () => MoveOptions
 	/**
-	 * Anything whose identity changes when the goal does. A plan describes one goal, so a new goal
-	 * discards it rather than leaving a stale ghost on screen.
+	 * Every input the plan was computed from, not just the goal. A plan is the answer to one
+	 * particular problem — the goal, the world state, the constraints, which service was asked and
+	 * which frame system it was asked against — and a change to any of them discards the plan rather
+	 * than leaving a ghost on screen that describes a problem nobody is asking any more. Naming only
+	 * the goal here once left an edited obstacle invisible to a preview already drawn: the ghosts, the
+	 * scrubber and `Execute preview` all survived the edit, still describing a path planned as though
+	 * the obstacle were not there.
 	 */
 	invalidateOn: () => unknown
 }
@@ -91,8 +96,8 @@ export interface PreviewMove {
 	 */
 	readonly message: string | undefined
 	/**
-	 * The trajectory exactly as planned, for handing back to `execute` — never the smoothed frames
-	 * the scrubber plays. Empty unless `status` is `ready`.
+	 * The trajectory exactly as planned, for handing back to `execute` — never `playbackFrames`, the
+	 * separate array the scrubber actually walks. Empty unless `status` is `ready`.
 	 */
 	readonly trajectory: TrajectoryStep[]
 	/** How many waypoints the planner actually returned, whatever is being played. */
@@ -163,9 +168,10 @@ export const usePreviewMove = ({
 	})
 
 	/**
-	 * Drop everything a preview owns. The three callers differ only in the `status` and `message` they
-	 * leave behind, and each used to spell this list out — which is how `partialWaypoint` came to be
-	 * cleared in two of them and not the third.
+	 * Drop everything a preview owns. The three callers below (`clear`, `settle`, and the top of
+	 * `requestPreview`) differ only in the `status` and `message` they leave behind, so this is
+	 * factored out to keep the teardown itself — cancelling the request, clearing the ghosts,
+	 * resetting the arrays and the player — from having to be spelled out identically in all three.
 	 */
 	const resetPreview = () => {
 		// Cancelled, not merely ignored: without this the request runs to completion on the machine
@@ -201,6 +207,12 @@ export const usePreviewMove = ({
 		const motion = client()
 		const serviceName = service()
 		const goal = destination()
+		// Unlike every other failure below, this leaves `status` exactly where it was rather than
+		// routing through `fail()` — there is no sentence to report, because it is the caller that is
+		// missing a client, a service or a goal, not the plan. Deliberately not this hook's problem:
+		// whoever triggers `requestPreview` is relied on to gate the action on those three being
+		// present, the same way it must already gate on a client existing at all to construct this
+		// hook's `client` option in the first place.
 		if (!motion || !serviceName || !goal) return
 
 		// The reply lands in `trajectory`, and the ghosts are rebuilt from it — so drop the old
