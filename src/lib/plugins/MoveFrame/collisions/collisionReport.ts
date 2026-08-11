@@ -6,7 +6,7 @@ import type { CollisionReport } from './collisionStore.svelte'
 import type { CollisionPair } from './collisionWorld'
 
 import { GhostOf } from '../relations'
-import { PreviewOf } from '../traits'
+import { previewedComponent } from '../traits'
 import { isGhost } from './collisionMembers'
 
 /**
@@ -24,8 +24,8 @@ const displayName = (entity: Entity): string => {
 	const own = entity.get(traits.Name)
 	if (own) return own
 
-	const previewed = entity.get(PreviewOf)
-	if (previewed) return previewed
+	const previewed = previewedComponent(entity)
+	if (previewed !== undefined) return previewed
 
 	const source = entity.targetFor(GhostOf)
 	const sourceName = source?.isAlive() ? source.get(traits.Name) : undefined

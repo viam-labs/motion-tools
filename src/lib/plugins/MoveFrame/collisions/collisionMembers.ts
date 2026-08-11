@@ -5,7 +5,7 @@ import { hierarchy, traits } from '$lib/ecs'
 import type { CollisionMember } from './collisionWorld'
 
 import { GhostOf } from '../relations'
-import { PreviewOf } from '../traits'
+import { previewedComponent } from '../traits'
 import { ENVIRONMENT_BIT } from './interactionGroups'
 
 /** Cycle guard for the parent walk, mirroring `recomputeWorldMatrix`. */
@@ -55,7 +55,7 @@ export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>):
  * be, which is the distinction the panel draws between "would collide" and "currently touching".
  */
 export const isGhost = (entity: Entity): boolean =>
-	entity.targetFor(GhostOf) !== undefined || entity.has(PreviewOf)
+	entity.targetFor(GhostOf) !== undefined || previewedComponent(entity) !== undefined
 
 /**
  * Every collidable entity in the scene, paired with the group bit that decides
@@ -97,7 +97,7 @@ export const collectMembers = (
 		//
 		// Falling through to the environment is the honest answer when the name resolves to nothing
 		// live, or to something with no arm above it: neither says which arm owns the ghost.
-		const previewed = entity.get(PreviewOf)
+		const previewed = previewedComponent(entity)
 		if (previewed !== undefined) {
 			const subject = liveByName.get(previewed)
 			const bit =
