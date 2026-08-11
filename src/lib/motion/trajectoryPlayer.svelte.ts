@@ -1,11 +1,12 @@
 /**
- * Playback state for anything indexed by a discrete trajectory step: the motion plan replayer
- * scrubbing a dropped plan, a move panel scrubbing a preview it just planned.
+ * Playback state for anything indexed by a discrete trajectory step. At this rung the only
+ * consumer is the motion plan replayer, scrubbing a dropped plan; it is factored out of the
+ * replayer rather than kept as its state so a later consumer indexed the same way — a move panel
+ * scrubbing a preview it planned, say — can reuse it instead of reimplementing it.
  *
- * A factory rather than a singleton, because more than one can be live at once — every open move
- * panel owns its own preview, and the replayer owns one alongside them. The consumer keeps the
- * steps themselves; this only decides which index is current and when it advances, then reports it
- * through `onStep`.
+ * A factory rather than a singleton, because more than one could need to be live at once once such
+ * a consumer exists. The consumer keeps the steps themselves; this only decides which index is
+ * current and when it advances, then reports it through `onStep`.
  */
 
 export interface TrajectoryPlayerOptions {
@@ -72,7 +73,12 @@ export const createTrajectoryPlayer = ({
 	/** Reports whether the move happened, which is what tells playback to stop. */
 	const moveTo = (step: number): boolean => {
 		if (total <= 0) return false
-		const next = Math.max(0, Math.min(lastStep, step))
+		// Guards what the clamp below does not: `Math.min`/`Math.max` pass NaN straight through (any
+		// comparison against NaN is false), and a fraction clamps to a fraction. Both reach here from
+		// public API (`setStep`, `player.seek`/`stepBy` off the context) even though nothing in this
+		// repo's own UI ever produces one — a range input's `value` is always an integer string.
+		if (!Number.isFinite(step)) return false
+		const next = Math.max(0, Math.min(lastStep, Math.trunc(step)))
 
 		// Committed after the render, not before: the index is the answer to "what is on screen", so
 		// a consumer that could not draw this step leaves it pointing at the one that is.
@@ -123,9 +129,11 @@ export const createTrajectoryPlayer = ({
 	// Unloading the steps out from under a running player would otherwise leave it playing an
 	// empty range. This writes state from an effect, which the project rule reserves for side
 	// effects rather than derivation, and that is what this is: `isPlaying` and `currentStep` have
-	// independent writers and neither can be `$derived`. It is unreachable through the replayer,
-	// whose four paths to zero steps all call `reset()` first. It is here for a consumer that swaps
-	// its step source without one, which is how the move panel re-plans.
+	// independent writers and neither can be `$derived`. It is currently unreachable through the
+	// replayer, whose four paths to zero steps all call `reset()` first — so today this is a safety
+	// net, not a load-bearing path. It stays because nothing guarantees every future consumer will
+	// call `reset()` before swapping its step source out from under a live player, and the failure
+	// mode if one does not (a playing timer walking an empty range) is worse than a redundant guard.
 	$effect(() => {
 		if (total > 0) return
 		isPlaying = false

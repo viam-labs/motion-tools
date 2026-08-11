@@ -15,7 +15,7 @@ export interface TrajectoryPlayerHarness {
 	steps: number[]
 	/** Change the step count the player reads, as loading or unloading a plan would. */
 	setTotalSteps: (total: number) => void
-	/** Re-pace playback, as the preview does when switching between raw and smoothed frames. */
+	/** Re-pace playback, as a caller would on switching to a differently-paced frame source. */
 	setIntervalMs: (ms: number) => void
 	/**
 	 * Decide which steps `onStep` accepts, standing in for a consumer whose snapshots or kinematics

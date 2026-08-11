@@ -54,6 +54,29 @@ describe('createTrajectoryPlayer', () => {
 		expect(steps).toEqual([expected])
 	})
 
+	// Only reachable through public API: a range input's `value` is always an integer string, and the
+	// replayer's own `onStep` maps a bad index to `undefined` and refuses it before this guard would
+	// ever matter. `setStep` (exported via `./plugins`) and `player.seek`/`stepBy` off the context have
+	// no such shield, so the guard has to live in the player itself.
+	it('refuses a non-finite seek instead of latching onto NaN', () => {
+		const { player, steps } = setup()
+
+		player.seek(2)
+		player.seek(Number.NaN)
+
+		expect(player.currentStep).toBe(2)
+		expect(steps).toEqual([2])
+	})
+
+	it('truncates a fractional seek to the whole step below it', () => {
+		const { player, steps } = setup()
+
+		player.seek(1.5)
+
+		expect(player.currentStep).toBe(1)
+		expect(steps).toEqual([1])
+	})
+
 	it('steps relative to the current index, clamped at the ends', () => {
 		const { player } = setup()
 

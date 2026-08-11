@@ -109,6 +109,27 @@ describe('TrajectoryScrubber', () => {
 			expect(slider.value).toBe('0')
 		})
 
+		/**
+		 * The stub above can only prove a drag *calls* `seek` — its `currentStep` never moves, so the
+		 * write-back line (`input.value = String(player.currentStep)`) is exercised only on a refusal.
+		 * A stub cannot distinguish "refused" from "accepted but not yet committed", so a real player is
+		 * the only way to prove a successful drag actually lands and stays where it was dropped.
+		 */
+		it('leaves the thumb where a successful drag left it', async () => {
+			render(ScrubberHarness, {
+				totalSteps: 11,
+				intervalMs: 10,
+				showing: true,
+				onReady: () => {},
+			})
+
+			const slider = screen.getByRole<HTMLInputElement>('slider')
+			slider.value = '7'
+			await fireEvent.input(slider)
+
+			expect(slider.value).toBe('7')
+		})
+
 		it('counts steps from one, the way the frames are numbered on screen', () => {
 			render(TrajectoryScrubber, {
 				player: stubPlayer({ currentStep: 2, totalSteps: 12, lastStep: 11 }),
