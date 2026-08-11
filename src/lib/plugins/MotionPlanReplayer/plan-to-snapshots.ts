@@ -12,11 +12,6 @@ import type { ParsedPlan } from './parse-plan'
 
 import { worldStateObstacleTransforms } from './world-state-obstacles'
 
-/**
- * The pose comes from `descriptorLocalPose` rather than from a branch written out here, so the two
- * things that turn a trajectory into geometry derive it identically. Only the geometry differs by
- * kind: a joint frame carries none, so it has nothing to hang on the transform.
- */
 const descriptorToTransform = (
 	descriptor: FrameDescriptor,
 	stepInputs: TrajectoryStep
