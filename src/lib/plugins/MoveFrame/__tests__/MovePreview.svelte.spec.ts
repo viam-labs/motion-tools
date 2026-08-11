@@ -28,6 +28,8 @@ const preview = (overrides: Partial<PreviewMove> = {}): PreviewMove => ({
 	message: undefined,
 	trajectory: [],
 	plannedSteps: 0,
+	waypointIndices: [],
+	detail: 'waypoints',
 	player: player(),
 	requestPreview: vi.fn(),
 	clear: vi.fn(),

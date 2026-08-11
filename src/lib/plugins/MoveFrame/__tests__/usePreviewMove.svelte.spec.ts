@@ -6,8 +6,9 @@ import { Matrix4 } from 'three'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { traits } from '$lib/ecs'
-import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
+import { type ParsedPlan, parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
+import gantryPlanJson from '../../MotionPlanReplayer/__tests__/__fixtures__/gantry-plan.json?raw'
 import planJson from '../../MotionPlanReplayer/__tests__/__fixtures__/plan.json?raw'
 import { parseMoveOptions } from '../parseMoveOptions'
 import { PreviewOf } from '../traits'
@@ -17,10 +18,20 @@ import {
 } from './__fixtures__/previewMoveHarness.svelte'
 
 const dump = parsePlan(planJson)
+/**
+ * The rig `plan-gantry.json` (`interpolateTrajectory.spec.ts`) was lifted from: a 40 mm prismatic
+ * slide, captured rather than hand-written so the joint is genuinely `type: "prismatic"` in the
+ * model JSON and not just labelled that way by a test double.
+ */
+const gantryDump = parsePlan(gantryPlanJson)
 
-/** A part's `kinematics` is the same `ModelConfigJSON` a dump nests under `frame.model`. */
-const kinematicsFromDump = (partName: string): Struct => {
-	const entry = dump.frames[partName]
+/**
+ * A part's `kinematics` carries the same `ModelConfigJSON` a dump nests under
+ * `frames[partName].frame.model`, so a realistic frame system can be lifted out of a fixture instead
+ * of hand-written — geometry, joint chain and all.
+ */
+const kinematicsFromDump = (source: ParsedPlan, partName: string): Struct => {
+	const entry = source.frames[partName]
 	if (!entry || entry.frame_type !== 'model') {
 		throw new Error(`fixture has no model frame named "${partName}"`)
 	}
@@ -39,7 +50,7 @@ const part = (name: string, kinematics: Struct): robotApi.FrameSystemConfig =>
 		kinematics,
 	})
 
-const ARM = part('left-arm', kinematicsFromDump('left-arm'))
+const ARM = part('left-arm', kinematicsFromDump(dump, 'left-arm'))
 
 /** Joints and a link, no shapes: plenty of descriptors and nothing a ghost could be made of. */
 const SHAPELESS = part(
@@ -54,9 +65,25 @@ const SHAPELESS = part(
 	} as never)
 )
 
+/**
+ * One prismatic joint, real rather than hand-labelled: `gantry-plan.json`'s model has a `carriage`
+ * link riding a `type: "prismatic"` joint, so a descriptor built from it is what `jointMotionsOf`
+ * would actually see off a machine, not a stand-in built to say `'translational'`.
+ */
+const GANTRY = part('gantry-1', kinematicsFromDump(gantryDump, 'gantry-1'))
+
 /** Two distinct configurations, so it never reads as "already at the goal". */
 const PLAN_REPLY: JsonValue = {
 	plan: [{ 'left-arm': [0, 0, 0, 0, 0, 0] }, { 'left-arm': [1, 0, 0, 0, 0, 0] }],
+}
+
+/**
+ * The same 40 mm slide `gantry-plan.json` captures: `gantry-1` moving from 50 to
+ * 90.00000000000001, everything else held. Read as radians instead of millimetres, that stroke is
+ * over 2291°, which is the gap `interpolatedFrames`'s `motions` argument exists to close.
+ */
+const GANTRY_SLIDE: JsonValue = {
+	plan: [{ 'gantry-1': [50] }, { 'gantry-1': [90.00000000000001] }],
 }
 
 let harness: PreviewMoveHarness | undefined
@@ -410,5 +437,25 @@ describe('switching what a frame represents', () => {
 		h.flush()
 
 		expect(h.preview.player.currentStep).toBe(0)
+	})
+
+	/**
+	 * `interpolatedFrames` costs a joint's travel in degrees unless told otherwise, so a component the
+	 * hook does not label as prismatic has its millimetres read as radians — a 40 mm slide costs the
+	 * same as 40 radians of arm travel, over 200 turns. `jointMotionsOf(descriptors)` is what supplies
+	 * that label; `interpolateTrajectory.spec.ts` measures the unlabelled cost of this exact slide at
+	 * 1,529 frames against 10 labelled, so anything under 50 here is only reachable with the label
+	 * wired through.
+	 */
+	it('keeps a gantry slide within its millimetre budget instead of costing it in radians', async () => {
+		const h = setup([GANTRY])
+		const done = h.preview.requestPreview()
+		h.pending[0]!.resolve(GANTRY_SLIDE)
+		await done
+
+		h.preview.detail = 'interpolated'
+		h.flush()
+
+		expect(h.preview.player.totalSteps).toBeLessThan(50)
 	})
 })

@@ -57,9 +57,9 @@ export type PreviewDetail = 'waypoints' | 'interpolated'
 
 /**
  * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than to a
- * frame rate is what makes the two detail settings comparable: `raw` and `smoothed` describe the
- * same motion with wildly different frame counts, so a fixed per-frame interval would race through
- * a two-waypoint plan and crawl through a two-hundred-waypoint one.
+ * frame rate is what makes the two detail settings comparable: `waypoints` and `interpolated`
+ * describe the same motion with wildly different frame counts, so a fixed per-frame interval would
+ * race through a two-waypoint plan and crawl through a two-hundred-waypoint one.
  *
  * It is also the honest unit here. A trajectory carries no timing, so no frame rate is more correct
  * than another — but "the whole move takes about this long" is at least a consistent claim.
@@ -129,12 +129,19 @@ export const usePreviewMove = ({
 }: PreviewMoveOptions): PreviewMove => {
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
-	// Raw: both are large arrays of plain numbers, replaced wholesale, and nothing reads into them
-	// reactively — only `playbackFrames.length`, through the player.
+	// Raw: all three are replaced wholesale — a new array assigned outright, never mutated in place —
+	// so the fine-grained reactivity `$state`'s proxy buys elsewhere would go unused here. `trajectory`
+	// and `playbackFrames` are also large, and nothing in this file reads into either of them
+	// reactively; only `playbackFrames.length`, through the player. `waypointIndices` is smaller — one
+	// entry per waypoint, not per frame — and it is read into: `MovePreview.svelte` hands it to
+	// `TrajectoryScrubber` as `markers`, which maps, iterates and length-compares it directly. That
+	// reads elements of a wholesale-replaced array, which `$state.raw` still serves correctly; it is
+	// only element-level *mutation* that a plain array would miss.
 	//
-	// Two arrays rather than one because they answer different questions. `trajectory` is what the
+	// Three arrays rather than one because they answer different questions. `trajectory` is what the
 	// planner said and what `execute` must receive; `playbackFrames` is that same motion subdivided for
-	// playback, which the robot must never be asked to run.
+	// playback, which the robot must never be asked to run; `waypointIndices` marks which entries of
+	// `playbackFrames` are planner waypoints rather than frames interpolated in between.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
 	let playbackFrames = $state.raw<TrajectoryStep[]>([])
 	let waypointIndices = $state.raw<number[]>([])
