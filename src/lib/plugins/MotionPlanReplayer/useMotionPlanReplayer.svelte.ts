@@ -78,8 +78,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		activePlanIndex === null ? 0 : (plans[activePlanIndex]?.stepCount ?? 0)
 	)
 
-	// Playback lives in the shared player so the scrubber is a dumb view of it — the move panel's
-	// move preview drives an instance of its own the same way.
 	const player = createTrajectoryPlayer({
 		totalSteps: () => totalSteps,
 		onStep: (step) => {
@@ -101,8 +99,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 	/** Reports whether the step was drawn; see `TrajectoryPlayerOptions.onStep`. */
 	const applyStep = (snapshots: Snapshot[], step: number): boolean => {
-		// The player clamps against `stepCount`, written from this same array — so a miss means the two
-		// came apart, and reconciling `undefined` would throw out of whatever input handler got here.
+		// The player clamps against `stepCount`, written from this same array, so a miss means the two
+		// came apart. Reconciling `undefined` would throw out of whatever input handler got here.
 		const snap = snapshots[step]
 		if (!snap) return false
 
@@ -150,9 +148,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	/**
-	 * Kept on the context for callers that scrub without a scrubber. The player clamps, and also
-	 * pauses: scrubbing by hand while playback runs would fight it for the next frame. Worth saying
-	 * out loud because this is public API through `./plugins`.
+	 * For callers that scrub without a scrubber. Clamps, and also pauses: scrubbing by hand while
+	 * playback runs would fight it for the next frame.
 	 */
 	const setStep = (step: number) => player.seek(step)
 
@@ -163,8 +160,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		const stored = snapshotStore.get(planState.id)
 		if (stored) {
 			activePlanIndex = index
-			// Rewind without notifying — step 0 is rendered directly below, and letting the player
-			// call back into `onStep` here would apply it twice.
+			// Rewind without notifying: step 0 is rendered directly below, and letting the player call
+			// back into `onStep` here would apply it twice.
 			player.reset()
 			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
 			applyStep(stored, 0)

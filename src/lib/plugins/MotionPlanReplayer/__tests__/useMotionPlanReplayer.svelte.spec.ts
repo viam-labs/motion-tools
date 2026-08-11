@@ -31,23 +31,16 @@ const mount = (): Mounted => {
 }
 
 /**
- * `provideWorld` mints a world per harness and nothing gives it back, but koota only hands out 16
- * ids before it throws `Too many worlds created`. Unmounting the component does not release one, so
- * without this the spec stops working at the seventeenth test rather than at anything to do with
- * the replayer.
+ * Koota hands out 16 world ids and then throws `Too many worlds created`, and unmounting the
+ * harness does not release one. Without this the spec dies at the seventeenth test.
  */
 afterEach(() => {
 	for (const { world } of mounted.splice(0)) world.destroy()
 })
 
 /**
- * Snapshots that say which plan they came from.
- *
- * This matters more than it looks. Cycling one fixture's snapshots across every plan makes each
- * plan's geometry byte-identical, so a test can only ever notice that it read an array of the wrong
- * *length*. Reading the wrong plan's array of the same length, which is the actual bug this module
- * had, draws a completely different robot and would go unnoticed. Naming the frame per plan and per
- * step is what lets the assertions below be about identity rather than about arithmetic.
+ * Snapshots that name their own plan: cycling one fixture across every plan makes their geometry
+ * byte-identical, so a test could only notice a wrong length, never a wrong plan.
  */
 const planSnapshots = (plan: string, steps: number): Snapshot[] =>
 	Array.from(
@@ -279,11 +272,6 @@ describe('display defaults', () => {
 	})
 })
 
-/**
- * The replayer no longer owns the step index; a shared `TrajectoryPlayer` does, and the scrubber is
- * a view of it. These cover the seam between the two, which is the part a reader of either file
- * alone cannot see.
- */
 describe('playback', () => {
 	it('stops playback when a caller scrubs by hand', () => {
 		const { ctx } = mount()
@@ -292,44 +280,28 @@ describe('playback', () => {
 		flushSync()
 		expect(ctx.player.isPlaying).toBe(true)
 
-		// `setStep` is public API through `./plugins`, and it pauses. Scrubbing without stopping would
-		// leave the timer to overwrite the caller's index on the very next tick.
 		ctx.setStep(3)
 
 		expect(ctx.player.isPlaying).toBe(false)
 		expect(ctx.currentStep).toBe(3)
 	})
 
-	it('rewinds to the first frame when the active plan is reselected', () => {
+	it.each([
+		['reselected', (ctx: MotionPlanReplayerContext) => ctx.selectPlan(0)],
+		['removed', (ctx: MotionPlanReplayerContext) => ctx.removePlan(0)],
+	])('rewinds to the first frame when the active plan is %s', (_label, act) => {
 		const { ctx } = mount()
 		addPlans(ctx, [6])
 		ctx.setStep(4)
 		expect(ctx.currentStep).toBe(4)
 
-		// Reselecting the active plan re-renders it from the top. Skipping the rewind draws frame 0
-		// while the index, and so the scrubber, still reads 4.
-		ctx.selectPlan(0)
+		act(ctx)
 
 		expect(ctx.currentStep).toBe(0)
 	})
 
-	it('rewinds as soon as the active plan is removed', () => {
-		const { ctx } = mount()
-		addPlans(ctx, [6])
-		ctx.setStep(4)
-
-		ctx.removePlan(0)
-
-		expect(ctx.currentStep).toBe(0)
-	})
-
-	/**
-	 * `addPlan` takes snapshots straight from the host's `resolvePlanSnapshots`, so the array is not
-	 * this module's to trust: a short or gappy one is what a partial server response looks like from
-	 * here, and `stepCount` is taken from its length either way. The player asks to draw a frame, the
-	 * replayer says it cannot, and the index has to stay on the frame that is still on screen rather
-	 * than advance over a scene that never changed.
-	 */
+	// A short or gappy snapshot array is what a partial response from the host's
+	// `resolvePlanSnapshots` looks like from here, and `stepCount` is taken from its length either way.
 	it('holds the index on a step with no snapshot behind it', () => {
 		const { ctx } = mount()
 		const [first, , third] = planSnapshots('gappy', 3)

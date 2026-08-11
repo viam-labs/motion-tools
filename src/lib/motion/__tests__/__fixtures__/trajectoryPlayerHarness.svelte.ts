@@ -1,6 +1,6 @@
 /**
- * `createTrajectoryPlayer` owns `$state` and an `$effect`, and runes only compile in a `.svelte.ts`
- * file — so the reactive scaffolding a spec needs lives here and the assertions stay in the spec.
+ * Runes only compile in a `.svelte.ts` file, so the reactive scaffolding lives here and the
+ * assertions stay in the spec.
  */
 
 import { flushSync } from 'svelte'
@@ -11,7 +11,7 @@ import { createTrajectoryPlayer } from '../../trajectoryPlayer.svelte'
 
 export interface TrajectoryPlayerHarness {
 	player: TrajectoryPlayer
-	/** Every index the player reported through `onStep`, in order — refused ones included. */
+	/** Every index the player reported through `onStep`, in order, refused ones included. */
 	steps: number[]
 	/** Change the step count the player reads, as loading or unloading a plan would. */
 	setTotalSteps: (total: number) => void
@@ -32,7 +32,7 @@ export const createTrajectoryPlayerHarness = (options: {
 	intervalMs: number
 }): TrajectoryPlayerHarness => {
 	let total = $state(options.totalSteps)
-	// Reactive, like the preview's `$derived` pace — a plain variable would never re-run the timer.
+	// Reactive: a plain variable would never re-run the timer's effect.
 	let pace = $state(options.intervalMs)
 	// Plain, not `$state`: the player reads it inside `onStep`, never as a dependency.
 	let renderable: (step: number) => boolean = () => true

@@ -10,9 +10,8 @@ import TrajectoryScrubber from '../TrajectoryScrubber.svelte'
 import ScrubberHarness from './__fixtures__/ScrubberHarness.svelte'
 
 /**
- * Deliberately inert: these tests are about what the component reads off a player and what it calls
- * back, so the player is a fixed readout and a set of spies. Anything that needs the player to
- * actually respond uses `ScrubberHarness` instead.
+ * Deliberately inert: a fixed readout and a set of spies. Anything that needs the player to actually
+ * respond uses `ScrubberHarness` instead.
  */
 const stubPlayer = (overrides: Partial<TrajectoryPlayer> = {}): TrajectoryPlayer => ({
 	currentStep: 0,
@@ -33,10 +32,10 @@ const stubPlayer = (overrides: Partial<TrajectoryPlayer> = {}): TrajectoryPlayer
 const ELEVEN_FRAMES = { totalSteps: 11, lastStep: 10 }
 const WAYPOINTS = [0, 5, 10]
 
-const tickFractions = (container: HTMLElement): number[] =>
-	[...container.querySelectorAll<HTMLElement>('[data-testid="waypoint-tick"]')].map((tick) =>
-		Number(tick.style.getPropertyValue('--tick-fraction'))
-	)
+const tickFractions = (): number[] =>
+	screen
+		.queryAllByTestId('waypoint-tick')
+		.map((tick) => Number(tick.style.getPropertyValue('--tick-fraction')))
 
 afterEach(() => {
 	vi.useRealTimers()
@@ -44,42 +43,20 @@ afterEach(() => {
 
 describe('TrajectoryScrubber', () => {
 	describe('transport', () => {
-		it('drives the player it is given', async () => {
-			const player = stubPlayer()
+		it.each([
+			['Jump to start of trajectory', 2, 'seek', 0],
+			['Previous trajectory step', 2, 'stepBy', -1],
+			['Next trajectory step', 0, 'stepBy', 1],
+			// 3 is the last index, not the step count. A real player would clamp an off-by-one here
+			// away and hide it, so only a stub can catch it.
+			['Jump to end of trajectory', 0, 'seek', 3],
+		] as const)('drives the player from %s', async (name, currentStep, method, argument) => {
+			const player = stubPlayer({ currentStep })
 			render(TrajectoryScrubber, { player })
 
-			await userEvent.click(screen.getByRole('button', { name: 'Next trajectory step' }))
+			await userEvent.click(screen.getByRole('button', { name }))
 
-			expect(player.stepBy).toHaveBeenCalledWith(1)
-		})
-
-		it('walks backwards from the previous button', async () => {
-			const player = stubPlayer({ currentStep: 2 })
-			render(TrajectoryScrubber, { player })
-
-			await userEvent.click(screen.getByRole('button', { name: 'Previous trajectory step' }))
-
-			expect(player.stepBy).toHaveBeenCalledWith(-1)
-		})
-
-		// The last *index*, not the step count: off by one here parks the scrubber one frame past the
-		// end of the plan, which a real player would clamp away and hide.
-		it('jumps to the last index rather than the step count', async () => {
-			const player = stubPlayer()
-			render(TrajectoryScrubber, { player })
-
-			await userEvent.click(screen.getByRole('button', { name: 'Jump to end of trajectory' }))
-
-			expect(player.seek).toHaveBeenCalledWith(3)
-		})
-
-		it('jumps to the first index from the start button', async () => {
-			const player = stubPlayer({ currentStep: 2 })
-			render(TrajectoryScrubber, { player })
-
-			await userEvent.click(screen.getByRole('button', { name: 'Jump to start of trajectory' }))
-
-			expect(player.seek).toHaveBeenCalledWith(0)
+			expect(player[method]).toHaveBeenCalledWith(argument)
 		})
 
 		it('seeks to wherever the track is dragged', async () => {
@@ -93,12 +70,8 @@ describe('TrajectoryScrubber', () => {
 			expect(player.seek).toHaveBeenCalledWith(7)
 		})
 
-		/**
-		 * A player that refuses the frame leaves `currentStep` where it was, and Svelte writes `value`
-		 * back only when the bound expression changes, so nothing would move the thumb off the index it
-		 * was dragged to: the track would say 8 while the counter and the scene both said 1. A stub
-		 * player stands in for the refusal, since it is a `seek` that does not move the index.
-		 */
+		// The stub stands in for a refusal: its `seek` never moves the index, which is exactly what a
+		// player that could not draw the frame does.
 		it('puts the thumb back when the player does not take the frame it was dragged to', async () => {
 			render(TrajectoryScrubber, { player: stubPlayer(ELEVEN_FRAMES) })
 
@@ -109,12 +82,8 @@ describe('TrajectoryScrubber', () => {
 			expect(slider.value).toBe('0')
 		})
 
-		/**
-		 * The stub above can only prove a drag *calls* `seek` — its `currentStep` never moves, so the
-		 * write-back line (`input.value = String(player.currentStep)`) is exercised only on a refusal.
-		 * A stub cannot distinguish "refused" from "accepted but not yet committed", so a real player is
-		 * the only way to prove a successful drag actually lands and stays where it was dropped.
-		 */
+		// A real player, because a stub cannot tell "refused" apart from "accepted but not yet
+		// committed", and the write-back line has to be proved harmless on the accepted path.
 		it('leaves the thumb where a successful drag left it', async () => {
 			render(ScrubberHarness, {
 				totalSteps: 11,
@@ -161,11 +130,6 @@ describe('TrajectoryScrubber', () => {
 		})
 	})
 
-	/**
-	 * `aria-disabled` rather than `disabled`, so a keyboard user mid-scrub does not have the control
-	 * vanish from under the focus ring when playback reaches an end. That leaves the click live, so
-	 * the handler has to refuse it too.
-	 */
 	describe('the ends of a trajectory', () => {
 		it.each(['Jump to start of trajectory', 'Previous trajectory step'])(
 			'marks %s unavailable at the first step, without dropping it from the tab order',
@@ -213,34 +177,28 @@ describe('TrajectoryScrubber', () => {
 
 	describe('waypoint marks', () => {
 		it('places one mark per waypoint, spaced by where it falls in the trajectory', () => {
-			const { container } = render(TrajectoryScrubber, {
+			render(TrajectoryScrubber, {
 				player: stubPlayer(ELEVEN_FRAMES),
 				markers: WAYPOINTS,
 			})
 
-			// Fractions of the span between the first and last *frame*, not of the frame count: the
-			// last waypoint is the last frame, so it belongs hard against the end of the track.
-			expect(tickFractions(container)).toEqual([0, 0.5, 1])
+			// Fractions of the span between the first and last frame, not of the frame count: the last
+			// waypoint is the last frame, so it belongs hard against the end of the track.
+			expect(tickFractions()).toEqual([0, 0.5, 1])
 		})
 
-		/**
-		 * The marks sit over a range input whose thumb centre travels from half a thumb in to half a
-		 * thumb short of the end. Placed at a bare percentage they miss by up to half a thumb at the
-		 * ends, which is exactly where someone looks to see whether the thumb is on a mark.
-		 */
-		it('lines a mark up with the thumb centre for the frame it marks', () => {
-			const { container } = render(TrajectoryScrubber, {
+		it('lines a mark up with the thumb center for the frame it marks', () => {
+			render(TrajectoryScrubber, {
 				player: stubPlayer(ELEVEN_FRAMES),
 				markers: WAYPOINTS,
 			})
 
-			const lefts = [
-				...container.querySelectorAll<HTMLElement>('[data-testid="waypoint-tick"]'),
-			].map((tick) => globalThis.getComputedStyle(tick).left)
+			const lefts = screen
+				.getAllByTestId('waypoint-tick')
+				.map((tick) => globalThis.getComputedStyle(tick).left)
 
-			// The browser's own reduction of the `.tick` formula, which is why it reads so plainly: half
-			// a thumb in at the first frame, dead centre at the middle one, half a thumb short of the end
-			// at the last. Drop the correction and these become a bare 0% / 50% / 100%.
+			// The browser's own reduction of the `.tick` formula. Drop the thumb correction and these
+			// become a bare 0% / 50% / 100%.
 			expect(lefts).toEqual(['calc(0% + 6px)', '50%', 'calc(100% - 6px)'])
 		})
 
@@ -259,33 +217,25 @@ describe('TrajectoryScrubber', () => {
 			expect(screen.getByText(`· waypoint ${index} / 3`)).toBeInTheDocument()
 		})
 
-		// The whole point of the marks is to separate real data from frames drawn between it. When
-		// every frame is a waypoint they separate nothing, and the counter says one thing twice.
 		it('drops the marks and the counter when every frame is a waypoint', () => {
-			const { container } = render(TrajectoryScrubber, {
+			render(TrajectoryScrubber, {
 				player: stubPlayer({ currentStep: 1, totalSteps: 3, lastStep: 2 }),
 				markers: [0, 1, 2],
 			})
 
-			expect(tickFractions(container)).toEqual([])
+			expect(tickFractions()).toEqual([])
 			expect(screen.queryByText(/waypoint/)).not.toBeInTheDocument()
 			expect(screen.getByText('2 / 3')).toBeInTheDocument()
 		})
 
 		it('shows neither when no markers are given', () => {
-			const { container } = render(TrajectoryScrubber, { player: stubPlayer(ELEVEN_FRAMES) })
+			render(TrajectoryScrubber, { player: stubPlayer(ELEVEN_FRAMES) })
 
-			expect(tickFractions(container)).toEqual([])
+			expect(tickFractions()).toEqual([])
 			expect(screen.queryByText(/waypoint/)).not.toBeInTheDocument()
 		})
 	})
 
-	/**
-	 * The player is built outside this component and outlives it: the replayer builds one at its
-	 * plugin root, above both the monitor-mode gate and the panel's own `{#if isOpen}`. Nothing else
-	 * would stop the timer, so closing the panel mid-playback would leave it reconciling the world
-	 * every frame with no control on screen to stop it.
-	 */
 	describe('when it goes away', () => {
 		it('stops the timer rather than merely asking the player to pause', async () => {
 			vi.useFakeTimers()

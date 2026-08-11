@@ -18,15 +18,8 @@
 		/** Distinguishes this scrubber's controls when more than one is on screen. */
 		label?: string
 		/**
-		 * Frames that are real data rather than drawn between it — planned waypoints, for a preview
-		 * that fills in frames between them. Marked on the track so the two are never confused.
-		 * Omit when every frame is a waypoint; the marks would be noise.
-		 *
-		 * Must be ascending, free of duplicates, and within `[0, player.lastStep]`. Nothing here
-		 * enforces that: the counter counts by walking until it passes `currentStep`, so an unsorted
-		 * array stops early and reads a plausible wrong number, a duplicate inflates both halves, and
-		 * an out-of-range entry places a tick outside the track. `PreviewFrames.waypoints` from
-		 * `$lib/motion/interpolateTrajectory` is built to satisfy all three and is the intended source.
+		 * Frames that are real data rather than drawn between it, marked on the track. Must be
+		 * ascending, deduplicated, and within `[0, player.lastStep]`. Omit when every frame is real.
 		 */
 		markers?: number[]
 	}
@@ -34,14 +27,13 @@
 	const { player, label = 'trajectory', markers, ...rest }: Props = $props()
 
 	/**
-	 * The thumb's diameter, shared with the `--thumb-size` the style block reads, because the tick
-	 * positions below have to correct for it and two copies of the number would drift.
+	 * The thumb's diameter, handed to the style block as `--thumb-size`. The tick offsets correct for
+	 * it, and two copies of the number would drift.
 	 */
 	const THUMB_PX = 12
 
-	// The player outlives this component — the replayer builds one at its plugin root, the move panel
-	// one per preview — so nothing else stops the timer when the controls go away. Leaving it running
-	// keeps reconciling the world every frame with no way on screen to pause it.
+	// The player outlives this component, so nothing else stops the timer when the controls go away.
+	// Left running, it keeps reconciling the world every frame with no way on screen to pause it.
 	$effect(() => {
 		const running = player
 		return () => running.pause()
@@ -57,12 +49,9 @@
 	/**
 	 * Where each mark sits along the track, as a fraction of the way from the first frame to the
 	 * last. The pixel geometry is the `.tick` rule's problem, not this one's.
-	 *
-	 * Marks only earn their space when they say something the track does not already. The density
-	 * rule also subsumes the divide-by-zero: `lastStep` is 0 only when there is at most one step, and
-	 * that admits no marker the rule would let through.
 	 */
 	const tickFractions = $derived.by(() => {
+		// Also guards the divide: `lastStep` is 0 only with at most one step, which admits no marker.
 		if (!markers || markers.length >= player.totalSteps) return []
 		return markers.map((frame) => frame / player.lastStep)
 	})
@@ -99,9 +88,8 @@
 				oninput={(e) => {
 					const input = e.currentTarget
 					player.seek(Number(input.value))
-					// A refused seek leaves `currentStep` where it was, and Svelte writes `value` back only
-					// when the bound expression changes, so nothing would put the thumb back: it would sit
-					// at the refused index while the counter and the scene both still read the old one.
+					// Svelte writes `value` back only when the bound expression changes, so on a refused seek
+					// nothing else moves the thumb off the index it was dragged to.
 					input.value = String(player.currentStep)
 				}}
 			/>
@@ -125,10 +113,9 @@
 
 		<div class="flex items-center gap-1">
 			<!--
-				`aria-disabled` rather than `disabled` so the ends of a trajectory do not drop the control
-				out of the tab order under a keyboard user mid-scrub, matching the upload button in this
-				same panel. It leaves the click live, so each handler re-checks; `stepBy` would clamp to a
-				no-op anyway, but `seek` would re-render the step it is already on.
+				`aria-disabled` rather than `disabled` so an end of the trajectory does not drop the
+				control out of the tab order under a keyboard user mid-scrub. The click stays live, so
+				each handler re-checks.
 			-->
 			<button
 				type="button"
@@ -211,10 +198,8 @@
 
 <style>
 	/*
-	 * A range input's track and thumb can only be reached through vendor pseudo-elements, which no
-	 * utility class targets — hence the block. The values are the same theme tokens the utilities
-	 * would resolve to. `--thumb-size` is set by the markup from `THUMB_PX`, which the tick offsets
-	 * are computed from; the diameter has to be one number or the marks drift off the thumb.
+	 * A range input's track and thumb are reachable only through vendor pseudo-elements, which no
+	 * utility class targets. The values are the theme tokens the utilities would resolve to.
 	 */
 	.scrubber {
 		appearance: none;
@@ -244,10 +229,8 @@
 	}
 
 	/*
-	 * The thumb's centre travels from half a thumb in to half a thumb short of the end, not the full
-	 * width, so a mark placed at a bare percentage misses the frame it marks by up to half a thumb:
-	 * 6px left at the first frame, 6px right at the last, correct only at the midpoint. The ends are
-	 * exactly where someone checks whether the thumb is sitting on a mark.
+	 * The thumb's center travels from half a thumb in to half a thumb short of the end, not the full
+	 * width, so a mark at a bare percentage misses the frame it marks by up to half a thumb.
 	 */
 	.tick {
 		left: calc(var(--tick-fraction) * (100% - var(--thumb-size)) + var(--thumb-size) / 2);

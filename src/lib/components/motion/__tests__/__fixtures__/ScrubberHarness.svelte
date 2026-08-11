@@ -1,8 +1,7 @@
 <script lang="ts">
 	/**
-	 * A real player behind the scrubber, mounted the way the replayer mounts one: built above the
-	 * `{#if}` that renders the controls, so it outlives them. A stub player cannot stand in here,
-	 * because what needs asserting is that the timer stops, not that `pause` was called.
+	 * A real player, built above the `{#if}` that renders the controls so it outlives them, the way
+	 * the replayer mounts one. A stub cannot show that the timer itself stops.
 	 */
 
 	import { untrack } from 'svelte'

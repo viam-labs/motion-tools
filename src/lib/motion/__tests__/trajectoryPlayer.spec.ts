@@ -54,10 +54,6 @@ describe('createTrajectoryPlayer', () => {
 		expect(steps).toEqual([expected])
 	})
 
-	// Only reachable through public API: a range input's `value` is always an integer string, and the
-	// replayer's own `onStep` maps a bad index to `undefined` and refuses it before this guard would
-	// ever matter. `setStep` (exported via `./plugins`) and `player.seek`/`stepBy` off the context have
-	// no such shield, so the guard has to live in the player itself.
 	it('refuses a non-finite seek instead of latching onto NaN', () => {
 		const { player, steps } = setup()
 
@@ -103,15 +99,12 @@ describe('createTrajectoryPlayer', () => {
 		expect(steps).toEqual([1, 2])
 		expect(player.atEnd).toBe(true)
 
-		// The next tick parks it rather than running past the end.
 		vi.advanceTimersByTime(INTERVAL_MS)
 		flush()
 		expect(player.isPlaying).toBe(false)
 		expect(steps).toEqual([1, 2])
 	})
 
-	// The preview paces itself to a fixed wall-clock duration so its two detail settings, which frame
-	// the same motion with very different step counts, take the same time to play.
 	it('re-paces a run in flight when the caller changes the interval', () => {
 		vi.useFakeTimers()
 		const { player, steps, setIntervalMs, flush } = setup(5)
@@ -141,8 +134,6 @@ describe('createTrajectoryPlayer', () => {
 		expect(player.isPlaying).toBe(true)
 	})
 
-	// `toggle` is the pause button while playing; the other two pause as a side effect of a manual
-	// scrub. None of them leaves playback running underneath the user.
 	it.each([
 		['seek', (player: TrajectoryPlayer) => player.seek(1)],
 		['stepBy', (player: TrajectoryPlayer) => player.stepBy(1)],
@@ -170,8 +161,8 @@ describe('createTrajectoryPlayer', () => {
 
 		expect(player.isPlaying).toBe(false)
 		expect(player.currentStep).toBe(0)
-		// Not -1. `lastStep` is the index a seek clamps to and what a scrubber hands its range input as
-		// `max`, and a negative one there inverts the track.
+		// Not -1: `lastStep` is what a scrubber hands its range input as `max`, and a negative one
+		// there inverts the track.
 		expect(player.lastStep).toBe(0)
 		expect(steps).toEqual([])
 	})
@@ -191,8 +182,6 @@ describe('createTrajectoryPlayer', () => {
 		expect(steps).toEqual([2])
 	})
 
-	// `currentStep` is what the scrubber displays and what the next relative step counts from, so
-	// committing it before the consumer has drawn anything lets the controls walk over a frozen scene.
 	describe('a step the consumer refuses', () => {
 		it('leaves the index on the frame that is still on screen', () => {
 			const { player, setRenderable } = setup(5)
@@ -231,7 +220,6 @@ describe('createTrajectoryPlayer', () => {
 			flush()
 
 			expect(player.isPlaying).toBe(false)
-			// 3 is attempted once and refused; nothing is tried after it.
 			expect(steps).toEqual([1, 2, 3])
 			expect(player.currentStep).toBe(2)
 		})
