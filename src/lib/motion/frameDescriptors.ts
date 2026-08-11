@@ -218,10 +218,8 @@ const soleLeafOf = (model: ModelJson | undefined): string | undefined => {
 	// non-iterable throws, taking the whole plan render down.
 	const nodes = [...(Array.isArray(links) ? links : []), ...(Array.isArray(joints) ? joints : [])]
 
-	// `nodeName` normalises an empty id the same way `modelJointColumns` does. Left as a bare
-	// `node.id !== undefined` check, a node whose id is the empty string (Go marshals it rather
-	// than omitting it) reads as an unclaimed leaf of its own, and one unnamed link is enough to
-	// turn a real sole leaf into "more than one" and fall through to the wrong terminal.
+	// `nodeName` here too: an id of `''`, which Go marshals rather than omits, would otherwise read
+	// as an unclaimed leaf of its own and turn a real sole leaf into "more than one".
 	const claimed = new Set(nodes.flatMap((node) => nodeName(node.parent) ?? []))
 	const leaves = nodes.flatMap((node) => {
 		const id = nodeName(node.id)
@@ -305,14 +303,9 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 			continue
 		}
 
-		// Walk order, not declaration order, for the same reason the columns use it: the two disagree
-		// on any model whose joints are not declared down their own chain. `order` keeps mimics, as
-		// the array this replaced did, so that is not what changed.
-		//
-		// Only reached by a model that declares no `primary_output_frame`, no `output_frames`, and has
-		// no single leaf. RDK writes the first of those on every model it marshals, and refuses to
-		// build a multi-leaf model without the second, so this is a floor under hand-written input
-		// rather than a path a machine's own payload takes.
+		// Walk order, not declaration order: they disagree unless the joints are declared down their
+		// own chain. Only reached by a model with no output frame and no single leaf, which RDK
+		// will not marshal.
 		const lastJointId = order.at(-1)
 		if (!lastJointId) continue
 		const terminal = childMap.get(`${modelName}:${lastJointId}`)?.[0]

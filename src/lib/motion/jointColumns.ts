@@ -1,22 +1,6 @@
 /**
- * Which slot of a trajectory step drives each joint of one model.
- *
- * RDK answers this in one loop, in `NewModelWithMimics`: it walks `bfsFrameNames(fs)`, skips any
- * frame that has a mimic mapping, and gives each survivor a slot as wide as its degrees of freedom.
- * Links survive the walk too and contribute nothing, because a static frame has no DoF.
- *
- * Two independent facts live in that loop, and reading either one alone misnumbers a real machine:
- *
- * - **The order is the model's internal frame system, not its config.** `bfsFrameNames` walks
- *   breadth-first from `world`, sorting each node's children with `sort.Strings`. Declaration order
- *   agrees only when links and joints are declared down the chain, which an xArm6 and every fixture
- *   here happen to be.
- * - **A mimic joint has degrees of freedom and no column.** Its value is derived from its source's,
- *   so every joint the walk reaches after it sits one slot earlier than its position suggests.
- *   Common in URDF grippers, where both fingers are driven from one.
- *
- * Getting either wrong drives a joint from an unrelated joint's value and folds the arm through
- * itself, and `jointValueAt`'s `?? 0` silences the overflow at the end of the chain.
+ * Which slot of a trajectory step drives each joint of one model. `NewModelWithMimics`: walk
+ * `bfsFrameNames` breadth-first, skip any frame with a mimic mapping, give each survivor a slot.
  */
 
 /** The root of a model's *internal* frame system — its own mount, not the scene root. */
@@ -47,21 +31,15 @@ export interface ModelJson {
 	links?: ModelNodeJson[]
 	joints?: JointJson[]
 	/**
-	 * Not read by anything in this file — `modelJointColumns` only looks at `links` and `joints`.
-	 * `modelOutputFrame` in `frameDescriptors.ts` is the actual reader, and now receives this same
-	 * type rather than an untyped record. Declared here anyway so a model with more than one leaf
-	 * can be written down: RDK refuses to build one without it, so a fixture that omits it is a
-	 * shape no machine can send.
+	 * Not read here. `modelOutputFrame` in `frameDescriptors.ts` is the reader; declared so a model
+	 * with more than one leaf, which RDK refuses to build without it, can be written down.
 	 */
 	output_frames?: string[]
 }
 
 /**
  * An unnamed node cannot be addressed, so it is dropped from the tree rather than joined into it:
- * left in, every one of them would collide on the same empty key and claim each other's children.
- * Exported because `soleLeafOf` in `frameDescriptors.ts` reads the same `model.links`/`model.joints`
- * and needs the identical rule — left unapplied there, an unnamed node reads as an extra childless
- * frame instead of no frame at all.
+ * left in, every one of them collides on the same empty key and claims the others' children.
  */
 export const nodeName = (value: string | undefined): string | undefined =>
 	value === undefined || value === '' ? undefined : value
@@ -78,9 +56,8 @@ export interface JointColumn {
 
 export interface ModelJointColumns {
 	/**
-	 * Every joint the model declares, in schema order. Mimics are included: they own a frame even
-	 * though they own no column, and the last entry is what a model without a declared end effector
-	 * hangs its tool off.
+	 * Every joint id in schema order, mimics included: a mimic owns a frame but no column, and the
+	 * last entry is where a model with no declared end effector hangs its tool.
 	 */
 	order: string[]
 	/** Keyed by joint id. A joint missing from this has no value to render — see below for why. */
@@ -125,10 +102,8 @@ export const modelJointColumns = (
 	model: ModelJson | undefined,
 	modelName: string
 ): ModelJointColumns => {
-	// `Array.isArray` rather than `??`: the nullish default only catches an absent list, and a
-	// hand-edited or malformed capture can declare `links`/`joints` as `{}` rather than `[]`. `??`
-	// passes that straight through to the spread below, which throws a bare `TypeError` and takes the
-	// whole plan render down. `soleLeafOf` in `frameDescriptors.ts` guards the identical hazard.
+	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
+	// non-iterable throws, taking the whole plan render down.
 	const rawLinks = model?.links
 	const rawJoints = model?.joints
 	const links = Array.isArray(rawLinks) ? rawLinks : []
@@ -152,11 +127,9 @@ export const modelJointColumns = (
 		const id = nodeName(node.id)
 		if (id === undefined) continue
 
-		// RDK roots a node whose parent is not itself a declared node, rather than only one that names
-		// no parent at all: `buildModelFrameSystem` seeds its queue with every child whose parent is
-		// absent from `transforms`, then attaches it to `fs.World()`. So a link parented to a name that
-		// does not exist is an ordinary world-rooted frame to RDK, with a real position in the walk,
-		// not a disconnected one.
+		// RDK roots a node whose parent is not itself declared, not only one naming no parent:
+		// `buildModelFrameSystem` queues those onto `fs.World()`, so an unknown parent still holds a
+		// real place in the walk.
 		const named = nodeName(node.parent)
 		const parent = named !== undefined && declared.has(named) ? named : MODEL_ROOT
 
@@ -177,11 +150,8 @@ export const modelJointColumns = (
 		queue.push(...(childrenOf.get(current) ?? []))
 	}
 
-	// Now that an undeclared parent roots at the model instead of stranding its child, the only way
-	// to miss a joint is a parent cycle, which RDK refuses to build at all (`ErrCircularReference`).
-	// So this is defensive rather than a path real data takes, and it stays because the alternative
-	// is silent: dropping the joint would take its whole subtree out of the drawing with it, where
-	// appending it in declaration order costs one warning and keeps the arm on screen.
+	// Only a parent cycle can strand a joint, and RDK refuses to build one (`ErrCircularReference`).
+	// Kept because dropping the joint would silently take its whole subtree out of the drawing.
 	const unreached = jointIds.filter((id) => !seen.has(id))
 	if (unreached.length > 0) {
 		console.warn(

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { JointJson, ModelJson } from '../jointColumns'
 
@@ -9,9 +9,8 @@ import { modelJointColumns } from '../jointColumns'
 const columnsOf = (model: ModelJson) => modelJointColumns(model, 'test-model').columns
 
 /**
- * A serial chain, where schema order and declaration order agree. Most of what follows is about the
- * mimic rule alone, and a chain is what holds the ordering rule still while it is tested — the two
- * are brought together at the bottom.
+ * A serial chain, where schema order and declaration order agree: it holds ordering still while
+ * the mimic rule is tested.
  */
 const chain = (...joints: JointJson[]): ModelJson => ({
 	joints: joints.map((joint, index) => ({
@@ -58,8 +57,6 @@ describe("RDK's own mimic models", () => {
 	})
 })
 
-// The whole point of the exercise: a mimic occupies a frame but not a slot, so treating position in
-// the walk as the slot moves every joint below it onto its neighbour's column.
 describe('a mimic joint in the middle of a chain', () => {
 	const model = chain(
 		{ id: 'shoulder' },
@@ -156,12 +153,8 @@ describe('mimics that name no reachable source', () => {
 	})
 })
 
-/**
- * An unnamed node cannot be addressed by a frame, so it is dropped rather than joined into the tree.
- * The empty string matters as much as the missing key: Go marshals `JointConfig.ID`'s zero value
- * rather than omitting it, so `""` is the shape that actually arrives. Left in, every unnamed node
- * would collide on one key and claim the others' children.
- */
+// Go marshals `JointConfig.ID`'s zero value rather than omitting it, so `''` is the shape that
+// actually arrives, not the missing key.
 describe('a node with no usable name', () => {
 	it.each([
 		['an absent id', { id: undefined }],
@@ -177,7 +170,6 @@ describe('a node with no usable name', () => {
 		expect(modelJointColumns(model, 'test-model').order).toEqual(['a', 'c'])
 	})
 
-	// An empty parent is not a dangling reference, it is RDK's "no parent": the node roots.
 	it.each([
 		['an absent parent', { parent: undefined }],
 		['an empty parent', { parent: '' }],
@@ -193,20 +185,8 @@ describe('a node with no usable name', () => {
 	})
 })
 
-/**
- * The order half of the rule, on its own. RDK seeds the schema from the model's *internal frame
- * system* — `bfsFrameNames` walks breadth-first from `world` and sorts each node's children with
- * `sort.Strings` — so a model whose joints are not declared down its own chain is numbered by the
- * tree, not by the array.
- *
- * `output_frames` because RDK will not build a model with two leaves without it, and both branches
- * here end in one. A fixture it refuses to build cannot claim to show what it would do.
- *
- * `gamma_joint` is what separates breadth from depth. With only one joint below the last-sorted
- * branch, a depth-first walk produces the same sequence and the fixture pins nothing about breadth.
- * One joint under each branch makes the two orders disagree: breadth gives alpha, zeta, gamma, beta
- * and depth gives alpha, gamma, zeta, beta.
- */
+// `gamma_joint` is what separates breadth from depth: with one joint below the last-sorted branch,
+// a depth-first walk gives the same sequence and the fixture pins nothing.
 describe('a model whose declaration order is not its chain order', () => {
 	const model: ModelJson = {
 		output_frames: ['beta_joint'],
@@ -242,16 +222,6 @@ describe('a model whose declaration order is not its chain order', () => {
 	})
 })
 
-/**
- * Both halves at once, which is why this is one function rather than two. Reading only the mimic
- * rule numbers these by declaration and puts `zeta_joint` on column 0; reading only the order rule
- * gives the mimic a column of its own and pushes `beta_joint` to 3. RDK does both in the one loop in
- * `NewModelWithMimics` and lands on neither answer.
- *
- * Checked against RDK rather than reasoned about: built with `output_frames` and no limits on the
- * mimic, which it also requires, it reports `MoveableFrameNames() == [alpha_joint zeta_joint
- * beta_joint]` and 3 degrees of freedom for 4 joints.
- */
 describe('a branched model with a mimic in one branch', () => {
 	const model: ModelJson = {
 		output_frames: ['beta_joint'],
@@ -284,9 +254,6 @@ describe('a branched model with a mimic in one branch', () => {
 		})
 	})
 
-	// A mimic holds no column but still holds a frame, so it has to stay in the walk: a gripper's
-	// second finger is routinely the last thing before the tool, and `buildFrameContexts` hangs
-	// anything parented to the bare model name off `order.at(-1)`.
 	it('keeps the mimic in the order it walked', () => {
 		expect(modelJointColumns(model, 'test-model').order).toEqual([
 			'alpha_joint',
@@ -297,18 +264,8 @@ describe('a branched model with a mimic in one branch', () => {
 	})
 })
 
-/**
- * `buildModelFrameSystem` seeds its walk with every node whose parent is not itself a declared node,
- * then hangs it off `fs.World()`. So a parent naming something that does not exist is not a broken
- * chain to RDK, it is a second root, and it sorts against the real one.
- *
- * The expected order here was taken from RDK: this model, given `output_frames` so it clears the
- * single-leaf check, builds and reports `MoveableFrameNames() == [orphan attached]`. Reading it as
- * a disconnected joint instead put `attached` first, which is the answer this used to assert.
- */
 describe('a joint whose parent is not a declared node', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	const model: ModelJson = {
 		output_frames: ['attached'],
@@ -329,14 +286,10 @@ describe('a joint whose parent is not a declared node', () => {
 	})
 })
 
-/**
- * With an undeclared parent rooted rather than stranded, a cycle is all that is left. RDK refuses to
- * build one (`ErrCircularReference`), so this is the floor under a payload that should not exist,
- * and the point of it is that the arm still draws.
- */
+// RDK refuses to build a cycle (`ErrCircularReference`), so this is a floor under malformed input,
+// not a path real data takes.
 describe('joints the walk cannot reach at all', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	const model: ModelJson = {
 		links: [{ id: 'base', parent: 'world' }],
