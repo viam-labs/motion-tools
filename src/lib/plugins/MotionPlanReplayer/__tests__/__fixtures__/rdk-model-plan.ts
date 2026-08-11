@@ -1,25 +1,8 @@
 import type { ParsedPlan } from '../../parse-plan'
 
 /**
- * Publishes one of RDK's own model configs the way a plan reply carries it.
- *
- * `flattenModelIntoFS` re-publishes every frame inside a model —
- * mimic joints included — under `component:internalName`, attaching anything parented to the model's
- * internal world to whatever the model itself hangs off. That is the only reason a mimic joint is
- * drawable at all: it reaches us as an ordinary frame, with nothing on it to say it has no column.
- *
- * `rdk-mimic-*-model.json` are byte-for-byte copies of `referenceframe/testfiles/`, so they are
- * spelled the way a person writes config: lowercase `{x,y,z}`, which Go unmarshals case-insensitively.
- * RDK marshals `r3.Vector` back out under its Go field names, so a real dump spells those `{X,Y,Z}` —
- * the one difference this bridges. Geometry is dropped rather than translated: these tests are about
- * which column drives a joint, and a shape would only add a second thing that could be wrong.
- *
- * Where this is *not* faithful, and deliberately: the envelope carries `name` and `model` only. A
- * real dump also carries `primary_output_frame`, `limits` and `internal_fs`, and all 29 model frames
- * across the four captures here have the first of those set. So `modelOutputFrame` takes its first
- * rung on real data and its later ones here. That is fine for what these tests ask, which is which
- * column drives which joint, but it does mean nothing in this file exercises the path a machine
- * actually takes, and a test written against this shape is not evidence about that path.
+ * Publishes an RDK model config the way a plan reply carries it. `flattenModelIntoFS` re-publishes
+ * every frame inside a model, mimic joints included, under `component:internalName`.
  */
 
 interface Vec3 {
@@ -49,6 +32,7 @@ export interface RdkModel {
 	output_frames?: string[]
 }
 
+/** Fixtures spell vectors `{x,y,z}`, as a person writes config; RDK marshals `r3.Vector` as `{X,Y,Z}`. */
 const upper = (v: Vec3 = {}): { X: number; Y: number; Z: number } => ({
 	X: v.x ?? 0,
 	Y: v.y ?? 0,

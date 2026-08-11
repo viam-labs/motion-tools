@@ -22,9 +22,8 @@ describe('joints with no mimic among them', () => {
 	})
 })
 
-// The two fixtures are byte-for-byte copies of `referenceframe/testfiles/`, and RDK's own tests
-// (`TestMimicGripperModel`, `TestMimicSerialModel`) state the DoF each one has: 1 for the gripper, 2 for the
-// serial arm. That count is exactly the number of columns a trajectory step carries for it.
+// Byte-for-byte copies of `referenceframe/testfiles/`. The DoF counts are the ones
+// `TestMimicGripperModel` and `TestMimicSerialModel` assert, and DoF is exactly the column count.
 describe("RDK's own mimic models", () => {
 	it('gives the gripper one column, shared by both fingers', () => {
 		const columns = modelJointColumns(gripperModel.joints)
@@ -43,8 +42,6 @@ describe("RDK's own mimic models", () => {
 	})
 })
 
-// The whole point of the exercise: a mimic occupies a frame but not a slot, so treating the array
-// index as the slot moves every joint below it onto its neighbour's column.
 describe('a mimic joint in the middle of a chain', () => {
 	const joints: JointJson[] = [
 		{ id: 'shoulder' },
@@ -65,10 +62,9 @@ describe('a mimic joint in the middle of a chain', () => {
 		expect(owned.toSorted((a, b) => a - b)).toEqual([0, 1, 2])
 	})
 
-	// Every other case here mimics the first joint, so `index: source.index` and a hardcoded
-	// `index: 0` are the same answer. This one borrows a column that is not zero, which is the only
-	// shape that says the borrowed index is read off the source rather than assumed.
-	it('borrows the source`s own column, not the first one', () => {
+	// Every other case here mimics the first joint, where `index: source.index` and a hardcoded `0`
+	// agree. This is the only one that borrows a column that is not zero.
+	it("borrows the source's own column, not the first one", () => {
 		const columns = modelJointColumns([
 			{ id: 'first' },
 			{ id: 'second' },
@@ -94,8 +90,7 @@ describe('the linear map a mimic applies', () => {
 		expect(columns.get('follower')?.mimic).toEqual({ multiplier: 0.5, offset: 2 })
 	})
 
-	// RDK's `MimicConfig.EffectiveMultiplier`: the field is `omitempty`, so an absent one and an
-	// explicit 0 arrive identically, and neither can mean "hold this joint at the offset".
+	// `omitempty` means an absent multiplier and an explicit 0 arrive identically.
 	it.each([undefined, 0])('reads a %s multiplier as 1', (multiplier) => {
 		const columns = modelJointColumns([
 			{ id: 'drive' },
@@ -105,7 +100,6 @@ describe('the linear map a mimic applies', () => {
 		expect(columns.get('follower')?.mimic).toEqual({ multiplier: 1, offset: 3 })
 	})
 
-	// `buildMimicMappings` composes the same way: a = m₁(m₂c + o₂) + o₁.
 	it('composes a chain down to the joint that owns the column', () => {
 		const columns = modelJointColumns([
 			{ id: 'c' },
@@ -118,8 +112,6 @@ describe('the linear map a mimic applies', () => {
 	})
 })
 
-// RDK refuses to build any of these, so they only reach us from hand-written config. Leaving the
-// joint out of the map drops its frame, which reads better than driving it off an unrelated column.
 describe('mimics that name no reachable source', () => {
 	it('drops a joint whose source does not exist', () => {
 		const columns = modelJointColumns([{ id: 'a' }, { id: 'b', mimic: { joint: 'ghost' } }])

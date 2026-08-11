@@ -280,14 +280,8 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 		if (entry.frame_type !== 'model') continue
 		const model = modelOf(entry)
 
-		// Which slot of a trajectory step drives which frame. Read off `model.joints` because that is
-		// the only place the *mimic* mappings survive serialization: `FrameSystem.MarshalJSON` writes
-		// name, world, frames and parents, so a model's mimic map never reaches us any other way. The
-		// column *order* is a different question, and the dump does answer that one directly, in
-		// `internal_fs.parents` and in `limits`, whose length is the column count.
-		//
-		// Keyed by frame name because that is how the frame asks — the join between the two is the
-		// `${model}:${id}` naming convention, nothing else.
+		// `model.joints` is the only place mimic mappings survive serialization; `FrameSystem.MarshalJSON`
+		// writes only name, world, frames and parents. Keyed by frame name, which is how the frame asks.
 		const joints = (model?.joints ?? []) as JointJson[]
 		for (const [jointId, column] of modelJointColumns(joints)) {
 			jointOwners.set(`${modelName}:${jointId}`, {
@@ -324,11 +318,8 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 }
 
 /**
- * `referenceframe/register.go` registers more frame types than the switches below cover, and how
- * many is not fixed: `named` was added to it between the RDK this repo builds against and the one a
- * current machine runs. Counting them here would date the comment, and the count is not the point. An
- * unregistered or unhandled one produces no descriptor, so the frame is absent from the scene and
- * anything parented to it is left unresolved — worth saying out loud rather than dropping.
+ * `referenceframe/register.go` registers more frame types than the switches cover. An unhandled one
+ * produces no descriptor: its frame is absent from the scene, and anything parented to it unresolved.
  */
 const warnUnhandledFrame = (frameName: string, frameType: unknown): void => {
 	console.warn(
