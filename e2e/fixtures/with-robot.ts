@@ -98,12 +98,12 @@ export const activateConnectionConfigByHost = async (page: Page, host: string) =
 
 	await expect(async () => {
 		const rows = page.locator('form').filter({
-			has: page.locator('input[placeholder="Host"]'),
+			has: page.locator('input[placeholder="Remote address"]'),
 		})
 		const count = await rows.count()
 		for (let index = 0; index < count; index += 1) {
 			const row = rows.nth(index)
-			if ((await row.locator('input[placeholder="Host"]').inputValue()) === host) {
+			if ((await row.locator('input[placeholder="Remote address"]').inputValue()) === host) {
 				const switchButton = row.getByRole('switch')
 				if ((await switchButton.getAttribute('aria-checked')) !== 'true') {
 					await switchButton.click()

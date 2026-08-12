@@ -141,7 +141,7 @@
 
 					<Input
 						class="input w-full grow text-xs"
-						placeholder="Host"
+						placeholder="Remote address"
 						value={config.host}
 						on:change={(event) => {
 							connectionConfigs.current[index].host = (event.target as HTMLInputElement).value
@@ -221,12 +221,12 @@
 
 						<label
 							for="{config.host}-address"
-							class="text-xs">Signaling address</label
+							class="text-xs">Address of signaling server</label
 						>
 						<div class="col-span-2">
 							<Input
 								id="{config.host}-address"
-								placeholder="Signaling address"
+								placeholder="Address of signaling server"
 								value={config.signalingAddress}
 								on:change={(event) => {
 									connectionConfigs.current[index].signalingAddress = (
