@@ -90,13 +90,10 @@ describe('syncMoveGhosts', () => {
 		expect(ghosts.get(child)?.has(traits.ShowAxesHelper)).toBe(true)
 	})
 
-	it('leaves the dragged frame and its own link geometries behind', () => {
-		// A link of the moved frame: a child without `FramesAPI`.
-		world.spawn(
-			relations.ChildOf(root),
-			traits.Box({ x: 1, y: 1, z: 1 }),
-			traits.WorldMatrix(new Matrix4())
-		)
+	// IK re-solves the dragged frame's own chain, so its links land wherever the
+	// solve puts them rather than offset by the drag.
+	it('leaves the dragged frame and its own kinematic links behind', () => {
+		spawnFrame(root, 1, traits.KinematicLink)
 
 		syncMoveGhosts(world, root, delta, ghosts)
 
@@ -105,11 +102,7 @@ describe('syncMoveGhosts', () => {
 
 	it('ghosts the links of an attached component, which do ride along', () => {
 		const gripper = spawnFrame(root, 1)
-		const link = world.spawn(
-			relations.ChildOf(gripper),
-			traits.Box({ x: 1, y: 1, z: 1 }),
-			traits.WorldMatrix(new Matrix4())
-		)
+		const link = spawnFrame(gripper, 1, traits.KinematicLink)
 
 		syncMoveGhosts(world, root, delta, ghosts)
 

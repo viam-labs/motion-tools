@@ -12,12 +12,7 @@ import type { RawKinematicsModel } from '$lib/kinematicsTransform'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
-import {
-	componentOfOriginFrame,
-	deriveKinematicsFrames,
-	originFrameName,
-	ownerOfInternalFrame,
-} from '$lib/kinematicsFrames'
+import { deriveKinematicsFrames, ownerOfInternalFrame } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -30,6 +25,8 @@ interface FramesContext {
 	current: Transform[]
 	/** Whether the current part's frame set has been reconciled into the world. */
 	readonly isReady: boolean
+	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
+	readonly kinematicsComponents: ReadonlySet<string>
 }
 
 const key = Symbol('frames-context')
@@ -93,37 +90,12 @@ export const provideFrames = (partID: () => string) => {
 	})
 
 	/**
-	 * A component that supplies kinematics owns two frames in rdk: `<name>_origin`
-	 * carries the config `frame`'s placement, and `<name>` is the model frame at
-	 * the end effector. Renaming the incoming entry frees `<name>` for the frame
-	 * {@link deriveKinematicsFrames} synthesizes, which is what lets a child
-	 * configured `parent: arm-1` mount to the tip without any special case.
-	 *
-	 * Only a frame's *own* name is rewritten. Parent references are left alone
-	 * precisely so they keep resolving to the tip.
-	 */
-	const toOriginName = $derived((name: string) =>
-		name in kinematicsByComponent ? originFrameName(name) : name
-	)
-
-	/**
-	 * The component a derived frame belongs to — `arm-1` for both `arm-1_origin`
-	 * and `arm-1:upper_arm` — or the name itself for an ordinary frame. Both
-	 * lookups are gated on the name actually being a kinematics component, so a
-	 * component genuinely called `foo_origin` isn't mistaken for one.
+	 * The component a derived frame belongs to — `arm-1` for `arm-1:upper_arm`.
+	 * Gated on the prefix being a real kinematics component.
 	 */
 	const ownerComponent = $derived((frameName: string) => {
 		const namespaced = ownerOfInternalFrame(frameName)
-		if (namespaced !== undefined && namespaced in kinematicsByComponent) {
-			return namespaced
-		}
-
-		const origin = componentOfOriginFrame(frameName)
-		if (origin !== undefined && origin in kinematicsByComponent) {
-			return origin
-		}
-
-		return frameName
+		return namespaced !== undefined && namespaced in kinematicsByComponent ? namespaced : frameName
 	})
 
 	const frames = $derived.by(() => {
@@ -134,8 +106,7 @@ export const provideFrames = (partID: () => string) => {
 				continue
 			}
 
-			const name = toOriginName(frame.referenceFrame)
-			frames[name] = name === frame.referenceFrame ? frame : { ...frame, referenceFrame: name }
+			frames[frame.referenceFrame] = frame
 		}
 
 		// Let config frames take priority in build mode (the user is authoring
@@ -147,15 +118,8 @@ export const provideFrames = (partID: () => string) => {
 		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
 			const mergedFrames = { ...frames }
 
-			// A config frame describes the component's mount, so it merges onto
-			// `<name>_origin` for a kinematics component — the same key the live
-			// frame system just wrote. Without the rename the two sources would
-			// disagree on which node the config `frame` positions, and switching
-			// modes would move the arm.
 			for (const [name, frame] of Object.entries(configFrames.current)) {
-				const originName = toOriginName(name)
-				mergedFrames[originName] =
-					originName === name ? frame : { ...frame, referenceFrame: originName }
+				mergedFrames[name] = frame
 			}
 
 			/**
@@ -163,7 +127,7 @@ export const provideFrames = (partID: () => string) => {
 			 * or frames that have been removed by fragment overrides
 			 */
 			for (const name of configFrames.unsetFrames) {
-				delete mergedFrames[toOriginName(name)]
+				delete mergedFrames[name]
 			}
 
 			return mergedFrames
@@ -206,6 +170,7 @@ export const provideFrames = (partID: () => string) => {
 		const currentPartID = partID()
 		const currentComponentSubtypeByName = componentSubtypeByName
 		const currentFrames = current
+		const currentDerivedFrames = kinematicsDerivedFrames
 
 		// We only want to update whenever "current" or "resourceByName.current" changes
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -225,9 +190,8 @@ export const provideFrames = (partID: () => string) => {
 				const center = frame.physicalObject?.center
 					? new Pose().copy(frame.physicalObject.center)
 					: undefined
-				// Colors resolve against the owning component, so an arm's links and
-				// its origin keep the arm's color. Looking them up by their own name
-				// finds nothing — neither is a resource.
+				// Colors resolve against the owning component so an arm's links keep the
+				// arm's color; a link's own name matches no resource.
 				const owner = ownerComponent(name)
 				const resourceName = currentResourcesByName[owner]
 				const color =
@@ -281,10 +245,17 @@ export const provideFrames = (partID: () => string) => {
 					traits.Matrix(pose.toMatrix4()),
 					traits.LiveMatrix(pose.toMatrix4()),
 					traits.FramesAPI,
-					traits.Transformable,
 					traits.ShowAxesHelper,
 					...hierarchy.parentTraits(parent),
 				]
+
+				if (name in currentDerivedFrames) {
+					entityTraits.push(traits.KinematicLink)
+				} else {
+					// Derived links are synthesized from the model; there is no
+					// `components.<arm>:<link>` for an edit to write to.
+					entityTraits.push(traits.Editable)
+				}
 
 				if (color) {
 					entityTraits.push(traits.Color(color))
@@ -327,12 +298,17 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const kinematicsComponents = $derived(new Set(Object.keys(kinematicsByComponent)))
+
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
 		},
 		get isReady() {
 			return reconciledPartID === partID() && reconciledFrames === current
+		},
+		get kinematicsComponents() {
+			return kinematicsComponents
 		},
 	})
 }

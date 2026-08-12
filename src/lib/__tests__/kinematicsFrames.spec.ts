@@ -41,10 +41,8 @@ describe('deriveKinematicsFrames', () => {
 			expect(model.kinematic_param_type).toBeUndefined()
 		})
 
-		it('roots the first link on the component origin, not on the component', () => {
-			// `arm-1` is the end effector once the split lands, so rooting the chain
-			// there would hang the arm off its own tip.
-			expect(parents['arm-1:base']).toBe('arm-1_origin')
+		it('roots the first link on the component frame', () => {
+			expect(parents['arm-1:base']).toBe('arm-1')
 		})
 
 		/**
@@ -64,19 +62,14 @@ describe('deriveKinematicsFrames', () => {
 			})
 		})
 
-		/**
-		 * rdk's own parenting. The component frame's pose is the whole resolved
-		 * chain, which `getPose` supplies — asking for it relative to the model's
-		 * output link instead would name a flattened internal frame, and
-		 * `FrameSystem.Frame` returns nil for those outside the referenceframe
-		 * package.
-		 */
-		it('parents the component frame to its origin', () => {
-			expect(parents['arm-1']).toBe('arm-1_origin')
+		/** The editing layer addresses frames by name, and only config frames have a component behind them. */
+		it('emits no frame for the component itself', () => {
+			expect(parents['arm-1']).toBeUndefined()
+			expect(parents['arm-1_origin']).toBeUndefined()
 		})
 
-		it('emits one frame per link plus the component itself', () => {
-			expect(frames).toHaveLength(8)
+		it('emits one frame per link', () => {
+			expect(frames).toHaveLength(7)
 			expect(warn).not.toHaveBeenCalled()
 		})
 
@@ -117,21 +110,20 @@ describe('deriveKinematicsFrames', () => {
 
 		it('mirrors the capture, joints collapsed', () => {
 			expect(parents).toEqual({
-				'gantry-1:base': 'gantry-1_origin',
+				'gantry-1:base': 'gantry-1',
 				'gantry-1:carriage': 'gantry-1:base',
-				'gantry-1': 'gantry-1_origin',
 			})
 		})
 	})
 
 	describe('models it cannot resolve', () => {
-		it('emits only the component frame for a DH model, and says so', () => {
+		it('emits nothing for a DH model, and says so', () => {
 			const frames = deriveKinematicsFrames('arm-2', {
 				kinematic_param_type: 'DH',
 				dhParams: [{}, {}],
 			})
 
-			expect(parentByName(frames)).toEqual({ 'arm-2': 'arm-2_origin' })
+			expect(frames).toHaveLength(0)
 			expect(warn).toHaveBeenCalledWith(expect.stringContaining('DH-parameter model'))
 		})
 
@@ -146,19 +138,18 @@ describe('deriveKinematicsFrames', () => {
 			})
 
 			expect(parentByName(frames)).toEqual({
-				'arm-3:base': 'arm-3_origin',
+				'arm-3:base': 'arm-3',
 				'arm-3:left': 'arm-3:base',
 				'arm-3:right': 'arm-3:base',
-				'arm-3': 'arm-3_origin',
 			})
 		})
 
-		it('roots a link whose parent is missing from the model on the origin', () => {
+		it('roots a link whose parent is missing from the model on the component', () => {
 			const frames = deriveKinematicsFrames('arm-4', {
 				links: [{ id: 'only', parent: 'a_joint_that_does_not_exist' }],
 			})
 
-			expect(parentByName(frames)['arm-4:only']).toBe('arm-4_origin')
+			expect(parentByName(frames)['arm-4:only']).toBe('arm-4')
 		})
 
 		/** A cycle would otherwise walk forever looking for a link ancestor. */
@@ -171,13 +162,11 @@ describe('deriveKinematicsFrames', () => {
 				],
 			})
 
-			expect(parentByName(frames)['arm-5:link']).toBe('arm-5_origin')
+			expect(parentByName(frames)['arm-5:link']).toBe('arm-5')
 		})
 
-		it('emits nothing but the component frame for a model with no links', () => {
-			expect(parentByName(deriveKinematicsFrames('gripper-1', {}))).toEqual({
-				'gripper-1': 'gripper-1_origin',
-			})
+		it('emits nothing for a model with no links', () => {
+			expect(deriveKinematicsFrames('gripper-1', {})).toHaveLength(0)
 		})
 	})
 

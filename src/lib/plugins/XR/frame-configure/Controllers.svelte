@@ -43,6 +43,7 @@
 	const selectedEntity = $derived(selected.current[0])
 	const selectedObject3d = $derived(scene.getObjectByName(`${selectedEntity}`))
 	const framesAPI = useTrait(() => selectedEntity, traits.FramesAPI)
+	const editable = useTrait(() => selectedEntity, traits.Editable)
 
 	const resetForward = new Vector3()
 	const resetHead = new Vector3()
@@ -164,7 +165,7 @@
 	// selectedObject3d resolves to the named Mesh from Mesh.svelte; the Group that
 	// carries the frame's pose is its parent (set up in Frame.svelte).
 	$effect(() => {
-		if (!framesAPI.current || !partConfig.hasEditPermissions) {
+		if (!framesAPI.current || !editable.current || !partConfig.hasEditPermissions) {
 			controls.detach()
 			attached = false
 			return

@@ -6,6 +6,7 @@ import { getContext, setContext, untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
+import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -68,6 +69,12 @@ export const providePoses = (partID: () => string) => {
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
+	/** The scene draws one node per component, at its mount, so the query redirects there. */
+	const toQueryName = (frameName: string | undefined): string | undefined =>
+		frameName !== undefined && frames.kinematicsComponents.has(frameName)
+			? originFrameName(frameName)
+			: frameName
+
 	/**
 	 * Builds one frame's `getPose` query plus the reactive name/parent it reads.
 	 * Every hook here (`useTrait`, `useParentName`, `createRobotQuery`) allocates
@@ -76,12 +83,9 @@ export const providePoses = (partID: () => string) => {
 	 * over the frame list, which would tear down and re-fetch *every* frame's
 	 * query whenever a single frame is added or removed.
 	 *
-	 * Within a stable entry, name / parent reactivity flows through the query's
-	 * args closure, so a reparent refetches without rebuilding anything.
-	 *
-	 * Frame names go out verbatim. `useFrames` derives `<name>_origin` and
-	 * `<name>` the way rdk's frame system does, so every entity here is already
-	 * named after a real frame — there is nothing left to rewrite on the way out.
+	 * Within a stable entry, name / parent / kinematics reactivity flows through
+	 * the query's args closure, so a reparent or a newly-arrived model refetches
+	 * without rebuilding anything.
 	 */
 	const buildEntry = (entity: Entity) => {
 		const name = useTrait(() => entity, traits.Name)
@@ -91,7 +95,9 @@ export const providePoses = (partID: () => string) => {
 			robotClient,
 			'getPose',
 			() => {
-				return [name.current, parentName.current ?? 'world', []] as [
+				// Parent too: measured from a parent arm's tip, children would mount at
+				// the wrong end of the arm.
+				return [toQueryName(name.current), toQueryName(parentName.current) ?? 'world', []] as [
 					string,
 					string,
 					commonApi.Transform[],

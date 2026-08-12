@@ -141,6 +141,7 @@ describe('Details component', () => {
 		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
+		entity.add(traits.Editable)
 
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: {
@@ -190,6 +191,7 @@ describe('Details component', () => {
 		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
+		entity.add(traits.Editable)
 
 		vi.mocked(usePartConfig.usePartConfig).mockReturnValue({
 			current: {

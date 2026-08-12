@@ -3,23 +3,24 @@
  * scene can be composed from one `frameSystemConfig` fetch instead of polling
  * `getGeometries` for collision meshes that never change.
  *
- * Mirrors `referenceframe.createFramesFromPart` plus the flattened model
- * internals. For a component that supplies kinematics, rdk contributes:
+ * Mirrors the flattened model internals of `referenceframe.createFramesFromPart`,
+ * contributing only the links:
  *
  * ```
- * <name>_origin   static, positioned by the component's config `frame`
- * ├── <name>      the model frame — its pose is the resolved chain, i.e. the
- * │               end effector, which is what other components mount to
- * └── <name>:<id> the model's own links and joints, namespaced, hanging off
- *                 `_origin` as a parallel branch
+ * <name>          the component's own frame, already in the scene from config
+ * └── <name>:<id> the model's links, namespaced, hanging off it
  * ```
  *
- * Naming this way is what makes children fall out for free: a camera configured
- * with `parent: arm-1` keeps that reference verbatim and lands on the end
- * effector, because `<name>` means the same thing here as it does in rdk.
+ * rdk splits that root in two — `<name>_origin` for the mount and `<name>` for
+ * the end effector — but the scene keeps one node per component, because
+ * `<name>` is the key the part config and the whole editing layer address a
+ * frame by. `_origin` survives only as the name {@link originFrameName} builds
+ * for the pose query; see `usePoses`.
  */
 
 import type { Transform } from '@viamrobotics/sdk'
+
+import type { Pose } from '$lib/math'
 
 import {
 	isDHModel,
@@ -27,17 +28,10 @@ import {
 	type RawKinematicsLink,
 	type RawKinematicsModel,
 } from '$lib/kinematicsTransform'
-import { Pose } from '$lib/math'
 import { poseFromJson } from '$lib/math/spatialJson'
 
-/** rdk's suffix for the static frame a part's config `frame` positions. */
-export const ORIGIN_SUFFIX = '_origin'
-
-export const originFrameName = (componentName: string): string => `${componentName}${ORIGIN_SUFFIX}`
-
-/** Inverse of {@link originFrameName}; `undefined` when the name isn't suffixed. */
-export const componentOfOriginFrame = (frameName: string): string | undefined =>
-	frameName.endsWith(ORIGIN_SUFFIX) ? frameName.slice(0, -ORIGIN_SUFFIX.length) : undefined
+/** rdk's name for a component's mount. The bare name resolves to the end effector. */
+export const originFrameName = (componentName: string): string => `${componentName}_origin`
 
 /** rdk namespaces a model's internal frames with the owning component. */
 export const internalFrameName = (componentName: string, id: string): string =>
@@ -104,24 +98,22 @@ const nearestLinkAncestor = (
 }
 
 /**
- * Build the derived frames for one component.
- *
- * A `"DH"` model yields no links at all, so it produces only the component
- * frame — polled directly, with no geometry to draw. Saying so is the difference
- * between a component that is visibly bare and one that is silently missing.
+ * Build the link frames for one component, hung off the component's own frame.
+ * That frame is not among them; config already put it in the scene.
  */
 export const deriveKinematicsFrames = (
 	componentName: string,
 	model: RawKinematicsModel
 ): Transform[] => {
-	const originName = originFrameName(componentName)
 	const frames: Transform[] = []
 
+	// A DH model has no links to derive. Warn rather than return quietly: the
+	// difference between a component that is visibly bare and one that is missing.
 	if (isDHModel(model)) {
 		console.warn(
 			`[kinematics] "${componentName}" is a DH-parameter model; its geometries cannot be derived from the frame system`
 		)
-		return [transform(componentName, originName, new Pose())]
+		return frames
 	}
 
 	const links = model.links ?? []
@@ -140,7 +132,7 @@ export const deriveKinematicsFrames = (
 		const pose = poseFromJson(link.translation, link.orientation)
 
 		const parent = nearestLinkAncestor(link, nodes)
-		const parentFrameName = parent ? internalFrameName(componentName, parent.id) : originName
+		const parentFrameName = parent ? internalFrameName(componentName, parent.id) : componentName
 
 		frames.push(
 			transform(
@@ -153,14 +145,6 @@ export const deriveKinematicsFrames = (
 			)
 		)
 	}
-
-	// The model frame, parented to `_origin` exactly as rdk parents it. Its pose
-	// is the whole resolved chain, so `getPose` supplies it — hanging it off the
-	// model's output link instead would put it at the same place without a query,
-	// but only by asking for a pose *relative to* a flattened internal frame, and
-	// `FrameSystem.Frame` returns nil for those names outside the referenceframe
-	// package. `_origin` is a frame the API will answer for.
-	frames.push(transform(componentName, originName, new Pose()))
 
 	return frames
 }

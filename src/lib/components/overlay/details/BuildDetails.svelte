@@ -42,6 +42,7 @@
 	const points = useTrait(() => entity, traits.Points)
 	const arrows = useTrait(() => entity, traits.Arrows)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
+	const editable = useTrait(() => entity, traits.Editable)
 	const customDetails = useTag(() => entity, traits.CustomDetails)
 
 	const isFragmentComponentWithVariables = $derived(
@@ -49,6 +50,7 @@
 	)
 	const showEditFrameOptions = $derived(
 		!!framesAPI.current &&
+			!!editable.current &&
 			partConfig.hasEditPermissions &&
 			!isFragmentComponentWithVariables &&
 			!buildModeSync.syncing

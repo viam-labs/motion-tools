@@ -31,7 +31,7 @@
 	const mode = $derived(settings.current.transformMode)
 	const isBuildMode = $derived(environment.current.mode === 'build')
 	const entity = $derived(selected.current[0])
-	const transformable = useTrait(() => entity, traits.Transformable)
+	const editable = useTrait(() => entity, traits.Editable)
 	const invisible = useTrait(() => entity, traits.InheritedInvisible)
 	const configMatrix = useTrait(() => entity, traits.Matrix)
 	const liveMatrix = useTrait(() => entity, traits.LiveMatrix)
@@ -73,7 +73,7 @@
 	const ref = $derived(worldMatrix.current ? anchor : undefined)
 
 	const activeMode = $derived.by<'translate' | 'rotate' | 'scale' | undefined>(() => {
-		if (mode === 'none' || !transformable.current) return
+		if (mode === 'none' || !editable.current) return
 
 		// Scale only does anything for primitive geometries the gizmo can size.
 		if (mode === 'scale' && !hasScalableGeometry) return
