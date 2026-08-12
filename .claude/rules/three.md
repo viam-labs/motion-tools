@@ -25,14 +25,14 @@ Avoid allocating `Vector3`, `Color`, `Matrix4`, etc. inside hot-path methods. Al
 
 ```typescript
 // module scope
-const _axis = new Vector3()
-const _object3d = new Object3D()
-const _col = new Color()
+const axis = new Vector3()
+const object3d = new Object3D()
+const color = new Color()
 
 export class BatchedArrow {
 	updateArrow(id: number, origin: Vector3, direction: Vector3) {
-		_object3d.position.copy(origin)
-		_axis.set(direction.z, 0, -direction.x).normalize()
+		object3d.position.copy(origin)
+		axis.set(direction.z, 0, -direction.x).normalize()
 		// ...
 	}
 }

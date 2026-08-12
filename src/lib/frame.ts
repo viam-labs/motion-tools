@@ -21,6 +21,8 @@ type FrameOrientationMap = {
 	euler_angles: { type: 'euler_angles'; value: { roll: number; pitch: number; yaw: number } }
 	ov_degrees: { type: 'ov_degrees'; value: { x: number; y: number; z: number; th: number } }
 	ov_radians: { type: 'ov_radians'; value: { x: number; y: number; z: number; th: number } }
+	/** rdk's `R4AA`: an axis plus a rotation about it, in radians. */
+	axis_angles: { type: 'axis_angles'; value: { x: number; y: number; z: number; th: number } }
 }
 
 export type FrameOrientation = keyof FrameOrientationMap

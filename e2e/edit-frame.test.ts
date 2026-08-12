@@ -254,7 +254,9 @@ withRobot('create and delete frame', async ({ browser }) => {
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
-	await page.goto('/')
+	// goto('') (not '/') so a baseURL with a path — e.g. the hosted
+	// playground — resolves correctly instead of jumping to host root.
+	await page.goto('')
 	await injectMachineConfig(page, config)
 	await page.reload()
 	await page.waitForLoadState('domcontentloaded')
@@ -398,7 +400,9 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
-	await page.goto('/')
+	// goto('') (not '/') so a baseURL with a path — e.g. the hosted
+	// playground — resolves correctly instead of jumping to host root.
+	await page.goto('')
 	await injectMachineConfig(page, config)
 	await page.reload()
 	await page.waitForLoadState('domcontentloaded')

@@ -186,8 +186,10 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 			console.log(`[${message.type()}] ${message.text()}`)
 		})
 
-		// Navigate first to establish the origin, then inject config
-		await page.goto('/')
+		// Navigate first to establish the origin, then inject config.
+		// goto('') (not '/') so a baseURL with a path — e.g. the hosted
+		// playground — resolves correctly instead of jumping to host root.
+		await page.goto('')
 		await injectMachineConfig(page, config)
 		await page.reload()
 		await activateConnectionConfigByHost(page, config.host)

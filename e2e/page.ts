@@ -41,7 +41,9 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
 
-	await page.goto('/')
+	// goto('') (not '/') so a baseURL with a path — e.g. the hosted
+	// playground — resolves correctly instead of jumping to host root.
+	await page.goto('')
 	await page.waitForLoadState('load')
 	await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
 		timeout: 15000,

@@ -1,6 +1,6 @@
 import { Euler, MathUtils, Matrix4, Quaternion } from 'three'
 
-import type { Pose } from '$lib/math'
+import type { Pose } from './pose'
 
 const quaternion = new Quaternion()
 const euler = new Euler()

@@ -28,7 +28,7 @@ import {
 	type RawKinematicsModel,
 } from '$lib/kinematicsTransform'
 import { Pose } from '$lib/math'
-import { poseFromJson } from '$lib/spatialJson'
+import { poseFromJson } from '$lib/math/spatialJson'
 
 /** rdk's suffix for the static frame a part's config `frame` positions. */
 export const ORIGIN_SUFFIX = '_origin'

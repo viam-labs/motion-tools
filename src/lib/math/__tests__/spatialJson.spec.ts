@@ -5,14 +5,6 @@ import type { RawOrientation } from '../spatialJson'
 
 import { geometryCenterInFrame, poseFromJson } from '../spatialJson'
 
-/**
- * These cover the wire boundary: rdk marshals `OrientationConfig` and
- * `GeometryConfig` with Go's capitalisation quirks (`{ X, Y, Z }` translations)
- * and tags orientations with one of five encoding names. The trigonometry itself
- * belongs to `Pose` / `OrientationVector` — their own specs own that — so what
- * is asserted here is the decoding and the frame convention.
- */
-
 /** Compare orientations by the rotation they produce, not by field values. */
 const rotates = (pose: ReturnType<typeof poseFromJson>, from: Vector3) =>
 	from.clone().applyQuaternion(pose.toQuaternion())
@@ -45,12 +37,12 @@ describe('poseFromJson', () => {
 	})
 
 	/**
-	 * rdk's `NoOrientationType` is the empty string and parses to
-	 * `NewZeroOrientation`, so an absent or empty `type` is identity — *not* an
-	 * implied `ov_degrees`. Guessing a default would be silently wrong rather
-	 * than loudly wrong: `axis_angles` and both orientation-vector encodings
-	 * share the same `{ x, y, z, th }` field names, so a mis-tagged value still
-	 * decodes to a plausible rotation.
+	 * RDK's `NoOrientationType` is the empty string and parses to
+	 * `NewZeroOrientation`, so an absent or empty `type` is identity — not an
+	 * implied `ov_degrees`. A value with no type is the same case: there is
+	 * nothing to say which encoding it is in, and `axis_angles` and both
+	 * orientation-vector types share `{ x, y, z, th }`, so guessing would decode
+	 * to a plausible rotation rather than fail.
 	 */
 	it.each([
 		['absent', undefined],
@@ -71,8 +63,12 @@ describe('poseFromJson', () => {
 		}
 	)
 
+	/** `rotation_matrix` is real in spatialmath but never marshalled by `NewOrientationConfig`. */
 	it('warns and falls back to identity for an encoding it cannot convert', () => {
-		const pose = poseFromJson({ X: 1 }, { type: 'rotation_matrix', value: { rows: [] } })
+		const pose = poseFromJson(
+			{ X: 1, Y: 0, Z: 0 },
+			{ type: 'rotation_matrix', value: { rows: [] } }
+		)
 
 		expect(warn).toHaveBeenCalledWith(
 			expect.stringContaining('unhandled orientation "rotation_matrix"')
@@ -151,7 +147,7 @@ describe('geometryCenterInFrame', () => {
 		expect(center.z).toBeCloseTo(-10)
 	})
 
-	it('leaves an unrotated frame alone', () => {
+	it('leaves an unrotated frame at the origin alone', () => {
 		const center = geometryCenterInFrame({ X: 1, Y: 2, Z: 3 }, undefined, {})
 
 		expect(center.x).toBeCloseTo(1)
@@ -161,7 +157,7 @@ describe('geometryCenterInFrame', () => {
 	})
 
 	it('composes the geometry orientation against the frame', () => {
-		// Same rotation on both, so the frame divides the geometry's out entirely.
+		// The same rotation on both, so the frame divides the geometry's out entirely.
 		const quarterTurn: RawOrientation = {
 			type: 'ov_degrees',
 			value: { x: 0, y: -1, z: 0, th: 90 },

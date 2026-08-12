@@ -8,7 +8,7 @@ import {
 	poseFromJson,
 	type RawOrientation,
 	type Vec3Json,
-} from '$lib/spatialJson'
+} from '$lib/math/spatialJson'
 
 /**
  * Both are rdk's `spatialmath` JSON shapes, aliased here so a reader of the
