@@ -2,7 +2,6 @@ import type { Entity } from 'koota'
 
 import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
-import { Debounced } from 'runed'
 import { getContext, setContext, untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
@@ -11,6 +10,7 @@ import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
 import { missingPoseFrameNames } from './poseSnapshot'
+import { isPoseStale } from './poseStaleness/isPoseStale'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
@@ -23,13 +23,8 @@ import { RefreshRates, useSettings } from './useSettings.svelte'
  */
 const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
-/**
- * How long pose fetches must keep failing before the scene is reported stale.
- * A reconnect drops every in-flight query for a few hundred milliseconds, and
- * flashing a warning on each blip reads as noise rather than as signal. Two
- * seconds outlasts that without leaving a frozen scene unexplained for long.
- */
-const STALE_AFTER_MS = 2000
+/** How often the freshness gap is re-measured. */
+const FRESHNESS_TICK_MS = 500
 
 const tempPose = new Pose()
 
@@ -43,10 +38,9 @@ export interface Context {
 	readonly missingFrameNames: string[]
 
 	/**
-	 * True once pose fetches have been failing long enough to be worth
-	 * reporting. While it holds, the scene is still drawing the last poses the
-	 * machine returned — a frozen frame is indistinguishable from a stationary
-	 * one, so nothing else gives the staleness away.
+	 * True while the scene is drawing poses older than the poll rate can
+	 * explain. A frozen frame is indistinguishable from a stationary one, so
+	 * nothing else gives the staleness away.
 	 */
 	readonly isStale: boolean
 
@@ -255,28 +249,39 @@ export const providePoses = (partID: () => string) => {
 	const missingFrameNames = () =>
 		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
 
-	/**
-	 * Frames whose most recent pose fetch failed. Empty whenever polling is off
-	 * — a paused or build-mode scene is deliberately showing a snapshot, not a
-	 * broken one — so the last error can't linger past the reason for it.
-	 *
-	 * `getPose` transforms through the frame system's `CurrentInputs`, which
-	 * polls every input-enabled component first, so one unhealthy arm usually
-	 * lands every frame in here rather than just its own.
-	 */
-	const staleFrameNames = $derived(
-		options.enabled
-			? entries
-					.filter(({ query }) => query.error)
-					.map(({ name }) => name.current)
-					.filter((name): name is string => name !== undefined)
-			: []
-	)
+	let now = $state(0)
+	let pollingStartedAt = $state(0)
 
-	// Debounced in both directions on purpose: the delay that stops a reconnect
-	// blip from flashing the warning on also stops a flaky recovery from
-	// flashing it back off.
-	const isStale = new Debounced(() => staleFrameNames.length > 0, STALE_AFTER_MS)
+	// A stalled scene emits no reactive updates of its own, so the gap has to be
+	// re-measured against a clock. Restarts on the part it is measuring, so one
+	// machine's gap is never carried into the next.
+	$effect(() => {
+		partID()
+
+		if (!options.enabled) return
+
+		pollingStartedAt = now = Date.now()
+
+		const id = setInterval(() => {
+			now = Date.now()
+		}, FRESHNESS_TICK_MS)
+
+		return () => clearInterval(id)
+	})
+
+	const lastPoseAt = $derived.by(() => {
+		let latest = 0
+		for (const { query } of entries) {
+			latest = Math.max(latest, query.dataUpdatedAt)
+		}
+		return latest
+	})
+
+	// A paused or build-mode scene is deliberately showing a snapshot, not a
+	// broken one.
+	const isStale = $derived(
+		options.enabled && isPoseStale({ now, lastPoseAt, pollingStartedAt, interval })
+	)
 
 	setContext<Context>(key, {
 		get isReady() {
@@ -286,7 +291,7 @@ export const providePoses = (partID: () => string) => {
 			return missingFrameNames()
 		},
 		get isStale() {
-			return isStale.current
+			return isStale
 		},
 		refetch: () => {
 			const expected = new Set(expectedFrameNames())
