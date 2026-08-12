@@ -46,6 +46,7 @@ Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude 
 | ------------------------ | --------------------------------------------------- |
 | `svelte.md`              | editing `.svelte`, `.svelte.ts`, `.svelte.js`       |
 | `three.md`               | editing files under `src/lib/three/`                |
+| `math.md`                | editing files under `src/lib/math/`                 |
 | `frontend-aesthetics.md` | editing `.svelte` or `.css`                         |
 | `go.md`                  | editing `.go`                                       |
 | `testing-go.md`          | editing Go test files (`*_test.go`)                 |

@@ -16,7 +16,7 @@
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
-	import { OrientationVector } from '$lib/three/OrientationVector'
+	import { OrientationVector } from '$lib/math/OrientationVector'
 
 	import { useOrigin } from '../useOrigin.svelte'
 	import WristDisplay from '../WristDisplay.svelte'

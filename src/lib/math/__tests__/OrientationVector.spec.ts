@@ -122,4 +122,44 @@ describe('OrientationVector', () => {
 		expect(numAppxEqual(ov.z, actualOv.z)).toBe(true)
 		expect(numAppxEqual(ov.th, actualOv.th)).toBe(true)
 	})
+
+	/**
+	 * What a `common.v1.Pose` carrying only a position decodes to, since protobuf
+	 * materialises absent scalars as `0`. RDK's `Normalize` reads it as unset and
+	 * assigns `OZ = 1` before every conversion.
+	 */
+	describe('zero-length vector', () => {
+		it.each([
+			['set', () => new OrientationVector().set(0, 0, 0, 0)],
+			['the constructor', () => new OrientationVector(0, 0, 0, 0)],
+			['copy', () => new OrientationVector().copy({ x: 0, y: 0, z: 0, th: 0 })],
+			['normalize', () => new OrientationVector().set(0, 0, 0, 0).normalize()],
+		])('substitutes +Z via %s', (_label, build) => {
+			const substituted = build()
+
+			expect(substituted.x).toBe(0)
+			expect(substituted.y).toBe(0)
+			expect(substituted.z).toBe(1)
+		})
+
+		it('converts to identity rather than a quarter turn about +Y', () => {
+			const identity = new OrientationVector().set(0, 0, 0, 0).toQuaternion(new Quaternion())
+
+			expect(quatAppxEqual(new Quaternion(0, 0, 0, 1), identity)).toBe(true)
+		})
+
+		/** The vector is unset, not the angle: theta still turns about the substituted axis. */
+		it('keeps theta as a rotation about +Z', () => {
+			const quarterTurn = new OrientationVector()
+				.set(0, 0, 0, Math.PI / 2)
+				.toQuaternion(new Quaternion())
+
+			expect(
+				quatAppxEqual(
+					new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI / 2),
+					quarterTurn
+				)
+			).toBe(true)
+		})
+	})
 })
