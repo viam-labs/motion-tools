@@ -363,7 +363,7 @@ describe('setFromFrame', () => {
 	})
 
 	it('composes euler angles in ZYX order', () => {
-		// RDK uses the z-y′-x″ sequence; `build-frame-descriptors.ts` decodes to match.
+		// RDK uses the z-y′-x″ sequence; `motion/frameDescriptors.ts` decodes to match.
 		const pose = new Pose().setFromFrame({
 			orientation: {
 				type: 'euler_angles',

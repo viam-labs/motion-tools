@@ -1,8 +1,8 @@
 /**
  * Entry point of the client-side plan fallback. The replayer reaches this file only when the host's
  * `resolvePlanSnapshots` returns undefined — the standalone dev tool, or app when server FK failed.
- * Together with `build-frame-descriptors.ts` and `plan-to-snapshots.ts` it reconstructs RDK's frame
- * system from RDK's JSON output rather than sharing code with it, so coverage is partial by
+ * Together with `$lib/motion/frameDescriptors.ts` and `plan-to-snapshots.ts` it reconstructs RDK's
+ * frame system from RDK's JSON output rather than sharing code with it, so coverage is partial by
  * construction and falls behind as RDK gains frame, orientation, and geometry types.
  */
 
@@ -42,7 +42,7 @@ const PlanChunkSchema = z.object({
 
 export type ObstaclesInWorldFrame = z.infer<typeof ObstaclesInWorldFrameSchema>
 
-export type RawFrame = z.infer<typeof RawFrameSchema>
+type RawFrame = z.infer<typeof RawFrameSchema>
 
 export class PlanParseError extends Error {
 	constructor(message: string) {

@@ -1,11 +1,7 @@
 /**
- * The frame-system half of the client-side fallback (see `parse-plan.ts`): a TypeScript reconstruction
- * of how RDK resolves `frame_system.frames` into a drawable chain. Every conversion below mirrors Go
- * this file cannot import — frame types (`referenceframe/register.go`) and the model-terminal
- * resolution — so each switch is a place the copy can fall behind its original without failing.
- *
- * Orientation encodings and the two geometry-center conventions live in `$lib/math/spatialJson`, which
- * decodes the same `spatialmath` JSON wherever it arrives from.
+ * A TypeScript reconstruction of how RDK resolves a flattened frame system into a drawable chain.
+ * Each switch mirrors `register.go` and can fall behind. Spatialmath decoding lives in
+ * `$lib/math/spatialJson`.
  */
 
 import { protoBase64 } from '@bufbuild/protobuf'
@@ -31,10 +27,24 @@ import {
 } from '$lib/math/spatialJson'
 import { meshContentType } from '$lib/mesh'
 
-import type { JointJson } from './model-joint-columns'
-import type { ParsedPlan } from './parse-plan'
+import type { JointJson } from './jointColumns'
 
-import { modelJointColumns } from './model-joint-columns'
+import { modelJointColumns } from './jointColumns'
+
+/** One entry of a flattened frame system: `frame_type` names the encoding, `frame` carries it. */
+export interface RawFrame {
+	frame_type: string
+	frame: unknown
+}
+
+/**
+ * The subset of RDK's `FrameSystem.MarshalJSON()` this file reads. `frames` is flat — a frame's
+ * entry never names its parent, which is why `parents` is a separate index.
+ */
+export interface FrameSystemJson {
+	frames: Record<string, RawFrame>
+	parents: Record<string, string>
+}
 
 /**
  * Split from joints because a trajectory step only carries joint angles: every other frame's
@@ -92,7 +102,7 @@ export const parseGeometry = (
 	// Naming the frame is the difference between a warning you can act on and one you can't:
 	// a capture has dozens of geometries and they all skip through this one line.
 	const skip = (reason: string): null => {
-		console.warn(`[MotionPlanReplayer] skipping geometry on "${frameName}": ${reason}`)
+		console.warn(`[motion] skipping geometry on "${frameName}": ${reason}`)
 		return null
 	}
 
@@ -192,7 +202,7 @@ export const parseGeometry = (
 	}
 }
 
-type Frames = ParsedPlan['frames']
+type Frames = FrameSystemJson['frames']
 
 const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
 	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
@@ -261,8 +271,8 @@ interface FrameContext {
 	joint?: Pick<JointFrameDescriptor, 'componentName' | 'jointIndex' | 'mimic'>
 }
 
-const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
-	const { frames, parents } = plan
+const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameContext> => {
+	const { frames, parents } = frameSystem
 
 	// Inverted `parents`. Its only question is "what hangs off the last joint?", asked below when
 	// a model declares no end-effector — hence local, not a field on the frames it describes.
@@ -323,7 +333,7 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
  */
 const warnUnhandledFrame = (frameName: string, frameType: unknown): void => {
 	console.warn(
-		`[MotionPlanReplayer] unhandled frame type "${String(frameType)}" on "${frameName}" — frame not drawn`
+		`[motion] unhandled frame type "${String(frameType)}" on "${frameName}" — frame not drawn`
 	)
 }
 
@@ -332,12 +342,12 @@ const warnUnhandledFrame = (frameName: string, frameType: unknown): void => {
  * {@link buildFrameContexts}, so each entry is built from itself plus its context.
  */
 const buildDescriptors = (
-	plan: ParsedPlan,
+	frameSystem: FrameSystemJson,
 	contexts: Map<string, FrameContext>
 ): FrameDescriptor[] => {
 	const descriptors: FrameDescriptor[] = []
 
-	for (const [frameName, entry] of Object.entries(plan.frames)) {
+	for (const [frameName, entry] of Object.entries(frameSystem.frames)) {
 		const { parent, joint } = contexts.get(frameName)!
 
 		switch (entry.frame_type) {
@@ -415,5 +425,5 @@ const buildDescriptors = (
 	return descriptors
 }
 
-export const buildFrameDescriptors = (plan: ParsedPlan): FrameDescriptor[] =>
-	buildDescriptors(plan, buildFrameContexts(plan))
+export const buildFrameDescriptors = (frameSystem: FrameSystemJson): FrameDescriptor[] =>
+	buildDescriptors(frameSystem, buildFrameContexts(frameSystem))
