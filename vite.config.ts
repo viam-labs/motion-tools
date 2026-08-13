@@ -40,7 +40,7 @@ export default defineConfig({
 
 	define: {
 		BACKEND_IP: JSON.stringify('localhost'),
-		WS_PORT: JSON.stringify(process.env.WS_PORT || '3000'),
+		DRAW_SERVICE_PORT: JSON.stringify(process.env.DRAW_SERVICE_PORT || '3030'),
 	},
 	optimizeDeps: {
 		rolldownOptions: {},

@@ -3,7 +3,7 @@ title: <DrawService />
 description: Stream a running draw server's output into an embedded motion-tools visualizer.
 ---
 
-`<DrawService />` connects an embedded `<Visualizer />` to a running draw server over WebSocket so any `client/api` calls made elsewhere render in this instance live. Skip it if you only render snapshots — snapshots are entirely client-side and don't need the server.
+`<DrawService />` connects an embedded `<Visualizer />` to a running draw server over Connect-RPC so any `client/api` calls made elsewhere render in this instance live. Skip it if you only render snapshots — snapshots are entirely client-side and don't need the server.
 
 The plugin is **headless**: it provides the connection context and starts the stream; it doesn't render anything itself.
 
@@ -25,26 +25,37 @@ pnpm add @connectrpc/connect @connectrpc/connect-web
 
 <div class="h-screen w-screen">
 	<Visualizer>
-		<DrawService config={{ backendIP: 'localhost', websocketPort: '3030' }} />
+		<DrawService config={{ backendIP: 'localhost' }} />
 	</Visualizer>
 </div>
 ```
 
 ## Props
 
-| Prop     | Type                                           | Description                                                   |
-| -------- | ---------------------------------------------- | ------------------------------------------------------------- |
-| `config` | `{ backendIP: string; websocketPort: string }` | Host and port of the draw server. Default dev port is `3030`. |
+| Prop     | Type                                   | Description                                                  |
+| -------- | -------------------------------------- | ------------------------------------------------------------ |
+| `config` | `{ backendIP: string; port?: string }` | Host and port of the draw server. `port` defaults to `3030`. |
 
 The `config` prop is reactive — change it and the plugin reconnects to the new endpoint.
 
+## Connection behavior
+
+`<DrawService />` opens one connection: a Connect-RPC stream for entity changes.
+
+The stream reconnects on its own with exponential backoff, and resubscribing replays the full scene, so a dropped connection recovers without anything to act on.
+
 ## Connection logs
 
-`<DrawService />` opens two connections: a WebSocket for the legacy draw API, and a Connect-RPC stream for entity changes.
+The plugin reports connection lifecycle through the `useLogs` hook. Mount [`<Logs />`](../logs/) alongside it to see the messages in a panel; without it they're dropped.
 
-The WebSocket connection reports its lifecycle events — connecting, connected, disconnected, reconnecting, and parse or socket errors — through the `useLogs` hook. Mount [`<Logs />`](../logs/) alongside it to see them in a panel; without it the messages are dropped.
+| Message                                             | Level   | When                                                            |
+| --------------------------------------------------- | ------- | --------------------------------------------------------------- |
+| `Connected to draw server at <url>`                 | `info`  | The stream delivers its first message.                          |
+| `Disconnected from draw server, reconnecting...`    | `warn`  | An established connection drops.                                |
+| `Could not reach draw server at <url>, retrying...` | `warn`  | The first attempt fails, once per outage rather than per retry. |
+| `Draw server error: <message>`                      | `error` | An attempt fails with a stream error.                           |
 
-The entity stream does not report to `useLogs`. It reconnects on its own with exponential backoff, and resubscribing replays the full scene, so a dropped connection recovers without anything to act on. Stream errors go to the browser console.
+Because the stream retries on a backoff, a server that stays down logs the "could not reach" warning once, not once per attempt. Errors also go to the browser console with their stack.
 
 ## Running a draw server
 
@@ -80,7 +91,7 @@ func main() {
 }
 ```
 
-Your `client/api` producer code then points at this server, and `<DrawService config={{ backendIP, websocketPort: '3030' }} />` in the browser subscribes to its stream.
+Your `client/api` producer code then points at this server, and `<DrawService config={{ backendIP }} />` in the browser subscribes to its stream.
 
 ### Implement your own server
 

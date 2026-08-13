@@ -86,7 +86,7 @@ End with a **Testing** section listing which test suites were run and any new te
 ```markdown
 ### Testing
 
-Ran the `draw-client`, `go-client`, and `snapshot` e2e tests.
+Ran the `draw-client` and `snapshot` e2e tests.
 
 There are two new tests specifically for drawing chunked data.
 ```

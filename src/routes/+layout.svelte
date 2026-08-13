@@ -8,7 +8,7 @@
 	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
 
 	import { Visualizer } from '$lib'
-	import { backendIP, websocketPort } from '$lib/defines'
+	import { backendIP, drawServicePort } from '$lib/defines'
 	import {
 		ControlWidgets,
 		DrawService,
@@ -22,7 +22,6 @@
 
 	import MachineConnectionProvider from './lib/components/MachineConnectionProvider.svelte'
 	import Machines from './lib/components/Machines.svelte'
-	import StandaloneLLMWrapper from './lib/components/StandaloneLLMWrapper.svelte'
 	import {
 		provideConnectionConfigs,
 		useActiveConnectionConfig,
@@ -82,11 +81,10 @@
 			>
 				{@render children()}
 
-				<DrawService config={{ backendIP, websocketPort }} />
+				<DrawService config={{ backendIP, port: drawServicePort }} />
 				<Focus />
 				<MeasureTool />
 				<MoveFrame />
-				<StandaloneLLMWrapper />
 				<MotionPlanReplayer />
 
 				<XR />

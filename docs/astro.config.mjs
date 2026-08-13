@@ -83,7 +83,6 @@ export default defineConfig({
 						{
 							label: 'v1 → v2',
 							link: '/migration/v1-to-v2/',
-							badge: { text: 'preview', variant: 'success' },
 						},
 					],
 				},

@@ -1,4 +1,4 @@
-import { type Client, createClient } from '@connectrpc/connect'
+import { type Client, ConnectError, createClient } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import { useThrelte } from '@threlte/core'
 import { type Entity } from 'koota'
@@ -21,6 +21,7 @@ import {
 } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
+import { useLogs } from '$lib/plugins'
 
 import {
 	clearsDrawings,
@@ -35,7 +36,10 @@ import {
 } from './coalesceEvents'
 import { runWithReconnect } from './reconnect'
 import { createServerRelationships } from './serverRelationships'
-import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
+import {
+	DEFAULT_DRAW_SERVICE_PORT,
+	useDrawConnectionConfig,
+} from './useDrawConnectionConfig.svelte'
 
 const DRAW_SERVICE_KEY = Symbol('draw-service-context')
 const FLOAT32_SIZE = 4
@@ -59,13 +63,23 @@ export function provideDrawService() {
 	const drawConnectionConfig = useDrawConnectionConfig()
 	const serverRelationships = createServerRelationships()
 
-	let connectionStatus = $state<ConnectionStatusType>(ConnectionStatus.DISCONNECTED)
+	// `<Logs />` may mount after this plugin, and useLogs hands back a throwaway no-op when the
+	// provider is not installed yet, so resolve the sink per call rather than once at setup.
+	const log = (message: string, level?: 'info' | 'warn' | 'error') => {
+		useLogs().add(message, level)
+	}
 
-	const url = $derived(
-		drawConnectionConfig.current?.backendIP
-			? `http://${drawConnectionConfig.current.backendIP}:3030`
-			: undefined
-	)
+	let connectionStatus = $state<ConnectionStatusType>(ConnectionStatus.DISCONNECTED)
+	// The stream retries on a backoff, so a server that is simply down would otherwise emit one
+	// "unreachable" line per attempt forever. Report it once per outage instead.
+	let reportedUnreachable = false
+
+	const url = $derived.by(() => {
+		const config = drawConnectionConfig.current
+		if (!config?.backendIP) return undefined
+
+		return `http://${config.backendIP}:${config.port ?? DEFAULT_DRAW_SERVICE_PORT}`
+	})
 
 	const transformEntities = new Map<string, Entity>()
 	const drawingEntities = new Map<string, Entity>()
@@ -359,13 +373,22 @@ export function provideDrawService() {
 		invalidate()
 	}
 
+	/** Every streamed message reports connectivity, so only log the edge into `connected`. */
+	const markConnected = () => {
+		if (connectionStatus === ConnectionStatus.CONNECTED) return
+
+		connectionStatus = ConnectionStatus.CONNECTED
+		reportedUnreachable = false
+		log(`Connected to draw server at ${url}`)
+	}
+
 	const streamEntityChanges = async (
 		client: Client<typeof DrawService>,
 		signal: AbortSignal,
 		onData: () => void
 	) => {
 		for await (const response of client.streamEntityChanges({}, { signal })) {
-			connectionStatus = ConnectionStatus.CONNECTED
+			markConnected()
 			onData()
 
 			if (response.clearedScope !== EntityScope.UNSPECIFIED) {
@@ -438,7 +461,18 @@ export function provideDrawService() {
 				return streamEntityChanges(client, signal, onData)
 			},
 			onStatus: () => {
+				const wasConnected = connectionStatus === ConnectionStatus.CONNECTED
 				connectionStatus = ConnectionStatus.DISCONNECTED
+
+				if (wasConnected) {
+					log('Disconnected from draw server, reconnecting...', 'warn')
+				} else if (!reportedUnreachable) {
+					reportedUnreachable = true
+					log(`Could not reach draw server at ${url}, retrying...`, 'warn')
+				}
+			},
+			onError: (error) => {
+				log(`Draw server error: ${ConnectError.from(error).message}`, 'error')
 			},
 		})
 

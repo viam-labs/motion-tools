@@ -179,7 +179,6 @@ export const GLTF = trait(() => ({
 
 export const FramesAPI = trait(() => true)
 export const GeometriesAPI = trait(() => true)
-export const DrawAPI = trait(() => true)
 export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
