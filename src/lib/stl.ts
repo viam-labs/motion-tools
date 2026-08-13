@@ -10,6 +10,19 @@ const stlLoader = new STLLoader()
 const STL_MIN_BYTES = 84
 
 /**
+ * That count is trusted, so a body shorter than it claims reads past the end and throws well above
+ * `STL_MIN_BYTES`. Pre-checking the length would mean re-deriving `isBinary`, which reads that same
+ * field to tell ASCII from binary.
+ */
+const parseOrEmpty = (input: string | ArrayBuffer): BufferGeometry => {
+	try {
+		return stlLoader.parse(input)
+	} catch {
+		return new BufferGeometry()
+	}
+}
+
+/**
  * Counterpart to `parsePlyInput`; `STLLoader` sniffs ASCII versus binary itself. Short input answers
  * with an empty geometry rather than throwing: callers loop over a resource's geometries unguarded.
  */
@@ -23,7 +36,7 @@ export const parseStlInput = (mesh: string | Uint8Array): BufferGeometry => {
 		} catch {
 			return new BufferGeometry()
 		}
-		return decoded.length < STL_MIN_BYTES ? new BufferGeometry() : stlLoader.parse(decoded)
+		return decoded.length < STL_MIN_BYTES ? new BufferGeometry() : parseOrEmpty(decoded)
 	}
 
 	// An absent mesh is not a malformed one; RDK writes geometry with no triangles.
@@ -36,7 +49,7 @@ export const parseStlInput = (mesh: string | Uint8Array): BufferGeometry => {
 	// nothing.
 	const whole = mesh.byteOffset === 0 && mesh.byteLength === mesh.buffer.byteLength
 
-	return stlLoader.parse(
+	return parseOrEmpty(
 		whole
 			? (mesh.buffer as ArrayBuffer)
 			: (mesh.buffer.slice(mesh.byteOffset, mesh.byteOffset + mesh.byteLength) as ArrayBuffer)

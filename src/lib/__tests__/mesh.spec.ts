@@ -52,7 +52,10 @@ const binaryStl = (triangles = 1): Uint8Array => {
 	return new Uint8Array(buffer)
 }
 
-const base64 = (data: Uint8Array) => btoa(String.fromCodePoint(...data))
+// Mapped rather than spread: a spread passes one argument per byte and blows the call stack on a
+// fixture of any size.
+const base64 = (data: Uint8Array) =>
+	btoa(Array.from(data, (byte) => String.fromCharCode(byte)).join(''))
 
 describe('meshContentType', () => {
 	it.each([
@@ -122,6 +125,20 @@ describe('parseMeshInput', () => {
 		'returns an empty geometry for a %i byte stl rather than throwing',
 		(length) => {
 			expect(parseMeshInput(new Uint8Array(length), 'stl').getAttribute('position')).toBeUndefined()
+		}
+	)
+
+	// Above the 84-byte guard, so the count at offset 80 is read and believed.
+	it.each([
+		['claims 100 triangles and carries none', 84, 100],
+		['claims 2 triangles and carries 1', 84 + 50, 2],
+	])(
+		'returns an empty geometry for a binary stl that %s rather than throwing',
+		(_label, length, claimed) => {
+			const truncated = new Uint8Array(length)
+			new DataView(truncated.buffer).setUint32(80, claimed, true)
+
+			expect(parseMeshInput(truncated, 'stl').getAttribute('position')).toBeUndefined()
 		}
 	)
 

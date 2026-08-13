@@ -21,7 +21,6 @@ import {
 	Vector3 as ViamVector3,
 } from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
-import { meshContentType } from '$lib/mesh'
 import {
 	type FramePoseJson,
 	geometryCenterInFrame,
@@ -30,6 +29,7 @@ import {
 	type RawOrientation,
 	type Vec3Json,
 } from '$lib/math/spatialJson'
+import { meshContentType } from '$lib/mesh'
 
 import type { ParsedPlan } from './parse-plan'
 
