@@ -424,6 +424,26 @@ describe('setFromFrame', () => {
 	})
 
 	/**
+	 * A hand-written config leaves its zero fields out, and Go's unmarshal reads
+	 * them back as zero. A NaN here reaches `toMatrix4`, which drops the frame and
+	 * everything parented to it out of the scene.
+	 */
+	it.each([
+		['euler_angles', { roll: Math.PI / 2 }],
+		['axis_angles', { x: 1, th: Math.PI / 2 }],
+		['ov_degrees', { y: -1, th: 90 }],
+		['ov_radians', { y: -1, th: Math.PI / 2 }],
+		['quaternion', { X: Math.SQRT1_2, W: Math.SQRT1_2 }],
+	])('reads a %s value that omits its zero fields', (type, value) => {
+		const orientation = { type, value } as Frame['orientation']
+		const pose = new Pose().setFromFrame({ orientation })
+
+		expect(pose.isFinite()).toBe(true)
+		expect(pose.toQuaternion().angleTo(quarterTurnAboutX)).toBeCloseTo(0, 6)
+		expect(pose.toMatrix4().elements.every((element) => Number.isFinite(element))).toBe(true)
+	})
+
+	/**
 	 * `R4AA` tags its fields `th/x/y/z`, the names both orientation-vector
 	 * encodings use, so a misread yields a plausible wrong rotation. Hence
 	 * asserting the rotation, not the fields.

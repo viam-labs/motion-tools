@@ -20,8 +20,9 @@ const tmpOv = new OrientationVector()
  * frame editor writes `{ w, x, y, z }`, and Go's unmarshal accepts both.
  */
 type QuatJson = Partial<Record<'W' | 'X' | 'Y' | 'Z' | 'w' | 'x' | 'y' | 'z', number>>
-type EulerJson = { roll: number; pitch: number; yaw: number }
-type OvJson = { x: number; y: number; z: number; th: number }
+/** Partial like `QuatJson`: Go's unmarshal leaves an absent field at its zero value. */
+type EulerJson = Partial<Record<'roll' | 'pitch' | 'yaw', number>>
+type OvJson = Partial<Record<'x' | 'y' | 'z' | 'th', number>>
 
 /**
  * Writes `out` and reports whether it holds a real rotation; false leaves it identity. Callers that
@@ -49,7 +50,7 @@ export const quatFromJson = (orientation: RawOrientation | undefined, out: Quate
 			case 'euler_angles': {
 				const v = value as EulerJson
 				// RDK uses Tait–Bryan Z-Y′-X″; Three.js defaults to 'XYZ'.
-				out.setFromEuler(tmpE.set(v.roll, v.pitch, v.yaw, 'ZYX'))
+				out.setFromEuler(tmpE.set(v.roll ?? 0, v.pitch ?? 0, v.yaw ?? 0, 'ZYX'))
 				return true
 			}
 			case 'ov_radians': {
@@ -67,7 +68,7 @@ export const quatFromJson = (orientation: RawOrientation | undefined, out: Quate
 				const v = value as OvJson
 				// RDK normalizes inside `R4AA.ToQuat`, and `setFromAxisAngle` assumes a
 				// unit axis. RDK panics on a zero one rather than defining it.
-				tmpAxis.set(v.x, v.y, v.z)
+				tmpAxis.set(v.x ?? 0, v.y ?? 0, v.z ?? 0)
 				if (tmpAxis.lengthSq() > 0) {
 					out.setFromAxisAngle(tmpAxis.normalize(), v.th ?? 0)
 					return true

@@ -100,6 +100,41 @@ describe('poseFromJson', () => {
 		expect(warn).not.toHaveBeenCalled()
 	})
 
+	/**
+	 * The same quarter turn again, with every zero-valued field left out. Go's
+	 * unmarshal fills those with zero, so RDK reads each of these as the rotation
+	 * above — a hand-written machine config spells them this way.
+	 */
+	const partialQuarterTurnAboutX: [string, RawOrientation][] = [
+		['ov_degrees', { type: 'ov_degrees', value: { y: -1, th: 90 } }],
+		['ov_radians', { type: 'ov_radians', value: { y: -1, th: MathUtils.degToRad(90) } }],
+		['quaternion', { type: 'quaternion', value: { X: Math.SQRT1_2, W: Math.SQRT1_2 } }],
+		['euler_angles', { type: 'euler_angles', value: { roll: Math.PI / 2 } }],
+		['axis_angles', { type: 'axis_angles', value: { x: 1, th: Math.PI / 2 } }],
+	]
+
+	it.each(partialQuarterTurnAboutX)(
+		'reads the same turn from %s with its zero fields omitted',
+		(_label, orientation) => {
+			const pose = poseFromJson(undefined, orientation)
+
+			expect(pose.isFinite()).toBe(true)
+			expectVectorClose(rotates(pose, new Vector3(0, 1, 0)), [0, 0, 1])
+			expect(warn).not.toHaveBeenCalled()
+		}
+	)
+
+	/** A value with no fields at all is RDK's zero orientation, not a NaN one. */
+	it.each(['ov_degrees', 'ov_radians', 'quaternion', 'euler_angles'])(
+		'reads an empty %s value as identity',
+		(type) => {
+			const pose = poseFromJson({ X: 1, Y: 2, Z: 3 }, { type, value: {} })
+
+			expect(pose.isFinite()).toBe(true)
+			expectVectorClose(rotates(pose, new Vector3(0, 1, 0)), [0, 1, 0])
+		}
+	)
+
 	it('agrees with three.js on a quaternion round trip', () => {
 		const source = new Quaternion().setFromAxisAngle(new Vector3(1, 2, 3).normalize(), 0.7)
 		const pose = poseFromJson(undefined, {
