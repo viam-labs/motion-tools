@@ -70,9 +70,7 @@ export const provide3DModels = (partID: () => string) => {
 			if (!client.current) continue
 			try {
 				// rdk namespaces a model's frames as `<component>:<id>`, so the prefix
-				// is the component's own name. Reading it back off a `getGeometries`
-				// label instead cost a full collision-mesh payload per arm to learn
-				// something already in hand.
+				// is the component's own name.
 				const prefix = client.current.name
 				const models = await client.current.get3DModels()
 				if (Object.keys(models).length === 0) {

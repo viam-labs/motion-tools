@@ -178,7 +178,6 @@ export const GLTF = trait(() => ({
 }))
 
 export const FramesAPI = trait(() => true)
-export const GeometriesAPI = trait(() => true)
 
 /**
  * A link inside a component's kinematic model. IK re-solves its pose, so it is
