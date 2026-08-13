@@ -61,9 +61,12 @@ withRobot('arm', async ({ robotPage }) => {
 	await frameTreeCarrot.click()
 
 	await expect(page.getByText('arm-1:base_link', { exact: true })).toBeVisible()
-	await expect(page.getByRole('button', { name: 'arm-1' })).toBeVisible()
 
-	await page.getByRole('button', { name: 'arm-1' }).click()
+	// Exact text, not the accessible name: the derived links nest under `arm-1`,
+	// so a substring match on the branch control also hits `arm-1:base_link`.
+	await expect(page.getByText('arm-1', { exact: true })).toBeVisible()
+
+	await page.getByText('arm-1', { exact: true }).click()
 
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
