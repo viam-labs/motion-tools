@@ -29,6 +29,7 @@ import {
 	type RawOrientation,
 	type Vec3Json,
 } from '$lib/math/spatialJson'
+import { meshContentType } from '$lib/mesh'
 
 import type { ParsedPlan } from './parse-plan'
 
@@ -146,15 +147,17 @@ export const parseGeometry = (
 			})
 		}
 
-		// Bytes pass through unscaled: PLY vertices are already metres, and only the center
-		// pose is millimetres.
+		// Bytes pass through unscaled: PLY and STL vertices are already meters, and only the
+		// center pose is millimeters.
 		case 'mesh': {
-			const contentType = (g.mesh_content_type as string | undefined) ?? ''
+			const declared = g.mesh_content_type as string | undefined
 			const meshData = g.mesh_data as string | undefined
 
-			// parsePlyInput is PLY-only; other formats throw at render time, far from here.
+			// The renderer falls back to PLY for a label it cannot read; a plan is parsed once, so
+			// name the skip here rather than draw nothing later.
 			if (!meshData) return skip('mesh geometry carries no mesh_data')
-			if (contentType !== 'ply') return skip(`unsupported mesh content type "${contentType}"`)
+			const contentType = meshContentType(declared)
+			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)
 
 			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
 			// report as an unparseable plan — the whole failure mode this branch avoids.
@@ -185,6 +188,53 @@ type Frames = ParsedPlan['frames']
 
 const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
 	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
+
+interface ModelNode {
+	id?: string
+	parent?: string
+}
+
+/**
+ * The model's one childless frame, over links and joints. Undefined when there is more than one,
+ * which RDK also refuses, and for a DH model, whose topology lives in `dhParams` not either list.
+ */
+const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
+	const links = model?.links
+	const joints = model?.joints
+	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
+	// non-iterable throws, taking the whole plan render down.
+	const nodes = [
+		...(Array.isArray(links) ? (links as ModelNode[]) : []),
+		...(Array.isArray(joints) ? (joints as ModelNode[]) : []),
+	]
+
+	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))
+	const leaves = nodes.flatMap((node) =>
+		node.id !== undefined && !claimed.has(node.id) ? node.id : []
+	)
+
+	return leaves.length === 1 ? leaves[0] : undefined
+}
+
+/**
+ * Which frame a model hands its children to: the envelope's `primary_output_frame`, then the
+ * config's `output_frames[0]`, then the sole leaf.
+ */
+const modelOutputFrame = (
+	entry: Frames[string],
+	model: Record<string, unknown> | undefined
+): string | undefined => {
+	const declared = (entry.frame as Record<string, unknown>).primary_output_frame
+	if (typeof declared === 'string' && declared !== '') return declared
+
+	// `Array.isArray` first: indexing a bare string would yield its first character, which the
+	// `typeof` guard below would then happily accept.
+	const frames = model?.output_frames
+	const configured = Array.isArray(frames) ? (frames[0] as unknown) : undefined
+	if (typeof configured === 'string' && configured !== '') return configured
+
+	return soleLeafOf(model)
+}
 
 const newUuid = (): Uint8Array<ArrayBuffer> =>
 	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
@@ -230,9 +280,9 @@ const buildFrameContexts = (plan: ParsedPlan): Map<string, FrameContext> => {
 			jointOwners.set(`${modelName}:${joint.id}`, { componentName: modelName, jointIndex })
 		}
 
-		const primaryOutput = model?.primary_output_frame as string | undefined
-		const links = model?.links as Array<{ id: string }> | undefined
-		const endEffectorId = primaryOutput ?? links?.at(-1)?.id
+		// Truthiness, not a null check: `soleLeafOf` can return `''`, since Go marshals `id` without
+		// `omitempty`. An empty id names no frame.
+		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
 			continue

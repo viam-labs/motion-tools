@@ -272,7 +272,8 @@ export const Geometry = (geometry: ViamGeometry) => {
 	} else if (geometry.geometryType.case === 'sphere') {
 		return Sphere(createSphere(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'mesh') {
-		return BufferGeometry(parseMeshInput(geometry.geometryType.value))
+		const { mesh, contentType } = geometry.geometryType.value
+		return BufferGeometry(parseMeshInput(mesh, contentType))
 	}
 
 	return ReferenceFrame
@@ -312,13 +313,14 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
+		const { mesh, contentType } = geometry.geometryType.value
 		if (entity.has(BufferGeometry)) {
 			const old = entity.get(BufferGeometry)
-			entity.set(BufferGeometry, parseMeshInput(geometry.geometryType.value))
+			entity.set(BufferGeometry, parseMeshInput(mesh, contentType))
 			old?.dispose()
 		} else {
 			entity.remove(Box, Sphere, Capsule)
-			entity.add(BufferGeometry(parseMeshInput(geometry.geometryType.value)))
+			entity.add(BufferGeometry(parseMeshInput(mesh, contentType)))
 		}
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
@@ -367,10 +369,9 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 					}
 				}
 
-				// When the point count changes, attributes must be reallocated. An
-				// entity can hold an attribute-less geometry (`parsePlyInput` returns
-				// one for empty mesh bytes), so treat a missing attribute as a count
-				// of zero rather than reading `.count` off undefined.
+				// Attributes must be reallocated when the point count changes, and an
+				// entity can hold an attribute-less geometry: `parseMeshInput` returns
+				// one for empty or truncated bytes.
 				const oldCount = buffer.getAttribute('position')?.count ?? 0
 				const newCount = parsed.positions.length / 3
 				if (oldCount === newCount) {

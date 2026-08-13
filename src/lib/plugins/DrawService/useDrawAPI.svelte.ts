@@ -15,8 +15,8 @@ import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
 import { Pose } from '$lib/math'
+import { parseMeshInput } from '$lib/mesh'
 import { useLogs } from '$lib/plugins'
-import { parsePlyInput } from '$lib/ply'
 
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 
@@ -223,7 +223,9 @@ export const provideDrawAPI = () => {
 
 		const geometryTrait = () => {
 			if ('mesh' in data) {
-				const geometry = parsePlyInput(data.mesh.mesh)
+				// The draw service speaks proto JSON, so `mesh` is base64 and `content_type` arrives
+				// camel-cased.
+				const geometry = parseMeshInput(data.mesh.mesh, data.mesh.contentType)
 				return traits.BufferGeometry(geometry)
 			} else if ('box' in data) {
 				return traits.Box(createBox(data.box))

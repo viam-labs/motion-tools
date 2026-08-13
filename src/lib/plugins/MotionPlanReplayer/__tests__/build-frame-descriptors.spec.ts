@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { ParsedPlan } from '../parse-plan'
 
 import { buildFrameDescriptors } from '../build-frame-descriptors'
 import { parsePlan } from '../parse-plan'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
+import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
+import planDump from './__fixtures__/plan.json?raw'
 import saladPlan from './__fixtures__/salad-plan.json?raw'
 
 const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
@@ -16,11 +18,40 @@ const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): Par
 	worldState: undefined,
 })
 
-// Identity is right for an absent orientation and wrong for an unrecognised one; both halves matter,
+/**
+ * Equivalence check, not a regression gate: on all 29 captured model frames every branch
+ * resolves the same string, so this passes with any one branch deleted.
+ */
+describe('captured plans', () => {
+	it("resolve every model-parented frame to that model's declared output frame", () => {
+		let checked = 0
+
+		for (const raw of [gantryPlan, pirouettePlan, planDump, saladPlan]) {
+			const parsed = parsePlan(raw)
+			const parentByName = new Map(buildFrameDescriptors(parsed).map((d) => [d.name, d.parent]))
+
+			for (const [child, rawParent] of Object.entries(parsed.parents)) {
+				const model = parsed.frames[rawParent]
+				if (model?.frame_type !== 'model') continue
+
+				const declared = (model.frame as Record<string, unknown>).primary_output_frame
+				// Skip rather than coerce: production correctly falls through here, so asserting
+				// `${rawParent}:undefined` would fail on that fallback rather than on a regression.
+				if (typeof declared !== 'string') continue
+
+				expect(parentByName.get(child)).toBe(`${rawParent}:${declared}`)
+				checked += 1
+			}
+		}
+
+		expect(checked).toBe(14)
+	})
+})
+
+// Identity is right for an absent orientation and wrong for an unrecognized one; both halves matter,
 // since a warning on every pure translation would be as useless as none.
-describe('unrecognised orientation encodings', () => {
+describe('unrecognized orientation encodings', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	const framed = (orientation: unknown, geometry?: unknown): ParsedPlan =>
 		plan(
@@ -50,7 +81,7 @@ describe('unrecognised orientation encodings', () => {
 		}
 	})
 
-	it('stays silent when orientation is absent — a pure translation is not a defect', () => {
+	it('stays silent when orientation is absent, a pure translation is not a defect', () => {
 		buildFrameDescriptors(framed(undefined))
 		expect(warn).not.toHaveBeenCalled()
 	})
@@ -64,7 +95,7 @@ describe('unrecognised orientation encodings', () => {
 	// Guarded by `hasOrientJson`, so a warn placed only in `quatFromJson` would miss this path.
 	// `rotation_matrix` is a real spatialmath type that `NewOrientationConfig` refuses to marshal,
 	// so it stands in for an encoding this file will never convert.
-	it('warns for an unrecognised orientation on a geometry, not just on a frame', () => {
+	it('warns for an unrecognized orientation on a geometry, not just on a frame', () => {
 		buildFrameDescriptors(
 			framed(
 				{ type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
@@ -89,7 +120,6 @@ describe('unrecognised orientation encodings', () => {
 // and no output — the frame simply wasn't in the scene.
 describe('unhandled frame types', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-	afterEach(() => warn.mockClear())
 
 	it('warns and emits nothing for an unregistered outer frame type', () => {
 		const descriptors = buildFrameDescriptors(
@@ -264,66 +294,164 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('prefers primary_output_frame over last-joint static child when both exist', () => {
-		const p = plan(
-			{
-				arm: {
-					frame_type: 'model',
-					frame: {
-						name: 'arm',
-						model: {
-							joints: [{ id: 'waist' }, { id: 'gripper_rot' }],
-							primary_output_frame: 'gripper_mount',
-							links: [{ id: 'extra_link' }, { id: 'gripper_mount' }],
-						},
-					},
-				},
-				'arm:gripper_rot': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } },
-					},
-				},
-				'arm:extra_link': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: {
-							frame_type: 'static',
-							frame: {
-								translation: { X: 0, Y: 0, Z: 0 },
-								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-							},
-						},
-					},
-				},
-				'arm:gripper_mount': {
-					frame_type: 'named',
-					frame: {
-						inner_frame: {
-							frame_type: 'static',
-							frame: {
-								translation: { X: 0, Y: 0, Z: 0 },
-								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-							},
-						},
-					},
-				},
-				camera_origin: {
+	describe('model output frame', () => {
+		const staticFrame = {
+			frame_type: 'named',
+			frame: {
+				inner_frame: {
 					frame_type: 'static',
 					frame: {
-						translation: { X: 10, Y: 0, Z: 0 },
+						translation: { X: 0, Y: 0, Z: 0 },
 						orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
 					},
 				},
 			},
-			{
-				'arm:extra_link': 'arm:gripper_rot',
-				'arm:gripper_mount': 'arm:extra_link',
-				camera_origin: 'arm',
-			}
-		)
-		const camera = buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')!
-		expect(camera.parent).toBe('arm:gripper_mount')
+		}
+
+		const camera = {
+			frame_type: 'static',
+			frame: {
+				translation: { X: 10, Y: 0, Z: 0 },
+				orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
+			},
+		}
+
+		const rotational = {
+			frame_type: 'named',
+			frame: { inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 1 } } } },
+		}
+
+		/**
+		 * `extra_link` first on purpose: an unanswered ladder falls through to the first child of the
+		 * last joint, which this order makes `extra_link`. Were `gripper_mount` first, that fallback
+		 * would answer what every branch asserts, and a deleted branch would still pass.
+		 */
+		const armed = (frame: Record<string, unknown>): ParsedPlan =>
+			plan(
+				{
+					arm: { frame_type: 'model', frame },
+					'arm:gripper_rot': rotational,
+					'arm:extra_link': staticFrame,
+					'arm:gripper_mount': staticFrame,
+					camera_origin: camera,
+				},
+				{
+					'arm:gripper_rot': 'arm:base',
+					'arm:extra_link': 'arm:gripper_rot',
+					'arm:gripper_mount': 'arm:gripper_rot',
+					camera_origin: 'arm',
+				}
+			)
+
+		const parentOfCamera = (p: ParsedPlan): string | undefined =>
+			buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')?.parent
+
+		it('reads primary_output_frame off the model envelope, not out of `model`', () => {
+			const p = armed({
+				name: 'arm',
+				primary_output_frame: 'gripper_mount',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		it("falls back to the model config's own output_frames", () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					output_frames: ['gripper_mount'],
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		// `extra_link` is declared last but is not the tip.
+		it("falls back to the model's sole childless frame rather than its last link", () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
+		it('accepts a joint as the terminal frame', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [{ id: 'extra_link', parent: 'base' }],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_rot')
+		})
+
+		it("does not throw when a model's links is not an array", () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					links: {},
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+				},
+			})
+
+			expect(() => parentOfCamera(p)).not.toThrow()
+		})
+
+		// `gripper_mount` is the first leaf in declaration order, so `leaves[0]` would answer it.
+		it('declines to pick when a model has more than one childless frame', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'base' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			// Falls through to "what hangs off the last joint", which is insertion-ordered.
+			expect(parentOfCamera(p)).toBe('arm:extra_link')
+		})
+
+		// A bare string would be indexed as an array and yield its first character, resolving `arm:g`.
+		it('ignores an output_frames that is not an array', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					output_frames: 'gripper_mount',
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+					],
+				},
+			})
+
+			// Falls to the sole-leaf rule rather than resolving to `arm:g`.
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
 	})
 
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
@@ -408,6 +536,7 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 		const d = descriptors[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.geometry).not.toBeNull()
 			expect(d.geometry!.geometryType.case).toBe('capsule')
@@ -446,6 +575,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:base_top': 'arm:waist' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.z).toBeCloseTo(267)
 			// geo z=160 and frame z=267 both in parent (waist) → local center 107mm below frame
@@ -489,6 +619,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'left-arm:link_2': 'left-arm:joint_2' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.x).toBeCloseTo(390)
 			// R_frame⁻¹ * (geo − frame): not a naive component-wise subtract
@@ -496,6 +627,59 @@ describe('buildFrameDescriptors', () => {
 			expect(d.geometry!.center!.y).toBeCloseTo(200.143, 1)
 			expect(d.geometry!.center!.z).toBeCloseTo(-31.0907, 1)
 		}
+	})
+
+	/**
+	 * No captured dump reaches this branch: RDK's marshaller always writes an orientation. It guards
+	 * hand-authored frame JSON, where a bare geometry on a rotated link is idiomatic (`ur20.json`).
+	 */
+	it('treats an absent geometry orientation the same as an explicit identity', () => {
+		const link = (orientation?: unknown): ParsedPlan =>
+			plan(
+				{
+					'left-arm:link_2': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: {
+								frame_type: 'static',
+								frame: {
+									translation: { X: 390, Y: 0, Z: 0 },
+									orientation: {
+										type: 'euler_angles',
+										value: { roll: Math.PI / 2, pitch: 0, yaw: 0 },
+									},
+									geometry: {
+										type: 'capsule',
+										r: 60,
+										l: 262,
+										translation: { X: 189.857, Y: 0, Z: 31.0907 },
+										...(orientation === undefined ? {} : { orientation }),
+										Label: 'link_2',
+									},
+								},
+							},
+						},
+					},
+				},
+				{ 'left-arm:link_2': 'left-arm:joint_2' }
+			)
+
+		const centerOf = (p: ParsedPlan) => {
+			const d = buildFrameDescriptors(p)[0]!
+			if (d.kind !== 'static' || !d.geometry?.center) throw new Error('no geometry center')
+			return d.geometry.center
+		}
+
+		const explicit = centerOf(link({ type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } }))
+		const absent = centerOf(link())
+
+		expect(absent.oX).toBeCloseTo(explicit.oX, 6)
+		expect(absent.oY).toBeCloseTo(explicit.oY, 6)
+		expect(absent.oZ).toBeCloseTo(explicit.oZ, 6)
+		expect(absent.theta).toBeCloseTo(explicit.theta, 6)
+
+		// And that shared answer is the link's rotation undone, not identity.
+		expect(absent.theta).toBeCloseTo(-90, 6)
 	})
 
 	it('parses euler_angles orientation on a static frame (not identity)', () => {
@@ -521,6 +705,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:link': 'world' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			// Identity would be oX:0 oY:0 oZ:1 theta:0 — assert it's not identity and
 			// specifically a 90 degree rotation about Z.
@@ -610,6 +795,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'left-arm:link_1': 'left-arm:joint_1' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.theta).not.toBeCloseTo(0)
 			// geometry center offset is rotated into link-local, not left in parent Y/Z
@@ -638,6 +824,7 @@ describe('buildFrameDescriptors', () => {
 			{ 'arm:link': 'world' }
 		)
 		const d = buildFrameDescriptors(p)[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') {
 			expect(d.localPose.theta).toBeCloseTo(90)
 			expect(d.localPose.oZ).toBeCloseTo(1)
@@ -665,6 +852,7 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 		const d = descriptors[0]!
+		expect(d.kind).toBe('static')
 		if (d.kind === 'static') expect(d.geometry).toBeNull()
 	})
 
@@ -714,11 +902,28 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	it.each([
+		['stl', 'stl'],
+		['STL', 'stl'],
+		['model/stl', 'stl'],
+		['ply; charset=binary', 'ply'],
+	])('reads a mesh declared as %s', (declared, expected) => {
+		const geometry = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: declared,
+			mesh_data: btoa('solid t\nendsolid t\n'),
+		})
+
+		expect(geometry?.geometryType.case).toBe('mesh')
+		const mesh = geometry?.geometryType.case === 'mesh' ? geometry.geometryType.value : undefined
+		expect(mesh?.contentType).toBe(expected)
+	})
+
 	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
 	// Undecodable data must skip too: protoBase64 throws, and an escaping error would fail
 	// the entire plan rather than the one shape.
 	it.each([
-		['a non-PLY content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
+		['an unhandled content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
 		['a missing content type', { mesh_data: btoa('ply\n') }],
 		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
 		['absent mesh data', { mesh_content_type: 'ply' }],

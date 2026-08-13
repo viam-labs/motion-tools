@@ -80,7 +80,7 @@ export const asFloat32Array = (
  *
  * @example
  * ```ts
- * stlLoader.parse(asExactArrayBuffer(geometry.mesh))
+ * plyLoader.parse(asExactArrayBuffer(geometry.mesh))
  * ```
  */
 export const asExactArrayBuffer = (bytes: Uint8Array): ArrayBuffer =>
