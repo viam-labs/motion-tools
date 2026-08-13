@@ -54,7 +54,12 @@ const descriptorToTransform = (
 		})
 	}
 
-	const jointValue = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
+	// A mimic joint reads its source's column and maps it. `offset` is in that column's unit, radians
+	// or mm, not degrees like the sibling `min`/`max`, so it is not converted.
+	const column = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
+	const jointValue = descriptor.mimic
+		? descriptor.mimic.multiplier * column + descriptor.mimic.offset
+		: column
 	return new Transform({
 		referenceFrame: descriptor.name,
 		poseInObserverFrame: new PoseInFrame({
