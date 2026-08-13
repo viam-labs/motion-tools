@@ -5,7 +5,7 @@ import { MathUtils, Matrix4, Quaternion, Vector2 } from 'three'
 
 import { setOrAddTrait, traits, useTrait, useWorld } from '$lib/ecs'
 import { type HoverInfo, updateHoverInfo } from '$lib/HoverUpdater.svelte'
-import { OrientationVector } from '$lib/three/OrientationVector'
+import { OrientationVector } from '$lib/math/OrientationVector'
 
 const tempHoverMatrix = new Matrix4()
 const hoverQuat = new Quaternion()

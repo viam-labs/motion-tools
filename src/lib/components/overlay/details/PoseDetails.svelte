@@ -4,7 +4,7 @@
 >
 	import { Euler, MathUtils, Quaternion } from 'three'
 
-	import { OrientationVector } from '$lib/three/OrientationVector'
+	import { OrientationVector } from '$lib/math/OrientationVector'
 
 	const quaternionUtil = new Quaternion()
 	const ovUtil = new OrientationVector()

@@ -10,7 +10,7 @@ export { Snapshot as SnapshotProto } from '$lib/buf/draw/v1/snapshot_pb'
 // Classes
 export { BatchedArrow } from './three/BatchedArrow'
 export { CapsuleGeometry } from './three/CapsuleGeometry'
-export { OrientationVector } from './three/OrientationVector'
+export { OrientationVector } from './math/OrientationVector'
 
 // Functions
 export { parsePcdInWorker } from './loaders/pcd'

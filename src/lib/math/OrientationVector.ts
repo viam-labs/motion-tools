@@ -50,10 +50,25 @@ export class OrientationVector {
 		this.#vec.set(x, y, z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#th = th
+	}
+
+	/**
+	 * Scales the vector to unit length, reading zero length as unset and
+	 * substituting +Z — what rdk's `OrientationVector.Normalize` does.
+	 */
+	#normalize() {
+		// A protobuf pose carrying only a position decodes to an all-zero vector,
+		// which is identity to rdk but `acos(0)` — a quarter turn — to us.
+		if (this.#vec.lengthSq() === 0) {
+			this.#vec.set(0, 0, 1)
+			return
+		}
+
+		this.#vec.normalize()
 	}
 
 	get units(): 'degrees' | 'radians' {
@@ -72,7 +87,7 @@ export class OrientationVector {
 		this.#vec.setX(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -90,7 +105,7 @@ export class OrientationVector {
 		this.#vec.setY(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -108,7 +123,7 @@ export class OrientationVector {
 		this.#vec.setZ(value)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.#onChangeCallback?.()
@@ -150,7 +165,7 @@ export class OrientationVector {
 		this.#vec.set(x, y, z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.th = th
@@ -177,7 +192,7 @@ export class OrientationVector {
 	 * Normalizes the vector component.
 	 */
 	normalize() {
-		this.#vec.normalize()
+		this.#normalize()
 		return this
 	}
 
@@ -188,7 +203,7 @@ export class OrientationVector {
 		this.#vec.set(ov.x, ov.y, ov.z)
 
 		if (this.autoNormalize) {
-			this.#vec.normalize()
+			this.#normalize()
 		}
 
 		this.th = ov.th

@@ -7,7 +7,7 @@
 	import { Quaternion, Vector3 } from 'three'
 
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { OrientationVector } from '$lib/three/OrientationVector'
+	import { OrientationVector } from '$lib/math/OrientationVector'
 
 	import { calculatePositionTarget, getFrameTransformationQuaternion } from './math'
 	import { xrToast } from './toasts.svelte'

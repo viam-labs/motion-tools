@@ -15,8 +15,8 @@
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { Pose } from '$lib/math'
+	import { solveEditedMatrix } from '$lib/math/transform'
 	import { isolateTransformControls } from '$lib/three/renderLayers'
-	import { solveEditedMatrix } from '$lib/transform'
 
 	const { invalidate } = useThrelte()
 	const settings = useSettings()

@@ -1,5 +1,22 @@
 # motion-tools
 
+## 1.42.0
+
+### Minor Changes
+
+- d6cefbc: Warn in the world tree header when live poses stop updating
+- 1d175f0: Improve toggle mode UX
+
+### Patch Changes
+
+- 4011ee5: Enable horizontal scrolling in treeview
+- d6cefbc: Replace prime tooltips with a portalled zag-js tooltip that respects host app stacking
+- f522222: Read every orientation and geometry encoding RDK accepts in a machine config
+- 50aedd2: Fix stale pose warning appearing late, not at all, or after poses recover
+- b8d6222: Give dropdown panels a bordered surface and an arrow pointing at their trigger
+- 938719c: Stability fixes
+- aed21ae: Share spatialmath JSON decoding between the frame system and motion plan readers
+
 ## 1.41.1
 
 ### Patch Changes

@@ -6,7 +6,7 @@ import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 
 import { frameGeometryFromTransform } from '$lib/geometry'
 import { Pose } from '$lib/math'
-import { setOrientationFromEuler } from '$lib/transform'
+import { setOrientationFromEuler } from '$lib/math/transform'
 
 /**
  * Resolves current frames for fragment-defined components from live framesystem
