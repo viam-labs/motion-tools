@@ -1,0 +1,21 @@
+{
+	"$schema": "https://dl.viam.dev/module.schema.json",
+	"module_id": "viam-viz:visualization",
+	"visibility": "public",
+	"url": "https://github.com/viam-labs/motion-tools",
+	"description": "Serves the draw API over the Viam world_state_store API, so lines, points, arrows, NURBS and glTF models render in the visualizer from any environment.",
+	"models": [
+		{
+			"api": "rdk:service:world_state_store",
+			"model": "viam-viz:visualization:world-state-store",
+			"short_description": "Draw geometry and visualization primitives to the visualizer from any Viam SDK.",
+			"markdown_link": "README.md"
+		}
+	],
+	"entrypoint": "bin/visualization",
+	"build": {
+		"build": "./build.sh",
+		"path": "bin/visualization",
+		"arch": ["linux/amd64", "linux/arm64", "darwin/arm64"]
+	}
+}

@@ -13,6 +13,7 @@
 		"vite-build": "wireit",
 		"build:workers": "wireit",
 		"go-build": "wireit",
+		"visualization-build": "wireit",
 		"package": "wireit",
 		"svelte-sync": "wireit",
 		"prepare": "pnpm svelte-sync && pnpm build:workers || echo ''",
@@ -26,6 +27,8 @@
 		"lint:eslint": "wireit",
 		"lint:draw": "wireit",
 		"lint:client": "wireit",
+		"lint:worldstate": "wireit",
+		"lint:visualization": "wireit",
 		"knip": "npx knip --include files,exports,types",
 		"test": "wireit",
 		"test:unit": "vitest",
@@ -33,12 +36,16 @@
 		"test:coverage": "wireit",
 		"test:client": "wireit",
 		"test:draw": "wireit",
+		"test:worldstate": "wireit",
+		"test:visualization": "wireit",
 		"test:e2e": "./e2e/setup.sh && playwright test",
 		"test:e2e-ui": "./e2e/setup.sh && playwright test --ui",
 		"test:e2e-ci": "./e2e/setup.sh && playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts",
 		"vet": "wireit",
 		"vet:draw": "wireit",
 		"vet:client": "wireit",
+		"vet:worldstate": "wireit",
+		"vet:visualization": "wireit",
 		"proto": "wireit",
 		"proto:vendor": "wireit",
 		"proto:dep-update": "buf dep update",
@@ -129,6 +136,21 @@
 				".bin/draw-server"
 			]
 		},
+		"visualization-build": {
+			"command": "cd modules/visualization && ./build.sh",
+			"files": [
+				"modules/visualization/**",
+				"!modules/visualization/bin/**",
+				"draw/**",
+				"worldstate/**",
+				"go.mod",
+				"go.sum",
+				"modules/visualization/build.sh"
+			],
+			"output": [
+				"modules/visualization/bin/visualization"
+			]
+		},
 		"package": {
 			"command": "svelte-package && publint",
 			"files": [
@@ -196,7 +218,9 @@
 			"dependencies": [
 				"lint:prettier",
 				"lint:eslint",
-				"lint:draw"
+				"lint:draw",
+				"lint:worldstate",
+				"lint:visualization"
 			]
 		},
 		"lint:prettier": {
@@ -268,7 +292,7 @@
 			]
 		},
 		"lint:draw": {
-			"command": "golangci-lint run ./draw/...",
+			"command": "golangci-lint run --allow-parallel-runners ./draw/...",
 			"files": [
 				"draw/**",
 				"go.mod",
@@ -278,9 +302,33 @@
 			"output": []
 		},
 		"lint:client": {
-			"command": "golangci-lint run ./client/...",
+			"command": "golangci-lint run --allow-parallel-runners ./client/...",
 			"files": [
 				"client/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"lint:worldstate": {
+			"command": "golangci-lint run --allow-parallel-runners ./worldstate/...",
+			"files": [
+				"worldstate/**",
+				"draw/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"lint:visualization": {
+			"command": "cd modules/visualization && golangci-lint run --allow-parallel-runners ./...",
+			"files": [
+				"modules/visualization/**",
+				"!modules/visualization/bin/**",
+				"draw/**",
+				"worldstate/**",
 				"go.mod",
 				"go.sum",
 				".golangci.yml"
@@ -290,7 +338,9 @@
 		"vet": {
 			"dependencies": [
 				"vet:draw",
-				"vet:client"
+				"vet:client",
+				"vet:worldstate",
+				"vet:visualization"
 			]
 		},
 		"vet:draw": {
@@ -306,6 +356,28 @@
 			"command": "go vet ./client/...",
 			"files": [
 				"client/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"vet:worldstate": {
+			"command": "go vet ./worldstate/...",
+			"files": [
+				"worldstate/**",
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"vet:visualization": {
+			"command": "cd modules/visualization && go vet ./...",
+			"files": [
+				"modules/visualization/**",
+				"!modules/visualization/bin/**",
+				"draw/**",
+				"worldstate/**",
 				"go.mod",
 				"go.sum"
 			],
@@ -363,6 +435,28 @@
 			"command": "go test ./draw/... -count=1",
 			"files": [
 				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"test:worldstate": {
+			"command": "go test ./worldstate/... -count=1",
+			"files": [
+				"worldstate/**",
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
+		},
+		"test:visualization": {
+			"command": "cd modules/visualization && go test ./... -count=1",
+			"files": [
+				"modules/visualization/**",
+				"!modules/visualization/bin/**",
+				"draw/**",
+				"worldstate/**",
 				"go.mod",
 				"go.sum"
 			],

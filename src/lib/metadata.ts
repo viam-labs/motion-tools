@@ -5,6 +5,7 @@ import {
 	Metadata as MetadataProto,
 	type Relationship as RelationshipProto,
 } from '$lib/buf/draw/v1/metadata_pb'
+import { unwrapValue } from '$lib/struct'
 
 /** Metadata for a `Drawing` or `Transform`. Relationships default to empty. */
 export type Metadata = Omit<PlainMessage<MetadataProto>, 'relationships'> & {
@@ -132,39 +133,4 @@ export const metadataFromStruct = (fields: PlainMessage<Struct>['fields'] = {}):
 	}
 
 	return json
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const unwrapValue = (value: PlainMessage<any>): unknown => {
-	if (!value?.kind) return value
-
-	switch (value.kind.case) {
-		case 'numberValue':
-		case 'stringValue':
-		case 'boolValue': {
-			return value.kind.value
-		}
-		case 'structValue': {
-			const result: Record<string, unknown> = {}
-			for (const [key, val] of Object.entries(value.kind.value.fields || {})) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				result[key] = unwrapValue(val as PlainMessage<any>)
-			}
-			return result
-		}
-		case 'listValue': {
-			return (
-				value.kind.value.values?.map(
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(v: PlainMessage<any>) => unwrapValue(v)
-				) || []
-			)
-		}
-		case 'nullValue': {
-			return null
-		}
-		default: {
-			return value.kind.value
-		}
-	}
 }
