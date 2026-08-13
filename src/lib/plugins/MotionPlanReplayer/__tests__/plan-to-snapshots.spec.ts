@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 
-import { OrientationVector } from '$lib/three/OrientationVector'
+import { OrientationVector } from '$lib/math/OrientationVector'
 
 import { parsePlan } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
