@@ -323,7 +323,8 @@ describe('buildFrameDescriptors', () => {
 
 		/**
 		 * `extra_link` first on purpose: an unanswered ladder falls through to the first child of the
-		 * last joint, so listing `gripper_mount` first makes that fallback match what each branch asserts.
+		 * last joint, which this order makes `extra_link`. Were `gripper_mount` first, that fallback
+		 * would answer what every branch asserts, and a deleted branch would still pass.
 		 */
 		const armed = (frame: Record<string, unknown>): ParsedPlan =>
 			plan(
