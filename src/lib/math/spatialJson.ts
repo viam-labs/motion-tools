@@ -67,10 +67,11 @@ export const geometryCenterInFrame = (
 
 	const center = new Pose(tmpV.x, tmpV.y, tmpV.z)
 
-	if (quatFromJson(geoOrient, tmpQGeo)) {
-		tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
-		center.setFromQuaternion(tmpQLocal)
-	}
+	// Unconditional: an absent orientation means identity in the parent's frame, which is still
+	// R_frame⁻¹ once expressed locally. `quatFromJson` writes identity when it finds nothing.
+	quatFromJson(geoOrient, tmpQGeo)
+	tmpQLocal.copy(tmpQInv).multiply(tmpQGeo)
+	center.setFromQuaternion(tmpQLocal)
 
 	return center
 }

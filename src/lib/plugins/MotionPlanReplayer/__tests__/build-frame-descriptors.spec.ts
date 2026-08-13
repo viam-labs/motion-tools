@@ -629,6 +629,59 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	/**
+	 * No captured dump reaches this branch: RDK's marshaller always writes an orientation. It guards
+	 * hand-authored frame JSON, where a bare geometry on a rotated link is idiomatic (`ur20.json`).
+	 */
+	it('treats an absent geometry orientation the same as an explicit identity', () => {
+		const link = (orientation?: unknown): ParsedPlan =>
+			plan(
+				{
+					'left-arm:link_2': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: {
+								frame_type: 'static',
+								frame: {
+									translation: { X: 390, Y: 0, Z: 0 },
+									orientation: {
+										type: 'euler_angles',
+										value: { roll: Math.PI / 2, pitch: 0, yaw: 0 },
+									},
+									geometry: {
+										type: 'capsule',
+										r: 60,
+										l: 262,
+										translation: { X: 189.857, Y: 0, Z: 31.0907 },
+										...(orientation === undefined ? {} : { orientation }),
+										Label: 'link_2',
+									},
+								},
+							},
+						},
+					},
+				},
+				{ 'left-arm:link_2': 'left-arm:joint_2' }
+			)
+
+		const centerOf = (p: ParsedPlan) => {
+			const d = buildFrameDescriptors(p)[0]!
+			if (d.kind !== 'static' || !d.geometry?.center) throw new Error('no geometry center')
+			return d.geometry.center
+		}
+
+		const explicit = centerOf(link({ type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } }))
+		const absent = centerOf(link())
+
+		expect(absent.oX).toBeCloseTo(explicit.oX, 6)
+		expect(absent.oY).toBeCloseTo(explicit.oY, 6)
+		expect(absent.oZ).toBeCloseTo(explicit.oZ, 6)
+		expect(absent.theta).toBeCloseTo(explicit.theta, 6)
+
+		// And that shared answer is the link's rotation undone, not identity.
+		expect(absent.theta).toBeCloseTo(-90, 6)
+	})
+
 	it('parses euler_angles orientation on a static frame (not identity)', () => {
 		const p = plan(
 			{
@@ -849,11 +902,28 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
+	it.each([
+		['stl', 'stl'],
+		['STL', 'stl'],
+		['model/stl', 'stl'],
+		['ply; charset=binary', 'ply'],
+	])('reads a mesh declared as %s', (declared, expected) => {
+		const geometry = obstacleGeometry({
+			type: 'mesh',
+			mesh_content_type: declared,
+			mesh_data: btoa('solid t\nendsolid t\n'),
+		})
+
+		expect(geometry?.geometryType.case).toBe('mesh')
+		const mesh = geometry?.geometryType.case === 'mesh' ? geometry.geometryType.value : undefined
+		expect(mesh?.contentType).toBe(expected)
+	})
+
 	// An empty payload would spawn an entity that renders nothing but still costs a draw pass.
 	// Undecodable data must skip too: protoBase64 throws, and an escaping error would fail
 	// the entire plan rather than the one shape.
 	it.each([
-		['a non-PLY content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
+		['an unhandled content type', { mesh_content_type: 'obj', mesh_data: btoa('solid\n') }],
 		['a missing content type', { mesh_data: btoa('ply\n') }],
 		['empty mesh data', { mesh_content_type: 'ply', mesh_data: '' }],
 		['absent mesh data', { mesh_content_type: 'ply' }],
