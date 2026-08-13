@@ -5,7 +5,7 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import FloatingPanel from '../FloatingPanel.svelte'
+	import Popover from '../Popover.svelte'
 	import { useSettingsTabs } from '../Portals/useSettingsTabs.svelte'
 	import WorkspacePortal from '../Portals/WorkspacePortal.svelte'
 	import ConnectionSettings from './ConnectionSettings.svelte'
@@ -30,41 +30,39 @@
 		invalidate()
 	})
 
-	const isOpen = new PersistedState('settings-is-open', false)
 	const activeTab = new PersistedState('settings-active-tab', 'Connection')
 </script>
 
 <WorkspacePortal>
 	<fieldset>
-		<DashboardButton
-			active={isOpen.current}
-			icon="cog"
-			description="Settings"
-			onclick={() => {
-				isOpen.current = !isOpen.current
-			}}
-		/>
+		<Popover placement="bottom-end">
+			{#snippet trigger(triggerProps, { isOpen })}
+				<DashboardButton
+					{...triggerProps}
+					active={isOpen}
+					icon="cog"
+					description="Settings"
+				/>
+			{/snippet}
+
+			<!-- Fixed height so the panel doesn't resize as the user moves between tabs. -->
+			<div class="font-public-sans h-[500px] w-[460px]">
+				<Tabs
+					defaultTab={activeTab.current}
+					items={[
+						{ label: 'Connection', component: ConnectionSettings },
+						{ label: 'Scene', component: SceneSettings },
+						{ label: 'Pointclouds', component: PointcloudSettings },
+						{ label: 'Vision', component: VisionSettings },
+						{ label: 'Debug', component: DebugSettings },
+						{ label: 'Weblabs', component: WeblabSettings },
+						...settingsTabs.current,
+					]}
+					onValueChange={(value) => {
+						activeTab.current = value
+					}}
+				/>
+			</div>
+		</Popover>
 	</fieldset>
 </WorkspacePortal>
-
-<FloatingPanel
-	title="Settings"
-	bind:isOpen={isOpen.current}
-	defaultSize={{ width: 460, height: 500 }}
->
-	<Tabs
-		defaultTab={activeTab.current}
-		items={[
-			{ label: 'Connection', component: ConnectionSettings },
-			{ label: 'Scene', component: SceneSettings },
-			{ label: 'Pointclouds', component: PointcloudSettings },
-			{ label: 'Vision', component: VisionSettings },
-			{ label: 'Debug', component: DebugSettings },
-			{ label: 'Weblabs', component: WeblabSettings },
-			...settingsTabs.current,
-		]}
-		onValueChange={(value) => {
-			activeTab.current = value
-		}}
-	/>
-</FloatingPanel>

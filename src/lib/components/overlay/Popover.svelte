@@ -10,15 +10,17 @@
 		children: Snippet<[{ close: () => void }]>
 
 		placement?: popover.Placement
+		onOpenChange?: (open: boolean) => void
 	}
 
-	let { children, trigger, placement = 'bottom' }: Props = $props()
+	let { children, trigger, placement = 'bottom', onOpenChange }: Props = $props()
 
 	const id = $props.id()
 	const service = useMachine(popover.machine, () => ({
 		id,
 		positioning: { placement, gutter: 6, flip: true, slide: true, overflowPadding: 8 },
 		autoFocus: false,
+		onOpenChange: (details) => onOpenChange?.(details.open),
 	}))
 	const api = $derived(popover.connect(service, normalizeProps))
 
@@ -32,11 +34,21 @@
 	{...api.getPositionerProps()}
 	class="[--arrow-background:var(--color-white)] [--arrow-size:8px]"
 >
+	<!--
+		zag's popper writes --available-height on the positioner. The 100vh fallback
+		covers the first frame, before positioning has run.
+	-->
 	<div
 		{...api.getContentProps()}
-		class="border-medium z-(--z-index-top) border bg-white shadow-sm"
+		class="border-medium z-(--z-index-top) max-h-[var(--available-height,100vh)] overflow-y-auto overscroll-contain border bg-white shadow-sm"
 	>
-		{@render children({ close })}
+		<!--
+			zag keeps the content element mounted and toggles `hidden`. Gate the subtree
+			so panel contents stop reacting to upstream state while the user can't see them.
+		-->
+		{#if api.open}
+			{@render children({ close })}
+		{/if}
 	</div>
 
 	{#if api.open}
