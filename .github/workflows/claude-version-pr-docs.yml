@@ -60,6 +60,9 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          # Commits and trees only; gh-pages' built preview sites are the bulk of the repo and are
+          # never read here. Blobs are fetched on demand.
+          filter: blob:none
           ref: ${{ steps.pr.outputs.head_sha }}
 
       - name: Review changelog and propose docs

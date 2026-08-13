@@ -9,6 +9,8 @@ import glsl from 'vite-plugin-glsl'
 import mkcert from 'vite-plugin-mkcert'
 import { defineConfig } from 'vitest/config'
 
+import { version } from './package.json'
+
 dns.setDefaultResultOrder('verbatim')
 
 const https = process.argv.includes('--https')
@@ -21,6 +23,12 @@ export default defineConfig({
 			sourceMapsUploadOptions: {
 				org: 'viam',
 				project: 'motion-tools',
+				// Must match `release` in hooks.client.ts. The default is the git HEAD SHA, which no
+				// event references, so uploaded maps would never be applied to a stack trace.
+				release: { name: version },
+				// Symbolication needs these uploaded, not served. Deletion is not gated on the auth
+				// token, so a build without one still keeps them out of the deployed site.
+				sourcemaps: { filesToDeleteAfterUpload: ['./build/**/*.map'] },
 			},
 		}),
 		devtoolsJson(),

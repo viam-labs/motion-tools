@@ -18,6 +18,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          # Commits and trees only. `fetch-depth: 0` fetches every branch, and gh-pages holds ~26 GiB
+          # of built preview sites whose blobs no job here ever reads. Blobs are fetched on demand.
+          filter: blob:none
 
       - name: Check for proto changes
         id: check-protos
@@ -161,6 +164,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          # See the proto-gen job above: skips gh-pages' preview-site blobs.
+          filter: blob:none
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm 🔧

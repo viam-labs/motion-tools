@@ -10,9 +10,8 @@ const stlLoader = new STLLoader()
 const STL_MIN_BYTES = 84
 
 /**
- * That count is trusted, so a body shorter than it claims reads past the end and throws well above
- * `STL_MIN_BYTES`. Pre-checking the length would mean re-deriving `isBinary`, which reads that same
- * field to tell ASCII from binary.
+ * That count is trusted, so a truncated body throws well above `STL_MIN_BYTES`. Pre-checking would
+ * mean re-deriving `isBinary`, which reads the same field.
  */
 const parseOrEmpty = (input: string | ArrayBuffer): BufferGeometry => {
 	try {
