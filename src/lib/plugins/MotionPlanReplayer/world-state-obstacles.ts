@@ -17,10 +17,9 @@ import {
 	WorldState,
 } from '$lib/buf/common/v1/common_pb'
 import { Pose } from '$lib/math'
+import { parseGeometry } from '$lib/motion/frameDescriptors'
 
 import type { ObstaclesInWorldFrame, ParsedPlan } from './parse-plan'
-
-import { parseGeometry } from './build-frame-descriptors'
 
 // Prefix avoids colliding with frame names that share an obstacle label (pirouette: pallet).
 const namespaced = (label: string, fallback: string): string => `obstacle:${label || fallback}`

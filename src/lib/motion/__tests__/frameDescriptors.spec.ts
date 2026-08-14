@@ -1,22 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ParsedPlan } from '../parse-plan'
+import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
 
-import { buildFrameDescriptors } from '../build-frame-descriptors'
-import { parsePlan } from '../parse-plan'
-import gantryPlan from './__fixtures__/gantry-plan.json?raw'
-import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
-import planDump from './__fixtures__/plan.json?raw'
-import saladPlan from './__fixtures__/salad-plan.json?raw'
+import type { FrameSystemJson } from '../frameDescriptors'
 
-const plan = (frames: ParsedPlan['frames'], parents: ParsedPlan['parents']): ParsedPlan => ({
-	frames,
-	parents,
-	trajectory: [],
-	goals: [],
-	obstaclesInWorldFrame: undefined,
-	worldState: undefined,
-})
+import gantryPlan from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/gantry-plan.json?raw'
+import pirouettePlan from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/pirouette-plan.json?raw'
+import planDump from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/plan.json?raw'
+import saladPlan from '../../plugins/MotionPlanReplayer/__tests__/__fixtures__/salad-plan.json?raw'
+import { buildFrameDescriptors } from '../frameDescriptors'
+
+const plan = (
+	frames: FrameSystemJson['frames'],
+	parents: FrameSystemJson['parents']
+): FrameSystemJson => ({ frames, parents })
 
 /**
  * Equivalence check, not a regression gate: on all 29 captured model frames every branch
@@ -53,7 +50,7 @@ describe('captured plans', () => {
 describe('unrecognized orientation encodings', () => {
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 
-	const framed = (orientation: unknown, geometry?: unknown): ParsedPlan =>
+	const framed = (orientation: unknown, geometry?: unknown): FrameSystemJson =>
 		plan(
 			{
 				'arm:link': {
@@ -326,7 +323,7 @@ describe('buildFrameDescriptors', () => {
 		 * last joint, which this order makes `extra_link`. Were `gripper_mount` first, that fallback
 		 * would answer what every branch asserts, and a deleted branch would still pass.
 		 */
-		const armed = (frame: Record<string, unknown>): ParsedPlan =>
+		const armed = (frame: Record<string, unknown>): FrameSystemJson =>
 			plan(
 				{
 					arm: { frame_type: 'model', frame },
@@ -343,7 +340,7 @@ describe('buildFrameDescriptors', () => {
 				}
 			)
 
-		const parentOfCamera = (p: ParsedPlan): string | undefined =>
+		const parentOfCamera = (p: FrameSystemJson): string | undefined =>
 			buildFrameDescriptors(p).find((d) => d.name === 'camera_origin')?.parent
 
 		it('reads primary_output_frame off the model envelope, not out of `model`', () => {
@@ -634,7 +631,7 @@ describe('buildFrameDescriptors', () => {
 	 * hand-authored frame JSON, where a bare geometry on a rotated link is idiomatic (`ur20.json`).
 	 */
 	it('treats an absent geometry orientation the same as an explicit identity', () => {
-		const link = (orientation?: unknown): ParsedPlan =>
+		const link = (orientation?: unknown): FrameSystemJson =>
 			plan(
 				{
 					'left-arm:link_2': {
@@ -664,7 +661,7 @@ describe('buildFrameDescriptors', () => {
 				{ 'left-arm:link_2': 'left-arm:joint_2' }
 			)
 
-		const centerOf = (p: ParsedPlan) => {
+		const centerOf = (p: FrameSystemJson) => {
 			const d = buildFrameDescriptors(p)[0]!
 			if (d.kind !== 'static' || !d.geometry?.center) throw new Error('no geometry center')
 			return d.geometry.center
@@ -717,7 +714,7 @@ describe('buildFrameDescriptors', () => {
 	// Equivalence against an encoding already covered, rather than hand-computed components: the
 	// claim is that RDK's five orientation types agree, not that a quaternion literal is right.
 	it('parses axis_angles to the same rotation as the equivalent quaternion', () => {
-		const staticFrame = (orientation: unknown): ParsedPlan =>
+		const staticFrame = (orientation: unknown): FrameSystemJson =>
 			plan(
 				{
 					'arm:link': {

@@ -12,6 +12,8 @@ paths:
   - '**/*.go'
   - '**/*.py'
   - '**/*.rs'
+  - '**/*.yaml'
+  - '**/*.yml'
 ---
 
 # Code Comments
