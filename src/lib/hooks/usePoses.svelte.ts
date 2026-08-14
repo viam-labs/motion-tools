@@ -6,6 +6,7 @@ import { getContext, setContext, untrack } from 'svelte'
 
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
+import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -14,14 +15,7 @@ import { isPoseStale } from './poseStaleness/isPoseStale'
 import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
 import { useRefetchPoses } from './useRefetchPoses'
-import { useResourceByName } from './useResourceByName.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
-
-/**
- * Component subtypes whose live kinematics pose is reported under a
- * `<name>_origin` frame rather than the bare component name.
- */
-const originFrameComponentTypes = new Set(['arm', 'gantry', 'gripper', 'base'])
 
 /** How often the freshness gap is re-measured. */
 const FRESHNESS_TICK_MS = 500
@@ -64,7 +58,6 @@ export const providePoses = (partID: () => string) => {
 	const logs = useLogs()
 	const robotClient = useRobotClient(partID)
 	const connectionStatus = useConnectionStatus(partID)
-	const resourceByName = useResourceByName()
 	const frames = useFrames()
 	const { addQueryToRefetch } = useRefetchPoses()
 
@@ -76,6 +69,12 @@ export const providePoses = (partID: () => string) => {
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
+	/** The scene draws one node per component, at its mount, so the query redirects there. */
+	const toQueryName = (frameName: string | undefined): string | undefined =>
+		frameName !== undefined && frames.kinematicsComponents.has(frameName)
+			? originFrameName(frameName)
+			: frameName
+
 	/**
 	 * Builds one frame's `getPose` query plus the reactive name/parent it reads.
 	 * Every hook here (`useTrait`, `useParentName`, `createRobotQuery`) allocates
@@ -84,34 +83,21 @@ export const providePoses = (partID: () => string) => {
 	 * over the frame list, which would tear down and re-fetch *every* frame's
 	 * query whenever a single frame is added or removed.
 	 *
-	 * Within a stable entry, name / parent / subtype reactivity flows through
-	 * the query's args closure, so a reparent or subtype update refetches
+	 * Within a stable entry, name / parent / kinematics reactivity flows through
+	 * the query's args closure, so a reparent or a newly-arrived model refetches
 	 * without rebuilding anything.
 	 */
 	const buildEntry = (entity: Entity) => {
 		const name = useTrait(() => entity, traits.Name)
 		const parentName = useParentName(() => entity)
 
-		// Resolve the `<name>_origin` frame names inside the query's (already
-		// reactive) args closure, so name / parent / subtype changes refetch
-		// without turning each frame into its own module-level `$derived`s.
 		const query = createRobotQuery(
 			robotClient,
 			'getPose',
 			() => {
-				const frameName = name.current
-				const parentFrameName = parentName.current
-				const resource = frameName ? resourceByName.current[frameName] : undefined
-				const parentResource = parentFrameName ? resourceByName.current[parentFrameName] : undefined
-
-				const resolvedName = originFrameComponentTypes.has(resource?.subtype ?? '')
-					? `${frameName}_origin`
-					: frameName
-				const resolvedParent = originFrameComponentTypes.has(parentResource?.subtype ?? '')
-					? `${parentFrameName}_origin`
-					: parentFrameName
-
-				return [resolvedName, resolvedParent ?? 'world', []] as [
+				// Parent too: measured from a parent arm's tip, children would mount at
+				// the wrong end of the arm.
+				return [toQueryName(name.current), toQueryName(parentName.current) ?? 'world', []] as [
 					string,
 					string,
 					commonApi.Transform[],

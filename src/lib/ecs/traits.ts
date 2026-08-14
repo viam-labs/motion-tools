@@ -178,7 +178,12 @@ export const GLTF = trait(() => ({
 }))
 
 export const FramesAPI = trait(() => true)
-export const GeometriesAPI = trait(() => true)
+
+/**
+ * A link inside a component's kinematic model. IK re-solves its pose, so it is
+ * neither rigid with its parent nor drivable by the motion service.
+ */
+export const KinematicLink = trait(() => true)
 export const DrawAPI = trait(() => true)
 export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
@@ -190,11 +195,10 @@ export const SnapshotAPI = trait(() => true)
 export const DroppedFile = trait(() => true)
 
 /**
- * Marker trait for entities the dashboard's TransformControls may attach to —
- * editable frames and ad-hoc custom geometries. Other entity kinds (lines,
- * points, batched arrows, etc.) are deliberately excluded.
+ * This entity has somewhere for an edit to land: a config entry, or an ad-hoc
+ * geometry that stages into `Matrix`. Opt-in, so an unrecognized frame is inert.
  */
-export const Transformable = trait(() => true)
+export const Editable = trait(() => true)
 
 export const ShowAxesHelper = trait(() => true)
 

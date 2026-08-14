@@ -246,7 +246,6 @@ export const providePointcloudObjects = (partID: () => string) => {
 									traits.Name(geometryLabel),
 									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
 									traits.Matrix(center.toMatrix4()),
-									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
 									traits.Color({ r: 0, g: 1, b: 0 }),

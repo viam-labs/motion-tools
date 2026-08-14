@@ -54,7 +54,6 @@
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const removable = useTrait(() => entity, traits.Removable)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
-	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 
 	// Fit-to-view needs world bounds. `object3d` alone is undefined for instanced
 	// primitives and geometry-less frames, so resolve bounds via the shared
@@ -89,9 +88,8 @@
 	})
 
 	const isFrameNode = $derived(!!framesAPI.current)
-	const isGeometry = $derived(!!geometriesAPI.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
-	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
+	const displayType = $derived(isFrameNode ? resourceName?.subtype : '')
 
 	const geometryType = $derived.by(() => {
 		if (box.current) return 'box'

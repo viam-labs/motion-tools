@@ -8,8 +8,11 @@ import {
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
+import type { RawKinematicsModel } from '$lib/kinematicsTransform'
+
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
+import { deriveKinematicsFrames, ownerOfInternalFrame } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
 
@@ -22,6 +25,8 @@ interface FramesContext {
 	current: Transform[]
 	/** Whether the current part's frame set has been reconciled into the world. */
 	readonly isReady: boolean
+	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
+	readonly kinematicsComponents: ReadonlySet<string>
 }
 
 const key = Symbol('frames-context')
@@ -55,6 +60,44 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const kinematicsByComponent = $derived.by(() => {
+		const result: Record<string, RawKinematicsModel> = {}
+		for (const fsConfig of query.data ?? []) {
+			const componentName = fsConfig.frame?.referenceFrame
+			if (
+				componentName === undefined ||
+				componentName === '' ||
+				fsConfig.kinematics === undefined ||
+				Object.keys(fsConfig.kinematics.fields).length === 0
+			) {
+				continue
+			}
+			result[componentName] = fsConfig.kinematics.toJson() as RawKinematicsModel
+		}
+		return result
+	})
+
+	const kinematicsDerivedFrames = $derived.by(() => {
+		const frames: Record<string, Transform> = {}
+
+		for (const [componentName, model] of Object.entries(kinematicsByComponent)) {
+			for (const frame of deriveKinematicsFrames(componentName, model)) {
+				frames[frame.referenceFrame] = frame
+			}
+		}
+
+		return frames
+	})
+
+	/**
+	 * The component a derived frame belongs to — `arm-1` for `arm-1:upper_arm`.
+	 * Gated on the prefix being a real kinematics component.
+	 */
+	const ownerComponent = $derived((frameName: string) => {
+		const namespaced = ownerOfInternalFrame(frameName)
+		return namespaced !== undefined && namespaced in kinematicsByComponent ? namespaced : frameName
+	})
+
 	const frames = $derived.by(() => {
 		const frames: Record<string, Transform> = {}
 
@@ -73,9 +116,10 @@ export const provideFrames = (partID: () => string) => {
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
 		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
-			const mergedFrames = {
-				...frames,
-				...configFrames.current,
+			const mergedFrames = { ...frames }
+
+			for (const [name, frame] of Object.entries(configFrames.current)) {
+				mergedFrames[name] = frame
 			}
 
 			/**
@@ -96,7 +140,7 @@ export const provideFrames = (partID: () => string) => {
 		return frames
 	})
 
-	const current = $derived(Object.values(frames))
+	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
 
 	const entities = new Map<string, Entity | undefined>()
 	let reconciledFrames = $state.raw<Transform[]>()
@@ -126,6 +170,7 @@ export const provideFrames = (partID: () => string) => {
 		const currentPartID = partID()
 		const currentComponentSubtypeByName = componentSubtypeByName
 		const currentFrames = current
+		const currentDerivedFrames = kinematicsDerivedFrames
 
 		// We only want to update whenever "current" or "resourceByName.current" changes
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -145,10 +190,12 @@ export const provideFrames = (partID: () => string) => {
 				const center = frame.physicalObject?.center
 					? new Pose().copy(frame.physicalObject.center)
 					: undefined
-				const resourceName = currentResourcesByName[frame.referenceFrame]
+				// Colors resolve against the owning component so an arm's links keep the
+				// arm's color; a link's own name matches no resource.
+				const owner = ownerComponent(name)
+				const resourceName = currentResourcesByName[owner]
 				const color =
-					resourceNameToColor(resourceName) ??
-					subtypeToColor(currentComponentSubtypeByName[frame.referenceFrame])
+					resourceNameToColor(resourceName) ?? subtypeToColor(currentComponentSubtypeByName[owner])
 
 				const existing = entities.get(entityKey)
 
@@ -198,10 +245,17 @@ export const provideFrames = (partID: () => string) => {
 					traits.Matrix(pose.toMatrix4()),
 					traits.LiveMatrix(pose.toMatrix4()),
 					traits.FramesAPI,
-					traits.Transformable,
 					traits.ShowAxesHelper,
 					...hierarchy.parentTraits(parent),
 				]
+
+				if (name in currentDerivedFrames) {
+					entityTraits.push(traits.KinematicLink)
+				} else {
+					// Derived links are synthesized from the model; there is no
+					// `components.<arm>:<link>` for an edit to write to.
+					entityTraits.push(traits.Editable)
+				}
 
 				if (color) {
 					entityTraits.push(traits.Color(color))
@@ -244,12 +298,17 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const kinematicsComponents = $derived(new Set(Object.keys(kinematicsByComponent)))
+
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
 		},
 		get isReady() {
 			return reconciledPartID === partID() && reconciledFrames === current
+		},
+		get kinematicsComponents() {
+			return kinematicsComponents
 		},
 	})
 }

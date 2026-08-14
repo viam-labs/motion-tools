@@ -16,13 +16,19 @@
 	/**
 	 * Move mode swaps the details panel for a move panel per selected frame, so the
 	 * selection drives the panels the way it drives details in the other modes. The
-	 * world root has no pose of its own to move.
+	 * world root has no pose of its own to move, and a kinematic link is not a name
+	 * the motion service can resolve — only the component that owns it is.
 	 */
 	const movableFrames = $derived(
 		selected.current.flatMap((entity) => {
 			const frameName = entity.get(traits.Name)
 
-			if (frameName === undefined || frameName === 'world' || !entity.has(traits.FramesAPI)) {
+			if (
+				frameName === undefined ||
+				frameName === 'world' ||
+				!entity.has(traits.FramesAPI) ||
+				entity.has(traits.KinematicLink)
+			) {
 				return []
 			}
 

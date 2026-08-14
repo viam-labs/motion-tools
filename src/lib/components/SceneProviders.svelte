@@ -10,7 +10,6 @@
 	import { provideTransformControls } from '$lib/hooks/useControls.svelte'
 	import { provideFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { provideFrames } from '$lib/hooks/useFrames.svelte'
-	import { provideGeometries } from '$lib/hooks/useGeometries.svelte'
 	import { provideInheritedInvisible } from '$lib/hooks/useInheritedInvisible.svelte'
 	import { provideLinkedEntities } from '$lib/hooks/useLinked.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -41,7 +40,6 @@
 	provideConfigFrames()
 	provideFrames(() => partID.current)
 	providePoses(() => partID.current)
-	provideGeometries(() => partID.current)
 	provide3DModels(() => partID.current)
 	providePointclouds(() => partID.current)
 	providePointcloudObjects(() => partID.current)

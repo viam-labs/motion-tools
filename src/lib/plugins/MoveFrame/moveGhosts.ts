@@ -1,4 +1,4 @@
-import { type ConfigurableTrait, type Entity, type World } from 'koota'
+import { type ConfigurableTrait, type Entity, Not, type World } from 'koota'
 import { Color, Matrix4 } from 'three'
 
 import { relations, traits } from '$lib/ecs'
@@ -59,14 +59,17 @@ export const rigidMoveDelta = (currentWorldMatrix: Matrix4, targetWorldMatrix: M
 /**
  * Every descendant a rigid move carries with it, depth-first.
  *
- * The dragged frame's own `GetGeometries` links are the exception, skipped at
- * the top level. Those are the arm's links, and they are not rigid with the
- * end effector: moving it re-solves the chain, so they land wherever IK puts
+ * The dragged frame's own kinematic links are the exception, skipped at the top
+ * level: moving the frame re-solves the chain, so they land wherever IK puts
  * them rather than offset by the drag. Every level below is rigid, links
- * included.
+ * included — an attached gripper's links ride along with the gripper.
  */
 const collectMoved = (world: World, root: Entity, out: Entity[]): Entity[] => {
-	for (const child of world.query(relations.ChildOf(root), traits.FramesAPI)) {
+	for (const child of world.query(
+		relations.ChildOf(root),
+		traits.FramesAPI,
+		Not(traits.KinematicLink)
+	)) {
 		collectDescendants(world, child, out)
 	}
 	return out

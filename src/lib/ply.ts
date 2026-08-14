@@ -1,6 +1,8 @@
 import { BufferGeometry } from 'three'
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js'
 
+import { asExactArrayBuffer } from '$lib/buffer'
+
 const plyLoader = new PLYLoader()
 
 export const parsePlyInput = (mesh: string | Uint8Array): BufferGeometry => {
@@ -24,14 +26,7 @@ export const parsePlyInput = (mesh: string | Uint8Array): BufferGeometry => {
 		return plyLoader.parse(text)
 	}
 
-	// Case 4: binary PLY → pass an ArrayBuffer holding exactly the mesh bytes.
-	// A protobuf-decoded `bytes` field is a subarray view over the whole wire
-	// buffer, so handing over `.buffer` would parse from the start of the
-	// response — the loader finds no header there and yields empty geometry.
-	const exact =
-		mesh.byteOffset === 0 && mesh.byteLength === mesh.buffer.byteLength
-			? (mesh.buffer as ArrayBuffer)
-			: (new Uint8Array(mesh).buffer as ArrayBuffer)
-
-	return plyLoader.parse(exact)
+	// Case 4: binary PLY → the loader needs a buffer that starts at the header,
+	// not at the start of the response the mesh was decoded from.
+	return plyLoader.parse(asExactArrayBuffer(mesh))
 }

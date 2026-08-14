@@ -68,6 +68,27 @@ export const asFloat32Array = (
 }
 
 /**
+ * An ArrayBuffer holding exactly `bytes` and nothing else.
+ *
+ * A protobuf-decoded `bytes` field is usually a subarray view over the whole
+ * wire buffer, so a loader handed `.buffer` would read from the start of the
+ * response instead of the start of the payload. Copies only when the view is
+ * narrower than its buffer, so a standalone array passes through untouched.
+ *
+ * @param bytes - The raw bytes from a protobuf bytes field
+ * @returns An ArrayBuffer whose full extent is the payload
+ *
+ * @example
+ * ```ts
+ * plyLoader.parse(asExactArrayBuffer(geometry.mesh))
+ * ```
+ */
+export const asExactArrayBuffer = (bytes: Uint8Array): ArrayBuffer =>
+	bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+		? (bytes.buffer as ArrayBuffer)
+		: (new Uint8Array(bytes).buffer as ArrayBuffer)
+
+/**
  * Sets a Three.js Color from 3 bytes of a uint8 RGB color array starting at `offset`.
  * Mutates and returns `target` — pass a pre-allocated Color to avoid allocations
  * in hot paths.
