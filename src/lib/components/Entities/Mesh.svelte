@@ -107,23 +107,29 @@
 		{...events}
 	>
 		{#if bufferGeometry.current}
-			<T is={bufferGeometry.current}>
-				{#snippet children({ ref: geo })}
-					<!--
-					TODO(mp) currently some bufferGeometries are coming in empty,
-					this is a quick fix but this should be handled upstream
-				-->
-					{#if geo.getAttribute('position').array.length > 0}
-						<T.LineSegments
-							raycast={() => null}
-							bvh={{ enabled: false }}
-						>
-							<T.EdgesGeometry args={[geo, 0]} />
-							<T.LineBasicMaterial color={darkenColor(color, 10)} />
-						</T.LineSegments>
-					{/if}
-				{/snippet}
-			</T>
+			<!--
+			Keyed on the geometry: Threlte disposes a <T>'s object on unmount only, never
+			when `is`/`args` swap it. Unkeyed, each swap orphans an undisposed EdgesGeometry.
+		-->
+			{#key bufferGeometry.current}
+				<T is={bufferGeometry.current}>
+					{#snippet children({ ref: geo })}
+						<!--
+						TODO(mp) currently some bufferGeometries are coming in empty,
+						this is a quick fix but this should be handled upstream
+					-->
+						{#if (geo.getAttribute('position')?.array.length ?? 0) > 0}
+							<T.LineSegments
+								raycast={() => null}
+								bvh={{ enabled: false }}
+							>
+								<T.EdgesGeometry args={[geo, 0]} />
+								<T.LineBasicMaterial color={darkenColor(color, 10)} />
+							</T.LineSegments>
+						{/if}
+					{/snippet}
+				</T>
+			{/key}
 		{/if}
 
 		<T
