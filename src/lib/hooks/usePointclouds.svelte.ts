@@ -86,7 +86,7 @@ export const providePointclouds = (partID: () => string) => {
 	})
 
 	const options = $derived({
-		enabled: environment.isLive,
+		enabled: environment.isLive && interval !== RefetchRates.OFF,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -135,7 +135,11 @@ export const providePointclouds = (partID: () => string) => {
 				}
 
 				if (!data || data.length === 0) {
-					destroyEntity()
+					// Build mode pauses this query, so losing its data means the cache
+					// dropped it, not that the camera stopped reporting points — and
+					// nothing will refetch to bring the cloud back.
+					if (environment.isLive) destroyEntity()
+
 					return () => {
 						disposed = true
 					}
@@ -188,13 +192,17 @@ export const providePointclouds = (partID: () => string) => {
 			})
 		}
 
-		// clean up queries that disappeared entirely
-		for (const [queryKey, entity] of entities) {
-			if (!activeQueryKeys.has(queryKey)) {
-				if (world.has(entity)) {
-					entity.destroy()
+		// Clean up queries that disappeared entirely. Not in build mode: clients drop
+		// out on reconnects and resource changes, and the paused queries can never
+		// respawn what this destroys.
+		if (environment.isLive) {
+			for (const [queryKey, entity] of entities) {
+				if (!activeQueryKeys.has(queryKey)) {
+					if (world.has(entity)) {
+						entity.destroy()
+					}
+					entities.delete(queryKey)
 				}
-				entities.delete(queryKey)
 			}
 		}
 	})
