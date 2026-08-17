@@ -9,7 +9,7 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
-import { parseMeshInput } from '$lib/mesh'
+import { isParsedFrom, parseMesh } from '$lib/mesh'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -272,8 +272,7 @@ export const Geometry = (geometry: ViamGeometry) => {
 	} else if (geometry.geometryType.case === 'sphere') {
 		return Sphere(createSphere(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'mesh') {
-		const { mesh, contentType } = geometry.geometryType.value
-		return BufferGeometry(parseMeshInput(mesh, contentType))
+		return BufferGeometry(parseMesh(geometry.geometryType.value))
 	}
 
 	return ReferenceFrame
@@ -313,14 +312,17 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
-		const { mesh, contentType } = geometry.geometryType.value
+		const mesh = geometry.geometryType.value
 		if (entity.has(BufferGeometry)) {
 			const old = entity.get(BufferGeometry)
-			entity.set(BufferGeometry, parseMeshInput(mesh, contentType))
+			// Reparsing an STL/PLY, re-uploading it, and rebuilding its EdgesGeometry all cost far
+			// more than the byte compare that rules them out.
+			if (old && isParsedFrom(old, mesh)) return
+			entity.set(BufferGeometry, parseMesh(mesh))
 			old?.dispose()
 		} else {
 			entity.remove(Box, Sphere, Capsule)
-			entity.add(BufferGeometry(parseMeshInput(mesh, contentType)))
+			entity.add(BufferGeometry(parseMesh(mesh)))
 		}
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
