@@ -65,7 +65,7 @@ export const providePoses = (partID: () => string) => {
 
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF && environment.isLive,
+		enabled: partID() !== '' && interval !== RefetchRates.OFF && environment.isLive,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -264,9 +264,12 @@ export const providePoses = (partID: () => string) => {
 	})
 
 	// A paused or build-mode scene is deliberately showing a snapshot, not a
-	// broken one.
+	// broken one, and a scene with no pose queries yet has no pose old enough to
+	// warn about.
 	const isStale = $derived(
-		options.enabled && isPoseStale({ now, lastPoseAt, pollingStartedAt, interval })
+		options.enabled &&
+			entries.length > 0 &&
+			isPoseStale({ now, lastPoseAt, pollingStartedAt, interval })
 	)
 
 	setContext<Context>(key, {
