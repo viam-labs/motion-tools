@@ -81,16 +81,11 @@
 		details,
 	}: Props = $props()
 
-	/**
-	 * Apply the Viam tweakpane theme to `<html>` here in setup, before any child
-	 * is created. This must not be deferred to `onMount`: a parent's `onMount`
-	 * runs only after all of its children have mounted, and each child `<Pane>`
-	 * builds its underlying Tweakpane instance during its own setup. So by the
-	 * time App's `onMount` fired the panes already existed and could paint with
-	 * Tweakpane's default dark theme before the theme variables reached `<html>`.
-	 * Running in setup guarantees the variables are set before any pane is built.
-	 * `setGlobalDefaultTheme` no-ops when there is no document (prerender).
-	 */
+	// In setup, not `onMount`: children build their Tweakpane instances during
+	// their own setup, so by App's `onMount` the panes already painted dark.
+	// Reset first because the theme call removes any variable it already matches,
+	// so a repeat call (second instance, remount, HMR) would wipe the theme.
+	ThemeUtils.setGlobalDefaultTheme(undefined)
 	ThemeUtils.setGlobalDefaultTheme(primeTheme)
 
 	provideWorld()
