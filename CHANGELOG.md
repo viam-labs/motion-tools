@@ -1,5 +1,13 @@
 # motion-tools
 
+## 1.43.1
+
+### Patch Changes
+
+- c61ce9b: Keep the Viam tweakpane theme applied when a second visualizer mounts, instead of falling back to Tweakpane's dark defaults
+- f7cd229: Do not show stale pose indicator if not connected to a robot
+- 7f76463: Show last pointcloud objects snapshot in build mode
+
 ## 1.43.0
 
 ### Minor Changes
