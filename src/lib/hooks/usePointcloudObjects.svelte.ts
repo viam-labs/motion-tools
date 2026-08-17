@@ -62,7 +62,6 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 		for (const client of clients) {
 			if (
-				environment.isLive &&
 				fetchedPropQueries &&
 				client.current?.name &&
 				interval !== RefetchRates.OFF &&
@@ -98,7 +97,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 	const interval = $derived(refreshRates[RefreshRates.vision])
 
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF,
+		enabled: environment.isLive && interval !== RefetchRates.OFF,
 		refetchInterval: (interval === RefetchRates.MANUAL ? false : interval) as number | false,
 	})
 
@@ -164,7 +163,10 @@ export const providePointcloudObjects = (partID: () => string) => {
 				}
 
 				if (!data || data.length === 0) {
-					reconcileRemovedKeys()
+					// Build mode pauses this query, so losing its data means the cache
+					// dropped it, not that the service stopped reporting objects — and
+					// nothing will refetch to bring the clouds back.
+					if (environment.isLive) reconcileRemovedKeys()
 
 					return () => {
 						disposed = true
@@ -271,13 +273,17 @@ export const providePointcloudObjects = (partID: () => string) => {
 			})
 		}
 
-		// cleanup queries that disappeared entirely
-		for (const [queryKey, keys] of queryEntityKeys) {
-			if (!activeQueryKeys.has(queryKey)) {
-				for (const key of keys) {
-					destroyEntity(key)
+		// Clean up queries that disappeared entirely. Not in build mode: clients drop
+		// out on reconnects and resource changes, and the paused queries can never
+		// respawn what this destroys.
+		if (environment.isLive) {
+			for (const [queryKey, keys] of queryEntityKeys) {
+				if (!activeQueryKeys.has(queryKey)) {
+					for (const key of keys) {
+						destroyEntity(key)
+					}
+					queryEntityKeys.delete(queryKey)
 				}
-				queryEntityKeys.delete(queryKey)
 			}
 		}
 	})
