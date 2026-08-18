@@ -6,7 +6,7 @@
 	import { createBufferGeometry } from '$lib/attribute'
 	import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 	import { traits, useWorld } from '$lib/ecs'
-	import { parsePcdInWorker } from '$lib/lib'
+	import { parsePcdInWorker } from '$lib/loaders/pcd'
 
 	interface Props {
 		data: Uint8Array
