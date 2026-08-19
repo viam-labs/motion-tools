@@ -6,7 +6,7 @@
 
 	import { traits, useQuery } from '$lib/ecs'
 
-	import type { TreeNode as TreeNodeType } from './useTree.svelte'
+	import type { TreeNode as TreeNodeType } from './buildTree'
 
 	import TreeNode from './TreeNode.svelte'
 

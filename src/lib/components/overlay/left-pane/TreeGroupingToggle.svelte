@@ -7,8 +7,8 @@
 
 	const settings = useSettings()
 
-	const grouped = $derived(settings.current.treeGrouping === 'sections')
-	const label = $derived(grouped ? 'Show scene hierarchy' : 'Group by source')
+	const foldered = $derived(settings.current.treeGrouping === 'folders')
+	const label = $derived(foldered ? 'Show scene hierarchy' : 'Group into folders')
 </script>
 
 <!--
@@ -17,12 +17,12 @@
 -->
 <Tooltip placement="right-start">
 	<IconButton
-		icon={grouped ? 'subdirectory-arrow-right' : 'layers-triple-outline'}
+		icon={foldered ? 'subdirectory-arrow-right' : 'folder'}
 		{label}
 		variant="ghost"
 		cx="shrink-0"
 		onclick={() => {
-			settings.current.treeGrouping = grouped ? 'hierarchy' : 'sections'
+			settings.current.treeGrouping = foldered ? 'hierarchy' : 'folders'
 		}}
 	/>
 

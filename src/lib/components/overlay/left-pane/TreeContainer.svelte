@@ -3,12 +3,14 @@
 
 	import { traits, useWorld } from '$lib/ecs'
 
+	import type { TreeNode } from './buildTree'
+
 	import FloatingPanel from '../FloatingPanel.svelte'
 	import PoseStalenessIndicator from './PoseStalenessIndicator.svelte'
 	import Tree from './Tree.svelte'
 	import TreeGroupingToggle from './TreeGroupingToggle.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
-	import { type TreeNode, useTree } from './useTree.svelte'
+	import { useTree } from './useTree.svelte'
 
 	provideTreeExpandedContext()
 
@@ -49,8 +51,8 @@
 
 			for (const id of next) {
 				const entity = id as Entity
-				// Section headers and the `World` root are `IsExcluded`, so they never
-				// come back out of the `Selected` query — selecting one would clear the
+				// Folder rows and the `World` root are `IsExcluded`, so they never come
+				// back out of the `Selected` query — selecting one would clear the
 				// user's real selection on the next round trip.
 				if (entity.has(IsExcluded)) continue
 				if (!entity.has(traits.Selected)) entity.add(traits.Selected)

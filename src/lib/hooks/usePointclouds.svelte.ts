@@ -173,7 +173,8 @@ export const providePointclouds = (partID: () => string) => {
 							...hierarchy.parentTraits(name),
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
-							traits.Points
+							traits.Points,
+							traits.PointCloudAPI
 						)
 
 						entities.set(queryKey, entity)
