@@ -7,20 +7,24 @@ Every plugin mounts independently inside `<Visualizer />`, and none _requires_ a
 
 ## External packages
 
-Most plugins need nothing beyond `@viamrobotics/motion-tools`. Three use **optional peer dependencies** — install them only when you use the plugin:
+Most plugins need nothing beyond `@viamrobotics/motion-tools`. Several use **optional peer dependencies** — install them only when you use the plugin:
 
 | Plugin              | Install                                       |
 | ------------------- | --------------------------------------------- |
 | `<SelectionTool />` | `earcut`                                      |
 | `<DrawService />`   | `@connectrpc/connect @connectrpc/connect-web` |
 | `<Debug />`         | `@tanstack/svelte-query-devtools`             |
+| `<MoveFrame />`     | `@dimforge/rapier3d-compat @threlte/rapier`   |
+| `<Settings />`      | `@zag-js/tabs`                                |
+| `<WorldTree />`     | `@zag-js/tree-view svelte-virtuallists`       |
+| `<XR />`            | `@threlte/xr`                                 |
 
 Two more build on packages that ship as **required peers** of `@viamrobotics/motion-tools` — already installed with it, and listed here only for completeness:
 
 | Plugin               | Required peers                                           |
 | -------------------- | -------------------------------------------------------- |
 | `<ControlWidgets />` | `@viamrobotics/test-widgets`, `@viamrobotics/svelte-sdk` |
-| `<XR />`             | `@threlte/xr`, `@viamrobotics/svelte-sdk`                |
+| `<XR />`             | `@viamrobotics/svelte-sdk`                               |
 
 ## Plugin-to-plugin
 
@@ -36,7 +40,7 @@ ControlWidgets ──► XR     panels hide during an immersive session
 DrawService ──► Logs     draw-server diagnostics, if Logs is mounted
 ```
 
-The `<ControlWidgets />` ──► `<XR />` link only observes XR's session state through `@threlte/xr`, not the other plugin's internals. Which cameras appear in a headset is chosen independently in the [`<XR />`](../xr/) plugin's own **AR** settings panel.
+The `<ControlWidgets />` ──► `<XR />` link only observes the session state XR publishes to `useEnvironment().current.isImmersive`, not the other plugin's internals — which is what lets `@threlte/xr` stay an optional peer. Which cameras appear in a headset is chosen independently in the [`<XR />`](../xr/) plugin's own **AR** settings panel.
 
 ## Runtime requirements
 

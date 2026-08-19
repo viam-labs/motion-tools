@@ -5,7 +5,6 @@
 
 	import { Canvas } from '@threlte/core'
 	import { PortalTarget } from '@threlte/extras'
-	import { useXR } from '@threlte/xr'
 	import { provideToast, ToastContainer } from '@viamrobotics/prime-core'
 	import { primeTheme } from '@viamrobotics/tweakpane-config'
 	import { ThemeUtils } from 'svelte-tweakpane-ui'
@@ -96,7 +95,6 @@
 	const fullscreen = provideFullscreen()
 
 	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
-	const { isPresenting } = useXR()
 
 	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
@@ -157,7 +155,7 @@
 
 				<LiveUpdatesBanner />
 
-				{#if !$isPresenting}
+				{#if !environment.current.isImmersive}
 					{#each currentFramePovWidgets as povFrameName (povFrameName)}
 						<FramePov frameName={povFrameName} />
 					{/each}
