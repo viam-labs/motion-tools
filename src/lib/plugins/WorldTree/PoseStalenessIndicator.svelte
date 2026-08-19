@@ -2,13 +2,12 @@
 	import { Badge } from '@viamrobotics/prime-core'
 	import { useMachineStatus } from '@viamrobotics/svelte-sdk'
 
+	import Tooltip from '$lib/components/overlay/Tooltip.svelte'
 	import { poseStalenessSummary } from '$lib/hooks/poseStaleness/poseStalenessSummary'
 	import { unhealthyResources } from '$lib/hooks/poseStaleness/unhealthyResources'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePoses } from '$lib/hooks/usePoses.svelte'
-
-	import Tooltip from '../Tooltip.svelte'
 
 	const environment = useEnvironment()
 	const partID = usePartID()

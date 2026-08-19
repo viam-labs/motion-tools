@@ -1,9 +1,10 @@
 import { createWorld, type Entity, IsExcluded, type World } from 'koota'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { buildTree, type TreeNode } from '$lib/components/overlay/left-pane/buildTree'
-import { treeFolders } from '$lib/components/overlay/left-pane/treeFolders'
 import { relations, traits } from '$lib/ecs'
+
+import { buildTree, type TreeNode } from '../buildTree'
+import { treeFolders } from '../treeFolders'
 
 let world: World
 afterEach(() => world?.destroy())
