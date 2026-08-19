@@ -3,11 +3,11 @@
 	import { PersistedState } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
+	import Popover from '$lib/components/overlay/Popover.svelte'
+	import { useSettingsTabs } from '$lib/components/overlay/Portals/useSettingsTabs.svelte'
+	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import Popover from '../Popover.svelte'
-	import { useSettingsTabs } from '../Portals/useSettingsTabs.svelte'
-	import WorkspacePortal from '../Portals/WorkspacePortal.svelte'
 	import ConnectionSettings from './ConnectionSettings.svelte'
 	import DebugSettings from './DebugSettings.svelte'
 	import PointcloudSettings from './PointcloudSettings.svelte'

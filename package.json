@@ -591,6 +591,9 @@
 		"@tanstack/svelte-query-devtools": {
 			"optional": true
 		},
+		"@zag-js/tabs": {
+			"optional": true
+		},
 		"@zag-js/tree-view": {
 			"optional": true
 		},

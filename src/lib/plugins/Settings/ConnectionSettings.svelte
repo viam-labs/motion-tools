@@ -1,10 +1,9 @@
 <script lang="ts">
+	import RefreshRate from '$lib/components/overlay/RefreshRate.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 	import { useRefetchPoses } from '$lib/hooks/useRefetchPoses'
 	import { RefreshRates } from '$lib/hooks/useSettings.svelte'
-
-	import RefreshRate from '../RefreshRate.svelte'
 
 	const pointclouds = usePointClouds()
 	const pointcloudObjects = usePointcloudObjects()

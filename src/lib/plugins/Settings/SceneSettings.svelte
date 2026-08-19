@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { Input, Switch } from '@viamrobotics/prime-core'
 
+	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
-
-	import ToggleGroup from '../ToggleGroup.svelte'
 
 	const settings = useSettings()
 </script>
