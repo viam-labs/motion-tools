@@ -87,6 +87,27 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
+ * RDK's `GeometryConfig.ParseConfig` reads an empty `type` as "infer from the dimensions that were
+ * set": box, then capsule, then sphere. This is that chain, without RDK's per-shape validation.
+ */
+const inferGeometryType = (g: Record<string, unknown>): string => {
+	const declared = (g.type ?? '') as string
+	if (declared !== '') return declared
+
+	const x = (g.x as number) ?? 0
+	const y = (g.y as number) ?? 0
+	const z = (g.z as number) ?? 0
+	if (Math.hypot(x, y, z) > 0) return 'box'
+
+	// `l` before `r`: a capsule sets both. `r` checks `> 0`, not `!== 0`, so a negative radius falls
+	// through to `''` rather than building a sphere.
+	if (((g.l as number) ?? 0) !== 0) return 'capsule'
+	if (((g.r as number) ?? 0) > 0) return 'sphere'
+
+	return ''
+}
+
+/**
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
@@ -108,10 +129,10 @@ export const parseGeometry = (
 
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
-	const type = g.type as string
+	const type = inferGeometryType(g)
 
-	// Go marshals the zero value rather than omitting it, so an empty type means "no geometry",
-	// not "unrecognized geometry" — distinct from the types rejected below.
+	// An empty type means "no geometry": Go marshals the zero value rather than omitting it, and
+	// inference returns the same when nothing was set. An unrecognized type warns below instead.
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
