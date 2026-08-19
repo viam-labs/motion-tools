@@ -197,7 +197,22 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'shoulder' }] } },
+					// Joints carry their own parents, which is what decides their trajectory column
+					// (see `modelJointColumns`) — declaration order alone does not.
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'base_top', parent: 'waist' },
+								{ id: 'upper_arm', parent: 'shoulder' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'shoulder', parent: 'base_top' },
+							],
+						},
+					},
 				},
 				'arm:waist': {
 					frame_type: 'named',
@@ -432,6 +447,24 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:extra_link')
 		})
 
+		// Go marshals an empty `id` rather than omitting it. Unfiltered that reads as a second
+		// unclaimed leaf, and the model falls to "declines to pick".
+		it('does not let an unnamed node masquerade as a second leaf', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+						{ id: '', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
 		// A bare string would be indexed as an array and yield its first character, resolving `arm:g`.
 		it('ignores an output_frames that is not an array', () => {
 			const p = armed({
@@ -449,6 +482,26 @@ describe('buildFrameDescriptors', () => {
 			// Falls to the sole-leaf rule rather than resolving to `arm:g`.
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
+
+		// `aux_joint` is declared last but sorts first, so reading the array picks it and the camera
+		// stays on the bare model name. No leaf or output frame: a model with either never gets here.
+		it('hangs the camera off the last joint of the walk, not the last one declared', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [
+						{ id: 'gripper_rot', parent: 'base' },
+						{ id: 'aux_joint', parent: 'base' },
+					],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:extra_link')
+		})
 	})
 
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
@@ -458,7 +511,19 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'gripper_rot' }] } },
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'gripper_mount', parent: 'gripper_rot' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'gripper_rot', parent: 'waist' },
+							],
+						},
+					},
 				},
 				'arm:gripper_rot': {
 					frame_type: 'named',
@@ -828,8 +893,8 @@ describe('buildFrameDescriptors', () => {
 		}
 	})
 
-	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
-		const p = plan(
+	const linkWithGeometry = (geometry: Record<string, unknown>) =>
+		plan(
 			{
 				'arm:link': {
 					frame_type: 'named',
@@ -839,7 +904,7 @@ describe('buildFrameDescriptors', () => {
 							frame: {
 								translation: { X: 0, Y: 0, Z: 0 },
 								orientation: { type: 'quaternion', value: { W: 1, X: 0, Y: 0, Z: 0 } },
-								geometry: { type: '', r: 1, l: 0 },
+								geometry,
 							},
 						},
 					},
@@ -847,10 +912,84 @@ describe('buildFrameDescriptors', () => {
 			},
 			{ 'arm:link': 'world' }
 		)
-		const descriptors = buildFrameDescriptors(p)
-		const d = descriptors[0]!
-		expect(d.kind).toBe('static')
-		if (d.kind === 'static') expect(d.geometry).toBeNull()
+
+	/**
+	 * Dimensions, not just the discriminant: a box built from the wrong fields reports the same
+	 * `case`. Null only for an absent geometry, which a `Geometry` with an unset shape is not.
+	 */
+	const linkShape = (geometry: Record<string, unknown>) => {
+		const d = buildFrameDescriptors(linkWithGeometry(geometry))[0]
+		expect(d).toBeDefined()
+		expect(d!.kind).toBe('static')
+		const g = d!.kind === 'static' ? d!.geometry : null
+		if (g === null) return null
+
+		const shape = g.geometryType
+		switch (shape.case) {
+			case 'sphere': {
+				return { case: shape.case, r: shape.value.radiusMm }
+			}
+			case 'capsule': {
+				return { case: shape.case, r: shape.value.radiusMm, l: shape.value.lengthMm }
+			}
+			case 'box': {
+				return {
+					case: shape.case,
+					x: shape.value.dimsMm?.x,
+					y: shape.value.dimsMm?.y,
+					z: shape.value.dimsMm?.z,
+				}
+			}
+			default: {
+				return { case: shape.case }
+			}
+		}
+	}
+
+	// Silence is half the assertion: an empty type must not reach the `default:` arm, which warns.
+	it('returns null geometry when the frame carries none (RDK writes an empty type)', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		expect(linkShape({ type: '', x: 0, y: 0, z: 0, r: 0, l: 0 })).toBeNull()
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	// `buildDescriptors` skips `model` frames, so each case wraps its geometry in a synthetic static
+	// frame to reach `inferGeometryType` at all.
+	it.each([
+		['a sphere from r alone (xArm6 base)', { type: '', r: 1, l: 0 }, { case: 'sphere', r: 1 }],
+		[
+			'a capsule from r and l (xArm6 base_top)',
+			{ type: '', r: 50, l: 320 },
+			{ case: 'capsule', r: 50, l: 320 },
+		],
+		[
+			'a box from x/y/z (xArm6 upper_forearm)',
+			{ type: '', x: 80, y: 180, z: 250, r: 0, l: 0 },
+			{ case: 'box', x: 80, y: 180, z: 250 },
+		],
+		[
+			'a flat box, where only y and z are set',
+			{ type: '', x: 0, y: 180, z: 250, r: 0, l: 0 },
+			{ case: 'box', x: 0, y: 180, z: 250 },
+		],
+		[
+			'a box rather than a capsule when the geometry sets both',
+			{ type: '', x: 80, y: 180, z: 250, r: 50, l: 320 },
+			{ case: 'box', x: 80, y: 180, z: 250 },
+		],
+		// The authored form: `original_file` in the captures decodes to `"geometry": { "r": 1 }`, with
+		// no `type` key at all. Only RDK's marshal adds the empty string.
+		['a sphere when the type key is absent entirely', { r: 1 }, { case: 'sphere', r: 1 }],
+		// `r`'s check is `> 0`, `l`'s is `!== 0`, so only a negative value tells the two apart: both
+		// already agree that zero means unset.
+		['nothing when r is negative, unlike a zero r', { type: '', r: -5 }, null],
+		[
+			'a capsule even when l is negative, unguarded unlike r',
+			{ type: '', r: 50, l: -320 },
+			{ case: 'capsule', r: 50, l: -320 },
+		],
+	])('infers %s', (_label, geometry, expected) => {
+		expect(linkShape(geometry)).toEqual(expected)
 	})
 
 	const obstacleWith = (geometry: Record<string, unknown>) =>

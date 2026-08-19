@@ -27,9 +27,9 @@ import {
 } from '$lib/math/spatialJson'
 import { meshContentType } from '$lib/mesh'
 
-import type { JointJson } from './jointColumns'
+import type { ModelJson } from './jointColumns'
 
-import { modelJointColumns } from './jointColumns'
+import { modelJointColumns, nodeName } from './jointColumns'
 
 /** One entry of a flattened frame system: `frame_type` names the encoding, `frame` carries it. */
 export interface RawFrame {
@@ -87,6 +87,27 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
+ * RDK's `GeometryConfig.ParseConfig` reads an empty `type` as "infer from the dimensions that were
+ * set": box, then capsule, then sphere. This is that chain, without RDK's per-shape validation.
+ */
+const inferGeometryType = (g: Record<string, unknown>): string => {
+	const declared = (g.type ?? '') as string
+	if (declared !== '') return declared
+
+	const x = (g.x as number) ?? 0
+	const y = (g.y as number) ?? 0
+	const z = (g.z as number) ?? 0
+	if (Math.hypot(x, y, z) > 0) return 'box'
+
+	// `l` before `r`: a capsule sets both. `r` checks `> 0`, not `!== 0`, so a negative radius falls
+	// through to `''` rather than building a sphere.
+	if (((g.l as number) ?? 0) !== 0) return 'capsule'
+	if (((g.r as number) ?? 0) > 0) return 'sphere'
+
+	return ''
+}
+
+/**
  * Pass `framePose` for arm links, whose center is in parent coordinates (see
  * `geometryCenterInFrame`); omit it for obstacles, whose center is already local. The JSON
  * looks identical either way — only the frame's kind says which convention applies.
@@ -108,10 +129,10 @@ export const parseGeometry = (
 
 	if (!geom || typeof geom !== 'object') return null
 	const g = geom as Record<string, unknown>
-	const type = g.type as string
+	const type = inferGeometryType(g)
 
-	// Go marshals the zero value rather than omitting it, so an empty type means "no geometry",
-	// not "unrecognized geometry" — distinct from the types rejected below.
+	// An empty type means "no geometry": Go marshals the zero value rather than omitting it, and
+	// inference returns the same when nothing was set. An unrecognized type warns below instead.
 	if (type === '') return null
 
 	const trans = g.translation as Vec3Json | undefined
@@ -204,32 +225,27 @@ export const parseGeometry = (
 
 type Frames = FrameSystemJson['frames']
 
-const modelOf = (entry: Frames[string]): Record<string, unknown> | undefined =>
-	(entry.frame as Record<string, unknown>).model as Record<string, unknown> | undefined
-
-interface ModelNode {
-	id?: string
-	parent?: string
-}
+const modelOf = (entry: Frames[string]): ModelJson | undefined =>
+	(entry.frame as Record<string, unknown>).model as ModelJson | undefined
 
 /**
  * The model's one childless frame, over links and joints. Undefined when there is more than one,
  * which RDK also refuses, and for a DH model, whose topology lives in `dhParams` not either list.
  */
-const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefined => {
+const soleLeafOf = (model: ModelJson | undefined): string | undefined => {
 	const links = model?.links
 	const joints = model?.joints
 	// `Array.isArray`, not `??`: a malformed capture can declare these as `{}`, and spreading a
 	// non-iterable throws, taking the whole plan render down.
-	const nodes = [
-		...(Array.isArray(links) ? (links as ModelNode[]) : []),
-		...(Array.isArray(joints) ? (joints as ModelNode[]) : []),
-	]
+	const nodes = [...(Array.isArray(links) ? links : []), ...(Array.isArray(joints) ? joints : [])]
 
-	const claimed = new Set(nodes.flatMap((node) => node.parent ?? []))
-	const leaves = nodes.flatMap((node) =>
-		node.id !== undefined && !claimed.has(node.id) ? node.id : []
-	)
+	// `nodeName` here too: an id of `''`, which Go marshals rather than omits, would otherwise read
+	// as an unclaimed leaf of its own and turn a real sole leaf into "more than one".
+	const claimed = new Set(nodes.flatMap((node) => nodeName(node.parent) ?? []))
+	const leaves = nodes.flatMap((node) => {
+		const id = nodeName(node.id)
+		return id !== undefined && !claimed.has(id) ? id : []
+	})
 
 	return leaves.length === 1 ? leaves[0] : undefined
 }
@@ -240,7 +256,7 @@ const soleLeafOf = (model: Record<string, unknown> | undefined): string | undefi
  */
 const modelOutputFrame = (
 	entry: Frames[string],
-	model: Record<string, unknown> | undefined
+	model: ModelJson | undefined
 ): string | undefined => {
 	const declared = (entry.frame as Record<string, unknown>).primary_output_frame
 	if (typeof declared === 'string' && declared !== '') return declared
@@ -290,10 +306,10 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 		if (entry.frame_type !== 'model') continue
 		const model = modelOf(entry)
 
-		// `model.joints` is the only place mimic mappings survive serialization; `FrameSystem.MarshalJSON`
-		// writes only name, world, frames and parents. Keyed by frame name, which is how the frame asks.
-		const joints = (model?.joints ?? []) as JointJson[]
-		for (const [jointId, column] of modelJointColumns(joints)) {
+		// Which slot of a trajectory step drives which frame. Keyed by frame name because that is how
+		// the frame asks — the join between the two is the `${model}:${id}` convention, nothing else.
+		const { order, columns } = modelJointColumns(model, modelName)
+		for (const [jointId, column] of columns) {
 			jointOwners.set(`${modelName}:${jointId}`, {
 				componentName: modelName,
 				jointIndex: column.index,
@@ -301,17 +317,19 @@ const buildFrameContexts = (frameSystem: FrameSystemJson): Map<string, FrameCont
 			})
 		}
 
-		// Truthiness, not a null check: `soleLeafOf` can return `''`, since Go marshals `id` without
-		// `omitempty`. An empty id names no frame.
+		// Truthy rather than `!== undefined`: all three branches filter an empty id, so this never sees `''`.
 		const endEffectorId = modelOutputFrame(entry, model)
 		if (endEffectorId) {
 			modelTerminals.set(modelName, `${modelName}:${endEffectorId}`)
 			continue
 		}
 
-		const lastJoint = joints.at(-1)
-		if (!lastJoint) continue
-		const terminal = childMap.get(`${modelName}:${lastJoint.id}`)?.[0]
+		// Walk order, not declaration order: they disagree unless the joints are declared down their
+		// own chain. Only reached by a model with no output frame and no single leaf, which RDK
+		// will not marshal.
+		const lastJointId = order.at(-1)
+		if (!lastJointId) continue
+		const terminal = childMap.get(`${modelName}:${lastJointId}`)?.[0]
 		if (terminal) modelTerminals.set(modelName, terminal)
 	}
 
