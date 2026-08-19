@@ -1,5 +1,6 @@
 import { PersistedState } from 'runed'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
+import { SvelteMap } from 'svelte/reactivity'
 
 export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
 
@@ -29,6 +30,13 @@ interface Context {
 	/** Updates the live-query gate; used by build-mode synchronization to open and
 	 * close its temporary snapshot window. */
 	setLive: (value: boolean) => void
+	/**
+	 * Declares `mode` reachable for as long as the caller is mounted, and returns
+	 * the matching release function.
+	 */
+	registerMode: (mode: EnvironmentMode) => () => void
+	/** Every mode currently reachable, in declaration order. Always includes `monitor`. */
+	readonly availableModes: EnvironmentMode[]
 }
 
 /** Where the persisted mode lives. Exported so tests can reset it. */
@@ -37,17 +45,26 @@ export const ENVIRONMENT_MODE_STORAGE_KEY = 'motion-tools:environment-mode'
 const modes = new Set<EnvironmentMode>(['monitor', 'build', 'move'])
 
 export const createEnvironment = (): Context => {
-	// The mode is the user's choice of tool, so it outlives the session. The rest
-	// describes the host and is set on mount.
 	const stored = new PersistedState<EnvironmentMode>(ENVIRONMENT_MODE_STORAGE_KEY, 'monitor')
-	let isLive = $state(stored.current !== 'build')
+	const availableModes = new SvelteMap<EnvironmentMode, number>([
+		['monitor', 1],
+		['build', 1],
+	])
+
+	const effectiveMode = $derived.by((): EnvironmentMode => {
+		const value = stored.current
+		return modes.has(value) && availableModes.has(value) ? value : 'monitor'
+	})
+
+	let isLive = $state(effectiveMode !== 'build')
+
 	const environment = $state<Environment>({
 		get mode() {
-			return modes.has(stored.current) ? stored.current : 'monitor'
+			return effectiveMode
 		},
 		set mode(value: EnvironmentMode) {
 			stored.current = value
-			isLive = value !== 'build'
+			isLive = effectiveMode !== 'build'
 		},
 		isStandalone: true,
 		inputBindingsEnabled: true,
@@ -60,8 +77,27 @@ export const createEnvironment = (): Context => {
 		get isLive() {
 			return isLive
 		},
+		get availableModes() {
+			return [...modes].filter((mode) => availableModes.has(mode))
+		},
 		setLive(value) {
 			isLive = value
+		},
+		registerMode(mode) {
+			availableModes.set(mode, (availableModes.get(mode) ?? 0) + 1)
+
+			let released = false
+			return () => {
+				if (released) return
+				released = true
+
+				const count = (availableModes.get(mode) ?? 1) - 1
+				if (count > 0) {
+					availableModes.set(mode, count)
+				} else {
+					availableModes.delete(mode)
+				}
+			}
 		},
 	}
 
@@ -76,4 +112,14 @@ export const provideEnvironment = () => {
 
 export const useEnvironment = () => {
 	return getContext<Context>(ENVIRONMENT_CONTEXT_KEY)
+}
+
+/**
+ * Declares `mode` reachable for as long as the calling component is mounted.
+ * Plugins that contribute a mode call this in setup (synchronously), so the first
+ * render already resolves the persisted mode instead of flashing `monitor`.
+ */
+export const useEnvironmentMode = (mode: EnvironmentMode) => {
+	const release = useEnvironment().registerMode(mode)
+	onDestroy(release)
 }

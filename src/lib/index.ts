@@ -4,6 +4,11 @@ export { default as Visualizer } from './components/App.svelte'
 
 export { useSettings } from './hooks/useSettings.svelte'
 export { type HotkeyBinding, useHotkey } from './hooks/useHotkeys.svelte'
+export {
+	type EnvironmentMode,
+	useEnvironmentMode,
+	useEnvironment,
+} from './hooks/useEnvironment.svelte'
 export { default as SettingsPortal } from './components/overlay/Portals/SettingsPortal.svelte'
 export { default as DashboardPortal } from './components/overlay/Portals/DashboardPortal.svelte'
 export { default as WorkspacePortal } from './components/overlay/Portals/WorkspacePortal.svelte'
