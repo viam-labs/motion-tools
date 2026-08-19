@@ -1,12 +1,10 @@
 <script lang="ts">
-	import type { Entity } from 'koota'
-
 	import { normalizeProps, useMachine } from '@zag-js/svelte'
 	import * as tree from '@zag-js/tree-view'
 	import { VirtualList } from 'svelte-virtuallists'
 	import { SvelteSet } from 'svelte/reactivity'
 
-	import { relations, traits, useQuery } from '$lib/ecs'
+	import { traits, useQuery } from '$lib/ecs'
 
 	import type { TreeNode as TreeNodeType } from './useTree.svelte'
 
@@ -14,11 +12,13 @@
 
 	interface Props {
 		rootNode: TreeNodeType
+		/** Child value to parent value, following drawn edges rather than `ChildOf`. */
+		parents: Map<string, string>
 		dragElement?: HTMLElement
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { rootNode, onSelectionChange, dragElement = $bindable() }: Props = $props()
+	let { rootNode, parents, onSelectionChange, dragElement = $bindable() }: Props = $props()
 
 	const collection = $derived(
 		tree.collection<TreeNodeType>({
@@ -35,10 +35,10 @@
 
 	$effect(() => {
 		for (const entity of selected.current) {
-			let ancestor: Entity | undefined = entity.targetFor(relations.ChildOf)
+			let ancestor = parents.get(`${entity}`)
 			while (ancestor) {
-				expandedValues.add(`${ancestor}`)
-				ancestor = ancestor.targetFor(relations.ChildOf)
+				expandedValues.add(ancestor)
+				ancestor = parents.get(ancestor)
 			}
 		}
 	})

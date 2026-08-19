@@ -18,6 +18,9 @@ export interface Settings {
 	disabledCameras: Record<string, boolean>
 	disabledVisionServices: Record<string, boolean>
 
+	/** Left pane: grouped into sections by source, or the raw `ChildOf` hierarchy. */
+	treeGrouping: 'sections' | 'hierarchy'
+
 	// Transform controls
 	snapping: boolean
 	snapTranslate: number
@@ -98,6 +101,8 @@ const defaults = (): Settings => ({
 
 	disabledCameras: {},
 	disabledVisionServices: {},
+
+	treeGrouping: 'sections',
 
 	snapping: false,
 	snapTranslate: 0.1,

@@ -189,6 +189,12 @@ export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
 
+/** A cloud from a camera's `GetPointCloud`. */
+export const PointCloudAPI = trait(() => true)
+
+/** A cloud or bounding geometry from a vision service's `GetObjectPointClouds`. */
+export const PointCloudObjectAPI = trait(() => true)
+
 /**
  * Marker trait for entities created from user-dropped files (PLY, PCD, etc.)
  */

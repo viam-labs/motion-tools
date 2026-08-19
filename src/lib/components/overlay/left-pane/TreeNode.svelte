@@ -38,9 +38,29 @@
 	 * behind it.
 	 */
 	const rowClass = $derived([
-		nodeState.selected ? 'bg-medium' : 'bg-white hover:bg-light',
+		nodeState.selected && !node.isSection ? 'bg-medium' : 'bg-white hover:bg-light',
+		node.isSection && 'text-subtle-1 font-medium',
 		inheritedInvisible.current && 'text-disabled',
 	])
+
+	/**
+	 * Sections have nothing to select, so their whole row toggles instead —
+	 * overriding the selection `onclick` the machine installs under
+	 * `expandOnClick: false`.
+	 */
+	const branchControlProps = $derived.by(() => {
+		const props = api.getBranchControlProps(nodeProps)
+		if (!node.isSection) return props
+
+		return {
+			...props,
+			onclick: () => {
+				const value = `${node.entity}`
+				if (nodeState.expanded) api.collapse([value])
+				else api.expand([value])
+			},
+		}
+	})
 </script>
 
 {#snippet actions()}
@@ -90,7 +110,7 @@
 	{@const { children = [] } = node}
 	<div {...api.getBranchProps(nodeProps)}>
 		<div
-			{...api.getBranchControlProps(nodeProps)}
+			{...branchControlProps}
 			class={rowClass}
 		>
 			<button
@@ -102,13 +122,18 @@
 				<ChevronRight size={14} />
 			</button>
 			<span
-				class="flex items-center"
+				class="flex items-center gap-1.5"
 				{...api.getBranchTextProps(nodeProps)}
 			>
 				{name.current}
+				{#if node.detachedParent}
+					<span class="text-subtle-2">in {node.detachedParent}</span>
+				{/if}
 			</span>
 
-			{@render actions()}
+			{#if !node.isSection}
+				{@render actions()}
+			{/if}
 		</div>
 		<div {...api.getBranchContentProps(nodeProps)}>
 			<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
@@ -147,6 +172,9 @@
 			{...api.getItemTextProps(nodeProps)}
 		>
 			{name.current}
+			{#if node.detachedParent}
+				<span class="text-subtle-2">in {node.detachedParent}</span>
+			{/if}
 		</span>
 
 		{@render actions()}
