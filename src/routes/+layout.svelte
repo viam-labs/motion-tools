@@ -14,6 +14,7 @@
 		DrawService,
 		FileDrop,
 		Focus,
+		FramePov,
 		Logs,
 		MeasureTool,
 		MotionPlanReplayer,
@@ -100,6 +101,7 @@
 				<WorldTree />
 				<Settings />
 				<FileDrop />
+				<FramePov />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>
