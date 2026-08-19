@@ -1,5 +1,16 @@
 # motion-tools
 
+## 1.44.0
+
+### Minor Changes
+
+- f5bc780: Add folders to treeview
+
+### Patch Changes
+
+- 88dd8c4: Drive plan joints by RDK's schema order, not their declaration order
+- 0780313: Infer an untyped geometry's shape from whichever dimensions it sets, the way RDK's `ParseConfig` dispatches on them
+
 ## 1.43.1
 
 ### Patch Changes
