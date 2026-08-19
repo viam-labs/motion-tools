@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { PressedKeys } from 'runed'
-
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
 	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 	import { traits, useQuery } from '$lib/ecs'
+	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
 
 	import FocusBox from './FocusBox.svelte'
 	import { provideFocus } from './provideFocus.svelte'
@@ -16,14 +15,11 @@
 
 	const canFocus = $derived(selected.current.length > 0 || focusing)
 
-	const keys = new PressedKeys()
-
-	keys.onKeys('/', () => {
-		if (selected.current.length > 0 && !focusing) {
-			focusing = true
-		} else if (focusing) {
-			focusing = false
-		}
+	useHotkey({
+		key: '/',
+		description: 'Focus selection',
+		when: () => canFocus,
+		run: () => (focusing = !focusing),
 	})
 </script>
 

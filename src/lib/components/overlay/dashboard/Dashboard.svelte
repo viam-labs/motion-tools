@@ -3,6 +3,7 @@
 	import { Slider } from 'svelte-tweakpane-ui'
 
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import Button from './Button.svelte'
@@ -14,6 +15,42 @@
 	const environment = useEnvironment()
 
 	const isBuildMode = $derived(environment.current.mode === 'build')
+
+	useHotkey({
+		key: '0',
+		description: 'No transform controls',
+		when: () => isBuildMode,
+		run: () => {
+			settings.current.transformMode = 'none'
+		},
+	})
+
+	useHotkey({
+		key: '1',
+		description: 'Translate',
+		when: () => isBuildMode,
+		run: () => {
+			settings.current.transformMode = 'translate'
+		},
+	})
+
+	useHotkey({
+		key: '2',
+		description: 'Rotate',
+		when: () => isBuildMode,
+		run: () => {
+			settings.current.transformMode = 'rotate'
+		},
+	})
+
+	useHotkey({
+		key: '3',
+		description: 'Scale',
+		when: () => isBuildMode,
+		run: () => {
+			settings.current.transformMode = 'scale'
+		},
+	})
 </script>
 
 <div

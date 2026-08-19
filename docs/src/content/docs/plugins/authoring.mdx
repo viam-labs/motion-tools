@@ -319,6 +319,37 @@ For picking points and objects in the scene, use Threlte's pointer events — th
 	living in an external app use Threlte's pointer events instead.
 </Aside>
 
+## Contributing keyboard shortcuts
+
+Keyboard input is a **contribution point**: a plugin declares a binding where the behavior lives, and the visualizer owns the single window listener that dispatches it. This is the same declare-while-mounted shape as the overlay Portals and `SettingsPortal` tabs — the plugin contributes content, core owns the collection, and one owner renders or executes it.
+
+```svelte
+<script lang="ts">
+	import { useHotkey } from '@viamrobotics/motion-tools'
+
+	let visible = $state(true)
+
+	useHotkey({
+		key: 'g',
+		description: 'Toggle my overlay',
+		run: () => (visible = !visible),
+	})
+</script>
+```
+
+The binding registers when the component mounts and releases when it unmounts. Pass `when` to gate it on state instead of lifecycle — it is evaluated at the moment the key is pressed, so it can read any reactive value with no effect wiring:
+
+```ts
+useHotkey({
+	key: '1',
+	description: 'Translate',
+	when: () => environment.current.mode === 'build',
+	run: () => (settings.current.transformMode = 'translate'),
+})
+```
+
+Dispatch policy belongs to the dispatcher, not to your binding: keys typed into inputs are skipped, presses with a modifier held are skipped, and nothing dispatches while the host sets `inputBindingsEnabled` to `false`. Two bindings may share a key only when their `when` conditions cannot hold at once — the built-in build and move dashboards both bind `1` this way — and overlapping dispatches are logged in dev builds.
+
 ## Optional dependencies
 
 The plugin model is the right home for heavy or situational dependencies: keep the import inside the plugin, and consumers only pay for it when they mount it. [`<SelectionTool />`](../selection/) needs `earcut`; [`<DrawService />`](../draw-service/) needs the Connect RPC client. Neither is pulled in unless you use that plugin.
