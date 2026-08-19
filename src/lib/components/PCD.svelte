@@ -45,6 +45,7 @@
 				traits.Name(name ?? 'Random points'),
 				traits.Points,
 				traits.BufferGeometry(geometry),
+				traits.ShuffledPointCount(positions.length / 3),
 			]
 
 			if (renderOrder) {

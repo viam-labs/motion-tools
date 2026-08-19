@@ -12,6 +12,7 @@
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
+	import { providePointBudget } from '$lib/hooks/usePointBudget.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
@@ -55,6 +56,8 @@
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
+
+	providePointBudget(() => settings.current.pointBudget)
 
 	const { isPresenting } = useXR()
 </script>

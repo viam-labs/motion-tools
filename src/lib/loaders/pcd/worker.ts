@@ -4,6 +4,54 @@ import type { Message } from './messages'
 
 const loader = new PCDLoader()
 
+/**
+ * A fixed seed keeps a cloud's permutation stable across refreshes, so a decimated view holds
+ * still instead of resampling into a shimmer.
+ */
+const SHUFFLE_SEED = 1_013_904_223
+
+const mulberry32 = (seed: number) => {
+	let state = seed
+
+	return () => {
+		// eslint-disable-next-line unicorn/prefer-math-trunc -- needs 32-bit wrapping, not truncation
+		state = (state + 0x6d_2b_79_f5) | 0
+		let t = Math.imul(state ^ (state >>> 15), state | 1)
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+		return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296
+	}
+}
+
+/**
+ * Reorders points so any prefix is a uniform random subsample, which is what lets the renderer
+ * decimate with `setDrawRange` alone. Sensors emit in scan order, where a prefix is a wedge.
+ */
+const shufflePoints = (positions: Float32Array, colors?: Uint8Array) => {
+	const count = Math.floor(positions.length / 3)
+	const hasColors = colors !== undefined && colors.length >= count * 3
+	const random = mulberry32(SHUFFLE_SEED)
+
+	for (let i = count - 1; i > 0; i--) {
+		const j = Math.floor(random() * (i + 1))
+		if (i === j) continue
+
+		const a = i * 3
+		const b = j * 3
+
+		for (let k = 0; k < 3; k++) {
+			const position = positions[a + k]
+			positions[a + k] = positions[b + k]
+			positions[b + k] = position
+
+			if (hasColors) {
+				const color = colors[a + k]
+				colors[a + k] = colors[b + k]
+				colors[b + k] = color
+			}
+		}
+	}
+}
+
 globalThis.onmessage = async (event) => {
 	const { data, id } = event.data
 	if (!(data instanceof Uint8Array)) {
@@ -30,6 +78,8 @@ globalThis.onmessage = async (event) => {
 					colors[i] = Math.round(colorsFloat[i] * 255)
 				}
 			}
+
+			shufflePoints(positions, colors)
 
 			postMessage({ positions, colors, id } satisfies Message, {
 				transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],

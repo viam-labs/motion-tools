@@ -58,7 +58,8 @@
 						traits.BufferGeometry(geometry),
 						traits.Points,
 						traits.DroppedFile,
-						traits.Removable
+						traits.Removable,
+						traits.ShuffledPointCount(result.pcd.positions.length / 3)
 					)
 					break
 				}

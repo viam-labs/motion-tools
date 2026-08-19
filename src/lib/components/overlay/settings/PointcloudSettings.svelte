@@ -43,6 +43,20 @@
 		</div>
 	</label>
 
+	<label class="flex items-center justify-between gap-2">
+		Point budget while moving
+
+		<div class="w-20">
+			<Input
+				type="number"
+				bind:value={settings.current.pointBudget}
+				on:keydown={(event) => event.stopImmediatePropagation()}
+			/>
+		</div>
+	</label>
+
+	<p class="text-subtle-2">Full detail returns when the camera settles. 0 disables.</p>
+
 	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Enabled cameras</strong></h3>
 
 	{#each cameras.current as camera (camera)}

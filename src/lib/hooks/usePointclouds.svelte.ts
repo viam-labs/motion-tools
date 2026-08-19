@@ -11,7 +11,7 @@ import { getContext, setContext, untrack } from 'svelte'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { useLogs } from '$lib/plugins'
 
@@ -163,6 +163,7 @@ export const providePointclouds = (partID: () => string) => {
 
 							if (geometry) {
 								updateBufferGeometry(geometry, positions, metadata)
+								setOrAddTrait(existing, traits.ShuffledPointCount, positions.length / 3)
 								return
 							}
 						}
@@ -173,7 +174,9 @@ export const providePointclouds = (partID: () => string) => {
 							...hierarchy.parentTraits(name),
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
-							traits.Points
+							traits.Points,
+							traits.PointCloudAPI,
+							traits.ShuffledPointCount(positions.length / 3)
 						)
 
 						entities.set(queryKey, entity)

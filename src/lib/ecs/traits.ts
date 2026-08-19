@@ -11,6 +11,8 @@ import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
 import { isParsedFrom, parseMesh } from '$lib/mesh'
 
+import { setOrAddTrait } from './setOrAddTrait'
+
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
 
@@ -156,6 +158,13 @@ export const Arrows = trait({
 export const Points = trait(() => true)
 
 /**
+ * Total points in a cloud whose buffer was shuffled at parse time, so any prefix is a uniform
+ * spatial subsample. Tracks the live count: draw range alone can't tell a decimated cloud
+ * from one that shrank into a reused buffer.
+ */
+export const ShuffledPointCount = trait(() => 0)
+
+/**
  * A box, in mm
  */
 export const Box = trait({ x: 200, y: 200, z: 200 })
@@ -188,6 +197,8 @@ export const DrawAPI = trait(() => true)
 export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
+export const PointCloudAPI = trait(() => true)
+export const PointCloudObjectAPI = trait(() => true)
 
 /**
  * Marker trait for entities created from user-dropped files (PLY, PCD, etc.)
@@ -350,6 +361,8 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 	parsePcdInWorker(new Uint8Array(pointCloud))
 		.then((parsed) => {
 			if (!entity.isAlive()) return
+
+			setOrAddTrait(entity, ShuffledPointCount, parsed.positions.length / 3)
 
 			const buffer = entity.get(BufferGeometry)
 			let colors = parsed.colors

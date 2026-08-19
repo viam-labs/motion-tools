@@ -12,7 +12,7 @@ import { Matrix4 } from 'three'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/lib'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins'
@@ -201,6 +201,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 									if (geometry) {
 										updateBufferGeometry(geometry, positions, metadata)
+										setOrAddTrait(existing, traits.ShuffledPointCount, positions.length / 3)
 									}
 								} else {
 									const geometry = createBufferGeometry(positions, metadata)
@@ -208,7 +209,9 @@ export const providePointcloudObjects = (partID: () => string) => {
 									const entity = world.spawn(
 										traits.Name(pointcloudLabel),
 										traits.BufferGeometry(geometry),
-										traits.Points
+										traits.Points,
+										traits.PointCloudObjectAPI,
+										traits.ShuffledPointCount(positions.length / 3)
 									)
 
 									entities.set(pointcloudLabel, entity)
@@ -251,6 +254,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
 									traits.Color({ r: 0, g: 1, b: 0 }),
+									traits.PointCloudObjectAPI,
 								]
 
 								const entity = world.spawn(...entityTraits)
