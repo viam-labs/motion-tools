@@ -11,7 +11,7 @@
 
 	import { draggable } from '@neodrag/svelte'
 	import { useThrelte } from '@threlte/core'
-	import { Portal, PortalTarget } from '@threlte/extras'
+	import { Portal } from '@threlte/extras'
 	import { Icon } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
@@ -161,7 +161,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 			bind:this={dragElement}
 		>
 			<div class="flex w-[90%] items-center gap-1">
-				<PortalTarget id="details-header-icon" />
 				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
 				<span class="text-subtle-2">{displayType}</span>
 			</div>
@@ -229,8 +228,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 					{#snippet content()}View from this frame{/snippet}
 				</Tooltip>
 			{/if}
-
-			<PortalTarget id="details-header-actions" />
 
 			{#if removable.current}
 				<Tooltip placement="bottom">

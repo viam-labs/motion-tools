@@ -17,6 +17,7 @@
 	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
+	import { provideDetailsSections } from '$lib/hooks/useDetailsSections.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { provideHotkeys } from '$lib/hooks/useHotkeys.svelte'
@@ -114,6 +115,16 @@
 		environment.current.isStandalone = !localConfigProps
 	})
 
+	const detailsSections = provideDetailsSections()
+
+	// The host's `details` snippet is just another section. Registered in an
+	// effect so a swapped prop re-registers; sections can't hold an undefined
+	// snippet, and no card can render before this first runs.
+	$effect(() => {
+		if (details === undefined) return
+		return detailsSections.register({ snippet: details })
+	})
+
 	const selected = useQuery(traits.Selected)
 </script>
 
@@ -143,7 +154,6 @@
 				{#each selected.current as entity, index (entity)}
 					<Details
 						{entity}
-						{details}
 						style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
 					/>
 				{/each}

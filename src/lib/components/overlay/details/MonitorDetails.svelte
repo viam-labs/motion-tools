@@ -1,28 +1,26 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
 	import type { HTMLAttributes } from 'svelte/elements'
 
-	import { PortalTarget } from '@threlte/extras'
 	import { type Entity } from 'koota'
 
+	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
+	import ColorDetails from '$lib/components/overlay/details/ColorDetails.svelte'
+	import CountDetails from '$lib/components/overlay/details/CountDetails.svelte'
+	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
+	import DimensionsDetails from '$lib/components/overlay/details/DimensionsDetails.svelte'
+	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
+	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
+	import RelationshipDetails from '$lib/components/overlay/details/RelationshipDetails.svelte'
 	import { traits, useTag } from '$lib/ecs'
-
-	import AxesHelperDetails from './AxesHelperDetails.svelte'
-	import ColorDetails from './ColorDetails.svelte'
-	import CountDetails from './CountDetails.svelte'
-	import DetailsPanel from './DetailsPanel.svelte'
-	import DimensionsDetails from './DimensionsDetails.svelte'
-	import OpacityDetails from './OpacityDetails.svelte'
-	import PoseDetails from './PoseDetails.svelte'
-	import RelationshipDetails from './RelationshipDetails.svelte'
+	import { useDetailsSections } from '$lib/hooks/useDetailsSections.svelte'
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
-		details?: Snippet<[{ entity: Entity }]>
 	}
 
-	const { entity, details, ...rest }: Props = $props()
+	const { entity, ...rest }: Props = $props()
 
+	const sections = useDetailsSections()
 	const customDetails = useTag(() => entity, traits.CustomDetails)
 </script>
 
@@ -49,8 +47,6 @@
 
 		<CountDetails {entity} />
 
-		<PortalTarget id="details-extensions" />
-
 		{#if !customDetails.current}
 			<ColorDetails {entity} />
 			<OpacityDetails {entity} />
@@ -60,5 +56,9 @@
 
 	<RelationshipDetails {entity} />
 
-	{@render details?.({ entity })}
+	{#each sections?.current ?? [] as section (section)}
+		{#if section.when?.(entity) ?? true}
+			{@render section.snippet({ entity })}
+		{/if}
+	{/each}
 </DetailsPanel>
