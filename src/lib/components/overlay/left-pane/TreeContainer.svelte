@@ -8,7 +8,6 @@
 	import FloatingPanel from '../FloatingPanel.svelte'
 	import PoseStalenessIndicator from './PoseStalenessIndicator.svelte'
 	import Tree from './Tree.svelte'
-	import TreeGroupingToggle from './TreeGroupingToggle.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'
 	import { useTree } from './useTree.svelte'
 
@@ -36,7 +35,6 @@
 >
 	{#snippet headerSuffix()}
 		<PoseStalenessIndicator />
-		<TreeGroupingToggle />
 	{/snippet}
 
 	<Tree

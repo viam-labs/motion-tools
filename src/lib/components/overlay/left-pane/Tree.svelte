@@ -65,19 +65,52 @@
 	const api = $derived(tree.connect(service, normalizeProps))
 	const rootChildren = $derived(collection.rootNode.children ?? [])
 
+	const openedFolders = new Set<string>()
+
+	// Seeded once per folder rather than on every rebuild, so a folder the user
+	// collapsed stays collapsed. `.pre` lands the value before the first commit,
+	// otherwise every folder renders collapsed for a frame and then pops open.
+	$effect.pre(() => {
+		for (const node of rootChildren) {
+			if (!node.isFolder) continue
+
+			const value = `${node.entity}`
+			if (openedFolders.has(value)) continue
+
+			openedFolders.add(value)
+			expandedValues.add(value)
+		}
+	})
+
+	let scroller: HTMLElement | undefined = $state()
+
 	$effect(() => {
 		const value = selected.current.at(-1)
-		if (value === undefined) return
+		if (value === undefined || !scroller) return
+
+		const port = scroller
 
 		const frame = requestAnimationFrame(() => {
-			const row = document.querySelector(`[data-scope="tree-view"][data-value="${value}"]`)
+			const row = port.querySelector(`[data-scope="tree-view"][data-value="${value}"]`)
+			if (!(row instanceof HTMLElement)) return
 
-			// Rows span the full scroll width, so scrolling one into view can never
-			// reveal a deeply indented name. Aim at the label instead.
-			const label = row?.querySelector('[data-part="item-text"], [data-part="branch-text"]')
-			const target = label ?? row
+			// Vertical only. Rows are `w-max min-w-full` and labels `flex: 1 0 auto`, so
+			// neither is ever fully in view horizontally — letting `scrollIntoView` touch
+			// the inline axis drags the port back to the name's start on every selection.
+			const left = port.scrollLeft
+			row.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+			port.scrollLeft = left
 
-			target?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+			// A deeply indented name can still sit past the right edge, so nudge the
+			// inline axis by hand, and only when the name is actually out of view.
+			const label = row.querySelector('[data-part="item-text"], [data-part="branch-text"]')
+			if (!(label instanceof HTMLElement)) return
+
+			const nameLeft = label.getBoundingClientRect().left
+			const view = port.getBoundingClientRect()
+			if (nameLeft < view.left || nameLeft > view.right) {
+				port.scrollLeft += nameLeft - view.left
+			}
 		})
 
 		return () => cancelAnimationFrame(frame)
@@ -86,6 +119,7 @@
 
 <div
 	{...api.getRootProps()}
+	bind:this={scroller}
 	class="h-full scrollbar-thin overflow-auto text-xs"
 >
 	<!--

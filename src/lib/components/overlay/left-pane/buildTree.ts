@@ -11,8 +11,10 @@ export interface TreeNode {
 	children?: TreeNode[]
 	/** Folder row. Backed by a synthetic entity with no scene presence. */
 	isFolder?: boolean
-	/** Name of the `ChildOf` parent when it sits in another folder. */
-	detachedParent?: string
+	/** Entities in the folder at any depth, not just the rows directly under it. */
+	itemCount?: number
+	/** The `ChildOf` parent, set when it sits in another folder. */
+	detachedParent?: Entity
 }
 
 export interface Tree {
@@ -25,34 +27,6 @@ const collator = new Intl.Collator()
 
 const compareByName = (a: Entity, b: Entity): number =>
 	collator.compare(a.get(traits.Name) ?? '', b.get(traits.Name) ?? '')
-
-/** Top-down `ChildOf` hierarchy. Orphans are hidden until the resolver places them. */
-export const buildHierarchy = (world: World): Tree => {
-	const parents = new Map<string, string>()
-
-	const walk = (entity: Entity): TreeNode => {
-		const node: TreeNode = { entity }
-
-		const children = world.query(relations.ChildOf(entity)).toSorted(compareByName)
-		if (children.length > 0) {
-			node.children = children.map((child) => {
-				parents.set(`${child}`, `${entity}`)
-				return walk(child)
-			})
-		}
-
-		return node
-	}
-
-	const rootEntities: Entity[] = []
-	for (const entity of world.query(traits.Name, Not(traits.Orphan))) {
-		if (entity.targetFor(relations.ChildOf)) continue
-		rootEntities.push(entity)
-	}
-	rootEntities.sort(compareByName)
-
-	return { nodes: rootEntities.map((entity) => walk(entity)), parents }
-}
 
 const otherFolder = treeFolders.length - 1
 
@@ -67,10 +41,11 @@ const ownFolder = (entity: Entity): number | undefined => {
 }
 
 /**
- * The same entities grouped by source. `folderEntities` supplies one entity per
- * entry in `treeFolders`, in order; folders that claim nothing are left out.
+ * Named entities grouped by source. `folderEntities` supplies one entity per entry
+ * in `treeFolders`, in order; folders that claim nothing are left out. Orphans are
+ * hidden until the resolver places them.
  */
-export const buildFolders = (world: World, folderEntities: Entity[]): Tree => {
+export const buildTree = (world: World, folderEntities: Entity[]): Tree => {
 	const parents = new Map<string, string>()
 	const entities = world.query(traits.Name, Not(traits.Orphan))
 	const rows = new Set<Entity>(entities)
@@ -106,10 +81,13 @@ export const buildFolders = (world: World, folderEntities: Entity[]): Tree => {
 
 	const childrenOf = new Map<Entity, Entity[]>()
 	const folderRoots: Entity[][] = treeFolders.map(() => [])
+	const folderCounts: number[] = treeFolders.map(() => 0)
 
 	for (const entity of entities) {
 		const folder = folderFor(entity)
 		const parent = entity.targetFor(relations.ChildOf)
+
+		folderCounts[folder] += 1
 
 		// Edges that leave a folder aren't drawn. The relation itself is untouched,
 		// so world matrices and the visibility cascade still compose through it.
@@ -148,13 +126,13 @@ export const buildFolders = (world: World, folderEntities: Entity[]): Tree => {
 		nodes.push({
 			entity: folder,
 			isFolder: true,
+			itemCount: folderCounts[index],
 			children: roots.map((entity) => {
 				parents.set(`${entity}`, `${folder}`)
 
 				const node = walk(entity)
 				const parent = entity.targetFor(relations.ChildOf)
-				const detached = parent?.isAlive() ? parent.get(traits.Name) : undefined
-				if (detached) node.detachedParent = detached
+				if (parent?.isAlive() && parent.get(traits.Name)) node.detachedParent = parent
 
 				return node
 			}),

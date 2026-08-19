@@ -8,6 +8,7 @@
 
 	import type { TreeNode } from './buildTree'
 
+	import EntityLink from '../EntityLink.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {
@@ -134,8 +135,16 @@
 				{...api.getBranchTextProps(nodeProps)}
 			>
 				{name.current}
+				{#if node.itemCount !== undefined}
+					<span class="text-disabled">
+						<span aria-hidden="true">·</span>
+						{node.itemCount}
+					</span>
+				{/if}
 				{#if node.detachedParent}
-					<span class="text-subtle-2">in {node.detachedParent}</span>
+					<span class="text-subtle-2">
+						in <EntityLink entity={node.detachedParent} />
+					</span>
 				{/if}
 			</span>
 
@@ -181,7 +190,9 @@
 		>
 			{name.current}
 			{#if node.detachedParent}
-				<span class="text-subtle-2">in {node.detachedParent}</span>
+				<span class="text-subtle-2">
+					in <EntityLink entity={node.detachedParent} />
+				</span>
 			{/if}
 		</span>
 

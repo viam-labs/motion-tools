@@ -1,11 +1,7 @@
 import { createWorld, type Entity, IsExcluded, type World } from 'koota'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import {
-	buildHierarchy,
-	buildFolders,
-	type TreeNode,
-} from '$lib/components/overlay/left-pane/buildTree'
+import { buildTree, type TreeNode } from '$lib/components/overlay/left-pane/buildTree'
 import { treeFolders } from '$lib/components/overlay/left-pane/treeFolders'
 import { relations, traits } from '$lib/ecs'
 
@@ -21,14 +17,14 @@ const folderNamed = (nodes: TreeNode[], name: string): TreeNode | undefined =>
 const namesIn = (node: TreeNode | undefined): string[] =>
 	(node?.children ?? []).map((child) => child.entity.get(traits.Name) ?? '')
 
-describe('buildFolders', () => {
+describe('buildTree', () => {
 	it('groups entities under the folder holding their source trait', () => {
 		world = createWorld()
 		world.spawn(traits.Name('arm'), traits.FramesAPI)
 		world.spawn(traits.Name('cam1 pointcloud'), traits.PointCloudAPI)
 		world.spawn(traits.Name('obstacle'), traits.WorldStateStoreAPI)
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(namesIn(folderNamed(nodes, 'Frames'))).toEqual(['arm'])
 		expect(namesIn(folderNamed(nodes, 'Point clouds'))).toEqual(['cam1 pointcloud'])
@@ -41,7 +37,7 @@ describe('buildFolders', () => {
 		world.spawn(traits.Name('b'), traits.DrawServiceAPI)
 		world.spawn(traits.Name('c'), traits.SnapshotAPI)
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(namesIn(folderNamed(nodes, 'Drawn'))).toEqual(['a', 'b', 'c'])
 	})
@@ -50,9 +46,22 @@ describe('buildFolders', () => {
 		world = createWorld()
 		world.spawn(traits.Name('arm'), traits.FramesAPI)
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(nodes.map((node) => node.entity.get(traits.Name))).toEqual(['Frames'])
+	})
+
+	it('counts every entity in a folder, not just the rows directly under it', () => {
+		world = createWorld()
+		const arm = world.spawn(traits.Name('arm'), traits.FramesAPI)
+		const upper = world.spawn(traits.Name('arm:upper'), traits.FramesAPI, relations.ChildOf(arm))
+		world.spawn(traits.Name('arm:lower'), traits.FramesAPI, relations.ChildOf(upper))
+
+		const { nodes } = buildTree(world, spawnFolderEntities())
+		const frames = folderNamed(nodes, 'Frames')
+
+		expect(namesIn(frames)).toEqual(['arm'])
+		expect(frames?.itemCount).toBe(3)
 	})
 
 	it('keeps ChildOf nesting when parent and child share a folder', () => {
@@ -60,7 +69,7 @@ describe('buildFolders', () => {
 		const arm = world.spawn(traits.Name('arm'), traits.FramesAPI)
 		world.spawn(traits.Name('arm:upper'), traits.FramesAPI, relations.ChildOf(arm))
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 		const frames = folderNamed(nodes, 'Frames')
 
 		expect(namesIn(frames)).toEqual(['arm'])
@@ -76,12 +85,12 @@ describe('buildFolders', () => {
 			relations.ChildOf(cam)
 		)
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 		const clouds = folderNamed(nodes, 'Point clouds')
 
 		expect(namesIn(folderNamed(nodes, 'Frames'))).toEqual(['cam1'])
 		expect(namesIn(clouds)).toEqual(['cam1 pointcloud'])
-		expect(clouds?.children?.[0]?.detachedParent).toBe('cam1')
+		expect(clouds?.children?.[0]?.detachedParent).toBe(cam)
 		// The relation itself has to survive — world matrices compose through it.
 		expect(cloud.targetFor(relations.ChildOf)).toBe(cam)
 	})
@@ -91,7 +100,7 @@ describe('buildFolders', () => {
 		const root = world.spawn(traits.Name('drawing'), traits.DrawAPI)
 		world.spawn(traits.Name('drawing model 1'), relations.ChildOf(root))
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 		const drawn = folderNamed(nodes, 'Drawn')
 
 		expect(namesIn(drawn)).toEqual(['drawing'])
@@ -104,7 +113,7 @@ describe('buildFolders', () => {
 		const middle = world.spawn(traits.Name('middle'), relations.ChildOf(root))
 		world.spawn(traits.Name('leaf'), relations.ChildOf(middle))
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(nodes.map((node) => node.entity.get(traits.Name))).toEqual(['Frames'])
 	})
@@ -113,7 +122,7 @@ describe('buildFolders', () => {
 		world = createWorld()
 		world.spawn(traits.Name('custom geometry 1'))
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(namesIn(folderNamed(nodes, 'Other'))).toEqual(['custom geometry 1'])
 	})
@@ -122,7 +131,7 @@ describe('buildFolders', () => {
 		world = createWorld()
 		world.spawn(traits.Name('pending'), traits.FramesAPI, traits.Orphan('arm'))
 
-		const { nodes } = buildFolders(world, spawnFolderEntities())
+		const { nodes } = buildTree(world, spawnFolderEntities())
 
 		expect(nodes).toEqual([])
 	})
@@ -136,7 +145,7 @@ describe('buildFolders', () => {
 			relations.ChildOf(cam)
 		)
 
-		const { nodes, parents } = buildFolders(world, spawnFolderEntities())
+		const { nodes, parents } = buildTree(world, spawnFolderEntities())
 		const clouds = folderNamed(nodes, 'Point clouds')
 
 		expect(parents.get(`${cloud}`)).toBe(`${clouds?.entity}`)
@@ -149,36 +158,6 @@ describe('buildFolders', () => {
 		const b = world.spawn(traits.Name('b'), relations.ChildOf(a))
 		a.add(relations.ChildOf(b))
 
-		expect(() => buildFolders(world, spawnFolderEntities())).not.toThrow()
-	})
-})
-
-describe('buildHierarchy', () => {
-	it('nests every named entity under its ChildOf parent, ignoring folders', () => {
-		world = createWorld()
-		const cam = world.spawn(traits.Name('cam1'), traits.FramesAPI)
-		world.spawn(traits.Name('cam1 pointcloud'), traits.PointCloudAPI, relations.ChildOf(cam))
-
-		const { nodes } = buildHierarchy(world)
-
-		expect(nodes.map((node) => node.entity.get(traits.Name))).toEqual(['cam1'])
-		expect(namesIn(nodes[0])).toEqual(['cam1 pointcloud'])
-	})
-
-	it('maps each node to its ChildOf parent', () => {
-		world = createWorld()
-		const cam = world.spawn(traits.Name('cam1'), traits.FramesAPI)
-		const cloud = world.spawn(traits.Name('cloud'), relations.ChildOf(cam))
-
-		const { parents } = buildHierarchy(world)
-
-		expect(parents.get(`${cloud}`)).toBe(`${cam}`)
-	})
-
-	it('hides orphans until the resolver places them', () => {
-		world = createWorld()
-		world.spawn(traits.Name('pending'), traits.Orphan('arm'))
-
-		expect(buildHierarchy(world).nodes).toEqual([])
+		expect(() => buildTree(world, spawnFolderEntities())).not.toThrow()
 	})
 })
