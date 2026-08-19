@@ -28,7 +28,6 @@
 	import { provideFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 	import { domPortal } from '$lib/portal'
 
-	import FileDrop from './FileDrop/FileDrop.svelte'
 	import HoveredEntities from './hover/HoveredEntities.svelte'
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
@@ -144,7 +143,6 @@
 
 			<!-- Overlays that need Threlte context -->
 			<div {@attach domPortal(root)}>
-				<FileDrop />
 				<Dashboard />
 				<Workspace />
 				<Controls />

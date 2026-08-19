@@ -1,13 +1,12 @@
 import { isArrayBuffer } from 'lodash-es'
 
-import { parsePcdInWorker } from '$lib/loaders/pcd'
-
 import {
 	type FileDropper,
 	FileDropperError,
 	type FileDropperParams,
 	parseFailure,
-} from './file-dropper'
+} from '$lib/fileDropper'
+import { parsePcdInWorker } from '$lib/loaders/pcd'
 
 export const pcdDropper: FileDropper = async (params: FileDropperParams) => {
 	const { name, content } = params

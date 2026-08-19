@@ -3,7 +3,8 @@ import type { BufferGeometry } from 'three'
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { FileDropperError, type PlyFileDropSuccess } from '../file-dropper'
+import { FileDropperError, type PlyFileDropSuccess } from '$lib/fileDropper'
+
 import { plyDropper } from '../ply-dropper'
 
 vi.mock('three/examples/jsm/loaders/PLYLoader.js', () => ({

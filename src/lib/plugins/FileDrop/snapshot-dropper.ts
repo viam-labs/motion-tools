@@ -1,7 +1,6 @@
 import { isArrayBuffer, isString } from 'lodash-es'
 
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
-
 import {
 	type FileDropper,
 	FileDropperError,
@@ -10,7 +9,8 @@ import {
 	type FileDropperResult,
 	parseFailure,
 	type SnapshotFileDropSuccess,
-} from './file-dropper'
+} from '$lib/fileDropper'
+
 import { Extensions } from './file-names'
 
 const decodeJson = (params: FileDropperParams): SnapshotFileDropSuccess | FileDropperFailure => {

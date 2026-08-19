@@ -1,6 +1,6 @@
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { FileDropperError } from '$lib/components/FileDrop/file-dropper'
+import { FileDropperError } from '$lib/fileDropper'
 
 import { parsePlan, PlanParseError } from './parse-plan'
 import { parsedPlanToSnapshots } from './plan-to-snapshots'

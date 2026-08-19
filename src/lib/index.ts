@@ -13,6 +13,7 @@ export { default as SettingsPortal } from './components/overlay/Portals/Settings
 export { default as DashboardPortal } from './components/overlay/Portals/DashboardPortal.svelte'
 export { default as WorkspacePortal } from './components/overlay/Portals/WorkspacePortal.svelte'
 export { default as DetailsPortal } from './components/overlay/Portals/DetailsPortal.svelte'
+export { default as OverlayPortal } from './components/overlay/Portals/OverlayPortal.svelte'
 
 export { default as PCD } from './components/PCD.svelte'
 
