@@ -24,7 +24,8 @@
 	const environment = useEnvironment()
 </script>
 
-{#if environment.current.mode === 'monitor'}
+<!-- Hidden while an editing mode owns the scene, including in bare hosts with no mode plugins. -->
+{#if environment.current.mode !== 'build' && environment.current.mode !== 'move'}
 	<MotionPlanReplayerUI
 		{children}
 		{resolvePlanSnapshots}

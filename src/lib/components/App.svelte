@@ -13,9 +13,8 @@
 
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
-	import Details from '$lib/components/overlay/Details.svelte'
 	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
-	import { provideWorld, traits, useQuery } from '$lib/ecs'
+	import { provideWorld } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideDetailsSections } from '$lib/hooks/useDetailsSections.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
@@ -124,8 +123,6 @@
 		if (details === undefined) return
 		return detailsSections.register({ snippet: details })
 	})
-
-	const selected = useQuery(traits.Selected)
 </script>
 
 <div
@@ -150,13 +147,6 @@
 				<Dashboard />
 				<Workspace />
 				<Controls />
-
-				{#each selected.current as entity, index (entity)}
-					<Details
-						{entity}
-						style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
-					/>
-				{/each}
 
 				<PortalTarget id="dom" />
 

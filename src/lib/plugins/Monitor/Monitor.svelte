@@ -5,38 +5,26 @@
 	import { useEnvironment, useEnvironmentMode } from '$lib/hooks/useEnvironment.svelte'
 	import { useFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 
-	import AddFrames from './AddFrames.svelte'
-	import BuildDetails from './BuildDetails.svelte'
-	import LiveUpdatesBanner from './LiveUpdatesBanner.svelte'
-	import StaticGeometries from './StaticGeometries.svelte'
-	import TransformDashboard from './TransformDashboard.svelte'
+	import MonitorDetails from './MonitorDetails.svelte'
 
 	const environment = useEnvironment()
 	const selected = useQuery(traits.Selected)
 	const fullscreen = useFullscreen()
 
-	// Registering also resolves a persisted `build` for hosts that don't mount
-	// this plugin, instead of pausing live queries with no UI out.
-	useEnvironmentMode('build')
+	useEnvironmentMode('monitor')
 </script>
 
 <ModeTogglePortal>
 	<ModeButton
-		class="-ml-px rounded-none"
-		mode="build"
-		description="Build the scene"
+		class="rounded-r-none"
+		mode="monitor"
+		description="Monitor live machine data"
 	/>
 </ModeTogglePortal>
 
-<!-- Each of these gates itself on build mode being active. -->
-<TransformDashboard />
-<LiveUpdatesBanner />
-<AddFrames />
-<StaticGeometries />
-
-{#if environment.current.mode === 'build'}
+{#if environment.current.mode === 'monitor'}
 	{#each selected.current as entity, index (entity)}
-		<BuildDetails
+		<MonitorDetails
 			{entity}
 			style="transform: translate(0, {fullscreen.baseOffset + index * 40}px)"
 		/>

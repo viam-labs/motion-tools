@@ -3,11 +3,11 @@
 
 	import { World } from '@threlte/rapier'
 
-	import MonitorDetails from '$lib/components/overlay/details/MonitorDetails.svelte'
 	import ModeTogglePortal from '$lib/components/overlay/Portals/ModeTogglePortal.svelte'
 	import ModeButton from '$lib/components/overlay/workspace/ModeButton.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { useEnvironment, useEnvironmentMode } from '$lib/hooks/useEnvironment.svelte'
+	import MonitorDetails from '$lib/plugins/Monitor/MonitorDetails.svelte'
 
 	import CollisionDetector from './collisions/CollisionDetector.svelte'
 	import MoveControls from './MoveControls.svelte'

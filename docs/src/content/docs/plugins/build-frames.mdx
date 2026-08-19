@@ -53,9 +53,9 @@ Build mode exists only while this plugin is mounted. It declares itself with `us
 	the plugin returns.
 </Aside>
 
-`useEnvironment().availableModes` lists what is currently reachable. The mode toggle reads it to hide itself entirely when `monitor` is the only option, so a viewer with no mode plugins shows no toggle at all.
+`useEnvironment().availableModes` lists what is currently reachable, in registration order. The mode toggle reads it to hide itself entirely when there are fewer than two modes, so a viewer with no mode plugins shows no toggle at all.
 
 ## Runtime requirements
 
 - A **`partID`**, and edit permissions on that part, for the frame-editing affordances.
-- Order matters if you also mount `<MoveFrame />`: both portal a button into the mode toggle in mount order, so mount `<BuildFrames />` first to get the conventional monitor | build | move layout.
+- Mount order is button order and fallback priority: mount [`<Monitor />`](../monitor/), then `<BuildFrames />`, then `<MoveFrame />` for the conventional monitor | build | move layout.
