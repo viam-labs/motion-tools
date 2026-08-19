@@ -208,7 +208,8 @@ export const providePointcloudObjects = (partID: () => string) => {
 									const entity = world.spawn(
 										traits.Name(pointcloudLabel),
 										traits.BufferGeometry(geometry),
-										traits.Points
+										traits.Points,
+										traits.PointCloudObjectAPI
 									)
 
 									entities.set(pointcloudLabel, entity)
@@ -251,6 +252,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
 									traits.Color({ r: 0, g: 1, b: 0 }),
+									traits.PointCloudObjectAPI,
 								]
 
 								const entity = world.spawn(...entityTraits)

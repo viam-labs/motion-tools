@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { Api } from '@zag-js/tree-view'
 
-	import { ChevronRight, Eye, EyeOff } from 'lucide-svelte'
+	import { ChevronRight, Eye, EyeOff, Folder, FolderOpen } from 'lucide-svelte'
 	import { VirtualList } from 'svelte-virtuallists'
 
 	import { traits, useTrait } from '$lib/ecs'
 
-	import type { TreeNode } from './useTree.svelte'
+	import type { TreeNode } from './buildTree'
 
+	import EntityLink from '../EntityLink.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {
@@ -38,9 +39,29 @@
 	 * behind it.
 	 */
 	const rowClass = $derived([
-		nodeState.selected ? 'bg-medium' : 'bg-white hover:bg-light',
+		nodeState.selected && !node.isFolder ? 'bg-medium' : 'bg-white hover:bg-light',
+		node.isFolder && 'text-subtle-2 font-medium',
 		inheritedInvisible.current && 'text-disabled',
 	])
+
+	/**
+	 * Folders have nothing to select, so their whole row toggles instead —
+	 * overriding the selection `onclick` the machine installs under
+	 * `expandOnClick: false`.
+	 */
+	const branchControlProps = $derived.by(() => {
+		const props = api.getBranchControlProps(nodeProps)
+		if (!node.isFolder) return props
+
+		return {
+			...props,
+			onclick: () => {
+				const value = `${node.entity}`
+				if (nodeState.expanded) api.collapse([value])
+				else api.expand([value])
+			},
+		}
+	})
 </script>
 
 {#snippet actions()}
@@ -90,25 +111,46 @@
 	{@const { children = [] } = node}
 	<div {...api.getBranchProps(nodeProps)}>
 		<div
-			{...api.getBranchControlProps(nodeProps)}
+			{...branchControlProps}
 			class={rowClass}
 		>
 			<button
 				type="button"
 				aria-label={expanded ? 'Collapse' : 'Expand'}
 				{...api.getBranchTriggerProps(nodeProps)}
-				class={['flex shrink-0 items-center', { 'rotate-90': expanded }]}
+				class={['flex shrink-0 items-center', { 'rotate-90': expanded && !node.isFolder }]}
 			>
-				<ChevronRight size={14} />
+				{#if node.isFolder}
+					{#if expanded}
+						<FolderOpen size={14} />
+					{:else}
+						<Folder size={14} />
+					{/if}
+				{:else}
+					<ChevronRight size={14} />
+				{/if}
 			</button>
 			<span
-				class="flex items-center"
+				class="flex items-center gap-1.5"
 				{...api.getBranchTextProps(nodeProps)}
 			>
 				{name.current}
+				{#if node.itemCount !== undefined}
+					<span class="text-disabled">
+						<span aria-hidden="true">·</span>
+						{node.itemCount}
+					</span>
+				{/if}
+				{#if node.detachedParent}
+					<span class="text-subtle-2">
+						in <EntityLink entity={node.detachedParent} />
+					</span>
+				{/if}
 			</span>
 
-			{@render actions()}
+			{#if !node.isFolder}
+				{@render actions()}
+			{/if}
 		</div>
 		<div {...api.getBranchContentProps(nodeProps)}>
 			<div {...api.getBranchIndentGuideProps(nodeProps)}></div>
@@ -147,6 +189,11 @@
 			{...api.getItemTextProps(nodeProps)}
 		>
 			{name.current}
+			{#if node.detachedParent}
+				<span class="text-subtle-2">
+					in <EntityLink entity={node.detachedParent} />
+				</span>
+			{/if}
 		</span>
 
 		{@render actions()}

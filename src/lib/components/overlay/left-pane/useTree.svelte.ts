@@ -1,52 +1,31 @@
-import { type Entity, Not, type World } from 'koota'
+import { IsExcluded } from 'koota'
 import { createSubscriber } from 'svelte/reactivity'
 
 import { relations, traits, useWorld } from '$lib/ecs'
 
-export interface TreeNode {
-	entity: Entity
-	children?: TreeNode[]
-}
+import type { Tree, TreeNode } from './buildTree'
 
-const collator = new Intl.Collator()
-
-const compareByName = (a: Entity, b: Entity): number =>
-	collator.compare(a.get(traits.Name) ?? '', b.get(traits.Name) ?? '')
-
-const buildTree = (world: World): TreeNode[] => {
-	const walk = (entity: Entity): TreeNode => {
-		const node: TreeNode = { entity }
-
-		const children = world.query(relations.ChildOf(entity)).toSorted(compareByName)
-		if (children.length > 0) {
-			node.children = children.map((child) => walk(child))
-		}
-
-		return node
-	}
-
-	const rootEntities: Entity[] = []
-	for (const entity of world.query(traits.Name, Not(traits.Orphan))) {
-		if (entity.targetFor(relations.ChildOf)) continue
-		rootEntities.push(entity)
-	}
-	rootEntities.sort(compareByName)
-
-	return rootEntities.map((entity) => walk(entity))
-}
+import { buildTree } from './buildTree'
+import { treeFolders } from './treeFolders'
 
 /**
- * Reactive top-down tree built from `ChildOf` relations. Rebuilds when any
- * named entity is added, removed, renamed, or gains/loses a `ChildOf` or
- * `Orphan` edge; rebuild notifications are throttled (see below) so bursts of
- * world-state churn stay off the frame budget. Orphans are hidden from the
- * tree — they reappear once `provideHierarchy` resolves them to a real
- * `ChildOf` parent.
+ * Reactive scene tree, grouped into `treeFolders`. Rebuilds when any named entity
+ * is added, removed, renamed, or gains/loses a `ChildOf` or `Orphan` edge; rebuild
+ * notifications are throttled (see below) so bursts of world-state churn stay off
+ * the frame budget.
  */
-export const useTree = (): { readonly current: TreeNode[] } => {
+export const useTree = (): {
+	readonly current: TreeNode[]
+	readonly parents: Map<string, string>
+} => {
 	const world = useWorld()
 
-	let cached: TreeNode[] | undefined
+	// `IsExcluded` keeps the folder rows out of every query, including this hook's own.
+	const folderEntities = treeFolders.map((folder) =>
+		world.spawn(IsExcluded, traits.Name(folder.name))
+	)
+
+	let cached: Tree | undefined
 	let dirty = true
 
 	const subscribe = createSubscriber((update) => {
@@ -96,14 +75,23 @@ export const useTree = (): { readonly current: TreeNode[] } => {
 		}
 	})
 
+	const read = (): Tree => {
+		subscribe()
+
+		if (dirty || !cached) {
+			cached = buildTree(world, folderEntities)
+			dirty = false
+		}
+
+		return cached
+	}
+
 	return {
 		get current() {
-			subscribe()
-			if (dirty || !cached) {
-				cached = buildTree(world)
-				dirty = false
-			}
-			return cached
+			return read().nodes
+		},
+		get parents() {
+			return read().parents
 		},
 	}
 }
