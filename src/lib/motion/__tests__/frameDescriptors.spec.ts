@@ -197,7 +197,22 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'shoulder' }] } },
+					// Joints carry their own parents, which is what decides their trajectory column
+					// (see `modelJointColumns`) — declaration order alone does not.
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'base_top', parent: 'waist' },
+								{ id: 'upper_arm', parent: 'shoulder' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'shoulder', parent: 'base_top' },
+							],
+						},
+					},
 				},
 				'arm:waist': {
 					frame_type: 'named',
@@ -432,6 +447,24 @@ describe('buildFrameDescriptors', () => {
 			expect(parentOfCamera(p)).toBe('arm:extra_link')
 		})
 
+		// Go marshals an empty `id` rather than omitting it. Unfiltered that reads as a second
+		// unclaimed leaf, and the model falls to "declines to pick".
+		it('does not let an unnamed node masquerade as a second leaf', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [{ id: 'gripper_rot', parent: 'extra_link' }],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'base' },
+						{ id: '', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
+		})
+
 		// A bare string would be indexed as an array and yield its first character, resolving `arm:g`.
 		it('ignores an output_frames that is not an array', () => {
 			const p = armed({
@@ -449,6 +482,26 @@ describe('buildFrameDescriptors', () => {
 			// Falls to the sole-leaf rule rather than resolving to `arm:g`.
 			expect(parentOfCamera(p)).toBe('arm:gripper_mount')
 		})
+
+		// `aux_joint` is declared last but sorts first, so reading the array picks it and the camera
+		// stays on the bare model name. No leaf or output frame: a model with either never gets here.
+		it('hangs the camera off the last joint of the walk, not the last one declared', () => {
+			const p = armed({
+				name: 'arm',
+				model: {
+					joints: [
+						{ id: 'gripper_rot', parent: 'base' },
+						{ id: 'aux_joint', parent: 'base' },
+					],
+					links: [
+						{ id: 'gripper_mount', parent: 'gripper_rot' },
+						{ id: 'extra_link', parent: 'gripper_rot' },
+					],
+				},
+			})
+
+			expect(parentOfCamera(p)).toBe('arm:extra_link')
+		})
 	})
 
 	it('remaps frames parented to a model frame to the terminal static frame', () => {
@@ -458,7 +511,19 @@ describe('buildFrameDescriptors', () => {
 			{
 				arm: {
 					frame_type: 'model',
-					frame: { name: 'arm', model: { joints: [{ id: 'waist' }, { id: 'gripper_rot' }] } },
+					frame: {
+						name: 'arm',
+						model: {
+							links: [
+								{ id: 'base', parent: 'world' },
+								{ id: 'gripper_mount', parent: 'gripper_rot' },
+							],
+							joints: [
+								{ id: 'waist', parent: 'base' },
+								{ id: 'gripper_rot', parent: 'waist' },
+							],
+						},
+					},
 				},
 				'arm:gripper_rot': {
 					frame_type: 'named',
