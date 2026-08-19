@@ -28,8 +28,6 @@
 	import { domPortal } from '$lib/portal'
 
 	import HoveredEntities from './hover/HoveredEntities.svelte'
-	import AddFrames from './overlay/AddFrames.svelte'
-	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import RenderStats from './overlay/widgets/RenderStats.svelte'
 	import Scene from './Scene.svelte'
@@ -150,15 +148,11 @@
 					/>
 				{/each}
 
-				<LiveUpdatesBanner />
-
 				<PortalTarget id="dom" />
 
 				{#if settings.current.renderStats}
 					<RenderStats />
 				{/if}
-
-				<AddFrames />
 			</div>
 		</SceneProviders>
 	</Canvas>

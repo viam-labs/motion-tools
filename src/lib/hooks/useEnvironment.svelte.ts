@@ -10,7 +10,7 @@ export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
  *
  *  - `monitor` — read live machine data.
  *  - `build` — author the scene from the part config; live polling is paused so
- *    staged edits aren't overwritten.
+ *    staged edits aren't overwritten. Contributed by the `BuildFrames` plugin.
  *  - `move` — drive a frame to a goal pose through the motion service. Contributed
  *    by the `MoveFrame` plugin; unreachable when it isn't mounted.
  */
@@ -51,10 +51,7 @@ const modes = new Set<EnvironmentMode>(['monitor', 'build', 'move'])
 
 export const createEnvironment = (): Context => {
 	const stored = new PersistedState<EnvironmentMode>(ENVIRONMENT_MODE_STORAGE_KEY, 'monitor')
-	const availableModes = new SvelteMap<EnvironmentMode, number>([
-		['monitor', 1],
-		['build', 1],
-	])
+	const availableModes = new SvelteMap<EnvironmentMode, number>([['monitor', 1]])
 
 	const effectiveMode = $derived.by((): EnvironmentMode => {
 		const value = stored.current
