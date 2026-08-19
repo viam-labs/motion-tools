@@ -175,8 +175,8 @@ export const providePointclouds = (partID: () => string) => {
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
 							traits.Points,
-							traits.PointCloudAPI,
-							traits.ShuffledPointCount(positions.length / 3)
+							traits.ShuffledPointCount(positions.length / 3),
+							traits.PointCloudAPI
 						)
 
 						entities.set(queryKey, entity)
