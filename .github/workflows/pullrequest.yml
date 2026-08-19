@@ -8,6 +8,7 @@ permissions: write-all
 jobs:
   proto-gen:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: ${{ !startsWith(github.event.pull_request.title, 'Version Packages') }}
     outputs:
       protos_changed: ${{ steps.check-protos.outputs.protos }}
@@ -86,6 +87,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: ${{ !startsWith(github.event.pull_request.title, 'Version Packages') }}
 
     steps:
@@ -125,6 +127,7 @@ jobs:
 
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: proto-gen
     if: ${{ !startsWith(github.event.pull_request.title, 'Version Packages') }}
 
@@ -156,6 +159,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: proto-gen
     if: ${{ !startsWith(github.event.pull_request.title, 'Version Packages') }}
 
@@ -184,7 +188,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      # Skipped on cache hit, --with-deps included: ubuntu-latest ships Chrome, so
+      # Chromium's shared libraries are already on the image and apt stays untouched.
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm playwright install chromium --with-deps
 
       # TS protos (src/lib/buf) are restored from the wireit cache primed by the
@@ -199,6 +217,7 @@ jobs:
 
   test-draw:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: proto-gen
     if: ${{ !startsWith(github.event.pull_request.title, 'Version Packages') }}
 
