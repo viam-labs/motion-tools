@@ -63,8 +63,9 @@ export const useHotkeys = () => {
 
 /**
  * Contributes a keyboard shortcut for as long as the calling component is
- * mounted. Dispatch belongs to the `KeyboardBindings` component; while it isn't
- * mounted, bindings are registered but inert and no window listener exists.
+ * mounted. Dispatch belongs to the visualizer's always-mounted `KeyboardBindings`
+ * dispatcher; a binding is inert unless the component declaring it is mounted
+ * and its `when` holds.
  */
 export const useHotkey = (binding: HotkeyBinding) => {
 	const release = useHotkeys().register(binding)
