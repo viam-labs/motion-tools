@@ -4,7 +4,7 @@ import { onDestroy } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 
-import { traits, useWorld } from '$lib/ecs'
+import { setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
@@ -15,21 +15,6 @@ import * as planRelations from './relations'
 const PLAN_COLOR = { r: 0, g: 0.47, b: 1 }
 const PLAN_OPACITY = 0.6
 
-// koota's `set` writes the trait's store slot but will not add an absent trait — the entity's
-// mask is untouched, so `has` stays false and nothing querying the trait ever sees the value.
-// Plan transforms carry no color metadata, so `Color` is always absent on spawn; `Opacity` only
-// happens to be present because `drawTransform` adds it unconditionally. Guard both rather than
-// depend on that.
-const setOrAddColor = (entity: Entity, value: typeof PLAN_COLOR) => {
-	if (entity.has(traits.Color)) entity.set(traits.Color, value)
-	else entity.add(traits.Color(value))
-}
-
-const setOrAddOpacity = (entity: Entity, value: number) => {
-	if (entity.has(traits.Opacity)) entity.set(traits.Opacity, value)
-	else entity.add(traits.Opacity(value))
-}
-
 export interface PlanEntry {
 	name: string
 	content: string
@@ -37,6 +22,8 @@ export interface PlanEntry {
 
 // Only primitives here — proto objects (Snapshot[]) live outside $state to avoid Svelte 5 deep proxy
 interface PlanState {
+	/** Survives the reindexing `removePlan` does to `plans`, which a position does not. */
+	id: number
 	name: string
 	content: string
 	status: 'idle' | 'ready' | 'error' | 'no-trajectory'
@@ -65,10 +52,14 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const relationships = useRelationships()
 
 	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy
+	// Keyed by `PlanState.id`, not by position in `plans`.
 	const snapshotStore = new Map<number, Snapshot[]>()
+
+	let nextPlanId = 0
 
 	let plans = $state<PlanState[]>(
 		(initialPlans ?? []).map((e) => ({
+			id: nextPlanId++,
 			name: e.name,
 			content: e.content,
 			status: 'idle' as const,
@@ -126,14 +117,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 			// Defaults land on first appearance only. Re-forcing them every step is what wiped
 			// the user's Details-panel edits.
-			if (!spawned.entity.has(traits.ReferenceFrame)) setOrAddColor(spawned.entity, PLAN_COLOR)
-			setOrAddOpacity(spawned.entity, PLAN_OPACITY)
+			if (!spawned.entity.has(traits.ReferenceFrame))
+				setOrAddTrait(spawned.entity, traits.Color, PLAN_COLOR)
+			setOrAddTrait(spawned.entity, traits.Opacity, PLAN_OPACITY)
 		}
 
 		// Restore captured config onto entities that survived this step.
 		for (const [entity, prev] of preserved) {
 			if (!entity.isAlive()) continue
-			setOrAddOpacity(entity, prev.opacity)
+			setOrAddTrait(entity, traits.Opacity, prev.opacity)
 			if (prev.invisible) entity.add(traits.Invisible)
 			else entity.remove(traits.Invisible)
 			if (prev.showAxes) entity.add(traits.ShowAxesHelper)
@@ -146,7 +138,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 	const setStep = (step: number) => {
 		if (activePlanIndex === null) return
-		const snapshots = snapshotStore.get(activePlanIndex)
+		const active = plans[activePlanIndex]
+		const snapshots = active && snapshotStore.get(active.id)
 		if (!snapshots || snapshots.length === 0) return
 		applyStep(snapshots, Math.max(0, Math.min(snapshots.length - 1, step)))
 	}
@@ -155,7 +148,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		const planState = plans[index]
 		if (!planState) return
 
-		const stored = snapshotStore.get(index)
+		const stored = snapshotStore.get(planState.id)
 		if (stored) {
 			activePlanIndex = index
 			currentStep = 0
@@ -172,7 +165,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 				activePlanIndex = index
 				return
 			}
-			snapshotStore.set(index, snapshots)
+			snapshotStore.set(planState.id, snapshots)
 			plans[index] = { ...planState, status: 'ready', stepCount: snapshots.length, error: null }
 			activePlanIndex = index
 			currentStep = 0
@@ -191,13 +184,15 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const addPlan = (name: string, content: string, precomputedSnapshots?: Snapshot[]) => {
+		const id = nextPlanId++
 		const index = plans.length
 		if (precomputedSnapshots && precomputedSnapshots.length > 0) {
-			snapshotStore.set(index, precomputedSnapshots)
+			snapshotStore.set(id, precomputedSnapshots)
 		}
 		plans = [
 			...plans,
 			{
+				id,
 				name,
 				content,
 				status: precomputedSnapshots && precomputedSnapshots.length > 0 ? 'ready' : 'idle',
@@ -209,8 +204,11 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	}
 
 	const removePlan = (index: number) => {
+		const removed = plans[index]
+		if (!removed) return
+
 		if (activePlanIndex === index) clearActivePlan()
-		snapshotStore.delete(index)
+		snapshotStore.delete(removed.id)
 		plans = plans.filter((_, i) => i !== index)
 		if (activePlanIndex !== null && activePlanIndex > index) {
 			activePlanIndex = activePlanIndex - 1

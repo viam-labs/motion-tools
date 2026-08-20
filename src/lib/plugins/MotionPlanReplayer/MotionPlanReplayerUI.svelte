@@ -97,7 +97,9 @@
 			</div>
 		{/if}
 
-		{#each ctx.plans as plan, i (plan.name)}
+		<!-- Keyed by id: only the upload path rejects a duplicate name, and a repeated key throws
+		`each_key_duplicate` in production builds as well as dev. -->
+		{#each ctx.plans as plan, i (plan.id)}
 			{@const isActive = ctx.activePlanIndex === i}
 			<div
 				class={[
