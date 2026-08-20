@@ -31,25 +31,47 @@ end_header
 const bytes = (text: string) => new TextEncoder().encode(text)
 
 /**
- * Binary on purpose: `STLLoader` classifies ASCII by regex, so an ASCII fixture parses out of an
- * oversized buffer and the subarray and short-input cases below pass with their guards deleted.
+ * Binary on purpose: the subarray cases below reach a text path for an ASCII mesh, which is decoded
+ * from the view and so carries its own offset. Only the binary path reads the underlying buffer.
  */
-const binaryStl = (triangles = 1): Uint8Array => {
-	const buffer = new ArrayBuffer(84 + 50 * triangles)
+const binaryStl = (triangles = 1): Uint8Array<ArrayBuffer> => {
+	// 80-byte header, uint32 triangle count, then 50 bytes per triangle.
+	const buffer = new ArrayBuffer(80 + 4 + 50 * triangles)
 	const view = new DataView(buffer)
 	view.setUint32(80, triangles, true)
-
-	let offset = 84
-	for (let i = 0; i < triangles; i += 1) {
-		// normal (0,0,1) then the three corners of a unit triangle
-		for (const value of [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]) {
-			view.setFloat32(offset, value, true)
-			offset += 4
-		}
-		offset += 2
+	// Normal, then three vertices, as 12 little-endian floats. The remaining 2 bytes of each
+	// triangle are the attribute count, which the loader ignores.
+	const floats = [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+	for (let triangle = 0; triangle < triangles; triangle += 1) {
+		const start = 84 + triangle * 50
+		for (const [i, value] of floats.entries()) view.setFloat32(start + i * 4, value, true)
 	}
-
 	return new Uint8Array(buffer)
+}
+
+const binaryPly = (): Uint8Array<ArrayBuffer> => {
+	const header = bytes(`ply
+format binary_little_endian 1.0
+element vertex 3
+property float x
+property float y
+property float z
+element face 1
+property list uchar int vertex_index
+end_header
+`)
+	// Three xyz vertices, then one face: a uchar count followed by three int32 indices.
+	const body = new ArrayBuffer(3 * 3 * 4 + 1 + 3 * 4)
+	const view = new DataView(body)
+	const vertices = [0, 0, 0, 1, 0, 0, 0, 1, 0]
+	for (const [i, value] of vertices.entries()) view.setFloat32(i * 4, value, true)
+	view.setUint8(36, 3)
+	for (const [i, value] of [0, 1, 2].entries()) view.setInt32(37 + i * 4, value, true)
+
+	const out = new Uint8Array(header.length + body.byteLength)
+	out.set(header, 0)
+	out.set(new Uint8Array(body), header.length)
+	return out
 }
 
 // Mapped rather than spread: a spread passes one argument per byte and blows the call stack on a
@@ -101,10 +123,6 @@ describe('parseMeshInput', () => {
 		expect(parseMeshInput(new Uint8Array(), contentType).getAttribute('position')).toBeUndefined()
 	})
 
-	it('parses a binary stl mesh into real vertices', () => {
-		expect(parseMeshInput(binaryStl(2), 'stl').getAttribute('position').count).toBe(6)
-	})
-
 	it.each([
 		['ascii', () => btoa(asciiStl)],
 		['binary', () => base64(binaryStl())],
@@ -112,13 +130,31 @@ describe('parseMeshInput', () => {
 		expect(parseMeshInput(encode(), 'stl').getAttribute('position').count).toBe(3)
 	})
 
-	it('parses a binary stl mesh held in a subarray', () => {
-		const stl = binaryStl()
-		const padded = new Uint8Array(stl.length + 8)
-		padded.set(stl, 4)
-		const view = padded.subarray(4, 4 + stl.length)
+	it.each([
+		['stl', binaryStl],
+		['ply', binaryPly],
+	])('parses a binary %s mesh into real vertices', (contentType, build) => {
+		expect(parseMeshInput(build(), contentType).getAttribute('position').count).toBe(3)
+	})
 
-		expect(parseMeshInput(view, 'stl').getAttribute('position').count).toBe(3)
+	it('reads the stl triangle count rather than assuming one', () => {
+		expect(parseMeshInput(binaryStl(2), 'stl').getAttribute('position').count).toBe(6)
+	})
+
+	/**
+	 * An unsliced view starts a binary loader four bytes early, and both answer that with an empty
+	 * geometry rather than a throw, so this fails silently if the guard goes.
+	 */
+	it.each([
+		['stl', binaryStl],
+		['ply', binaryPly],
+	])('parses a binary %s mesh held in a subarray', (contentType, build) => {
+		const mesh = build()
+		const padded = new Uint8Array(mesh.length + 8)
+		padded.set(mesh, 4)
+		const view = padded.subarray(4, 4 + mesh.length)
+
+		expect(parseMeshInput(view, contentType).getAttribute('position').count).toBe(3)
 	})
 
 	it.each([[1], [19], [83]])(
@@ -148,5 +184,19 @@ describe('parseMeshInput', () => {
 		['malformed base64', '!!!not base64!!!'],
 	])('returns an empty geometry for %s rather than throwing', (_label, encoded) => {
 		expect(parseMeshInput(encoded, 'stl').getAttribute('position')).toBeUndefined()
+	})
+
+	// The text path decodes from the view, so it was never at risk; kept so the pair is symmetric
+	// and a future change to the sniffing cannot quietly break it.
+	it.each([
+		['stl', asciiStl],
+		['ply', asciiPly],
+	])('parses an ascii %s mesh held in a subarray', (contentType, text) => {
+		const mesh = bytes(text)
+		const padded = new Uint8Array(mesh.length + 8)
+		padded.set(mesh, 4)
+		const view = padded.subarray(4, 4 + mesh.length)
+
+		expect(parseMeshInput(view, contentType).getAttribute('position').count).toBe(3)
 	})
 })
