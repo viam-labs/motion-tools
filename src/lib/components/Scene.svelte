@@ -11,7 +11,9 @@
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
+	import { traits, useQuery } from '$lib/ecs'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
+	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
@@ -55,6 +57,23 @@
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
+
+	const selected = useQuery(traits.Selected)
+
+	useHotkey({
+		key: 'h',
+		description: 'Hide or show the selection',
+		when: () => selected.current.length > 0,
+		run: () => {
+			for (const entity of selected.current) {
+				if (entity?.has(traits.Invisible)) {
+					entity.remove(traits.Invisible)
+				} else {
+					entity?.add(traits.Invisible)
+				}
+			}
+		},
+	})
 
 	const { isPresenting } = useXR()
 </script>

@@ -22,6 +22,7 @@
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
 	import { provideEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { provideFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
+	import { provideHotkeys } from '$lib/hooks/useHotkeys.svelte'
 	import { providePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { createPartIDContext } from '$lib/hooks/usePartID.svelte'
 	import { provideSettings } from '$lib/hooks/useSettings.svelte'
@@ -90,6 +91,7 @@
 
 	provideWorld()
 	provideSettingsTabs()
+	provideHotkeys()
 
 	const settings = provideSettings()
 	const environment = provideEnvironment()
