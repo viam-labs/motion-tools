@@ -222,10 +222,7 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 
 		const takeScreenshot = async (testPrefix: string) => {
 			try {
-				await expect(page).toHaveScreenshot(`${testPrefix}.png`, {
-					fullPage: true,
-					threshold: 0.1,
-				})
+				await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 			} catch (error) {
 				console.warn(error)
 				failedScreenshots.push(`${testPrefix}.png`)
