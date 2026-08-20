@@ -14,7 +14,7 @@ import { resourceNameToColor, subtypeToColor } from '$lib/color'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { deriveKinematicsFrames, ownerOfInternalFrame } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 import { useConfigFrames } from './useConfigFrames.svelte'
 import { useEnvironment } from './useEnvironment.svelte'

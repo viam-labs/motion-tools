@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Icon } from '@viamrobotics/prime-core'
 
-	import { DashboardPortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
 	import DiffHeaderLabel from './DiffHeaderLabel.svelte'

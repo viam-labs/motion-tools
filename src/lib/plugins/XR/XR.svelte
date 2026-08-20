@@ -4,7 +4,7 @@
 	import { SvelteMap } from 'svelte/reactivity'
 	import { Quaternion } from 'three'
 
-	import { SettingsPortal } from '$lib'
+	import SettingsPortal from '$lib/components/overlay/Portals/SettingsPortal.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 

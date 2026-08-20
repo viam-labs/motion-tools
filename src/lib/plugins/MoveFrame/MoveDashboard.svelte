@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { PressedKeys } from 'runed'
 
-	import { DashboardPortal } from '$lib'
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 
 	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 
