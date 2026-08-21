@@ -510,10 +510,13 @@ func (svc *DrawService) UpdateEntity(
 		// the next chunk. A masked update is a field patch (a recolor, a move) and must not be
 		// appended to the buffer.
 		//
-		// A chunked entity keeps its element data on disk rather than in physical_object, so a
-		// mask that selects the shape patches a proto field that is not the source of truth,
-		// and the patch is invisible to GetEntityChunk. Masks that only touch metadata or the
-		// pose are unaffected. Partial element updates on a chunked entity are undefined.
+		// TODO: define how a masked update interacts with the chunk buffer. A chunked entity
+		// keeps its element data on disk rather than in physical_object, so a mask that selects
+		// the shape (physical_object, or a nested path such as
+		// physical_object.points.positions) patches a proto field that is not the source of
+		// truth, and the patch is invisible to GetEntityChunk. Masks that only touch metadata or
+		// the pose are unaffected. Until this is settled, partial element updates on a chunked
+		// entity are undefined; redraw the entity instead.
 		// Redraw the entity instead.
 		if entity, ok := svc.chunked[id]; ok && len(req.Msg.GetUpdatedFields().GetPaths()) == 0 {
 			if err := svc.accumulateChunk(entity, e.Drawing); err != nil {
@@ -548,9 +551,8 @@ func (svc *DrawService) UpdateEntity(
 // receive the pose and metadata the entity was created with, and nothing would ever correct
 // it.
 //
-// Shape masks are skipped. A chunked entity's elements live in the buffer, not in the
-// template's physical_object, so there is nothing meaningful to sync. See the note in
-// UpdateEntity.
+// Shape masks are skipped. A chunked entity's elements live in the buffer, not in the template's
+// physical_object, so there is nothing meaningful to sync; see the TODO in UpdateEntity.
 //
 // svc.mu must be held.
 func (svc *DrawService) syncChunkedTemplate(id uuid.UUID, incoming *drawv1.Drawing, mask *fieldmaskpb.FieldMask) {

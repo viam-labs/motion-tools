@@ -134,6 +134,17 @@ export default defineConfig(
 			'unicorn/require-module-specifiers': 'off',
 			'unicorn/prefer-global-this': 'off',
 			'unicorn/no-nested-ternary': 'off',
+
+			// TODO
+			// 'unicorn/filename-case': [
+			// 	'error',
+			// 	{
+			// 		cases: {
+			// 			camelCase: true,
+			// 			pascalCase: true,
+			// 		},
+			// 	},
+			// ],
 		},
 	},
 

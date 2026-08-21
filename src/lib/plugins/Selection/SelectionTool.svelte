@@ -23,6 +23,7 @@
 		/** Allow manually going into selection state */
 		selecting?: boolean
 
+		// TODO: remove once a Selected trait exists
 		autoSelectNewEntities?: boolean
 		children?: Snippet
 	}

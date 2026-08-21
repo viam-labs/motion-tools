@@ -47,7 +47,11 @@ const tryParse = (json: string) => {
 	}
 }
 
-/** The Go scripts marshal JSON rather than protobuf, so keys arrive upper-cased with no type contract. Lowercasing them here is what lets the rest of this module read them. */
+/**
+ * @TODO get golang scripts to return protobufs so that we
+ * can use our types. Right now we're just marshalling JSON,
+ * leading to upper case var names and no type contract with the golang lib.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lowercaseKeys = <T>(obj: T): any => {
 	if (Array.isArray(obj)) {
