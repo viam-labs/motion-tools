@@ -158,11 +158,12 @@ export const Arrows = trait({
 export const Points = trait(() => true)
 
 /**
- * Total points in a cloud whose buffer was shuffled at parse time, so any prefix is a uniform
- * spatial subsample. Tracks the live count: draw range alone can't tell a decimated cloud
- * from one that shrank into a reused buffer.
+ * A cloud whose buffer was shuffled at parse time. `total` is the live point count, tracked
+ * because draw range alone can't tell a decimated cloud from one that shrank into a reused
+ * buffer. `shuffled` is how many leading points are a uniform spatial subsample — decimating
+ * past it would draw the scan-ordered tail, which is a wedge rather than a sample.
  */
-export const ShuffledPointCount = trait(() => 0)
+export const PointSampling = trait({ total: 0, shuffled: 0 })
 
 /**
  * A box, in mm
@@ -197,8 +198,6 @@ export const DrawAPI = trait(() => true)
 export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
-export const PointCloudAPI = trait(() => true)
-export const PointCloudObjectAPI = trait(() => true)
 
 /** A cloud from a camera's `GetPointCloud`. */
 export const PointCloudAPI = trait(() => true)
@@ -368,7 +367,10 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 		.then((parsed) => {
 			if (!entity.isAlive()) return
 
-			setOrAddTrait(entity, ShuffledPointCount, parsed.positions.length / 3)
+			setOrAddTrait(entity, PointSampling, {
+				total: parsed.positions.length / 3,
+				shuffled: parsed.shuffled,
+			})
 
 			const buffer = entity.get(BufferGeometry)
 			let colors = parsed.colors
@@ -396,15 +398,18 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 				const oldCount = buffer.getAttribute('position')?.count ?? 0
 				const newCount = parsed.positions.length / 3
 				if (oldCount === newCount) {
-					updateBufferGeometry(buffer, parsed.positions, {
-						colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					updateBufferGeometry(
+						buffer,
+						parsed.positions,
+						{ colors, colorFormat: ColorFormat.RGB },
+						parsed.bounds
+					)
 				} else {
-					const fresh = createBufferGeometry(parsed.positions, {
-						colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					const fresh = createBufferGeometry(
+						parsed.positions,
+						{ colors, colorFormat: ColorFormat.RGB },
+						parsed.bounds
+					)
 					buffer.dispose()
 					entity.set(BufferGeometry, fresh)
 				}
@@ -415,10 +420,11 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 			entity.remove(Box, Capsule, Sphere)
 			entity.add(
 				BufferGeometry(
-					createBufferGeometry(parsed.positions, {
-						colors: parsed.colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					createBufferGeometry(
+						parsed.positions,
+						{ colors: parsed.colors, colorFormat: ColorFormat.RGB },
+						parsed.bounds
+					)
 				)
 			)
 			if (!entity.has(Points)) entity.add(Points)

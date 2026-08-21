@@ -180,8 +180,8 @@ export const providePointcloudObjects = (partID: () => string) => {
 						const pointcloudLabel = `${name} pointcloud ${index + 1}`
 						nextKeys.add(pointcloudLabel)
 
-						parsePcdInWorker(pointCloud)
-							.then(({ positions, colors }) => {
+						parsePcdInWorker(pointCloud, settings.current.pointBudget)
+							.then(({ positions, colors, bounds, shuffled }) => {
 								if (disposed) {
 									return
 								}
@@ -200,17 +200,20 @@ export const providePointcloudObjects = (partID: () => string) => {
 									const geometry = existing.get(traits.BufferGeometry)
 
 									if (geometry) {
-										updateBufferGeometry(geometry, positions, metadata)
-										setOrAddTrait(existing, traits.ShuffledPointCount, positions.length / 3)
+										updateBufferGeometry(geometry, positions, metadata, bounds)
+										setOrAddTrait(existing, traits.PointSampling, {
+											total: positions.length / 3,
+											shuffled,
+										})
 									}
 								} else {
-									const geometry = createBufferGeometry(positions, metadata)
+									const geometry = createBufferGeometry(positions, metadata, bounds)
 
 									const entity = world.spawn(
 										traits.Name(pointcloudLabel),
 										traits.BufferGeometry(geometry),
 										traits.Points,
-										traits.ShuffledPointCount(positions.length / 3),
+										traits.PointSampling({ total: positions.length / 3, shuffled }),
 										traits.PointCloudObjectAPI
 									)
 

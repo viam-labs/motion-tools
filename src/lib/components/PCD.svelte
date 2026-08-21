@@ -36,16 +36,20 @@
 		let entity: Entity | undefined
 		let cancelled = false
 
-		parsePcdInWorker(data).then(({ positions, colors }) => {
+		parsePcdInWorker(data).then(({ positions, colors, bounds, shuffled }) => {
 			if (cancelled) return
 
-			const geometry = createBufferGeometry(positions, { colors, colorFormat: ColorFormat.RGB })
+			const geometry = createBufferGeometry(
+				positions,
+				{ colors, colorFormat: ColorFormat.RGB },
+				bounds
+			)
 
 			const entityTraits: ConfigurableTrait[] = [
 				traits.Name(name ?? 'Random points'),
 				traits.Points,
 				traits.BufferGeometry(geometry),
-				traits.ShuffledPointCount(positions.length / 3),
+				traits.PointSampling({ total: positions.length / 3, shuffled }),
 			]
 
 			if (renderOrder) {

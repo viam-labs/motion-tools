@@ -57,6 +57,18 @@
 
 	<p class="text-subtle-2">Full detail returns when the camera settles. 0 disables.</p>
 
+	<label class="flex items-center justify-between gap-2">
+		Max point size (px)
+
+		<div class="w-20">
+			<Input
+				type="number"
+				bind:value={settings.current.maxPointSize}
+				on:keydown={(event) => event.stopImmediatePropagation()}
+			/>
+		</div>
+	</label>
+
 	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Enabled cameras</strong></h3>
 
 	{#each cameras.current as camera (camera)}

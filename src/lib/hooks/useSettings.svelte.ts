@@ -37,6 +37,8 @@ export interface Settings {
 	pointColor: ColorRepresentation
 	/** Max points drawn across all clouds while the camera moves. 0 draws every point. */
 	pointBudget: number
+	/** Ceiling on a point's on-screen diameter, in CSS pixels. */
+	maxPointSize: number
 
 	// Lines
 	lineWidth: number
@@ -115,7 +117,8 @@ const defaults = (): Settings => ({
 
 	pointSize: 0.01,
 	pointColor: '#333333',
-	pointBudget: 1_000_000,
+	pointBudget: 800_000,
+	maxPointSize: 32,
 
 	lineWidth: 0.005,
 	lineDotSize: 0.005,

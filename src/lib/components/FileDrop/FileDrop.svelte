@@ -48,10 +48,11 @@
 					break
 				}
 				case 'pcd': {
-					const geometry = createBufferGeometry(result.pcd.positions, {
-						colors: result.pcd.colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					const geometry = createBufferGeometry(
+						result.pcd.positions,
+						{ colors: result.pcd.colors, colorFormat: ColorFormat.RGB },
+						result.pcd.bounds
+					)
 
 					world.spawn(
 						traits.Name(result.name),
@@ -59,7 +60,10 @@
 						traits.Points,
 						traits.DroppedFile,
 						traits.Removable,
-						traits.ShuffledPointCount(result.pcd.positions.length / 3)
+						traits.PointSampling({
+							total: result.pcd.positions.length / 3,
+							shuffled: result.pcd.shuffled,
+						})
 					)
 					break
 				}

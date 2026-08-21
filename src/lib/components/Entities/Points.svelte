@@ -8,6 +8,7 @@
 	import { asColor, isSingleColor } from '$lib/buffer'
 	import { traits, useTrait } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { clampPointSize } from '$lib/three/clampPointSize'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
@@ -18,7 +19,7 @@
 
 	let { entity, children }: Props = $props()
 
-	const { camera } = useThrelte()
+	const { camera, invalidate, renderer } = useThrelte()
 	const settings = useSettings()
 
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
@@ -41,8 +42,17 @@
 	const material = points.material as PointsMaterial
 	material.toneMapped = false
 
+	const maxPointSize = { value: 0 }
+	clampPointSize(material, maxPointSize)
+
 	$effect.pre(() => {
 		material.size = pointSize
+	})
+
+	$effect.pre(() => {
+		// gl_PointSize is in framebuffer pixels; the setting is in CSS pixels.
+		maxPointSize.value = settings.current.maxPointSize * renderer.getPixelRatio()
+		invalidate()
 	})
 
 	$effect.pre(() => {

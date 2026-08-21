@@ -30,6 +30,20 @@ export class FileDropperError extends Error {
 	}
 }
 
+/**
+ * Folds the cause into the message, because only the message reaches the toast. Loaders reject
+ * with whatever they please — the pcd worker sends a bare string, three.js throws an `Error` —
+ * so a dropped file that fails for a diagnosable reason otherwise reports nothing but "failed".
+ */
+export const parseFailure = (name: string, cause: unknown): FileDropperFailure => {
+	const detail = cause instanceof Error ? cause.message : String(cause)
+
+	return {
+		success: false,
+		error: new FileDropperError(`${name} failed to parse: ${detail}`, { cause }),
+	}
+}
+
 export type FileDropperSuccess =
 	| SnapshotFileDropSuccess
 	| PointcloudFileDropSuccess

@@ -1,5 +1,8 @@
+import type { BufferGeometry } from 'three'
+
 import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 
+import type { Bounds } from '../../attribute'
 import type { Message } from './messages'
 
 const loader = new PCDLoader()
@@ -23,16 +26,19 @@ const mulberry32 = (seed: number) => {
 }
 
 /**
- * Reorders points so any prefix is a uniform random subsample, which is what lets the renderer
- * decimate with `setDrawRange` alone. Sensors emit in scan order, where a prefix is a wedge.
+ * Selection sampling: after k steps the first k points are a uniform random sample of the whole
+ * cloud, which is what lets the renderer decimate with `setDrawRange` alone. Sensors emit in scan
+ * order, where a prefix would be an angular wedge. Stops at k rather than permuting everything,
+ * so cost tracks what can actually be drawn instead of how big the cloud is.
  */
-const shufflePoints = (positions: Float32Array, colors?: Uint8Array) => {
+const shufflePoints = (positions: Float32Array, colors: Uint8Array | undefined, depth: number) => {
 	const count = Math.floor(positions.length / 3)
+	const limit = Math.max(0, Math.min(depth, count - 1))
 	const hasColors = colors !== undefined && colors.length >= count * 3
 	const random = mulberry32(SHUFFLE_SEED)
 
-	for (let i = count - 1; i > 0; i--) {
-		const j = Math.floor(random() * (i + 1))
+	for (let i = 0; i < limit; i++) {
+		const j = i + Math.floor(random() * (count - i))
 		if (i === j) continue
 
 		const a = i * 3
@@ -50,10 +56,38 @@ const shufflePoints = (positions: Float32Array, colors?: Uint8Array) => {
 			}
 		}
 	}
+
+	// Swapping every slot but the last leaves the final one determined, so the whole cloud is a
+	// uniform permutation rather than a prefix of one.
+	return limit === count - 1 ? count : limit
+}
+
+/**
+ * Measuring here spares the renderer a walk over every position on the next frame. Order-
+ * independent, so it doesn't matter that the points have already been shuffled.
+ */
+const measure = (geometry: BufferGeometry): Bounds | undefined => {
+	if (!geometry.attributes.position) return undefined
+
+	geometry.computeBoundingBox()
+	geometry.computeBoundingSphere()
+
+	const { boundingBox, boundingSphere } = geometry
+	if (!boundingBox || !boundingSphere) return undefined
+
+	const { min, max } = boundingBox
+	const { center, radius } = boundingSphere
+
+	return {
+		min: { x: min.x, y: min.y, z: min.z },
+		max: { x: max.x, y: max.y, z: max.z },
+		center: { x: center.x, y: center.y, z: center.z },
+		radius,
+	}
 }
 
 globalThis.onmessage = async (event) => {
-	const { data, id } = event.data
+	const { data, id, shuffleDepth } = event.data
 	if (!(data instanceof Uint8Array)) {
 		postMessage({ id, error: 'Invalid data format' } satisfies Message)
 		return
@@ -79,11 +113,14 @@ globalThis.onmessage = async (event) => {
 				}
 			}
 
-			shufflePoints(positions, colors)
+			const shuffled = shufflePoints(positions, colors, shuffleDepth)
 
-			postMessage({ positions, colors, id } satisfies Message, {
-				transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],
-			})
+			postMessage(
+				{ positions, colors, shuffled, bounds: measure(pcd.geometry), id } satisfies Message,
+				{
+					transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],
+				}
+			)
 		} else {
 			postMessage({ id, error: 'Failed to extract geometry' } satisfies Message)
 		}
