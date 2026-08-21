@@ -63,6 +63,7 @@
 		<div class="w-20">
 			<Input
 				type="number"
+				min={0}
 				bind:value={settings.current.maxPointSize}
 				on:keydown={(event) => event.stopImmediatePropagation()}
 			/>
