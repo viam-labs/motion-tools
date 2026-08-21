@@ -8,6 +8,7 @@ import {
 	type FileDropperFailure,
 	type FileDropperParams,
 	type FileDropperResult,
+	parseFailure,
 	type SnapshotFileDropSuccess,
 } from './file-dropper'
 import { Extensions } from './file-names'
@@ -30,10 +31,7 @@ const decodeJson = (params: FileDropperParams): SnapshotFileDropSuccess | FileDr
 			snapshot,
 		}
 	} catch (error) {
-		return {
-			success: false,
-			error: new FileDropperError(`${name} failed to parse.`, { cause: error }),
-		}
+		return parseFailure(name, error)
 	}
 }
 
@@ -55,10 +53,7 @@ const decodeBinary = (params: FileDropperParams): FileDropperResult => {
 			snapshot,
 		}
 	} catch (error) {
-		return {
-			success: false,
-			error: new FileDropperError(`${name} failed to parse.`, { cause: error }),
-		}
+		return parseFailure(name, error)
 	}
 }
 
@@ -85,10 +80,7 @@ const decodeGzip = async (params: FileDropperParams): Promise<FileDropperResult>
 			snapshot,
 		}
 	} catch (error) {
-		return {
-			success: false,
-			error: new FileDropperError(`${name} failed to parse.`, { cause: error }),
-		}
+		return parseFailure(name, error)
 	}
 }
 

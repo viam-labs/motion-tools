@@ -1,5 +1,19 @@
 # motion-tools
 
+## 1.45.0
+
+### Minor Changes
+
+- 7801e62: Add `useHotkey` so features and plugins contribute keyboard shortcuts declaratively
+- 7cfcc26: Add `useEnvironmentMode` so a persisted mode resolves back to monitor when the plugin contributing it is not mounted
+
+### Patch Changes
+
+- f8e10a0: Keep a plan's snapshots with the plan when another one is removed
+- cee7c2b: Cut pointcloud draw range when moving camera to avoid frame stutters
+- 7729bee: Fix `Visualizer` imports pulling `@viamrobotics/test-widgets` through the plugins barrel
+- 59813bb: Read mesh data delivered as a number array, the shape a component's kinematics arrives in over protobuf-JSON, alongside the base64 shape plan dumps use
+
 ## 1.44.0
 
 ### Minor Changes
