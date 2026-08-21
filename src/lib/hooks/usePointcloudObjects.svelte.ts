@@ -12,7 +12,7 @@ import { Matrix4 } from 'three'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
@@ -180,8 +180,8 @@ export const providePointcloudObjects = (partID: () => string) => {
 						const pointcloudLabel = `${name} pointcloud ${index + 1}`
 						nextKeys.add(pointcloudLabel)
 
-						parsePcdInWorker(pointCloud)
-							.then(({ positions, colors }) => {
+						parsePcdInWorker(pointCloud, settings.current.pointBudget)
+							.then(({ positions, colors, bounds, shuffled }) => {
 								if (disposed) {
 									return
 								}
@@ -200,15 +200,20 @@ export const providePointcloudObjects = (partID: () => string) => {
 									const geometry = existing.get(traits.BufferGeometry)
 
 									if (geometry) {
-										updateBufferGeometry(geometry, positions, metadata)
+										updateBufferGeometry(geometry, positions, metadata, bounds)
+										setOrAddTrait(existing, traits.PointSampling, {
+											total: positions.length / 3,
+											shuffled,
+										})
 									}
 								} else {
-									const geometry = createBufferGeometry(positions, metadata)
+									const geometry = createBufferGeometry(positions, metadata, bounds)
 
 									const entity = world.spawn(
 										traits.Name(pointcloudLabel),
 										traits.BufferGeometry(geometry),
 										traits.Points,
+										traits.PointSampling({ total: positions.length / 3, shuffled }),
 										traits.PointCloudObjectAPI
 									)
 

@@ -14,6 +14,7 @@
 	import { traits, useQuery } from '$lib/ecs'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
 	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
+	import { providePointBudget } from '$lib/hooks/usePointBudget.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import hdrImage from '../assets/ferndale_studio_11_1k.hdr'
@@ -57,6 +58,8 @@
 	)
 
 	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
+
+	providePointBudget(() => settings.current.pointBudget)
 
 	const selected = useQuery(traits.Selected)
 
