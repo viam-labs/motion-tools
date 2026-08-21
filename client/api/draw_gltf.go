@@ -15,8 +15,8 @@ import (
 // DrawGLTFOptions configures a DrawGLTF call.
 type DrawGLTFOptions struct {
 	// ID is a stable identifier for the entity. When set, calling DrawGLTF
-	// again with the same ID updates the existing entity in place; when empty,
-	// each call creates a new entity with a freshly generated UUID.
+	// again with the same ID updates the existing entity in place. When
+	// empty, each call creates a new entity with a freshly generated UUID.
 	ID string
 	// Name labels the entity in the visualizer. Must be ASCII printable and at
 	// most 100 characters.
@@ -40,15 +40,15 @@ type DrawGLTFOptions struct {
 
 // DrawGLTF reads a GLB/GLTF file from disk, sends its bytes to the visualizer
 // inline, and renders it as a drawing. Passing an ID that already exists
-// updates the previously drawn entity in place; otherwise a new entity is
+// updates the previously drawn entity in place. Otherwise a new entity is
 // created. Returns the UUID assigned by the server.
 //
-// Returns an error when Name is not ASCII printable or exceeds 100 characters,
-// ErrVisualizerNotRunning if no visualizer is reachable, a wrapped filesystem
-// error if FilePath cannot be read, the underlying validation error if the
-// model cannot be constructed (see draw.NewBinaryModelAsset, draw.NewModel —
-// empty file, partial-zero Scale, etc.), or a wrapped RPC error if the
-// AddEntity call fails.
+// Returns an error when Name is not ASCII printable or exceeds 100
+// characters, ErrVisualizerNotRunning if no visualizer is reachable, a
+// wrapped filesystem error if FilePath cannot be read, the underlying
+// validation error if the model cannot be constructed (see
+// draw.NewBinaryModelAsset and draw.NewModel, which reject an empty file or
+// a partly-zero Scale), or a wrapped RPC error if the AddEntity call fails.
 func DrawGLTF(options DrawGLTFOptions) ([]byte, error) {
 	if err := isASCIIPrintable(options.Name); err != nil {
 		return nil, err

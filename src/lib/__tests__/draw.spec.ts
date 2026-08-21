@@ -72,7 +72,7 @@ describe('drawTransform', () => {
 
 		expect(entity.get(traits.Name)).toBe('box-frame')
 		expect(hierarchy.getParentName(entity)).toBe('arm')
-		// Pose translation is in mm; matrix translation is in m (× 0.001).
+		// Pose translation is in mm. Matrix translation is in m, so the factor is 0.001.
 		const matrix = entity.get(traits.Matrix)
 		expect(matrix?.elements[12]).toBeCloseTo(0.1)
 		expect(matrix?.elements[13]).toBeCloseTo(0.2)
@@ -471,7 +471,7 @@ describe('updateDrawing arrows', () => {
 	it('keeps arrow poses in raw millimeters on update (mm->m conversion happens downstream, not twice)', () => {
 		world = createWorld()
 
-		// The ADD path stores poses verbatim in mm; the shader/raycast/hover scale by 0.001.
+		// The ADD path stores poses verbatim in mm. The shader, raycast and hover scale by 0.001.
 		const { entity } = drawDrawing(world, arrowsDrawing([100, 0, 0, 0, 0, 1]), traits.SnapshotAPI)
 		expect(entity.get(traits.Positions)?.[0]).toBe(100)
 

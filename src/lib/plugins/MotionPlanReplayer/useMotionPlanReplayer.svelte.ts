@@ -51,7 +51,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const world = useWorld()
 	const relationships = useRelationships()
 
-	// Proto objects stored here — never inside $state to avoid Svelte 5 deep proxy
 	// Keyed by `PlanState.id`, not by position in `plans`.
 	const snapshotStore = new Map<number, Snapshot[]>()
 
@@ -87,11 +86,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 	const applyStep = (snapshots: Snapshot[], step: number) => {
 		const snap = snapshots[step]!
 
-		// Capture user-adjusted display config before reconcile. reconcile → updateMetadata
-		// resets Opacity to default and removes Invisible/ShowAxesHelper every step, which would
-		// wipe edits made via the Details panel / tree as you scrub. Color survives reconcile
-		// untouched, so it only needs to not be re-forced (see the spawned block below).
-		// Iterate the PartOfPlan relation (not entityMap) so child sub-entities are covered too.
+		// reconcile resets Opacity and removes Invisible/ShowAxesHelper every step, so capture the
+		// user's display edits first. Iterate PartOfPlan so sub-entities are covered too.
 		const preserved = new Map<Entity, { opacity: number; invisible: boolean; showAxes: boolean }>()
 		if (planEntity) {
 			for (const entity of world.query(planRelations.PartOfPlan(planEntity))) {
@@ -105,10 +101,8 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 
 		const result = reconcileSnapshotEntities(world, snap, entityMap)
 
-		// One spawned entry per snapshot message. Plans emit transforms only, and a
-		// transform spawns exactly one childless entity — so tagging the spawned set
-		// tags every entity the plan owns. Model drawings (the one case that spawns
-		// ChildOf sub-entities, for GLTF assets) would need those tagged too.
+		// Plans emit transforms only, and a transform spawns exactly one childless entity, so
+		// tagging the spawned set tags every entity the plan owns.
 		for (const spawned of result.spawned) {
 			relationships.apply(spawned.entity, spawned.relationships)
 			const uuid = spawned.entity.get(traits.UUID)
@@ -122,7 +116,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			setOrAddTrait(spawned.entity, traits.Opacity, PLAN_OPACITY)
 		}
 
-		// Restore captured config onto entities that survived this step.
 		for (const [entity, prev] of preserved) {
 			if (!entity.isAlive()) continue
 			setOrAddTrait(entity, traits.Opacity, prev.opacity)

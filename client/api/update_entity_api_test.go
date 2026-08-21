@@ -15,7 +15,7 @@ const (
 	updateLineID = "update-entity-line"
 )
 
-// Each e2e step runs as its own `go test` process, so a UUID cannot be carried over in memory.
+// derivedUUID rebuilds the UUID a Draw* call assigned, from the same string it was given.
 // draw.WithID derives it deterministically from the string instead, which is the same identity
 // the Draw* call assigned.
 func derivedUUID(id string) []byte {
@@ -62,7 +62,7 @@ func TestUpdateEntity(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 	})
 
-	// Only the pose is sent; the geometry and color the entity was drawn with stay put.
+	// Only the pose is sent. The geometry and color the entity was drawn with stay put.
 	t.Run("MoveTransform", func(t *testing.T) {
 		err := UpdateTransform(UpdateTransformOptions{
 			UUID: derivedUUID(updateBoxID),

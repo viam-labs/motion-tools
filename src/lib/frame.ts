@@ -1,5 +1,3 @@
-// TODO: replace with types exported from the sdk when created
-
 import type { Transform } from '@viamrobotics/sdk'
 
 import { UuidTool } from 'uuid-tool'

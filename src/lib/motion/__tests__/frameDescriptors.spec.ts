@@ -267,7 +267,6 @@ describe('buildFrameDescriptors', () => {
 		)
 		const descriptors = buildFrameDescriptors(p)
 
-		// Joint frames appear as joint descriptors
 		const waist = descriptors.find((d) => d.name === 'arm:waist')!
 		expect(waist).toBeDefined()
 		expect(waist.kind).toBe('joint')
@@ -288,7 +287,6 @@ describe('buildFrameDescriptors', () => {
 			expect(shoulder.axis).toEqual({ X: 0, Y: 1, Z: 0 })
 		}
 
-		// Link frames appear as static descriptors parented directly to their joint
 		const baseTop = descriptors.find((d) => d.name === 'arm:base_top')!
 		expect(baseTop).toBeDefined()
 		expect(baseTop.kind).toBe('static')

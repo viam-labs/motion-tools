@@ -258,8 +258,9 @@
 	 * Applies a translate/rotate drag for a frame system entity. With a kinematic
 	 * offset (LiveMatrix + Matrix both present), the parent-relative target feeds
 	 * solveEditedMatrix to back out the EditedMatrix satisfying
-	 * live × baseline⁻¹ × edited = local. Without one, Frame.svelte's blend
-	 * short-circuits to EditedMatrix, so we write the target pose directly.
+	 * live × baseline⁻¹ × edited = local. Without one, `toLocalMatrix` in
+	 * `$lib/ecs/worldMatrix.ts` short-circuits to EditedMatrix, so we write the
+	 * target pose directly.
 	 */
 	const stageFrameTransform = () => {
 		if (!ref || !entity) return
@@ -309,7 +310,6 @@
 
 		computeLocalDragTarget(tempRefMatrix)
 
-		// update only the dragged component
 		tempPose.setFromMatrix4(matrix)
 		refPose.setFromMatrix4(tempRefMatrix)
 

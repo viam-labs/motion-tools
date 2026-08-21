@@ -7,9 +7,6 @@ import (
 )
 
 // DrawFrameSystem will draw a frame system in the visualizer.
-// Parameters:
-//   - fs: A frame system
-//   - inputs: Frame system inputs
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawFrameSystem] instead.
 // See the v1 → v2 migration guide:

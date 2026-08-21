@@ -55,10 +55,9 @@
 	const removable = useTrait(() => entity, traits.Removable)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 
-	// Fit-to-view needs world bounds. `object3d` alone is undefined for instanced
-	// primitives and geometry-less frames, so resolve bounds via the shared
-	// helper (traits / named object / WorldMatrix) and only offer the button when
-	// something is resolvable.
+	// `object3d` is undefined for instanced primitives and geometry-less frames, so
+	// `expandBoxByEntity` resolves bounds from traits instead. Offer the button only
+	// when one of those sources exists.
 	const focusBox = new Box3()
 	const focusable = $derived(
 		object3d !== undefined ||
@@ -193,7 +192,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 									paddingRight: padding,
 								})
 
-								// Preserve previous rotation
 								currentControls.rotateAzimuthTo(azimuthAngle, true)
 								currentControls.rotatePolarTo(polarAngle, true)
 							}}

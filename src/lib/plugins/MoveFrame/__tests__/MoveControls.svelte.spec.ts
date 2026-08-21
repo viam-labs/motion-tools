@@ -16,8 +16,8 @@ vi.mock('$lib/components/overlay/details/DetailsPanel.svelte', async () => {
 	const MockDetailsPanel = await import('./__fixtures__/MockDetailsPanel.svelte')
 	return { default: MockDetailsPanel.default }
 })
-// The scene-side components need a Threlte context (and import @threlte/extras);
-// stub them out for the panel-body test.
+// The scene-side components need a Threlte context and import @threlte/extras. Stub
+// them out for the panel-body test.
 vi.mock('../MoveGizmo.svelte', async () => {
 	const MockScene = await import('./__fixtures__/MockSceneComponent.svelte')
 	return { default: MockScene.default }
@@ -27,11 +27,11 @@ vi.mock('../MoveTargetGhost.svelte', async () => {
 	return { default: MockScene.default }
 })
 
-// Ghosts are entities in the real world; the panel-body test has no ECS.
+// Ghosts are entities in the real world. The panel-body test has no ECS.
 vi.mock('../useMoveGhosts.svelte', () => ({ useMoveGhosts: () => undefined }))
 
-// The frame's live world transform normally comes from a robot `getPose` poll; hand
-// the panel a fixed one so the pose inputs have something to seed from.
+// The frame's live world transform normally comes from a robot `getPose` poll. Hand the
+// panel a fixed one so the pose inputs have something to seed from.
 const moved = vi.hoisted(() => ({ matrix: undefined as unknown }))
 vi.mock('../useMovedFrameMatrix.svelte', () => ({
 	useMovedFrameMatrix: () => ({
@@ -41,7 +41,7 @@ vi.mock('../useMovedFrameMatrix.svelte', () => ({
 	}),
 }))
 
-// New MoveControls dependencies that the panel-body test does not exercise.
+// MoveControls dependencies the panel-body test does not exercise.
 vi.mock('$lib/hooks/useSettings.svelte', () => ({
 	RefreshRates: { poses: 'poses' },
 	useSettings: () => ({

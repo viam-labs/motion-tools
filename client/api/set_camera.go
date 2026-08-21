@@ -25,9 +25,10 @@ type SetCameraPoseOptions struct {
 }
 
 // SetCamera repositions the visualizer's camera to the given pose. The camera
-// type (perspective or orthographic) is left untouched. Returns
-// ErrVisualizerNotRunning if no visualizer is reachable, or a wrapped RPC error
-// if the SetScene call fails.
+// is sent as a perspective camera, and the call replaces the entire scene
+// metadata, so any grid or point-size overrides set by an earlier SetScene are
+// reset to their defaults. Returns ErrVisualizerNotRunning if no visualizer is
+// reachable, or a wrapped RPC error if the SetScene call fails.
 func SetCamera(options SetCameraPoseOptions) error {
 	client := server.GetClient()
 	if client == nil {

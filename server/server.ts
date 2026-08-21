@@ -29,7 +29,7 @@ const shutdown = async (code = 0) => {
 		console.error(error)
 	}
 
-	// Ask Vite to quit nicely; then hard-kill if it lingers
+	// SIGTERM first, then SIGKILL 800ms later if Vite is still alive.
 	try {
 		viteProcess?.kill('SIGTERM')
 	} catch (error) {
@@ -44,12 +44,10 @@ const shutdown = async (code = 0) => {
 		console.error(error)
 	}
 
-	// Exit this process
 	process.exit(code)
 }
 
 const launchVite = () => {
-	// Keep the handle so we can control it
 	viteProcess = spawn({
 		cmd: ['bun', 'run', 'vite'],
 		env: {
@@ -61,7 +59,6 @@ const launchVite = () => {
 		stderr: 'inherit',
 	})
 
-	// If Vite exits on its own, bring down the Bun server too
 	viteProcess.exited.then((code) => {
 		console.warn(`Vite exited with code ${code ?? 'null'}. Shutting down Bun server.`)
 		shutdown(typeof code === 'number' ? code : 1)
@@ -247,13 +244,10 @@ process.on('unhandledRejection', (reason) => {
 	shutdown(1)
 })
 
-// As a last resort (e.g., normal exit), try to kill vite
 process.on('exit', () => viteProcess?.kill('SIGTERM'))
 
-// Roughly 1 GiB
 const oneGigabyte = 1024 * 1024 * 1024
 
-// Start the API/WebSocket server
 try {
 	apiServer = serve({
 		port: WS_PORT,

@@ -28,7 +28,7 @@ type Nurbs struct {
 	Knots      []float64
 }
 
-// Generate a NURBS structure similar to the Three.js version
+// GenerateNURBS builds a NURBS curve matching the Three.js sample data.
 //
 // Deprecated: shapes is part of the deprecated v1 API and has no v2 equivalent. Build
 // NURBS inputs directly and pass them to
@@ -44,14 +44,13 @@ func GenerateNURBS(numControlPoints int, degree int, offset r3.Vector) Nurbs {
 		knots[i] = 0
 	}
 
-	// Generate control points and remaining knots
 	for i := 0; i < numControlPoints; i++ {
 
 		controlPts[i] = spatialmath.NewPose(
 			r3.Vector{
-				X: rand.Float64()*400 - 200 + offset.X, // Random X in range [-200, 200]
-				Y: rand.Float64()*400 + offset.Y,       // Random Y in range [0, 400]
-				Z: rand.Float64()*400 - 200 + offset.Z, // Random Z in range [-200, 200]
+				X: rand.Float64()*400 - 200 + offset.X,
+				Y: rand.Float64()*400 + offset.Y,
+				Z: rand.Float64()*400 - 200 + offset.Z,
 			},
 			&spatialmath.OrientationVectorDegrees{Theta: 0, OX: 0, OY: 0, OZ: 1},
 		)
@@ -69,7 +68,7 @@ func GenerateNURBS(numControlPoints int, degree int, offset r3.Vector) Nurbs {
 	}
 }
 
-// Clamp function (similar to THREE.MathUtils.clamp)
+// clamp constrains value to the range [min, max], matching THREE.MathUtils.clamp.
 func clamp(value, min, max float64) float64 {
 	if value < min {
 		return min

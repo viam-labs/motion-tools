@@ -85,7 +85,7 @@ func TestDrawFrames(t *testing.T) {
 		)
 		test.That(t, err, test.ShouldBeNil)
 
-		// noColorFrame has no entry in Colors and should default to magenta.
+		// noColorFrame has no geometry, so it renders as bare axes with no color applied.
 		noColorFrame, err := referenceframe.NewStaticFrame(
 			"DrawFrames Default",
 			spatialmath.NewPose(r3.Vector{X: 0, Y: 500, Z: 0}, &spatialmath.OrientationVectorDegrees{OZ: 1}),

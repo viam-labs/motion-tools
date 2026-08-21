@@ -67,7 +67,6 @@ func Replay(filename string, playbackSpeed float64) error {
 	}
 	defer reader.Close()
 
-	// Create a new scanner that splits on newlines.
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()

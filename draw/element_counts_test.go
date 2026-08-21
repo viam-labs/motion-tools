@@ -71,7 +71,7 @@ func TestWarnOnAttributeCountMismatch(t *testing.T) {
 	}
 
 	// The warning is advisory, so the assertion here is that the arithmetic identifies the right
-	// cases; a shared color covers every element and must never be flagged.
+	// cases. A shared color covers every element and must never be flagged.
 	for _, tc := range []struct {
 		name     string
 		colors   []byte

@@ -1,35 +1,25 @@
-// TopDownLock
 export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 
-// ControlWidgets
 export { default as ControlWidgets } from './ControlWidgets/ControlWidgets.svelte'
 export { useControlWidgets } from './ControlWidgets/useControlWidgets.svelte'
 
-// Debug
 export { default as Debug } from './Debug/Debug.svelte'
 
-// DrawService
 export { default as DrawService } from './DrawService/DrawService.svelte'
 
-// Focus
 export { default as Focus } from './Focus/Focus.svelte'
 
-// Fullscreen
 export { default as Fullscreen } from './Fullscreen/Fullscreen.svelte'
 
-// LLMSceneBuilder
 export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
 export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'
 export type { FrameDelta } from './LLMSceneBuilder/frameDeltaAdapter'
 
-// Logs
 export { default as Logs } from './Logs/Logs.svelte'
 export { useLogs } from './Logs/useLogs.svelte'
 
-// MeasureTool
 export { default as MeasureTool } from './MeasureTool/MeasureTool.svelte'
 
-// MotionPlanReplayer
 export { default as MotionPlanReplayer } from './MotionPlanReplayer/MotionPlanReplayer.svelte'
 export { useMotionPlanReplayer } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
 export type {
@@ -39,19 +29,13 @@ export type {
 export { transformBytesToSnapshots } from './MotionPlanReplayer/plan-to-snapshots'
 export type { ResolvePlanSnapshots } from './MotionPlanReplayer/plan-dropper'
 
-// MoveFrame
 export { default as MoveFrame } from './MoveFrame/MoveFrame.svelte'
 
-// Selection
 export { default as SelectionTool } from './Selection/SelectionTool.svelte'
 export * as selectionTraits from './Selection/traits'
 export * as selectionRelations from './Selection/relations'
 export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 
-// Skybox
 export { default as Skybox } from './Skybox/Skybox.svelte'
 
-// XR
 export { default as XR } from './XR/XR.svelte'
-// Builds snapshots from host-computed `common.v1.Transform` bytes (e.g. RDK FK), for
-// `addPlan(name, content, snapshots)`. Bytes bridge protobuf-es (here) and protobuf-ts (host).

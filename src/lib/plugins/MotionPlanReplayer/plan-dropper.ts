@@ -7,11 +7,7 @@ import { parsedPlanToSnapshots } from './plan-to-snapshots'
 
 const truncate = (s: string, max = 40): string => (s.length > max ? `${s.slice(0, max - 1)}…` : s)
 
-/**
- * Turns an uploaded plan into snapshots. Returning `undefined` (or throwing) means "I couldn't —
- * fall back to the client parse". Standalone leaves it unset; the app supplies one that runs the
- * server FK route and returns `undefined` on any failure.
- */
+/** Turns an uploaded plan into snapshots. Returning `undefined` or throwing means the host could not, so the client parse runs instead. Standalone leaves it unset. The app supplies one that runs the server FK route and returns `undefined` on any failure. */
 export type ResolvePlanSnapshots = (
 	name: string,
 	content: string

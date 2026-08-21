@@ -20,7 +20,6 @@
 		<div
 			class="border-medium pointer-events-none relative -translate-y-1/2 border bg-white px-3 py-2.5 text-xs shadow-md"
 		>
-			<!-- Arrow -->
 			<div
 				class="border-medium absolute -bottom-[5px] left-1/2 size-2.5 -translate-x-1/2 rotate-45 border-r border-b bg-white"
 			></div>

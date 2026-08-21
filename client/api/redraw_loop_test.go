@@ -13,10 +13,10 @@ import (
 )
 
 // The boxes form a 6x4 grid so a dropped entity shows up as a hole in the rendered scene.
-// Volume-wise this is well short of what it takes to overflow a subscriber; the burst case is
+// Volume-wise this is well short of what it takes to overflow a subscriber. The burst case is
 // covered server-side by TestDrawService_NoChangesLostUnderBurst. What this exercises is the
-// browser reconciling a clear against the redraw that immediately follows it, which goes wrong
-// at any size if the two land in the same animation frame.
+// browser reconciling a clear against the redraw that immediately follows it, which goes wrong at
+// any size if the two land in the same animation frame.
 const (
 	redrawLoopColumns  = 6
 	redrawLoopRows     = 4
@@ -44,7 +44,7 @@ func redrawLoopGeometries(t *testing.T) *referenceframe.GeometriesInFrame {
 	return referenceframe.NewGeometriesInFrame(referenceframe.World, geometries)
 }
 
-// A palette rather than one flat color, so a box drawn at the wrong index is visible too.
+// redrawLoopColors returns a palette rather than one flat color, so a box drawn at the wrong index is visible too.
 func redrawLoopColors() []draw.Color {
 	return []draw.Color{
 		draw.ColorFromName("red"),

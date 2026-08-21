@@ -47,11 +47,7 @@ const tryParse = (json: string) => {
 	}
 }
 
-/**
- * @TODO get golang scripts to return protobufs so that we
- * can use our types. Right now we're just marshalling JSON,
- * leading to upper case var names and no type contract with the golang lib.
- */
+/** The Go scripts marshal JSON rather than protobuf, so keys arrive upper-cased with no type contract. Lowercasing them here is what lets the rest of this module read them. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const lowercaseKeys = <T>(obj: T): any => {
 	if (Array.isArray(obj)) {
@@ -78,14 +74,11 @@ class BinaryReader {
 		this.view = new DataView(this.buffer)
 		this.offsetBytes = 0
 
-		// 16-byte UUID
 		const uuidBytes = new Uint8Array(this.buffer, 0, 16)
 		this.header.requestID = UuidTool.toString([...uuidBytes])
 
-		// 4-byte float32 type at byte offset 16
 		this.header.type = this.view.getFloat32(16, this.littleEndian)
 
-		// payload starts after 20 bytes
 		this.offsetBytes = 20
 		return this
 	}
@@ -292,7 +285,6 @@ export const provideDrawAPI = () => {
 	const vec3 = new Vector3()
 
 	const drawPoses = async (reader: BinaryReader) => {
-		// Read counts
 		const nPoints = reader.read()
 		const nColors = reader.read()
 
@@ -312,18 +304,15 @@ export const provideDrawAPI = () => {
 	}
 
 	const drawPoints = async (reader: BinaryReader) => {
-		// Read label length
 		const labelLen = reader.read()
 		let label = ''
 		for (let i = 0; i < labelLen; i++) {
 			label += String.fromCharCode(reader.read())
 		}
 
-		// Read counts
 		const nPoints = reader.readU32()
 		const nColors = reader.readU32()
 
-		// Read default color
 		const r = reader.read()
 		const g = reader.read()
 		const b = reader.read()
@@ -396,7 +385,6 @@ export const provideDrawAPI = () => {
 	}
 
 	const drawLine = async (reader: BinaryReader) => {
-		// Read label length
 		const labelLen = reader.read()
 		let label = ''
 		for (let i = 0; i < labelLen; i++) {
@@ -407,10 +395,8 @@ export const provideDrawAPI = () => {
 		const entity = entities.find((entity) => entity.get(traits.Name) === label)
 		entity?.destroy()
 
-		// Read counts
 		const nPoints = reader.read()
 
-		// Read default color
 		const r = reader.read()
 		const g = reader.read()
 		const b = reader.read()
@@ -419,7 +405,6 @@ export const provideDrawAPI = () => {
 		const dotG = reader.read()
 		const dotB = reader.read()
 
-		// Read positions
 		const points = new Float32Array(nPoints * 3)
 		for (let i = 0; i < nPoints * 3; i += 3) {
 			points[i + 0] = reader.read()

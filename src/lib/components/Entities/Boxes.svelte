@@ -104,7 +104,7 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	const matrix = new Matrix4()
 	const colorUtil = new Color()
 
-	/** Same resolution order as `Frame.svelte`. */
+	/** Same resolution order as `Capsules.svelte` / `Spheres.svelte`. */
 	const resolveColor = (entity: Entity): Color => {
 		const vertexColors = entity.get(traits.Colors)
 		if (vertexColors && vertexColors.length >= 3) {

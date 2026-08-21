@@ -14,10 +14,8 @@ export { default as DashboardPortal } from './components/overlay/Portals/Dashboa
 export { default as WorkspacePortal } from './components/overlay/Portals/WorkspacePortal.svelte'
 export { default as DetailsPortal } from './components/overlay/Portals/DetailsPortal.svelte'
 
-// Plugins
 export { default as PCD } from './components/PCD.svelte'
 
-// ECS
 export * as relations from './ecs/relations'
 export * as traits from './ecs/traits'
 

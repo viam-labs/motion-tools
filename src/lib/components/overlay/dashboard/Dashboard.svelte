@@ -58,7 +58,6 @@
 	{...rest}
 >
 	{#if isBuildMode}
-		<!-- transform -->
 		<fieldset class="flex">
 			<Button
 				icon="mouse-pointer"
@@ -102,7 +101,6 @@
 			/>
 		</fieldset>
 
-		<!-- snapping -->
 		<fieldset class="flex">
 			<Button
 				icon={settings.current.snapping ? 'magnet' : 'magnet-off'}
@@ -155,7 +153,6 @@
 			</DropdownPane>
 		</fieldset>
 
-		<!-- space -->
 		<fieldset class="flex">
 			<Button
 				icon="axis-arrow"

@@ -55,8 +55,8 @@
 		} else {
 			resetForward.normalize()
 		}
-		// headset.position/quaternion live in the composed XR reference space;
-		// convert into zUp before writing to origin.
+		// headset.position/quaternion live in the composed XR reference space.
+		// Convert into zUp before writing to origin.
 		origin.toZUpPos(resetHead, headset.position)
 		origin.toZUpDir(resetForward)
 		origin.set([resetHead.x + resetForward.x, resetHead.y + resetForward.y, 0], 0)
@@ -89,7 +89,7 @@
 	let addingFrame = $state(false)
 
 	// Snapshot of the geometry dims at drag start. Used in scale mode to compute
-	// `newDims = base * absoluteScaleFactor` each frame; cleared on drag end.
+	// `newDims = base * absoluteScaleFactor` each frame, and cleared on drag end.
 	let geometryBase: GeometryBase | undefined
 	let frameHistoryEntryOpen = false
 
@@ -125,8 +125,8 @@
 
 	// Constrain which axes the gizmo exposes while in scale mode:
 	//   box: all three (width/height/depth)
-	//   capsule: X (radius) + Z (length); hide Y since capsules are radially symmetric
-	//   sphere: X only; a single handle drives the radius
+	//   capsule: X (radius) and Z (length), hiding Y since capsules are radially symmetric
+	//   sphere: X only, a single handle drives the radius
 	// Translate/rotate always show all three.
 	$effect(() => {
 		if (mode !== 'scale') {
@@ -162,7 +162,7 @@
 		}
 	})
 
-	// selectedObject3d resolves to the named Mesh from Mesh.svelte; the Group that
+	// selectedObject3d resolves to the named Mesh from Mesh.svelte. The Group that
 	// carries the frame's pose is its parent (set up in Frame.svelte).
 	$effect(() => {
 		if (!framesAPI.current || !editable.current || !partConfig.hasEditPermissions) {
@@ -262,7 +262,7 @@
 		if (!selectedEntity || !target) return
 
 		if (mode === 'translate') {
-			// three.js scene is in meters; frame config stores mm.
+			// three.js scene is in meters. Frame config stores mm.
 			frameEditor.setPose(selectedEntity, {
 				x: target.position.x * 1000,
 				y: target.position.y * 1000,

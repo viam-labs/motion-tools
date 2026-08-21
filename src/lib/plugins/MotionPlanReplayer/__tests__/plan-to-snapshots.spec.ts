@@ -71,7 +71,6 @@ describe('parsedPlanToSnapshots', () => {
 
 	it('joint and link both appear as transforms', () => {
 		const snapshots = snapshotsFromContent(CONTENT)
-		// waist (joint) and base (link) each emit a transform
 		expect(snapshots[0]!.transforms).toHaveLength(2)
 		const names = snapshots[0]!.transforms.map((t) => t.referenceFrame)
 		expect(names).toContain('arm:waist')
@@ -85,7 +84,6 @@ describe('parsedPlanToSnapshots', () => {
 		const base0 = snapshots[0]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 		const base1 = snapshots[1]!.transforms.find((t) => t.referenceFrame === 'arm:base')!
 
-		// joint theta changes: step 0 → 0°, step 1 → 90°
 		expect(waist0.poseInObserverFrame!.pose!.theta).toBeCloseTo(0, 1)
 		expect(waist1.poseInObserverFrame!.pose!.theta).toBeCloseTo(90, 1)
 
@@ -133,8 +131,6 @@ describe('parsedPlanToSnapshots', () => {
 	})
 })
 
-// The arm holds [0,0,0,0,0,0] across both steps, so the prismatic joint is the plan's only motion —
-// a regression renders this capture entirely still.
 describe('parsedPlanToSnapshots with a translational joint', () => {
 	const snapshots = parsedPlanToSnapshots(parsePlan(gantryPlan))
 	const jointAt = (step: number) =>
@@ -303,7 +299,7 @@ describe('parsedPlanToSnapshots with a model whose joints mimic', () => {
 			),
 		}
 
-		// Dropping the offset leaves the tip at (0, 0, 300); negating it gives (-100, 0, 200).
+		// Dropping the offset leaves the tip at (0, 0, 300). Negating it gives (-100, 0, 200).
 		it("turns the joint by its source's value plus the offset", () => {
 			const [snapshot] = parsedPlanToSnapshots(
 				rdkModelPlan(offsetSerial, [{ test_mimic_serial: [0, 0] }])

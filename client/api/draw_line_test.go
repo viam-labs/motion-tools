@@ -13,10 +13,10 @@ import (
 func generateSpiralPoints() []r3.Vector {
 	offset := r3.Vector{X: 0, Y: 0, Z: 0}
 
-	nTurns := 5.0    // Number of spiral turns
-	radius := 1000.0 // Radius of spiral
-	height := 4000.0 // Total height of spiral
-	nPath := 50      // Number of points along spiral
+	nTurns := 5.0
+	radius := 1000.0
+	height := 4000.0
+	nPath := 50
 
 	points := make([]r3.Vector, 0, nPath)
 

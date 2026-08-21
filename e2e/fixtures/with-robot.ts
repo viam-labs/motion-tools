@@ -81,11 +81,9 @@ export const injectMachineConfig = async (page: Page, config: E2ETestConfig) => 
 					}
 				}
 
-				// Leave the active config unset (-1). The fixture activates the
-				// injected entry by host after reload, because the merged-list index
-				// depends on how many env configs the running dev server is serving —
-				// which the test can't know reliably (e.g. when `.env.local` defines
-				// VITE_CONFIGS and reuseExistingServer reuses that dev server).
+				// Leave the active config unset (-1). The fixture activates the injected entry by
+				// host after reload, because the merged-list index depends on how many env
+				// configs the running dev server serves, which the test cannot know.
 				localStorage.setItem('active-connection-config', '-1')
 			}),
 		config
@@ -186,9 +184,9 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 			console.log(`[${message.type()}] ${message.text()}`)
 		})
 
-		// Navigate first to establish the origin, then inject config.
-		// goto('') (not '/') so a baseURL with a path — e.g. the hosted
-		// playground — resolves correctly instead of jumping to host root.
+		// Navigate first to establish the origin, then inject config. goto('') rather
+		// than '/', so a baseURL that carries a path resolves correctly instead of
+		// jumping to the host root.
 		await page.goto('')
 		await injectMachineConfig(page, config)
 		await page.reload()

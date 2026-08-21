@@ -17,10 +17,6 @@ import (
 // already exist will instead update the pose of that geometry. Only poses can be updated,
 // geometries must be cleared if their shape is to change.
 //
-// Parameters:
-//   - geometriesInFrame: a list of geometries
-//   - colors: a list of corresponding colors for each geometry
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGeometriesInFrame]
 // instead. See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/
@@ -32,15 +28,10 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 	for _, geo := range geometriesInFrame.Geometries() {
 		pc, isPc := geo.(pointcloud.PointCloud)
 		if isPc {
-			// Dan: This is maybe in the wrong spot. The pointcloud is getting here from
-			// `DrawWorldState` method (`DrawFrameSystem` presumably has a similar behavior). Those
-			// methods just pass a list of geometries in bulk to this API. I put this here as it's
-			// convenient to not rewrite those (or any other) methods that passthrough a bunch of
-			// geometries in one swoop.
-			//
-			// Another caveat from that is this hard-coded downscaling. Necessary for performance on
-			// the experiments where running now with real-world data. But obviously not immediately
-			// flexible for other use-cases.
+			// Point clouds arrive here in bulk from DrawWorldState and DrawFrameSystem, which
+			// pass every geometry through in one call, so the downscale happens here rather
+			// than in each caller. The factor is fixed at 25 for real-world experiment
+			// performance and is not tunable per call site.
 			downscaled, err := drawPointCloudDownscaled(geo.Label(), pc, 25)
 			if err != nil {
 				return err
@@ -101,20 +92,15 @@ func drawPointCloudDownscaled(label string, pc pointcloud.PointCloud, minDistanc
 	}, 0)
 	pc.Iterate(0, 0, func(p r3.Vector, d pointcloud.Data) bool {
 		for idx := range addedPoints {
-			// Dan: In lieu of a geo index for these distance/collision lookups, we use a O(n^2)
-			// algorithm. Given the below details with a `minDistance` of 25 "distance units", this
-			// takes ~20 seconds on a work machine. Keeping a total of ~8000 points. Fifty "distance
-			// units" took ~7 seconds. Keeping a total of ~2000 points. For this use-case I'd like
-			// to drop the distance down to between 2->10. But I expect the current quadratic
-			// algorithm to be prohibitively slow there.
+			// There is no spatial index for these distance lookups, so the scan is O(n^2). At
+			// a minDistance of 25 distance units this takes about 20 seconds and keeps about
+			// 8000 points. At 50 it takes about 7 seconds and keeps about 2000. Distances
+			// between 2 and 10 would be prohibitively slow.
 			if addedPoints[idx].point.Distance(p) < minDistance {
-				// Too close to a point we've added. Move on to the next candidate.
-				//
-				// Dan: If it's useful for tuning an indexing data structure, I've found:
-				// - a 3.5 million point pointcloud
-				// - representing a ~1 square meter surface
-				// - that results in 56MB http payload
-				// Has neighboring points that are as small as 1 "distance unit" apart
+				// Too close to a point already added, so move on to the next candidate.
+				// Measured input for tuning an index: a 3.5 million point cloud over about
+				// 1 square meter, 56MB of HTTP payload, with neighbors as close as 1
+				// distance unit.
 				return true
 			}
 		}

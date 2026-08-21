@@ -17,10 +17,6 @@ import (
 // already exist will instead update the pose of that geometry. Only poses can be updated,
 // geometries must be cleared if their shape is to change.
 //
-// Parameters:
-//   - geometry: a geometry
-//   - color: a corresponding color
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGeometry] instead.
 // See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/

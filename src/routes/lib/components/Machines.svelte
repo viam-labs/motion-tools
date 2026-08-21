@@ -64,7 +64,7 @@
 				connectionConfigs.add(config)
 			}
 		} catch {
-			// Do nothing
+			// A paste that does not parse as JSON is not a connection config, so ignore it.
 		}
 	}
 </script>

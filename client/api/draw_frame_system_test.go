@@ -17,7 +17,6 @@ func TestDrawFrameSystem(t *testing.T) {
 		fs := referenceframe.NewEmptyFrameSystem("test")
 		dims := r3.Vector{X: 100, Y: 100, Z: 100}
 
-		// add a static frame with a box
 		name0 := "frame0"
 		box0, err := spatialmath.NewBox(spatialmath.NewZeroPose(), dims, name0)
 		test.That(t, err, test.ShouldBeNil)
@@ -25,13 +24,11 @@ func TestDrawFrameSystem(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		fs.AddFrame(frame0, fs.World())
 
-		// add an arm model to the fs
 		armName := "arm1"
 		model, err := referenceframe.ParseModelJSONFile("../data/ur5e.json", armName)
 		test.That(t, err, test.ShouldBeNil)
 		fs.AddFrame(model, fs.World())
 
-		// add a static frame as a child of the model
 		name2 := "frame1"
 		box2, err := spatialmath.NewBox(spatialmath.NewZeroPose(), dims, name2)
 		test.That(t, err, test.ShouldBeNil)
@@ -39,7 +36,6 @@ func TestDrawFrameSystem(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		fs.AddFrame(blockFrame, model)
 
-		// draw the frame system with zero inputs
 		inputs := referenceframe.NewZeroInputs(fs)
 		uuids, err := DrawFrameSystem(DrawFrameSystemOptions{
 			FrameSystem: fs,
@@ -48,7 +44,6 @@ func TestDrawFrameSystem(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, len(uuids), test.ShouldBeGreaterThan, 0)
 
-		// draw the frame system with non-zero inputs
 		inputs[armName] = []float64{1, 1, 1, 1, 1, 1}
 		uuids, err = DrawFrameSystem(DrawFrameSystemOptions{
 			FrameSystem: fs,

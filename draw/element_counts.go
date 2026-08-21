@@ -41,7 +41,7 @@ func shapeElementCount(shape *drawv1.Shape) (int, bool) {
 // A partial update can change a shape's elements without touching metadata, or the reverse. That
 // is deliberate: not resending a large per-vertex color buffer just to move some points is the
 // whole point of a partial update. The cost is that the two can drift apart, and the service does
-// not reconcile them. Fewer colors than elements renders the extras black; more colors than
+// not reconcile them. Fewer colors than elements renders the extras black. More colors than
 // elements leaves the tail unused. Keeping them consistent is the caller's job, so this only
 // warns.
 //

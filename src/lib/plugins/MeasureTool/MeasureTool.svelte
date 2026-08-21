@@ -34,7 +34,6 @@
 	onmove((event) => {
 		intersection = event.intersections[0]
 
-		// Only handle axis restrictions if a first point has been placed
 		if (!p1 || !intersection) {
 			return
 		}

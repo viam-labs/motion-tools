@@ -11,36 +11,11 @@ import (
 	"unicode/utf8"
 )
 
-/**
-A lot of these methods pack requests into single float32 arrays to be sent to the viz client.
-
-Why? And why not use protobuf? Why this approach is fast, and faster than protobuf for this case:
-
-1. Zero-copy decoding with Float32Array
-We're're streaming raw float32 data.
-The JS client reads it directly using new Float32Array(buffer), which requires no parsing or allocation beyond the typed array.
-This is basically as fast as it gets in JavaScript for numerical data.
-Protobuf Decoding requires parsing the wire format (varints, field tags, lengths).
-Constructs JS objects, maps, and arrays.
-Typically incurs significant GC overhead on large binary blobs.
-Cannot be memory-mapped or used as typed arrays without full decode.
-
-2. Compact, predictable layout
-This layout is tightly packed: label -> header -> positions -> colors.
-We control the alignment and know exactly how to read it — no extra metadata or tags.
-Protobuf adds field numbers, wire types, and nested descriptors — even for flat data.
-
-3. JS performance is optimal for typed arrays
-Browsers (especially Chrome/V8) heavily optimize TypedArray access.
-Avoiding object instantiation helps stay in fast paths of the JIT.
-*/
-
-// DefaultColorMap is a list of sensible colors to cycle between
-// this is also the "Set1" colormap in Matplotlib
+// DefaultColorMap is a palette to cycle between. It is the "Set1" colormap from Matplotlib.
 //
-// Deprecated: the client/client package is deprecated; use
+// Deprecated: the client/client package is deprecated. Use
 // [github.com/viam-labs/motion-tools/client/api] instead. DefaultColorMap has no v2
-// equivalent; rebuild the "Set1" palette with the draw color choosers described in the
+// equivalent. Rebuild the "Set1" palette with the draw color choosers described in the
 // v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 var DefaultColorMap = []string{"#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"}
@@ -131,18 +106,13 @@ func postHTTP(data []byte, content string, endpoint string) error {
 	return nil
 }
 
-// SetURL sets the url for communicating with the visualizer.
-// This is useful when using multiple visualizer windows, or when drawing
-// to a visualizer on another computer.
+// SetURL sets the url for communicating with the visualizer. Use it for multiple
+// visualizer windows, or to draw to a visualizer on another computer. The port
+// should be :3000, the port of the drawing server.
 //
-// The port should be :3000, which is the port of the drawing server.
-//
-// Parameters:
-//   - preferredURL: a url string
-//
-// Deprecated: the client/client package is deprecated; use
-// [github.com/viam-labs/motion-tools/client/api] instead. SetURL has no v2 equivalent
-// (transport is no longer user-configurable). See the v1 → v2 migration guide:
+// Deprecated: the client/client package is deprecated. Use
+// [github.com/viam-labs/motion-tools/client/api] instead. SetURL has no v2 equivalent,
+// because transport is no longer user-configurable. See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/
 func SetURL(preferredURL string) {
 	if !strings.HasSuffix(preferredURL, "/") {

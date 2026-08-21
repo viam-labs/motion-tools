@@ -9,6 +9,8 @@ import (
 	"go.viam.com/test"
 )
 
+// TestDrawHierarchy draws the tree below. The parentheticals are the
+// sibling sort order the visualizer has to apply.
 // world
 // +-- zulu
 // |   +-- tango
@@ -29,7 +31,6 @@ func TestDrawHierarchy(t *testing.T) {
 			return box
 		}
 
-		// Level 1: root nodes parented to "world"
 		uuid, err := DrawGeometry(DrawGeometryOptions{
 			Geometry: makeBox("zulu", r3.Vector{X: 200}),
 			Color:    draw.ColorFromName("red"),
@@ -44,7 +45,6 @@ func TestDrawHierarchy(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, uuid, test.ShouldNotBeNil)
 
-		// Level 2: children of "zulu"
 		uuid, err = DrawGeometry(DrawGeometryOptions{
 			Geometry: makeBox("tango", r3.Vector{X: 200, Y: 200}),
 			Parent:   "zulu",
@@ -61,7 +61,6 @@ func TestDrawHierarchy(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, uuid, test.ShouldNotBeNil)
 
-		// Level 3: children of "tango"
 		uuid, err = DrawGeometry(DrawGeometryOptions{
 			Geometry: makeBox("sierra", r3.Vector{X: 200, Y: 200, Z: 200}),
 			Parent:   "tango",

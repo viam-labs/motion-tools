@@ -26,8 +26,6 @@ vi.mock('@viamrobotics/prime-core', async (importOriginal) => ({
 }))
 
 describe('MotionPlanReplayerUI', () => {
-	// The store spec's duplicate-name case pins the id generator and renders nothing, so this is the
-	// only test that constrains the `{#each}` key.
 	it('renders two plans that share a name as distinct rows', async () => {
 		const user = userEvent.setup()
 		render(ReplayerUIHarness, {

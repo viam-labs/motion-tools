@@ -184,9 +184,9 @@ const createEntityEvents = (
  * targets the closed-over entity.
  *
  * Layers invisibility on top of the shared handlers: enter/move/down/click are
- * suppressed while the entity is invisible (raycasting still hits the visible
- * leaf mesh of Frame/Geometry/GLTF, so the scene's visibility filter can't
- * block them — added in #577, migrated to InheritedInvisible in #710).
+ * suppressed while the entity is invisible, because raycasting still hits the
+ * visible leaf mesh of `Mesh.svelte`, `GeometryModel.svelte`, or `GLTF.svelte`
+ * and the scene visibility filter cannot block them.
  * `onpointerleave` is intentionally left active. The effect tears down a stale
  * Hovered/InstancedMatrix for an entity that turns invisible while hovered,
  * since the guarded handlers can no longer fire to clean it up.

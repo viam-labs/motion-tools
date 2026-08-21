@@ -54,7 +54,7 @@ const waitForMachineOnline = async (
 				}
 			}
 		} catch {
-			// not ready yet
+			// A failed probe means the machine is not up yet, so keep polling.
 		}
 		if (i % 5 === 0 && i > 0) {
 			console.log(`   Still waiting for machine to come online... (${i * 2}s)`)

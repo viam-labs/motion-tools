@@ -114,10 +114,6 @@
 			{#key bufferGeometry.current}
 				<T is={bufferGeometry.current}>
 					{#snippet children({ ref: geo })}
-						<!--
-						TODO(mp) currently some bufferGeometries are coming in empty,
-						this is a quick fix but this should be handled upstream
-					-->
 						{#if (geo.getAttribute('position')?.array.length ?? 0) > 0}
 							<T.LineSegments
 								raycast={() => null}
