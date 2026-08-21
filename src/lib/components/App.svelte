@@ -36,6 +36,7 @@
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
 	import FramePov from './overlay/widgets/FramePov.svelte'
+	import RenderStats from './overlay/widgets/RenderStats.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
 
@@ -169,6 +170,10 @@
 				{/if}
 
 				<PortalTarget id="dom" />
+
+				{#if settings.current.renderStats}
+					<RenderStats />
+				{/if}
 
 				<Settings />
 				<AddFrames />

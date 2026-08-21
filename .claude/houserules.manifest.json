@@ -1,6 +1,6 @@
 {
   "kitVersion": "0.2.1",
-  "installedAt": "2026-08-21T14:29:23.493Z",
+  "installedAt": "2026-08-21T19:54:18.539Z",
   "modules": [
     "core",
     "lint-fix",
@@ -215,49 +215,5 @@
       "allow:Bash(node .claude/scripts/changeset-write.mjs:*)",
       "allow:Bash(node .claude/scripts/design.mjs:*)"
     ]
-  },
-  "plugins": [
-    {
-      "name": "@houserules/plugin-prose",
-      "alias": "prose",
-      "version": "0.1.2",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-prose@0.1.2_@houserules+api@0.2.0/node_modules/@houserules/plugin-prose"
-    },
-    {
-      "name": "@houserules/plugin-typescript",
-      "alias": "ts",
-      "version": "0.1.1",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-typescript@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-typescript"
-    },
-    {
-      "name": "@houserules/plugin-svelte",
-      "alias": "svelte",
-      "version": "0.1.1",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-svelte@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-svelte"
-    },
-    {
-      "name": "@houserules/plugin-three",
-      "alias": "three",
-      "version": "0.1.1",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-three@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-three"
-    },
-    {
-      "name": "@houserules/plugin-testing",
-      "alias": "testing",
-      "version": "0.2.0",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-testing@0.2.0_@houserules+api@0.2.0/node_modules/@houserules/plugin-testing"
-    },
-    {
-      "name": "@houserules/plugin-changesets",
-      "alias": "changesets",
-      "version": "0.1.3",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-changesets@0.1.3_@houserules+api@0.2.0/node_modules/@houserules/plugin-changesets"
-    },
-    {
-      "name": "@houserules/plugin-design",
-      "alias": "design",
-      "version": "0.1.1",
-      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-design@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-design"
-    }
-  ]
+  }
 }

@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte'
 
 	import { T, useThrelte } from '@threlte/core'
-	import { Environment, Grid, interactivity, PerfMonitor, PortalTarget } from '@threlte/extras'
+	import { Environment, Grid, interactivity, PortalTarget } from '@threlte/extras'
 	import { useXR } from '@threlte/xr'
 	import { ShaderMaterial } from 'three'
 
@@ -80,10 +80,6 @@
 
 	const { isPresenting } = useXR()
 </script>
-
-{#if settings.current.renderStats}
-	<PerfMonitor anchorX="right" />
-{/if}
 
 <KeyboardBindings />
 <Environment url={hdrImage} />
