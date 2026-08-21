@@ -6,11 +6,6 @@ import (
 
 // DrawWorldState will draw a world state in the visualizer.
 //
-// Parameters:
-//   - ws: A world state
-//   - fs: A frame system
-//   - inputs: Frame system inputs
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawWorldState] instead.
 // See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/

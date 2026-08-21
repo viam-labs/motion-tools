@@ -5,9 +5,10 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { traits } from '$lib/ecs'
 import { type Metadata } from '$lib/metadata'
 
-// NOTE: This is built assuming point cloud position data + metadata colors and opacities.
-// We could generalize this if we decide to support chunking for other entity types.
-
+/**
+ * One chunk of an entity's point cloud. Chunking covers point-cloud positions with
+ * metadata colors and opacities, and no other entity type.
+ */
 export interface EntityChunk {
 	/** Element offset (in points) where this chunk should be written. */
 	start: number

@@ -23,7 +23,6 @@ func generateSpherePoses(numPoints int, radius, centerX, centerY, centerZ float6
 		y := radius * math.Sin(phi) * math.Sin(theta)
 		z := radius * math.Cos(phi)
 
-		// Apply offset to shift the sphere center
 		x += centerX
 		y += centerY
 		z += centerZ

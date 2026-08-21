@@ -131,8 +131,10 @@ export const isPointCloud = (
 	return geometry?.case === 'pointcloud'
 }
 
-// Reverse of createGeometryFromFrame: read a Transform's geometry back into the
-// frame geometry shape. Point clouds / no geometry resolve to undefined.
+/**
+ * Reverse of {@link createGeometryFromFrame}: reads a Transform's geometry back into
+ * the frame geometry shape. Point clouds and absent geometry resolve to undefined.
+ */
 export const frameGeometryFromTransform = (transform: Transform): Frame['geometry'] => {
 	const geometryType = transform.physicalObject?.geometryType
 	switch (geometryType?.case) {

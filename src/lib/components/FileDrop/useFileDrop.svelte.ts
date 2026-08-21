@@ -36,23 +36,23 @@ export const useFileDrop = (
 ) => {
 	let dropState = $state<DropStates>('inactive')
 
-	// prevent default to allow drop
 	const ondragenter = (event: DragEvent) => {
 		if (!hasDraggedFiles(event.dataTransfer)) return
 
+		// A drop event only fires when dragenter cancels its default handling.
 		event.preventDefault()
 		dropState = 'hovering'
 	}
 
-	// prevent default to allow drop
 	const ondragover = (event: DragEvent) => {
 		if (!hasDraggedFiles(event.dataTransfer)) return
 
+		// A drop event only fires when dragover cancels its default handling.
 		event.preventDefault()
 	}
 
 	const ondragleave = (event: DragEvent) => {
-		// only deactivate if really leaving the window
+		// A null relatedTarget means the pointer left the window, not that it moved onto a child element.
 		if (event.relatedTarget === null) {
 			dropState = 'inactive'
 		}

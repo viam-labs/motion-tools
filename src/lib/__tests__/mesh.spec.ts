@@ -186,8 +186,8 @@ describe('parseMeshInput', () => {
 		expect(parseMeshInput(encoded, 'stl').getAttribute('position')).toBeUndefined()
 	})
 
-	// The text path decodes from the view, so it was never at risk; kept so the pair is symmetric
-	// and a future change to the sniffing cannot quietly break it.
+	// The text path decodes from the view, so it was never at risk. Kept so the pair is
+	// symmetric and a future change to the sniffing cannot quietly break it.
 	it.each([
 		['stl', asciiStl],
 		['ply', asciiPly],

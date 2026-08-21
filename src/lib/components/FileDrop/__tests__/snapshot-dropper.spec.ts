@@ -136,8 +136,7 @@ describe('snapshotDropper', () => {
 			}
 		})
 
-		// Note: Testing actual gzip decompression requires browser APIs (DecompressionStream)
-		// which are not available in jsdom. E2E tests cover this functionality.
+		// gzip decompression needs DecompressionStream, which jsdom does not provide. The e2e suite covers it.
 	})
 
 	describe('unsupported extension', () => {

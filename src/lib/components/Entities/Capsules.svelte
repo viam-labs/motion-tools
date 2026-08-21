@@ -133,7 +133,7 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	const headBottomMatrix = new Matrix4()
 	const colorUtil = new Color()
 
-	/** Same resolution order as `Boxes.svelte` / `Frame.svelte`. */
+	/** Same resolution order as `Boxes.svelte` / `Spheres.svelte`. */
 	const resolveColor = (entity: Entity): Color => {
 		const vertexColors = entity.get(traits.Colors)
 		if (vertexColors && vertexColors.length >= 3) {

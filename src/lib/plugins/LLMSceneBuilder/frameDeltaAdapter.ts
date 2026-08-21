@@ -66,11 +66,7 @@ export interface FrameDelta {
 	componentName: string
 	translation?: { x?: number; y?: number; z?: number }
 	orientation?: { roll?: number; pitch?: number; yaw?: number }
-	// Like translation/orientation, only the changed fields are sent (all in mm).
-	// Omit `type` to resize the current shape (unspecified dims fall back to the
-	// current geometry); include `type` only to change the shape, in which case
-	// send that type's dims (box → x/y/z, sphere → r, capsule → r/l). `type: 'none'`
-	// removes the component's geometry.
+	/** Only the changed fields are sent, all in mm. Omit `type` to resize the current shape, and unspecified dims fall back to the current geometry. Include `type` only to change the shape, then send that type's dims (box x/y/z, sphere r, capsule r/l). `type: 'none'` removes the geometry. */
 	geometry?: {
 		type?: FrameGeometry
 		x?: number

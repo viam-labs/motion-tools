@@ -17,10 +17,10 @@ func TestDrawLines(t *testing.T) {
 	offset := r3.Vector{X: 0, Y: 0, Z: 0}
 
 	t.Run("DrawLine", func(t *testing.T) {
-		nTurns := 5.0    // Number of spiral turns
-		radius := 1000.0 // Radius of spiral
-		height := 4000.0 // Total height of spiral
-		nPath := 50      // Number of points along spiral
+		nTurns := 5.0
+		radius := 1000.0
+		height := 4000.0
+		nPath := 50
 
 		points := make([]spatialmath.Pose, 0, nPath)
 
@@ -31,7 +31,7 @@ func TestDrawLines(t *testing.T) {
 
 			x := radius*math.Cos(t) + offset.X
 			y := radius*math.Sin(t) + offset.Y
-			z := height*float64(i)/float64(nPath) + offset.Z // Linear vertical rise
+			z := height*float64(i)/float64(nPath) + offset.Z
 
 			points = append(points, spatialmath.NewPoseFromPoint(r3.Vector{
 				X: x,

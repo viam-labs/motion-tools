@@ -24,11 +24,7 @@ const MAX_LOGS = 200
 let context: Context | undefined
 
 export const provideLogs = () => {
-	// Plain insertion-ordered Map keyed by `${level}|${timestamp}|${message}`
-	// drives storage; a single `$state` version counter drives reactivity.
-	// Hot path is `Map.set` (or in-place `count++`) plus `version++` — no
-	// array allocation per add. The display arrays are materialized lazily
-	// in `$derived.by`, so a closed logs panel costs nothing.
+	// A Map keyed by `${level}|${timestamp}|${message}` holds the logs and a `$state` version counter drives reactivity, so an add costs no array allocation.
 	const entries = new Map<string, Log>()
 	let version = $state(0)
 
@@ -89,8 +85,8 @@ export const provideLogs = () => {
 	return context
 }
 
+/** The logs context, or a no-op context when the Logs plugin is not installed. */
 export const useLogs = (): Context => {
-	// return a no-op context if the plugin isn't installed
 	return (
 		context ?? {
 			current: [],

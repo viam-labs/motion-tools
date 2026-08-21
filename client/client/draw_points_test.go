@@ -30,12 +30,10 @@ func TestDrawPoints(t *testing.T) {
 			t0 := maxT * float64(i) / float64(nPath)
 			t1 := maxT * float64(i+1) / float64(nPath)
 
-			// Center point at t0
 			cx := (R + r*math.Cos(float64(q)*t0)) * math.Cos(float64(p)*t0)
 			cy := (R + r*math.Cos(float64(q)*t0)) * math.Sin(float64(p)*t0)
 			cz := r * math.Sin(float64(q)*t0)
 
-			// Next point (for tangent)
 			nx := (R + r*math.Cos(float64(q)*t1)) * math.Cos(float64(p)*t1)
 			ny := (R + r*math.Cos(float64(q)*t1)) * math.Sin(float64(p)*t1)
 			nz := r * math.Sin(float64(q)*t1)
@@ -45,7 +43,6 @@ func TestDrawPoints(t *testing.T) {
 			ty := ny - cy
 			tz := nz - cz
 
-			// Up vector
 			ux, uy, uz := 0.0, 0.0, 1.0
 
 			// Cross(tangent, up) → normal
@@ -53,7 +50,6 @@ func TestDrawPoints(t *testing.T) {
 			ny1 := tz*ux - tx*uz
 			nz1 := tx*uy - ty*ux
 
-			// Normalize normal
 			nLen := math.Sqrt(nx1*nx1 + ny1*ny1 + nz1*nz1)
 			if nLen == 0 {
 				nx1, ny1, nz1 = 0, 1, 0 // fallback if cross was zero
@@ -68,13 +64,11 @@ func TestDrawPoints(t *testing.T) {
 			by := tz*nx1 - tx*nz1
 			bz := tx*ny1 - ty*nx1
 
-			// Normalize binormal
 			bLen := math.Sqrt(bx*bx + by*by + bz*bz)
 			bx /= bLen
 			by /= bLen
 			bz /= bLen
 
-			// Create ring
 			for j := range nRing {
 				theta := 2 * math.Pi * float64(j) / float64(nRing)
 				cosT := math.Cos(theta)

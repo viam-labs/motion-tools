@@ -9,6 +9,7 @@ import (
 	"go.viam.com/test"
 )
 
+// TestDrawHierarchy draws this tree and asserts the sorted order:
 // world
 // +-- zulu
 // |   +-- tango

@@ -1,10 +1,5 @@
 import type { ParsedPlan } from '../../parse-plan'
 
-/**
- * Publishes an RDK model config the way a plan reply carries it. `flattenModelIntoFS` re-publishes
- * every frame inside a model, mimic joints included, under `component:internalName`.
- */
-
 interface Vec3 {
 	x?: number
 	y?: number
@@ -32,7 +27,7 @@ export interface RdkModel {
 	output_frames?: string[]
 }
 
-/** Fixtures spell vectors `{x,y,z}`, as a person writes config; RDK marshals `r3.Vector` as `{X,Y,Z}`. */
+/** Fixtures spell vectors `{x,y,z}`, as a person writes config. RDK marshals `r3.Vector` as `{X,Y,Z}`. */
 const upper = (v: Vec3 = {}): { X: number; Y: number; Z: number } => ({
 	X: v.x ?? 0,
 	Y: v.y ?? 0,
@@ -44,6 +39,11 @@ const MOTION: Record<string, 'rotational' | 'translational'> = {
 	prismatic: 'translational',
 }
 
+/**
+ * Publishes an RDK model config as a `ParsedPlan`, the way a plan reply carries it.
+ * `flattenModelIntoFS` re-publishes every frame inside a model, mimic joints included, under
+ * `component:internalName`.
+ */
 export const rdkModelPlan = (
 	model: RdkModel,
 	trajectory: ParsedPlan['trajectory'] = []

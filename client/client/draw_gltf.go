@@ -8,9 +8,6 @@ import (
 
 // DrawGLTF will draw a glTF file in the visualizer.
 //
-// Parameters:
-//   - filePath: The gltf filepath
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawGLTF] instead.
 // See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/

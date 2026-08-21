@@ -32,7 +32,6 @@
 	</fieldset>
 </WorkspacePortal>
 
-<!-- Registry widget panels render only outside XR. -->
 {#if !$isPresenting}
 	{#each resolved.current as widget, stackIndex (widget.key)}
 		<ResourceWidgetPanel

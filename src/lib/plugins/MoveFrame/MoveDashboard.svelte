@@ -22,7 +22,6 @@
 </script>
 
 <DashboardPortal>
-	<!-- transform -->
 	<fieldset class="flex">
 		<Button
 			icon="cursor-move"
@@ -46,7 +45,6 @@
 		/>
 	</fieldset>
 
-	<!-- space -->
 	<fieldset class="flex">
 		<Button
 			icon="axis-arrow"

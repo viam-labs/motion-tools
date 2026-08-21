@@ -67,9 +67,9 @@
 
 	const openedFolders = new Set<string>()
 
-	// Seeded once per folder rather than on every rebuild, so a folder the user
-	// collapsed stays collapsed. `.pre` lands the value before the first commit,
-	// otherwise every folder renders collapsed for a frame and then pops open.
+	// Seeded once per folder, so a folder the user collapsed stays collapsed.
+	// `.pre` lands the value before the first commit, otherwise every folder
+	// renders collapsed for a frame and then pops open.
 	$effect.pre(() => {
 		for (const node of rootChildren) {
 			if (!node.isFolder) continue
@@ -95,8 +95,8 @@
 			if (!(row instanceof HTMLElement)) return
 
 			// Vertical only. Rows are `w-max min-w-full` and labels `flex: 1 0 auto`, so
-			// neither is ever fully in view horizontally — letting `scrollIntoView` touch
-			// the inline axis drags the port back to the name's start on every selection.
+			// letting `scrollIntoView` touch the inline axis drags the port back to the
+			// name's start on every selection.
 			const left = port.scrollLeft
 			row.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 			port.scrollLeft = left
@@ -124,8 +124,8 @@
 >
 	<!--
 		Sized to the widest row instead of the panel, so deep nesting scrolls
-		horizontally rather than wrapping; `min-w-full` keeps rows full width (and
-		with them the hover and selection fills) when the tree is shallow.
+		horizontally rather than wrapping. `min-w-full` keeps rows full width, and
+		with them the hover and selection fills, when the tree is shallow.
 	-->
 	<div
 		{...api.getTreeProps()}
@@ -160,7 +160,7 @@
 	 * svelte-virtuallists stretches its track to its own scroll port, which would
 	 * clamp rows back to the panel width. Let it grow with the rows instead, so
 	 * names in a virtualized branch scroll horizontally like every other row.
-	 * `:global` because the track belongs to VirtualList; the rule lives here
+	 * `:global` because the track belongs to VirtualList. The rule lives here
 	 * because only this component renders an ancestor it can hang off.
 	 */
 	[data-part='tree'] :global(.vtlist-inner) {

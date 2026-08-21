@@ -122,13 +122,10 @@ export const Opacity = trait(() => 1)
 
 /**
  * The color of an object
- * @default { r: 1, g: 0, b: 0 }
+ * @default { r: 0, g: 0, b: 0 }
  */
 export const Color = trait({ r: 0, g: 0, b: 0 })
 
-/**
- * Material properties
- */
 export const Material = trait({
 	depthTest: false,
 	depthWrite: true,
@@ -152,9 +149,6 @@ export const Arrows = trait({
 	headAtPose: true,
 })
 
-/**
- * Render entity as points
- */
 export const Points = trait(() => true)
 
 /**
@@ -256,9 +250,6 @@ export const ReferenceFrame = trait(() => true)
  */
 export const ChunkProgress = trait({ loaded: 0, total: 0 })
 
-/**
- * Interaction layers for entities
- */
 export type InteractionLayerValue = 'selectTool'
 export const SelectToolInteractionLayer = trait(() => true)
 
@@ -270,14 +261,8 @@ export const SelectToolInteractionLayer = trait(() => true)
  */
 export const NonSelectable = trait(() => true)
 
-/**
- * This entity is selected by the user
- */
 export const Selected = trait()
 
-/**
- * This entity can be safely removed from the scene by the user
- */
 export const Removable = trait(() => true)
 
 export const Geometry = (geometry: ViamGeometry) => {
@@ -375,7 +360,7 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 			const buffer = entity.get(BufferGeometry)
 			let colors = parsed.colors
 			if (buffer) {
-				// Reapply single color trait if the point count changed
+				// Rebuild per-point colors from the single Color trait when the parsed cloud has none.
 				if (parsed.colors === undefined) {
 					const color = entity.get(Color)
 					if (color) {

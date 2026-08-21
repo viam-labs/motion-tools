@@ -12,8 +12,10 @@ import { composeSphereBoundsMatrix } from './composeSphereMatrix'
 const matrix4 = new Matrix4()
 const unitBox = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5))
 
-// Geometry-less frames have no bounds, so fall back to a small cube at the frame
-// origin — roughly the extent of the frame's axes helper.
+/**
+ * Geometry-less frames have no bounds, so they fall back to a small cube at the frame
+ * origin, roughly the extent of the frame axes helper.
+ */
 const referenceFrameScale = new Vector3(0.1, 0.1, 0.1)
 
 /**

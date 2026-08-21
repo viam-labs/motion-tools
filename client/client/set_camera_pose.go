@@ -9,9 +9,7 @@ import (
 
 // SetCameraPose will set the visualizer's camera pose.
 // Parameters:
-//   - position: The camera position
-//   - lookAt: The direction the camera should look at
-//   - animate: Whether or not to animate to this pose
+//   - lookAt: the point the camera is aimed at, in world coordinates
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.SetCamera] instead.
 // See the v1 → v2 migration guide:

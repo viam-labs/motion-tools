@@ -55,7 +55,7 @@
 		if (dragging) return
 
 		source.decompose(anchor.position, anchor.quaternion, anchor.scale)
-		// Frames carry no scale; a non-unit one would only distort the gizmo.
+		// Frames carry no scale. A non-unit one would only distort the gizmo.
 		anchor.scale.copy(UNIT_SCALE)
 		anchor.updateMatrixWorld()
 		invalidate()

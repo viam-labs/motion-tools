@@ -13,14 +13,7 @@
 	const cameraControls = useCameraControls()
 	const selected = useQuery(traits.Selected)
 
-	/**
-	 * Save the main camera controls and their state the instant focus begins —
-	 * this runs before the TrackballControls below swaps the shared context, so
-	 * `current` is still the main controls. On teardown we hand `current` back to
-	 * them (the trackball never restores it) and reset them to the saved view, so
-	 * exiting focus returns the camera to where it was. camera-controls exposes
-	 * saveState()/reset(); TrackballControls does not, which also narrows the type.
-	 */
+	// Runs before TrackballControls swaps the shared context, so `current` is still the main controls. Saving here lets teardown restore them and reset the view when focus exits.
 	$effect.pre(() => {
 		const previousControls = untrack(() => cameraControls.current)
 		const restorableControls =
@@ -40,12 +33,7 @@
 	let center = $state.raw<[number, number, number]>([0, 0, 0])
 	let size = $state.raw<[number, number, number]>([0, 0, 0])
 
-	/**
-	 * Frame the camera on the selection captured when focus was entered. Reading
-	 * the selection untracked leaves this effect with no reactive dependencies,
-	 * so it runs once on mount and the framing stays put — changing the selection
-	 * while focused must not re-frame or reset the camera.
-	 */
+	// Reads the selection untracked so this effect has no dependencies. It frames once on mount, and changing the selection while focused must not re-frame the camera.
 	$effect(() => {
 		box.makeEmpty()
 		for (const entity of untrack(() => selected.current)) {

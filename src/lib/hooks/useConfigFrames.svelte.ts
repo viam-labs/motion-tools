@@ -42,7 +42,6 @@ export const provideConfigFrames = () => {
 		const results: Record<string, Transform> = {}
 		const unsetResults: string[] = []
 
-		// deal with fragment defined components
 		for (const fragmentComponentName of fragmentDefinedComponents || []) {
 			const fragmentId = fragmentInfo.current[fragmentComponentName].id
 			const fragmentMod = fragmentMods?.find((mod) => mod.fragment_id === fragmentId)

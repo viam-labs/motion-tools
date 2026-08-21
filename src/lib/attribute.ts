@@ -116,8 +116,8 @@ export const updateBufferGeometry = (
 		setUpdateRange(positionAttr, positions.length)
 	} else {
 		geometry.setAttribute('position', new BufferAttribute(positions, 3))
-		// A fresh attribute defines the whole range; a leftover count from the
-		// previous, shorter cloud would truncate it.
+		// A fresh attribute defines the whole range. A leftover count from the previous,
+		// shorter cloud would truncate it.
 		geometry.setDrawRange(0, Infinity)
 	}
 

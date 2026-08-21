@@ -152,7 +152,6 @@
 			/>
 		</label>
 
-		<!-- Right Controller -->
 		<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Right Controller</strong></h3>
 
 		<label class="flex items-center justify-between gap-2">
@@ -234,7 +233,6 @@
 		outline: none;
 	}
 
-	/* Webkit browsers (Chrome, Safari, Edge) */
 	input[type='range']::-webkit-slider-track {
 		background: transparent;
 		height: 0.5rem;
@@ -251,7 +249,6 @@
 		border: 2px solid white;
 	}
 
-	/* Firefox */
 	input[type='range']::-moz-range-track {
 		background: transparent;
 		height: 0.5rem;

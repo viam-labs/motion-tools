@@ -10,11 +10,11 @@ import { GhostOf } from './relations'
  * Ghosting for a staged move, expressed as scene entities rather than meshes
  * of its own.
  *
- * Everything hanging off the moved frame — a gripper on the wrist, the
- * gripper's own `GetGeometries` shapes, a camera above it — rides one
- * world-space delta: attached frames are rigid with respect to the frame the
- * gizmo drags, so previewing them is a single premultiply rather than a
- * re-solve.
+ * Everything hanging off the moved frame rides one world-space delta,
+ * whether it is a gripper on the wrist, the gripper's own `GetGeometries`
+ * shapes, or a camera above it. Attached frames are rigid with respect to
+ * the frame the gizmo drags, so previewing them is a single premultiply
+ * rather than a re-solve.
  *
  * Each ghost is an entity holding a copy of its source's geometry, tinted and
  * marked `NonSelectable`. The renderers the scene already runs draw them:
@@ -112,9 +112,9 @@ const cloneGeometry = (entity: Entity) => {
 }
 
 /**
- * A display-only copy of `source`'s geometry. A frame with no geometry of its
- * own — a bare reference frame — ghosts as an axes triad, so the pose it
- * carries stays legible.
+ * A display-only copy of `source`'s geometry. A frame with no geometry of
+ * its own, such as a bare reference frame, ghosts as an axes triad, so the
+ * pose it carries stays legible.
  */
 const spawnGhost = (world: World, source: Entity): Entity => {
 	const shape: ConfigurableTrait[] = []

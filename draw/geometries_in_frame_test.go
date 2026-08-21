@@ -60,7 +60,6 @@ func TestNewDrawnGeometriesInFrame(t *testing.T) {
 	})
 
 	t.Run("MismatchedColorCountReturnsError", func(t *testing.T) {
-		// 2 colors for 3 geometries should fail
 		_, err := NewDrawnGeometriesInFrame(geometriesInFrame, WithPerGeometriesColors(ColorFromName("red"), ColorFromName("blue")))
 		test.That(t, err, test.ShouldNotBeNil)
 	})

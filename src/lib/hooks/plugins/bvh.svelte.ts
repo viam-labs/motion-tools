@@ -54,13 +54,8 @@ export const bvh = (raycaster: Raycaster, options?: () => Options) => {
 			 */
 			if ((ref as { isInstancedMesh2?: boolean }).isInstancedMesh2) return
 
-			if (
-				isInstanceOf(ref, 'Points') &&
-				/**
-				 * This check is necessary, there are some strange cases where points are coming in from PCDs without any position data
-				 */
-				ref.geometry?.attributes.position
-			) {
+			// Some PCDs parse without a position attribute, and the BVH build reads it.
+			if (isInstanceOf(ref, 'Points') && ref.geometry?.attributes.position) {
 				ref.geometry.computeBoundsTree = computeBoundsTree
 				ref.geometry.disposeBoundsTree = disposeBoundsTree
 				ref.raycast = acceleratedRaycast
@@ -70,14 +65,8 @@ export const bvh = (raycaster: Raycaster, options?: () => Options) => {
 				ref.geometry.computeBoundsTree = computeBatchedBoundsTree
 				ref.geometry.disposeBoundsTree = disposeBatchedBoundsTree
 				ref.raycast = acceleratedRaycast
-			} else if (
-				isInstanceOf(ref, 'Mesh') &&
-				/**
-				 * (mp) Line2s sort of suck. Their buffer attribute design internally is much different
-				 * but they give no indication other than this that they are different.
-				 */
-				ref.geometry?.attributes.position
-			) {
+				// Line2 passes the Mesh check but stores its vertices in interleaved instance attributes, so a missing position attribute is the only signal it is not a plain mesh.
+			} else if (isInstanceOf(ref, 'Mesh') && ref.geometry?.attributes.position) {
 				ref.geometry.computeBoundsTree = computeBoundsTree
 				ref.geometry.disposeBoundsTree = disposeBoundsTree
 				ref.raycast = acceleratedRaycast

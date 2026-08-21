@@ -8,9 +8,8 @@ import { Pose } from '$lib/math'
 const MM_TO_M = 0.001
 
 /**
- * Rapier's capsule runs along Y; this scene renders capsules along Z (see
- * `composeCapsuleMatrices`). Colliders take this as a local correction so the
- * two agree.
+ * Rapier's capsule runs along Y. This scene renders capsules along Z (see
+ * `composeCapsuleMatrices`). Colliders take this as a local correction so the two agree.
  */
 const Y_TO_Z = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2)
 
@@ -38,8 +37,8 @@ export type ColliderShape =
  * case produces no contacts, so including them would look supported while
  * silently reporting nothing.
  *
- * Degenerate geometry returns `undefined`; Rapier rejects zero-extent shapes,
- * and a collider with no size can't collide with anything anyway.
+ * Degenerate geometry returns `undefined`. Rapier rejects zero-extent shapes, and a
+ * collider with no size can't collide with anything anyway.
  */
 export const colliderShapeFor = (entity: Entity): ColliderShape | undefined => {
 	const box = entity.get(traits.Box)
@@ -75,8 +74,8 @@ export const colliderShapeFor = (entity: Entity): ColliderShape | undefined => {
 }
 
 /**
- * Write an entity's collider pose — `WorldMatrix × Center` — into `position`
- * and `quaternion`, applying the capsule axis correction when needed.
+ * Write an entity's collider pose, `WorldMatrix × Center`, into `position` and `quaternion`,
+ * applying the capsule axis correction when needed.
  *
  * Returns `false` and leaves both untouched when the entity has no
  * `WorldMatrix`. Any scale on the world matrix is discarded: collider extents

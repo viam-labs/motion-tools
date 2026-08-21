@@ -13,9 +13,7 @@ import (
 // DrawRobot will draw a robot in the visualizer.
 //
 // Parameters:
-//   - ctx: A context
-//   - myRobot: A robot
-//   - ws: An optional world state
+//   - ws: an optional world state, may be nil
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawRobot] instead.
 // See the v1 → v2 migration guide:
