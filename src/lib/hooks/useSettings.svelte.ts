@@ -8,7 +8,7 @@ const key = Symbol('dashboard-context')
 export interface Settings {
 	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
-	interactionMode: 'navigate' | 'measure' | 'select' | 'move'
+	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo' | 'move'
 	refreshRates: {
 		poses: number
 		pointclouds: number
