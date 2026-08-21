@@ -143,5 +143,43 @@ export default defineConfig(
 			// 	},
 			// ],
 		},
+	},
+
+	{
+		name: 'viam/no-barrel-imports',
+		files: ['src/lib/**'],
+		// The barrels themselves, which legitimately re-export their own directory.
+		ignores: ['src/lib/index.ts', 'src/lib/lib.ts', 'src/lib/plugins/index.ts'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '$lib',
+							message:
+								"Import the module directly (e.g. '$lib/components/overlay/Portals/DashboardPortal.svelte'). '$lib' re-exports App.svelte, so reaching for it from inside src/lib creates a core <-> plugin import cycle.",
+						},
+						{
+							name: '$lib/lib',
+							message:
+								"Import the module directly (e.g. '$lib/loaders/pcd'). '$lib/lib' is a published entry point, not for internal use.",
+						},
+						{
+							name: '$lib/plugins',
+							message:
+								"Import the plugin module directly (e.g. '$lib/plugins/Logs/useLogs.svelte'). The barrel pulls in every plugin, including ControlWidgets, which imports @viamrobotics/test-widgets and closes an import cycle back into this package.",
+						},
+					],
+					patterns: [
+						{
+							group: ['$lib/index*', '$lib/lib.*', '$lib/plugins/index*'],
+							message:
+								'Barrel import spelled via its index file. Import the module directly instead.',
+						},
+					],
+				},
+			],
+		},
 	}
 )

@@ -104,7 +104,48 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 	if (((g.l as number) ?? 0) !== 0) return 'capsule'
 	if (((g.r as number) ?? 0) > 0) return 'sphere'
 
+	// A mesh sets none of x/y/z/l/r, so it is invisible to the chain above; without this it reads
+	// as "no geometry" and drops silently instead of reaching the mesh branch's named warnings.
+	if (g.mesh_data !== undefined || g.mesh_content_type !== undefined) return 'mesh'
+
 	return ''
+}
+
+/** Why a `mesh_data` field could not be turned into bytes, so the warning can say which. */
+type MeshDataProblem = 'absent' | 'unreadable' | 'empty'
+
+/**
+ * `mesh_data` arrives base64 from a plan dump, which `encoding/json` marshals, and as a number array
+ * from `frameSystemConfig`, which `protoutils.StructToStructPb` reflects over element by element.
+ */
+const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | MeshDataProblem => {
+	if (raw === undefined || raw === null || raw === '') return 'absent'
+
+	let bytes: Uint8Array<ArrayBuffer>
+
+	if (Array.isArray(raw)) {
+		// Rejected whole, not filtered: dropping an element shifts every byte after it, and a
+		// byte-shifted mesh yields an empty geometry with no error rather than a decode failure.
+		const clean = raw.every(
+			(v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 256
+		)
+		if (!clean) return 'unreadable'
+		bytes = Uint8Array.from(raw as number[])
+	} else if (typeof raw === 'string') {
+		try {
+			// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects. `dec`
+			// throws a bare Error, which `loadPlan` would otherwise report as an unparseable plan.
+			bytes = Uint8Array.from(protoBase64.dec(raw))
+		} catch {
+			return 'unreadable'
+		}
+	} else {
+		return 'unreadable'
+	}
+
+	// Both shapes: `[]` and `Uint8Array(0)` are truthy, and `dec` returns zero bytes without throwing
+	// for padding- or whitespace-only strings.
+	return bytes.length > 0 ? bytes : 'empty'
 }
 
 /**
@@ -190,23 +231,16 @@ export const parseGeometry = (
 		// center pose is millimeters.
 		case 'mesh': {
 			const declared = g.mesh_content_type as string | undefined
-			const meshData = g.mesh_data as string | undefined
 
-			// The renderer falls back to PLY for a label it cannot read; a plan is parsed once, so
-			// name the skip here rather than draw nothing later.
-			if (!meshData) return skip('mesh geometry carries no mesh_data')
+			// The renderer falls back to PLY for a label it cannot read; a plan is parsed once, so name the skip
+			// here rather than draw nothing later.
 			const contentType = meshContentType(declared)
 			if (!contentType) return skip(`unsupported mesh content type "${declared ?? ''}"`)
 
-			// protoBase64.dec throws a bare Error on malformed input, which loadPlan would
-			// report as an unparseable plan — the whole failure mode this branch avoids.
-			let mesh: Uint8Array<ArrayBuffer>
-			try {
-				// `from` narrows protoBase64's Uint8Array<ArrayBufferLike>, which the field rejects.
-				mesh = Uint8Array.from(protoBase64.dec(meshData))
-			} catch {
-				return skip('undecodable mesh_data')
-			}
+			const mesh = meshBytes(g.mesh_data)
+			if (mesh === 'absent') return skip('mesh geometry carries no mesh_data')
+			if (mesh === 'empty') return skip('mesh geometry carries empty mesh_data')
+			if (mesh === 'unreadable') return skip('mesh geometry carries undecodable mesh_data')
 
 			return new Geometry({
 				center,

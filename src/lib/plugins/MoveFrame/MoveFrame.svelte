@@ -4,7 +4,7 @@
 	import ModeTogglePortal from '$lib/components/overlay/Portals/ModeTogglePortal.svelte'
 	import ModeButton from '$lib/components/overlay/workspace/ModeButton.svelte'
 	import { traits, useQuery } from '$lib/ecs'
-	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
+	import { useEnvironment, useEnvironmentMode } from '$lib/hooks/useEnvironment.svelte'
 
 	import CollisionDetector from './collisions/CollisionDetector.svelte'
 	import MoveControls from './MoveControls.svelte'
@@ -12,6 +12,8 @@
 
 	const environment = useEnvironment()
 	const selected = useQuery(traits.Selected)
+
+	useEnvironmentMode('move')
 
 	/**
 	 * Move mode swaps the details panel for a move panel per selected frame, so the

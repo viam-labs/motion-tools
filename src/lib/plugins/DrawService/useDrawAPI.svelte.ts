@@ -16,7 +16,7 @@ import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
 import { Pose } from '$lib/math'
 import { parseMeshInput } from '$lib/mesh'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
 

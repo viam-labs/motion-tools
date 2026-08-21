@@ -4,9 +4,9 @@
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { Eye, EyeOff } from 'lucide-svelte'
 
-	import { DashboardPortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 
 	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
 	import { planDropper, type ResolvePlanSnapshots } from './plan-dropper'
@@ -97,7 +97,9 @@
 			</div>
 		{/if}
 
-		{#each ctx.plans as plan, i (plan.name)}
+		<!-- Keyed by id: only the upload path rejects a duplicate name, and a repeated key throws
+		`each_key_duplicate` in production builds as well as dev. -->
+		{#each ctx.plans as plan, i (plan.id)}
 			{@const isActive = ctx.activePlanIndex === i}
 			<div
 				class={[

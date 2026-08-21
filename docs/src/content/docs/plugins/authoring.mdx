@@ -319,6 +319,61 @@ For picking points and objects in the scene, use Threlte's pointer events — th
 	living in an external app use Threlte's pointer events instead.
 </Aside>
 
+## Contributing keyboard shortcuts
+
+Keyboard input is a **contribution point**: a plugin declares a binding where the behavior lives, and the visualizer owns the single window listener that dispatches it. This is the same declare-while-mounted shape as the overlay Portals and `SettingsPortal` tabs — the plugin contributes content, core owns the collection, and one owner renders or executes it.
+
+```svelte
+<script lang="ts">
+	import { useHotkey } from '@viamrobotics/motion-tools'
+
+	let visible = $state(true)
+
+	useHotkey({
+		key: 'g',
+		description: 'Toggle my overlay',
+		run: () => (visible = !visible),
+	})
+</script>
+```
+
+The binding registers when the component mounts and releases when it unmounts. Pass `when` to gate it on state instead of lifecycle — it is evaluated at the moment the key is pressed, so it can read any reactive value with no effect wiring:
+
+```ts
+useHotkey({
+	key: '1',
+	description: 'Translate',
+	when: () => environment.current.mode === 'build',
+	run: () => (settings.current.transformMode = 'translate'),
+})
+```
+
+Dispatch policy belongs to the dispatcher, not to your binding: keys typed into inputs are skipped, presses with a modifier held are skipped, and nothing dispatches while the host sets `inputBindingsEnabled` to `false`. Two bindings may share a key only when their `when` conditions cannot hold at once — the built-in build and move dashboards both bind `1` this way — and overlapping dispatches are logged in dev builds.
+
+## Contributing a workspace mode
+
+Workspace modes follow the same contribution shape. The visualizer has three (`monitor`, `build`, `move`), and the active one is persisted across sessions — so a plugin that owns a mode must declare it reachable while mounted, or a stored mode could name UI that no longer exists. `useEnvironmentMode` does exactly that: it registers in setup and releases on unmount, and a persisted mode nothing currently contributes resolves back to `monitor`.
+
+```svelte
+<script lang="ts">
+	import { useEnvironment, useEnvironmentMode } from '@viamrobotics/motion-tools'
+
+	const environment = useEnvironment()
+
+	useEnvironmentMode('move')
+
+	const isMoveMode = $derived(environment.current.mode === 'move')
+</script>
+
+{#if isMoveMode}
+	<!-- mode-specific dashboard, controls, panels -->
+{/if}
+```
+
+The user's choice is remembered: leaving the mode unreachable falls back to `monitor`, and remounting the contributing plugin returns to it. Registration is refcounted, so a remount that mounts the replacement before unmounting the original never drops the mode.
+
+Note that the mode set is closed — contributing declares an _existing_ `EnvironmentMode` reachable, it does not define new modes. Read the active mode from `useEnvironment().current.mode` and the currently reachable set from `useEnvironment().availableModes`. This is exactly how the built-in [`MoveFrame`](https://github.com/viamrobotics/visualization/blob/main/src/lib/plugins/MoveFrame/MoveFrame.svelte) plugin works.
+
 ## Optional dependencies
 
 The plugin model is the right home for heavy or situational dependencies: keep the import inside the plugin, and consumers only pay for it when they mount it. [`<SelectionTool />`](../selection/) needs `earcut`; [`<DrawService />`](../draw-service/) needs the Connect RPC client. Neither is pulled in unless you use that plugin.

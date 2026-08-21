@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { useXR } from '@threlte/xr'
 
-	import { WorkspacePortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
+	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
 
 	import ResourceWidgetList from './ResourceWidgetList.svelte'
 	import ResourceWidgetPanel from './ResourceWidgetPanel.svelte'

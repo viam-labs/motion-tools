@@ -8,7 +8,7 @@ import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
 import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 import { missingPoseFrameNames } from './poseSnapshot'
 import { isPoseStale } from './poseStaleness/isPoseStale'

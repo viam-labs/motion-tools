@@ -1,21 +1,23 @@
 <script lang="ts">
-	import { PressedKeys } from 'runed'
-
-	import { DashboardPortal } from '$lib'
 	import Button from '$lib/components/overlay/dashboard/Button.svelte'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
+	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
 
 	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 
-	// The same keys the build dashboard uses for its gizmo — they reach the move
-	// gizmo here because this only mounts in move mode.
-	const keys = new PressedKeys()
-
-	keys.onKeys('1', () => {
-		moveGizmoOptions.mode = 'translate'
+	// The same keys the build dashboard uses for its gizmo. No collision: these are
+	// registered only while this mounts (move mode), and the build bindings apply
+	// only while build mode is active.
+	useHotkey({
+		key: '1',
+		description: 'Translate',
+		run: () => (moveGizmoOptions.mode = 'translate'),
 	})
 
-	keys.onKeys('2', () => {
-		moveGizmoOptions.mode = 'rotate'
+	useHotkey({
+		key: '2',
+		description: 'Rotate',
+		run: () => (moveGizmoOptions.mode = 'rotate'),
 	})
 </script>
 

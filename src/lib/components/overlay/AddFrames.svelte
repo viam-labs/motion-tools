@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '@viamrobotics/prime-core'
 
-	import { DashboardPortal } from '$lib'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFramelessComponents } from '$lib/hooks/useFramelessComponents.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
