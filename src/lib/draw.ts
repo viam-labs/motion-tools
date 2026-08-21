@@ -25,7 +25,7 @@ import {
 	isVertexColors,
 	STRIDE,
 } from '$lib/buffer'
-import { hierarchy, relations, traits } from '$lib/ecs'
+import { hierarchy, relations, setOrAddTrait, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose } from '$lib/math'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
@@ -188,7 +188,7 @@ export const updateTransform = (
 		traits.updateGeometryTrait(entity, physicalObject)
 		const center = physicalObject.center
 		if (center) {
-			entity.set(traits.Center, center)
+			setOrAddTrait(entity, traits.Center, center)
 		} else {
 			entity.remove(traits.Center)
 		}
@@ -546,7 +546,7 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 			const positions = asFloat32Array(geometryType.value.positions, inMeters)
 
 			const center = physicalObject?.center
-			if (center) entity.set(traits.Center, center)
+			if (center) setOrAddTrait(entity, traits.Center, center)
 
 			setColorTraits(entity, metadata?.colors ?? DEFAULT_LINE_COLORS)
 
@@ -564,7 +564,7 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 			const positions = asFloat32Array(geometryType.value.positions, inMeters)
 
 			const center = physicalObject?.center
-			if (center) entity.set(traits.Center, center)
+			if (center) setOrAddTrait(entity, traits.Center, center)
 
 			setColorTraits(entity, metadata?.colors ?? DEFAULT_POINTS_COLORS)
 			entity.set(traits.PointSize, geometryType.value.pointSize ?? DEFAULT_POINT_SIZE)
@@ -573,6 +573,7 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 			const pointsMetadata: Metadata = {
 				colors: vertexColors,
 				colorFormat: metadata?.colorFormat ?? ColorFormat.UNSPECIFIED,
+				opacities: metadata?.opacities,
 			}
 			const buffer = entity.get(traits.BufferGeometry)
 			if (buffer) {
@@ -618,11 +619,19 @@ const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): voi
 			}
 
 			const center = physicalObject?.center
-			if (center) entity.set(traits.Center, center)
+			if (center) setOrAddTrait(entity, traits.Center, center)
 
 			setColorTraits(entity, metadata?.colors ?? DEFAULT_NURBS_COLORS)
 			entity.set(traits.LineWidth, geometryType.value.lineWidth ?? DEFAULT_LINE_WIDTH)
 			entity.set(traits.LinePositions, points)
+			break
+		}
+
+		default: {
+			// A drawing with no geometry oneof still carries a center and colors.
+			const center = physicalObject?.center
+			if (center) setOrAddTrait(entity, traits.Center, center)
+			if (metadata?.colors) setColorTraits(entity, metadata.colors)
 			break
 		}
 	}
