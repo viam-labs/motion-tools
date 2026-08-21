@@ -14,8 +14,30 @@
 	/** Animation frames the activity waveform holds, about 1.7 seconds at 60Hz. */
 	const ACTIVITY_SAMPLES = 100
 
+	/** Trailing window the long frame counters report over. */
+	const LONG_FRAME_WINDOW_MS = 1000
+
 	/** `memory` is non-standard and Chrome-only. Safari and Firefox omit it. */
 	type PerformanceWithMemory = Performance & { memory?: { usedJSHeapSize: number } }
+
+	/** Not in lib.dom: the script that ran inside a long animation frame. */
+	interface ScriptTiming {
+		duration: number
+		invoker: string
+		sourceFunctionName: string
+		sourceURL: string
+	}
+
+	interface LongAnimationFrameTiming extends PerformanceEntry {
+		scripts: ScriptTiming[]
+	}
+
+	const describeScript = (script: ScriptTiming): string => {
+		const file = script.sourceURL.split('?')[0]?.split('/').at(-1) ?? ''
+		const name = script.sourceFunctionName || script.invoker
+
+		return file === '' ? name : `${name} @ ${file}`
+	}
 
 	const readHeapMb = (): number => {
 		const { memory } = performance as PerformanceWithMemory
@@ -31,6 +53,8 @@
 
 	const gpuTimer = createGpuFrameTimer(renderer)
 	const heapSupported = (performance as PerformanceWithMemory).memory !== undefined
+	const longFramesSupported =
+		PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
 
 	let frameStats = $state.raw({
 		calls: 0,
@@ -42,13 +66,19 @@
 		triangles: 0,
 	})
 
-	let resourceStats = $state.raw({
+	let liveStats = $state.raw({
 		entities: 0,
+		frame: 0,
 		geometries: 0,
 		heapMb: 0,
+		longestFrame: 0,
+		longFrames: 0,
 		programs: 0,
+		source: 'none',
 		textures: 0,
 	})
+
+	let longFrameLog: { duration: number; end: number; source: string }[] = []
 
 	let activity = $state.raw(Array.from({ length: ACTIVITY_SAMPLES }, () => 0))
 
@@ -59,9 +89,11 @@
 	let passStart = 0
 	let cpuTotal = 0
 	let frames = 0
+	let periodTotal = 0
+	let periods = 0
 	let rendered = false
 	let lastFramePublish = 0
-	let lastResourcePublish = 0
+	let lastLivePublish = 0
 
 	// three.js clears `renderer.info` as each render starts, and one frame can hold
 	// several passes (a FramePov widget renders its own view). Accumulate across the
@@ -75,6 +107,37 @@
 
 	$effect(() => {
 		return () => gpuTimer?.dispose()
+	})
+
+	// Main-thread stalls the render loop cannot see: Svelte updates, GC, and
+	// message decoding all land here rather than in CPU. Long animation frames
+	// carry the script that blocked, which `longtask` entries do not.
+	$effect(() => {
+		if (!longFramesSupported) {
+			return
+		}
+
+		const observer = new PerformanceObserver((list) => {
+			for (const entry of list.getEntries() as LongAnimationFrameTiming[]) {
+				let worst: ScriptTiming | undefined
+
+				for (const script of entry.scripts) {
+					if (worst === undefined || script.duration > worst.duration) {
+						worst = script
+					}
+				}
+
+				longFrameLog.push({
+					duration: entry.duration,
+					end: entry.startTime + entry.duration,
+					source: worst === undefined ? 'unattributed' : describeScript(worst),
+				})
+			}
+		})
+
+		observer.observe({ buffered: true, type: 'long-animation-frame' })
+
+		return () => observer.disconnect()
 	})
 
 	const publishFrameStats = (now: number): void => {
@@ -95,23 +158,48 @@
 		lastFramePublish = now
 	}
 
-	const publishResourceStats = (now: number): void => {
+	const publishLiveStats = (now: number): void => {
 		const { memory, programs } = renderer.info
+		const cutoff = now - LONG_FRAME_WINDOW_MS
 
-		resourceStats = {
+		longFrameLog = longFrameLog.filter((frame) => frame.end >= cutoff)
+
+		let longest = { duration: 0, source: 'none' }
+
+		for (const frame of longFrameLog) {
+			if (frame.duration > longest.duration) {
+				longest = frame
+			}
+		}
+
+		liveStats = {
 			entities: world.entities.length,
+			frame: periods > 0 ? periodTotal / periods : 0,
 			geometries: memory.geometries,
 			heapMb: readHeapMb(),
+			longestFrame: longest.duration,
+			longFrames: longFrameLog.length,
 			programs: programs?.length ?? 0,
+			source: longest.source,
 			textures: memory.textures,
 		}
 
-		lastResourcePublish = now
+		periodTotal = 0
+		periods = 0
+		lastLivePublish = now
 	}
 
 	useTask(
 		() => {
-			frameStart = performance.now()
+			const now = performance.now()
+
+			// Start to start, so a frame the browser spent elsewhere still counts.
+			if (frameStart > 0) {
+				periodTotal += now - frameStart
+				periods += 1
+			}
+
+			frameStart = now
 			passStart = renderer.info.render.frame
 			beginFpsSample?.()
 		},
@@ -157,8 +245,8 @@
 
 			const now = performance.now()
 
-			if (now - lastResourcePublish >= PUBLISH_INTERVAL_MS) {
-				publishResourceStats(now)
+			if (now - lastLivePublish >= PUBLISH_INTERVAL_MS) {
+				publishLiveStats(now)
 			}
 		},
 		{
@@ -189,6 +277,12 @@
 	</Folder>
 
 	<Monitor
+		value={liveStats.frame}
+		label="Frame"
+		format={formatMs}
+	/>
+
+	<Monitor
 		value={frameStats.cpu}
 		label="CPU"
 		format={formatMs}
@@ -216,7 +310,26 @@
 		/>
 	{/if}
 
-	<Folder title="Frame">
+	{#if longFramesSupported}
+		<Folder title="Main thread">
+			<Monitor
+				value={liveStats.longFrames}
+				label="Long frames/s"
+				format={formatCount}
+			/>
+			<Monitor
+				value={liveStats.longestFrame}
+				label="Longest"
+				format={formatMs}
+			/>
+			<Monitor
+				value={liveStats.source}
+				label="Blamed"
+			/>
+		</Folder>
+	{/if}
+
+	<Folder title="Draw">
 		<Monitor
 			value={frameStats.calls}
 			label="Draw calls"
@@ -246,29 +359,29 @@
 
 	<Folder title="Resources">
 		<Monitor
-			value={resourceStats.entities}
+			value={liveStats.entities}
 			label="Entities"
 			format={formatCount}
 		/>
 		<Monitor
-			value={resourceStats.geometries}
+			value={liveStats.geometries}
 			label="Geometries"
 			format={formatCount}
 		/>
 		<Monitor
-			value={resourceStats.textures}
+			value={liveStats.textures}
 			label="Textures"
 			format={formatCount}
 		/>
 		<Monitor
-			value={resourceStats.programs}
+			value={liveStats.programs}
 			label="Programs"
 			format={formatCount}
 		/>
 
 		{#if heapSupported}
 			<Monitor
-				value={resourceStats.heapMb}
+				value={liveStats.heapMb}
 				label="JS heap"
 				format={formatMb}
 			/>
