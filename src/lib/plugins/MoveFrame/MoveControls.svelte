@@ -25,7 +25,6 @@
 
 	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { setOrientationFromEuler } from '$lib/math/transform'
 
 	import Collisions from './collisions/Collisions.svelte'
@@ -52,7 +51,6 @@
 	const WORLD_FRAME = 'world'
 
 	const partID = usePartID()
-	const settings = useSettings()
 	const toast = useToast()
 	const motionResources = useResourceNames(() => partID.current, 'motion')
 
@@ -104,25 +102,7 @@
 		return () => moveGizmoOwner.disarm(frameName)
 	})
 
-	// While this panel owns the gizmo, put the scene into `gizmo` mode so a drag
-	// can't fall through to the scene and change the selection. Restore `navigate`
-	// after.
 	const armed = $derived(moveGizmoOwner.armedFrame === frameName)
-	$effect(() => {
-		if (armed) {
-			settings.current.interactionMode = 'gizmo'
-			return () => {
-				// Only hand the scene back if the gizmo wasn't taken over by another
-				// panel — otherwise this teardown would re-enable picking underneath a
-				// gizmo that is still live.
-				const owner = moveGizmoOwner.armedFrame
-				const handedOff = owner !== undefined && owner !== frameName
-				if (!handedOff && settings.current.interactionMode === 'gizmo') {
-					settings.current.interactionMode = 'navigate'
-				}
-			}
-		}
-	})
 
 	/** Another open panel took the gizmo out from under this one. */
 	const preempted = $derived(!armed)
