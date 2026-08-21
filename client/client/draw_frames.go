@@ -8,9 +8,6 @@ import (
 
 // DrawFrames draws Frames in the visualizer.
 //
-// Parameters:
-//   - frames: a slice of frames
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawFrames] instead.
 // See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/

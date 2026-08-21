@@ -25,10 +25,7 @@
 
 		closeDelay?: number
 
-		/**
-		 * Keep the tooltip open while the pointer is over its content, so text long
-		 * enough to read — or worth copying — can be reached.
-		 */
+		/** Keep the tooltip open while the pointer is over its content, so text long enough to read, or worth copying, can be reached. */
 		interactive?: boolean
 
 		/** Suppress the tooltip while still rendering its trigger. */

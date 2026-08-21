@@ -243,7 +243,7 @@ export function provideDrawService() {
 		}
 	}
 
-	/** ADDED and UPDATED are both upserts; see processTransformEvent. */
+	/** ADDED and UPDATED are both upserts. See `processTransformEvent`. */
 	const processDrawingEvent = (drawing: Drawing, changeType: EntityChangeType, uuid: string) => {
 		if (changeType === EntityChangeType.REMOVED) {
 			serverRelationships.forget(uuid)

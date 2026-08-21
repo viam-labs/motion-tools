@@ -96,7 +96,6 @@
 		return true
 	}
 
-	// Release overlay slots held by entities that are no longer selected.
 	$effect(() => {
 		const stillSelected = new Set<Entity>(selected.current)
 

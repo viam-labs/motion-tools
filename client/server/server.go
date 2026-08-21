@@ -116,8 +116,8 @@ func Start(cfg DrawServerConfig) error {
 	rpcListener, err := net.Listen("tcp", rpcAddr)
 	if err != nil {
 		if isAddrInUse(err) {
-			// A server is already listening on this port (e.g. started by `make up`).
-			// Attach a client to it rather than failing — the test suite uses this path.
+			// A server is already listening on this port, for example one started by `make up`.
+			// Attach a client to it rather than failing. The test suite uses this path.
 			recorder = NewRecordingInterceptor()
 			httpClient = newHTTPClient()
 			drawClient = drawv1connect.NewDrawServiceClient(
@@ -199,7 +199,7 @@ func Start(cfg DrawServerConfig) error {
 // When the singleton is only attached to an external server (because Start
 // found the port already in use, or GetClient lazily attached on
 // DefaultPort), Stop clears the local client state but returns ErrAttached
-// without shutting anything down — the process does not own that server.
+// without shutting anything down, because the process does not own that server.
 func Stop() error {
 	mu.Lock()
 	defer mu.Unlock()

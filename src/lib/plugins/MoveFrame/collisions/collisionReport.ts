@@ -26,10 +26,10 @@ const displayName = (entity: Entity): string => {
 /**
  * Turn detected pairs into what the panel renders, collapsing duplicates.
  *
- * Two colliders can share a display name — an arm's links all label as the
- * component when unnamed — so the same pair of names can arrive more than once
- * in a single pass. Sides are ordered by name so a pair keys the same
- * regardless of which collider Rapier reported it from.
+ * Two colliders can share a display name, since an arm's links all label as the component
+ * when unnamed, so the same pair of names can arrive more than once in a single pass. Sides
+ * are ordered by name so a pair keys the same regardless of which collider Rapier reported
+ * it from.
  */
 export const toReports = (pairs: readonly CollisionPair[]): CollisionReport[] => {
 	const byKey = new Map<string, CollisionReport>()

@@ -14,7 +14,6 @@ import (
 //
 // Parameters:
 //   - label: an identifier string used for reference in the treeview
-//   - pc: a PointCloud
 //   - color: an optional override color [R, G, B] (0–255); use nil for original color.
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPointCloud] instead.
@@ -28,7 +27,6 @@ func DrawPointCloud(label string, pc pointcloud.PointCloud, overrideColor *[3]ui
 
 	out := pointcloudToBytes(label, pc, overrideColor)
 
-	// Trim buffer to actual used size
 	return postHTTP(out, "octet-stream", "points")
 }
 
@@ -54,7 +52,7 @@ func pointcloudToBytes(label string, pc pointcloud.PointCloud, overrideColor *[3
 	// type, labelLen, label bytes, nPoints, nColors, defaultColor(3), positions(3*nPoints)
 	floatCount := 2 + labelLen + 2 + 3 + nPoints*3
 
-	// We don't know nColors yet; allocate assuming worst-case if hasColor, else 0.
+	// nColors is not known yet. Allocate the worst case when hasColor is set, otherwise nothing.
 	colorByteCap := 0
 	if hasColor {
 		colorByteCap = nPoints * 3
@@ -74,14 +72,13 @@ func pointcloudToBytes(label string, pc pointcloud.PointCloud, overrideColor *[3
 		offset += 4
 	}
 
-	// Header
 	putF32(float32(pointsType))
 	putF32(float32(labelLen))
 	for _, b := range labelBytes {
 		putF32(float32(b))
 	}
 
-	// Placeholder nColors for now; patch later once we know nColors.
+	// Reserve nColors and patch it once the iteration has counted the colored points.
 	nColorsOffsetBytes := offset + 4 // after writing nPoints, the next float is nColors
 	putU32(uint32(nPoints))
 	putU32(0) // nColors placeholder

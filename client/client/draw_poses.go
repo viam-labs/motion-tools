@@ -12,9 +12,7 @@ import (
 // DrawPoses draws a list of poses in the visualizer as arrows.
 //
 // Parameters:
-//   - poses: a list of poses
-//   - colors: Individual arrow color
-//   - arrowHeadAtPose: whether the tip of the cone of the arrow will be at the pose. default is false
+//   - arrowHeadAtPose: whether the tip of the arrow cone sits at the pose, false by default
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPosesAsArrows] instead.
 // See the v1 → v2 migration guide:
@@ -68,7 +66,6 @@ func posesToBytes(arrows *draw.Arrows, arrowHeadAtPose bool) ([]byte, error) {
 		off += 4
 	}
 
-	// Header (keep your existing "float header structure")
 	a := float32(0)
 	if arrowHeadAtPose {
 		a = 1
@@ -78,7 +75,6 @@ func posesToBytes(arrows *draw.Arrows, arrowHeadAtPose bool) ([]byte, error) {
 	putF32(float32(nColors))
 	putF32(a)
 
-	// Poses (same as before, still float32s)
 	for _, pose := range arrows.Poses {
 		p := pose.Point()
 		o := pose.Orientation().OrientationVectorDegrees()

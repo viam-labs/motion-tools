@@ -13,7 +13,6 @@ func TestDrawGLTF(t *testing.T) {
 
 	// Draco compression not yet supported
 	t.Run("DrawGLTF draco compression", func(t *testing.T) {
-		// test.That(t, DrawGLTF("../data/coffeemat.glb"), test.ShouldBeNil)
 	})
 
 }

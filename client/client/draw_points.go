@@ -14,7 +14,7 @@ import (
 // Parameters:
 //   - label: an identifier string used for reference in the treeview
 //   - points: a list of poses, each representing a point
-//   - colors: Individual point color, optional, and will fallback to defaultColor
+//   - colors: per-point colors, optional, falling back to color for any point past the end of the slice
 //   - color: an optional fallback color [R, G, B] (0–255); use nil for black
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawPoints] instead.
@@ -43,7 +43,6 @@ func DrawPoints(label string, points []spatialmath.Pose, colors [][3]uint8, colo
 		colorPerPoint[i] = draw.NewColor(draw.WithRGB(color[0], color[1], color[2]))
 	}
 
-	// fill colorperpoint with fallbackColor if it's less than the number of points
 	if len(colorPerPoint) < len(points) {
 		needed := len(points) - len(colorPerPoint)
 		fallbacks := make([]draw.Color, needed)
@@ -70,7 +69,6 @@ func pointsToBytes(points *draw.Points, label string, defaultColor *[3]uint8) ([
 	labelBytes := []byte(label)
 	labelLen := len(labelBytes)
 
-	// Ensure defaultColor is always valid (avoid nil panic)
 	dc := [3]uint8{0, 0, 0}
 	if defaultColor != nil {
 		dc = *defaultColor
@@ -79,7 +77,7 @@ func pointsToBytes(points *draw.Points, label string, defaultColor *[3]uint8) ([
 	nPoints := len(points.Positions)
 	nColors := len(points.Colors)
 
-	// Float32 section layout (unchanged from your existing protocol):
+	// Float32 section layout:
 	// [type, labelLen]                       -> 2 floats
 	// [label bytes as floats]                -> labelLen floats
 	// [nPoints, nColors]                     -> 2 floats
@@ -105,7 +103,6 @@ func pointsToBytes(points *draw.Points, label string, defaultColor *[3]uint8) ([
 		offset += 4
 	}
 
-	// Header
 	putF32(float32(pointsType))
 	putF32(float32(labelLen))
 
@@ -116,7 +113,6 @@ func pointsToBytes(points *draw.Points, label string, defaultColor *[3]uint8) ([
 	putU32(uint32(nPoints))
 	putU32(uint32(nColors))
 
-	// Default color
 	putF32(float32(dc[0]) / 255.0)
 	putF32(float32(dc[1]) / 255.0)
 	putF32(float32(dc[2]) / 255.0)

@@ -1,7 +1,7 @@
 <!--
-	Dispatches the shortcuts contributed through `useHotkey`. Features declare
-	bindings where their behavior lives; this component owns the one window
-	listener and the policy deciding when any of them may fire.
+@component
+
+Dispatches the shortcuts contributed through `useHotkey`. Features declare bindings where their behavior lives; this component owns the one window listener and the policy deciding when any of them may fire.
 -->
 <script lang="ts">
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'

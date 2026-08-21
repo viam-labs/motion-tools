@@ -29,7 +29,6 @@
 </script>
 
 <div class={['min-w-0', containerClass]}>
-	<!-- Only worth a tooltip when the label is actually cut off. -->
 	<Tooltip
 		placement="top-start"
 		openDelay={250}

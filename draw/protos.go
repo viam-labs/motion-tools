@@ -20,7 +20,8 @@ func poseInFrameToProtobuf(pose spatialmath.Pose, parent string) *commonv1.PoseI
 }
 
 // geometryToProtobuf converts a spatialmath.Geometry to its Protocol Buffer representation (commonv1.Geometry).
-// Handles sphere, box, and capsule geometry types.
+// It re-tags the geometry_type oneof for spheres, boxes, and capsules. Other geometry types are returned as
+// ToProtobuf produced them.
 func geometryToProtobuf(geometry spatialmath.Geometry) *commonv1.Geometry {
 	geometryProto := geometry.ToProtobuf()
 	sphere := geometryProto.GetSphere()

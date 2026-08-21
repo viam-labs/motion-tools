@@ -31,8 +31,10 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
 /**
  * A step addresses joints positionally per component; a missing column reads as zero, where RDK's
  * `FrameSystem.Transform` errors instead.
+ *
+ * The `offset` is in the column's unit, radians or millimetres, not degrees like the sibling `min`
+ * and `max`.
  */
-// `offset` is in the column's unit, radians or mm, not degrees like the sibling `min`/`max`.
 export const jointValueAt = (
 	descriptor: JointFrameDescriptor,
 	stepInputs: TrajectoryStep

@@ -31,7 +31,6 @@ describe('Details component', () => {
 	beforeEach(() => {
 		localStorage.removeItem(ENVIRONMENT_MODE_STORAGE_KEY)
 
-		// Mock the selection hooks to return test data
 		world.reset()
 
 		entity = createEntityFixture(world)
@@ -223,8 +222,7 @@ describe('Details component', () => {
 			]),
 		})
 
-		// Svelte 5 delegates keydown/keyup; use `on` from svelte/events so the
-		// listener participates in the same propagation chain as onkeydown.
+		// Svelte 5 delegates keydown and keyup. Using `on` from svelte/events puts this listener in the same propagation chain as onkeydown.
 		const parentListener = vi.fn()
 		const stopKeydown = on(container, 'keydown', parentListener)
 		const stopKeyup = on(container, 'keyup', parentListener)

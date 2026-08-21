@@ -21,17 +21,14 @@
 	const settings = useSettings()
 	const partID = usePartID()
 
-	// Three.js cameras look down -Z; Viam camera frames conventionally have the
-	// optical axis along +Z with image-down along +Y. A 180° rotation around X
-	// flips both axes so a Three.js render matches "what a sensor at this frame
-	// would see." If empirical testing shows the view is rolled, swap to
-	// makeRotationY for an X-flip instead.
+	// Three.js cameras look down -Z. Viam camera frames put the optical axis along
+	// +Z with image-down along +Y, so a 180° rotation around X aligns the render
+	// with what a sensor at this frame would see.
 	const VIAM_TO_THREE_CAMERA = new Matrix4().makeRotationX(Math.PI)
 
 	const PERSPECTIVE_FOV_DEG = 60
-	// Ortho frustum vertical extent at zoom=1, sized to match what the
-	// perspective camera sees at 1 m. zoom > 1 narrows the frustum (zoom in);
-	// zoom < 1 widens it (zoom out).
+	// Ortho frustum vertical extent at zoom=1, sized to match what the perspective
+	// camera sees at 1 m. zoom > 1 narrows the frustum, zoom < 1 widens it.
 	const BASE_ORTHO_HEIGHT = 2 * Math.tan((PERSPECTIVE_FOV_DEG * Math.PI) / 360)
 
 	const namedEntities = useQuery(traits.Name)

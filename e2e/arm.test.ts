@@ -72,7 +72,6 @@ withRobot('arm', async ({ robotPage }) => {
 
 	await robotPage.screenshotCanvas(`${testPrefix}-0-loaded`)
 
-	// MOVE ARM
 	execSync('go run e2e/fixtures/go-scripts/main.go moveArmJointPositions', {
 		encoding: 'utf8',
 		env: {

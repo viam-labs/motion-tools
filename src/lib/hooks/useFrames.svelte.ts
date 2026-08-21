@@ -274,7 +274,6 @@ export const provideFrames = (partID: () => string) => {
 				entities.set(entityKey, entity)
 			}
 
-			// Clean up non-active entities
 			for (const [entityKey, entity] of entities) {
 				if (!active[entityKey]) {
 					entity?.destroy()
@@ -287,7 +286,6 @@ export const provideFrames = (partID: () => string) => {
 		reconciledPartID = currentPartID
 	})
 
-	// Clear all entities on unmount
 	$effect(() => {
 		return () => {
 			for (const [, entity] of entities) {

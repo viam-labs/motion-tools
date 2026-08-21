@@ -12,11 +12,7 @@ import (
 )
 
 // DrawNurbs draws a nurbs curve in the visualizer.
-//
-// Parameters:
-//   - nurbs: A nurbs curve
-//   - color: The color of the line
-//   - name: A unique label for the curve
+// name must be unique within the world.
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.DrawNurbs] instead.
 // See the v1 → v2 migration guide:

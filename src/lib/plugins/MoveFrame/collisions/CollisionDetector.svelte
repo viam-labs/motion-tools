@@ -73,9 +73,9 @@ tick, and one detection pass per tick is the useful cadence.
 
 		schedule()
 
-		// `WorldMatrix` covers every source of movement — kinematics, staged edits,
-		// ghosts riding a drag — and its add/remove cover geometry streaming in and
-		// out. Colour writes don't touch it, so this can't feed itself.
+		// `WorldMatrix` covers every source of movement: kinematics, staged edits, and ghosts
+		// riding a drag. Its add and remove cover geometry streaming in and out. Colour writes
+		// don't touch it, so this can't feed itself.
 		const unsubscribes = [
 			world.onAdd(traits.WorldMatrix, schedule),
 			world.onChange(traits.WorldMatrix, schedule),

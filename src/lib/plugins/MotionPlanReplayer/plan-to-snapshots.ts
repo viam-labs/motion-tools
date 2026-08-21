@@ -1,8 +1,3 @@
-/**
- * The snapshot half of the client-side fallback (see `parse-plan.ts`): pairs the frame chain from
- * `$lib/motion/frameDescriptors` with a trajectory to produce one `Snapshot` per step.
- */
-
 import { UuidTool } from 'uuid-tool'
 
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
@@ -44,7 +39,7 @@ const descriptorToTransform = (
 	})
 }
 
-// Reconcile keys on Transform.uuid; snapshot uuid is unused. Helper keeps one construction path.
+// Reconcile keys on `Transform.uuid`, so the snapshot uuid is unused. This helper keeps one construction path.
 const snapshotUuid = (): Uint8Array<ArrayBuffer> =>
 	Uint8Array.from(UuidTool.toBytes(crypto.randomUUID()))
 
@@ -60,6 +55,11 @@ export const transformBytesToSnapshots = (transformsPerStep: Uint8Array[][]): Sn
 		transformsToSnapshot(step.map((bytes) => Transform.fromBinary(bytes)))
 	)
 
+/**
+ * The snapshot half of the client-side fallback described in `parse-plan.ts`. Pairs the frame
+ * chain from `$lib/motion/frameDescriptors` with the plan's trajectory to produce one
+ * `Snapshot` per step.
+ */
 export const parsedPlanToSnapshots = (plan: ParsedPlan): Snapshot[] => {
 	const descriptors = buildFrameDescriptors(plan)
 

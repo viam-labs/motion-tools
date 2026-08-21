@@ -4,7 +4,7 @@ const INITIAL_DELAY_MS = 1_000
 const MAX_DELAY_MS = 30_000
 
 export interface ReconnectOptions {
-	/** Aborting this stops the loop; no further attempts are scheduled. */
+	/** Aborting this stops the loop. No further attempts are scheduled. */
 	signal: AbortSignal
 	initialDelay?: number
 	maxDelay?: number
@@ -70,11 +70,8 @@ export const runWithReconnect = async (options: ReconnectOptions): Promise<void>
 		signal.addEventListener('abort', abortAttempt, { once: true })
 
 		let resync = false
-		// Reset on data received rather than on the attempt completing: a server that accepts the
-		// connection and immediately drops it would otherwise defeat the backoff entirely. The
-		// reset applies to the wait that follows this attempt, so a long-lived connection that
-		// drops normally retries at the initial delay rather than wherever the backoff had
-		// climbed to before it connected.
+		// Reset on data received rather than on the attempt completing. A server that accepts the
+		// connection and immediately drops it would otherwise defeat the backoff entirely.
 		const onData = () => {
 			delay = initialDelay
 		}

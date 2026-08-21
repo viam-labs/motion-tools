@@ -62,7 +62,6 @@ withRobot.beforeAll(async () => {
 withRobot('world state store geometry rendering', async ({ robotPage }) => {
 	const { page } = robotPage
 
-	// Wait for the world state store entities to appear in the tree
 	await expect(page.getByText('test-box', { exact: true })).toBeVisible({ timeout: 30000 })
 	await expect(page.getByText('test-sphere', { exact: true })).toBeVisible()
 	await expect(page.getByText('test-capsule', { exact: true })).toBeVisible()
@@ -167,7 +166,6 @@ withRobot('world state store point cloud update', async ({ robotPage }) => {
 	await robotPage.screenshotCanvas('WORLD-STATE-POINTCLOUD-UPDATE-0-initial')
 
 	runGoTest('^TestPointCloudUpdate$/UpdatePointCloud')
-	// wait for changes
 	await page.waitForTimeout(2000)
 	await robotPage.screenshotCanvas('WORLD-STATE-POINTCLOUD-UPDATE-1-updated')
 

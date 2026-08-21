@@ -162,9 +162,7 @@ func TestDrawPointCloud(t *testing.T) {
 		test.That(t, uuid, test.ShouldNotBeNil)
 	})
 
-	// A deliberately small chunked cloud, for tests that have to load one more than once. It is
-	// still several chunks with per-point colors, which is what exercises the chunked paths; the
-	// millions of points in the other cases only make each load slow.
+	// A deliberately small chunked cloud, for tests that have to load one more than once. It is still several chunks with per-point colors, which is what exercises the chunked paths. The millions of points in the other cases only make each load slow.
 	t.Run("DrawSmallChunkedPointCloud", func(t *testing.T) {
 		const numPoints = 50_000
 		pc := pointcloud.NewBasicPointCloud(numPoints)

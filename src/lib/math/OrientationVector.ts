@@ -23,17 +23,14 @@ const vecH = new Vector3()
 type OrientationVectorLike = OrientationVector | { x: number; y: number; z: number; th: number }
 
 /**
- * Golang: https://github.com/viamrobotics/rdk/blob/main/spatialmath/orientationVector.go
- * Rust:   https://github.com/viamrobotics/rust-utils/blob/main/src/spatialmath/utils.rs
- */
-
-/**
  * Viam’s orientation vector is a method for describing the orientation of an object in 3D space.
  * It is part of a Pose which also includes the position in 3D space.
  *
  * The vector extends from the center of the object to another point in the reference frame. This defines the direction something is pointing in.
  *
  * @see https://docs.viam.com/internals/orientation-vector/
+ * @see https://github.com/viamrobotics/rdk/blob/main/spatialmath/orientationVector.go
+ * @see https://github.com/viamrobotics/rust-utils/blob/main/src/spatialmath/utils.rs
  */
 export class OrientationVector {
 	readonly isOrientationVector = true
@@ -75,10 +72,6 @@ export class OrientationVector {
 		return this.#units
 	}
 
-	/**
-	 * The vector's x component.
-	 * @default 0
-	 */
 	get x(): number {
 		return this.#vec.x
 	}
@@ -93,10 +86,6 @@ export class OrientationVector {
 		this.#onChangeCallback?.()
 	}
 
-	/**
-	 * The vector's y component.
-	 * @default 0
-	 */
 	get y(): number {
 		return this.#vec.y
 	}
@@ -113,7 +102,7 @@ export class OrientationVector {
 
 	/**
 	 * The vector's z component.
-	 * @default 0
+	 * @default 1
 	 */
 	get z() {
 		return this.#vec.z
@@ -129,10 +118,7 @@ export class OrientationVector {
 		this.#onChangeCallback?.()
 	}
 
-	/**
-	 * Describes the rotation around the vector.
-	 * @default 0
-	 */
+	/** Rotation about the vector, in the current `units`, radians unless `setUnits('degrees')` was called. */
 	get th() {
 		if (this.#units === 'degrees') {
 			return MathUtils.radToDeg(this.#th)
@@ -158,9 +144,6 @@ export class OrientationVector {
 		return this
 	}
 
-	/**
-	 * Sets the value of this orientation vector.
-	 */
 	set(x = 0, y = 0, z = 0, th = 0): this {
 		this.#vec.set(x, y, z)
 
@@ -181,24 +164,15 @@ export class OrientationVector {
 		return this
 	}
 
-	/**
-	 * Computes the length of this orientation vector.
-	 */
 	length(): number {
 		return this.#vec.length()
 	}
 
-	/**
-	 * Normalizes the vector component.
-	 */
 	normalize() {
 		this.#normalize()
 		return this
 	}
 
-	/**
-	 * Copies value of ov to this orientation vector.
-	 */
 	copy(ov: OrientationVectorLike): this {
 		this.#vec.set(ov.x, ov.y, ov.z)
 
@@ -252,10 +226,7 @@ export class OrientationVector {
 
 		let th = 0
 
-		/*
-		 * The contents of ov.newX.Kmag are not in radians but we can use angleEpsilon anyway to check how close we are to
-		 * the pole because it's a convenient small number
-		 */
+		// EPSILON is not an angle here, but it is a convenient small number for testing how close the vector points to the pole.
 		if (1 - Math.abs(newZ.z) > EPSILON) {
 			const newZimag = vecA.set(newZ.x, newZ.y, newZ.z)
 			const newXimag = vecB.set(newX.x, newX.y, newX.z)
@@ -283,12 +254,8 @@ export class OrientationVector {
 			} else {
 				th = 0
 			}
-
-			/*
-			 * Special case for when we point directly along the Z axis
-			 * Get the vector normal to the local-x, global-z, origin plane
-			 */
 		} else if (newZ.z < 0) {
+			// Pointing straight along Z: theta comes from the local-x, global-z, origin plane instead.
 			th = -Math.atan2(newX.y, newX.x)
 		} else {
 			th = -Math.atan2(newX.y, -newX.x)

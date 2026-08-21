@@ -173,7 +173,7 @@ var Colors = map[string]string{
 }
 
 // NamedColorToHex returns the hex string for a given named color.
-// For unsupported colors, it returns an error.
+// Unsupported names fall back to the hex for black.
 //
 // Deprecated: use [github.com/viam-labs/motion-tools/draw.ColorFromName] and call ToHex
 // on the result. See the v1 → v2 migration guide:
@@ -202,13 +202,10 @@ func NamedColorsToHexes(names []string) []string {
 	for _, name := range names {
 		name = strings.ToLower(name)
 		if strings.HasPrefix(name, "#") && len(name) == 7 {
-			// Already a hex code, just add it
 			hexes = append(hexes, name)
 		} else if hex, ok := Colors[name]; ok {
-			// It's a named color, map it
 			hexes = append(hexes, hex)
 		} else {
-			// Unknown value, fallback to black
 			hexes = append(hexes, Colors["black"])
 		}
 	}

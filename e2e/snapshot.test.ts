@@ -65,10 +65,8 @@ test('drops visualization_snapshot_metadata', async ({ browser }) => {
 	await page.getByRole('button', { name: 'Dismiss toast' }).click()
 	await expect(page.getByText(`${filename} loaded.`)).not.toBeVisible()
 
-	// Select the arrows drawing that carries a HoverLink relationship to the capsule
 	await page.getByText('relationship-arrows', { exact: true }).first().click()
 
-	// The details panel should show the Relationships section with the linked entity
 	await expect(page.getByText('Relationships')).toBeVisible()
 	await expect(page.getByText('relationship-capsule (HoverLink)')).toBeVisible()
 

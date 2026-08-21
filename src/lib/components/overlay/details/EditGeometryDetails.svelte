@@ -42,14 +42,9 @@
 	$effect(() => {
 		const nextType = geometryTypes[geometryTabIndex]
 
-		/**
-		 * geometryTabIndex is derived from the entity's geometry traits, so on
-		 * selection (or any trait-driven recompute) nextType already equals
-		 * geometryType — firing then would call updateFrame, dirtying the part
-		 * config and resetting the geometry to default dimensions. Only a user
-		 * tab pick sets geometryTabIndex ahead of the trait, so guard on the two
-		 * differing to fire solely for user-initiated changes.
-		 */
+		// A trait-driven recompute leaves nextType equal to geometryType. Firing then
+		// calls updateFrame and resets the geometry to default dimensions. Only a
+		// user tab pick sets the index ahead of the trait.
 		if (nextType === geometryType) return
 
 		frameEditor.setGeometryType(entity, nextType)

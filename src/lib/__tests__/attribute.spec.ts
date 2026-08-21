@@ -39,7 +39,7 @@ describe('updateBufferGeometry', () => {
 		updateBufferGeometry(geometry, new Float32Array([9, 9, 9]), rgb)
 
 		expect(geometry.getAttribute('position')).toBe(before)
-		// `needsUpdate` is write-only in three.js; the version bump is the signal.
+		// `needsUpdate` is write-only in three.js, so the version bump is the signal.
 		expect(before.version).toBeGreaterThan(version)
 	})
 

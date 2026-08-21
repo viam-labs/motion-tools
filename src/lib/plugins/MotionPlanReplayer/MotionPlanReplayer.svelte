@@ -13,7 +13,7 @@
 		/** Seed the list on mount (e.g. app DB fetch). */
 		plans?: PlanEntry[]
 		children?: Snippet
-		/** Host hook to resolve uploaded plans server-side; unset keeps client parsing. */
+		/** Host hook to resolve uploaded plans server-side. Unset keeps client parsing. */
 		resolvePlanSnapshots?: ResolvePlanSnapshots
 	}
 

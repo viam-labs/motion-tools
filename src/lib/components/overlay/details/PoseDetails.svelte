@@ -86,13 +86,11 @@
 	})
 
 	/**
-	 * The `<List>`'s bound value must be one of its options, or the underlying
-	 * native <select> has no matching <option>, snaps to selectedIndex -1, and
-	 * renders blank. `useParentFrameOptions` enumerates every frame the app knows
-	 * about, but `parent.current` can still name one it doesn't — an unresolved
-	 * orphan, or simply frames not having loaded yet. Always include the current
-	 * parent so the field shows it rather than going blank. It's cycle-safe: the
-	 * current parent is neither self nor a descendant.
+	 * The `<List>`'s bound value must be one of its options, or the native select
+	 * snaps to selectedIndex -1 and renders blank. `useParentFrameOptions` can lag
+	 * `parent.current`, such as an unresolved orphan or frames that have not loaded
+	 * yet. Always include the current parent so the field shows it. That is
+	 * cycle-safe, since the current parent is neither self nor a descendant.
 	 */
 	const parentFrameOptions = $derived.by(() => {
 		const value = parent.current ?? 'world'

@@ -6,9 +6,6 @@ import (
 
 // RemoveAllSpatialObjects clears all drawn items from the visualizer.
 //
-// Parameters:
-//   - names: A list of names of items to clear
-//
 // Deprecated: use [github.com/viam-labs/motion-tools/client/api.RemoveAll] instead.
 // See the v1 → v2 migration guide:
 // https://viamrobotics.github.io/visualization/migration/v1-to-v2/

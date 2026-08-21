@@ -320,19 +320,16 @@ export class BatchedAxesHelpers extends LineSegments2 {
 
 		const length = this.lengths[index] || this.axisLength
 
-		// X axis
 		start.set(0, 0, 0).applyMatrix4(matrix4)
 		end.set(length, 0, 0).applyMatrix4(matrix4)
 		this.writeSegmentPosition(offset, start, end)
 		offset += FLOATS_PER_SEGMENT
 
-		// Y axis
 		start.set(0, 0, 0).applyMatrix4(matrix4)
 		end.set(0, length, 0).applyMatrix4(matrix4)
 		this.writeSegmentPosition(offset, start, end)
 		offset += FLOATS_PER_SEGMENT
 
-		// Z axis
 		start.set(0, 0, 0).applyMatrix4(matrix4)
 		end.set(0, 0, length).applyMatrix4(matrix4)
 		this.writeSegmentPosition(offset, start, end)

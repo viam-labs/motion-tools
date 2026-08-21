@@ -26,10 +26,7 @@ const mount = (): Mounted => {
 	return mounted
 }
 
-/**
- * Snapshots that name their plan. One fixture cycled across every plan makes each plan's geometry
- * byte-identical, so a test could only notice an array of the wrong length, not the wrong plan.
- */
+/** Snapshots whose transforms are named for their plan, so an assertion can tell which plan is drawn. */
 const planSnapshots = (plan: string, steps: number): Snapshot[] =>
 	Array.from(
 		{ length: steps },
@@ -141,8 +138,6 @@ describe('removing a plan', () => {
 		expect(ctx.totalSteps).toBe(2)
 	})
 
-	// The active plan is last on purpose: only from there does a negative or fractional index
-	// satisfy the `activePlanIndex > index` shift, so held at 1 the case would pass without a guard.
 	it.each([
 		['out of range', 7],
 		['negative', -1],
@@ -175,12 +170,8 @@ describe('plan identity', () => {
 		expect(ctx.totalSteps).toBe(5)
 	})
 
-	// The only case on the parse path: every other test hands `addPlan` precomputed snapshots, so
-	// nothing else reaches the `plans[index]` spread that has to carry the id across.
 	it('keys a plan it parsed itself the same way, without landing on a live plan', () => {
 		const { ctx, world } = mount()
-		// A removal first, so the parsed plan's position and its id genuinely differ. Added straight
-		// into an untouched list the two coincide, and keying by either one would pass.
 		addPlans(ctx, [2, 3])
 		ctx.removePlan(0)
 		ctx.addPlan('gantry.json', gantryPlan)
@@ -241,8 +232,7 @@ describe('scrubbing', () => {
 })
 
 describe('display defaults', () => {
-	// Needs its own `physicalObject`: `applyStep` colors only entities that got real geometry, and
-	// `planSnapshots` above spawns bare `ReferenceFrame` markers.
+	// `applyStep` colors only entities that got real geometry.
 	it('colors a freshly spawned plan entity even though Color is always absent on spawn', () => {
 		const { ctx, world } = mount()
 		ctx.addPlan('plan-0', 'content-0', [

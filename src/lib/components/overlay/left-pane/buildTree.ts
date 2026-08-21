@@ -42,7 +42,7 @@ const ownFolder = (entity: Entity): number | undefined => {
 
 /**
  * Named entities grouped by source. `folderEntities` supplies one entity per entry
- * in `treeFolders`, in order; folders that claim nothing are left out. Orphans are
+ * in `treeFolders`, in order. Folders that claim nothing are left out. Orphans are
  * hidden until the resolver places them.
  */
 export const buildTree = (world: World, folderEntities: Entity[]): Tree => {

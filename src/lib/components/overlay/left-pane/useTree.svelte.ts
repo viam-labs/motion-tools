@@ -10,9 +10,9 @@ import { treeFolders } from './treeFolders'
 
 /**
  * Reactive scene tree, grouped into `treeFolders`. Rebuilds when any named entity
- * is added, removed, renamed, or gains/loses a `ChildOf` or `Orphan` edge; rebuild
- * notifications are throttled (see below) so bursts of world-state churn stay off
- * the frame budget.
+ * is added, removed, renamed, or gains or loses a `ChildOf` or `Orphan` edge.
+ * Rebuild notifications are throttled to at most one per 100ms, so bursts of
+ * world-state churn stay off the frame budget.
  */
 export const useTree = (): {
 	readonly current: TreeNode[]
@@ -29,12 +29,9 @@ export const useTree = (): {
 	let dirty = true
 
 	const subscribe = createSubscriber((update) => {
-		// The world-state stream can add or remove dozens of entities per second.
-		// Rebuilding and reconciling the whole tree on every ECS event dominates the
-		// frame budget, so coalesce notifications to a human-readable rate: fire on
-		// the leading edge, then at most once per interval with a trailing flush.
-		// `dirty` is still set eagerly, so the next read always reflects the current
-		// world state.
+		// The world-state stream can churn dozens of entities per second, so
+		// notifications coalesce to one per 100ms, leading edge plus a trailing
+		// flush. `dirty` is set eagerly, so a read is never stale.
 		let timer: ReturnType<typeof setTimeout> | undefined
 		let trailing = false
 

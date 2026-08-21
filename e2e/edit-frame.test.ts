@@ -12,10 +12,9 @@ import {
 	withRobot,
 } from './fixtures/with-robot'
 
-// Each frame-edit section in Details.svelte is a tweakpane Point/Slider widget
-// wrapped in a div with a single `aria-label`. Inputs inside are positional
-// (axis 0..N). Tweakpane only commits values on Enter/blur, so press Enter
-// after each fill.
+// Each frame-edit section is a tweakpane widget wrapped in a div with one
+// aria-label, and the inputs inside are positional by axis. Tweakpane commits
+// only on Enter or blur, so press Enter after each fill.
 const fillFrameInputs = async (page: Page, groupLabel: string, values: string[]) => {
 	const inputs = page.getByLabel(groupLabel).locator('input')
 	for (const [index, value] of values.entries()) {
@@ -25,17 +24,17 @@ const fillFrameInputs = async (page: Page, groupLabel: string, values: string[])
 	}
 }
 
-// Frame editing is only available in Build mode; the workspace toggle defaults
-// to Monitor and resets to it on reload. Switch to Build before any edit.
+// Frame editing is only available in Build mode. The workspace toggle defaults to
+// Monitor and resets to it on reload, so switch to Build before any edit.
 const enterBuildMode = async (page: Page) => {
 	const build = page.getByRole('radio', { name: 'Build the scene' })
 	await build.click()
 	await expect(build).toHaveAttribute('aria-checked', 'true')
 }
 
-// The "Live updates paused" banner stays visible throughout Build mode; Save and
-// Discard enable only when there are unsaved edits. Use the Save button's
-// disabled state as the dirty signal rather than the banner's visibility.
+// The "Live updates paused" banner stays visible for all of Build mode. Save and
+// Discard enable only when edits are unsaved, so the Save button's disabled state
+// is the dirty signal, not the banner.
 const expectHasEdits = (page: Page) =>
 	expect(page.getByLabel('Save')).not.toHaveAttribute('aria-disabled', 'true')
 const expectNoEdits = (page: Page) =>
@@ -102,7 +101,6 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
 
-	// ENTER BUILD MODE, THEN OPEN A WORLD OBJECT AND EDIT THE FRAME
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible({ timeout: 15_000 })
 	await enterBuildMode(page)
 	await page.getByText('base-1', { exact: true }).click()
@@ -112,16 +110,15 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByText('Box', { exact: true })).toBeVisible()
 	await page.getByText('Box', { exact: true }).click()
 
-	// The `mutable …` aria-label divs are invisible Svelte wrappers around
-	// Tweakpane widgets — their content gets portaled into Tweakpane's own
-	// pane DOM. Assert attachment (i.e. the conditional render flipped on)
-	// rather than visibility.
+	// The "mutable ..." aria-label divs are invisible Svelte wrappers whose content
+	// is portaled into Tweakpane's own pane DOM. Assert attachment rather than
+	// visibility.
 	await expect(page.getByLabel('mutable local position')).toBeAttached()
 	await fillFrameInputs(page, 'mutable local position', ['100', '200', '300'])
 
-	// `mutable box dimensions` attaches when the entity gets a Box trait, but
-	// the actual <input>s live in the outer Tweakpane pane DOM (under
-	// `mutable geometry`), not as descendants of the box-dimensions wrapper.
+	// "mutable box dimensions" attaches when the entity gets a Box trait, but the
+	// inputs live in the outer Tweakpane pane DOM under "mutable geometry", not
+	// under this wrapper.
 	await expect(page.getByLabel('mutable box dimensions')).toBeAttached()
 	await fillFrameInputs(page, 'mutable geometry', ['400', '500', '600'])
 
@@ -136,7 +133,6 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-0-edited.png`)
 	}
 
-	// SAVE THE CHANGES
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
 	try {
@@ -149,7 +145,6 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-1-saved.png`)
 	}
 
-	// RELOAD THE PAGE
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
@@ -172,7 +167,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-2-reloaded.png`)
 	}
 
-	// REPARENT THE OBJECT (reload reset the toggle to Monitor, so re-enter Build)
+	// Reload reset the workspace toggle to Monitor, so re-enter Build first.
 	await enterBuildMode(page)
 	await expect(page.getByLabel('mutable parent frame')).toBeAttached()
 	await page.getByLabel('mutable parent frame').locator('select').selectOption('parent')
@@ -184,7 +179,6 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-3-parented.png`)
 	}
 
-	// DISCARD CHANGES
 	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
 	await expectNoEdits(page)
@@ -195,14 +189,12 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 		failedScreenshots.push(`${testPrefix}-4-discarded.png`)
 	}
 
-	// RESTORE THE ORIGINAL FRAME
 	await expect(page.getByText('None', { exact: true }).first()).toBeVisible()
 	await page.getByText('None', { exact: true }).first().click()
 
 	await expect(page.getByLabel('mutable local position')).toBeAttached()
 	await fillFrameInputs(page, 'mutable local position', ['0', '0', '0'])
 
-	// SAVE THE CHANGES
 	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
@@ -254,8 +246,8 @@ withRobot('create and delete frame', async ({ browser }) => {
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
-	// goto('') (not '/') so a baseURL with a path — e.g. the hosted
-	// playground — resolves correctly instead of jumping to host root.
+	// goto('') rather than '/', so a baseURL that carries a path resolves correctly
+	// instead of jumping to the host root.
 	await page.goto('')
 	await injectMachineConfig(page, config)
 	await page.reload()
@@ -267,7 +259,6 @@ withRobot('create and delete frame', async ({ browser }) => {
 		timeout: 15_000,
 	})
 
-	// ADD A FRAME & SAVE
 	await enterBuildMode(page)
 	await expect(page.getByLabel('Add frames', { exact: true })).toBeVisible()
 	page.getByLabel('Add frames', { exact: true }).click()
@@ -286,7 +277,6 @@ withRobot('create and delete frame', async ({ browser }) => {
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
 
-	// DELETE A FRAME
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible()
 	await page.getByText('base-1', { exact: true }).click()
 	await expect(page.getByText('Delete frame', { exact: true })).toBeVisible()
@@ -299,7 +289,6 @@ withRobot('create and delete frame', async ({ browser }) => {
 		failedScreenshots.push(`${testPrefix}-1-deleted.png`)
 	}
 
-	// DISCARD CHANGES
 	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
 	await expectNoEdits(page)
@@ -400,8 +389,8 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
 	})
-	// goto('') (not '/') so a baseURL with a path — e.g. the hosted
-	// playground — resolves correctly instead of jumping to host root.
+	// goto('') rather than '/', so a baseURL that carries a path resolves correctly
+	// instead of jumping to the host root.
 	await page.goto('')
 	await injectMachineConfig(page, config)
 	await page.reload()
@@ -436,7 +425,6 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	await expect(page.getByLabel('mutable sphere dimensions')).toBeAttached()
 	await fillFrameInputs(page, 'mutable geometry', ['400'])
 
-	// SAVE THE CHANGES
 	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
