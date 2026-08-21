@@ -1,0 +1,263 @@
+{
+  "kitVersion": "0.2.1",
+  "installedAt": "2026-08-21T14:29:23.493Z",
+  "modules": [
+    "core",
+    "lint-fix",
+    "session-context",
+    "rename",
+    "plans",
+    "orchestrate",
+    "verify-changed",
+    "ready",
+    "sweep",
+    "read-guard",
+    "regen",
+    "ci-settings",
+    "prose/code-comments",
+    "prose/prose-voice",
+    "prose/pr-description",
+    "ts/typescript",
+    "svelte/svelte",
+    "svelte/svelte-mcp",
+    "three/three",
+    "testing/testing",
+    "testing/playwright-mcp",
+    "changesets/changesets",
+    "design/design",
+    "design/design-tailwind",
+    "prose/output-prose"
+  ],
+  "files": {
+    ".claude/scripts/lib/config.mjs": "22998e08a9dda8ccce942cdcb10b45ea6d03891ee05ba67235ee75e1feb2fe3d",
+    ".claude/scripts/lib/backlog-id.mjs": "0f0711407679db1da7fc9d112bd5b7f99e1db237c48c1d41115bae950c4a73ed",
+    ".claude/scripts/lib/entry-ledger.mjs": "193a35bfdb3790310f47eb921fcc8ae6104e19496516e8d58b6b947ab172f3fa",
+    ".claude/scripts/lib/ledger-index.mjs": "f149ced5f0647c665f718f1252567b21ff7188eebd9b6f484d802955b7f693a6",
+    ".claude/scripts/lib/workspaces.mjs": "61b363b06b401a8d6ef6e2d68189db7e9865d6bca9b3baebe39635fc099806b3",
+    ".claude/scripts/lib/proc.mjs": "b2233dba0a4bac8ad5bdd0d3576d3ea8e1785ae3ff23c88aa71673a9056ba960",
+    ".claude/scripts/lib/findings.mjs": "c8781edb2508b6e819d37e8475398cde7f47713f251ab56f8f9233d3dff7260c",
+    ".claude/scripts/guard-bash.mjs": "36cab5759af053e0c58e54bbb68f2243651487ac5b17dddadc6908c7ca45cb49",
+    ".claude/scripts/ledger-inject.mjs": "61571f76ab2bfc2826438255f9df8e937fa672779a26e9c5069d6c505dc56bb4",
+    ".claude/templates/CLAUDE.md.template": "e06da89404aa1cf61b3dd6651854c437366fd5ffdb632d8e4fab5f55992a1e23",
+    ".claude/templates/agents/reviewer.agent.md.template": "10df260314d1db4a3cdcc3b8a86fdf8eb92cd0138a2069fad6828b249a66c5e0",
+    ".claude/templates/rules/GUARDRAIL.md.template": "d31f5aa8b959523a20516a4f8dd94a8a22766b9b68369c768b53519b197dc35b",
+    ".claude/templates/.gitignore": "ff43e4750f6889a22672491abc89633a183a8d8929f0922edadd5f06ab9a2843",
+    ".claude/scripts/.gitignore": "5837676d0344c53e2ecc4d8b7a2e8a5ea36e6e670a398f31a82b2f53b02416ae",
+    ".claude/ledgers/.gitignore": "a8e4a7c95a5238b971ef83ad6bdc4e9b793800ecec501b49c18d5fab77724915",
+    "CLAUDE.md": "b46d18f8e594a8ab91c4eb9d29178f3649535503178abd4dc93bfa6090813eb8",
+    ".claude/scripts/lint-format-fix.mjs": "114a77adf1f9904a0dce8f707624929d86523897613fe8d6b14f687497eec202",
+    ".claude/scripts/session-context.mjs": "860a9917df74e92856198de91fc9a31fd79583d60bc7a36fbe5dc0d361097550",
+    ".claude/scripts/rename.mjs": "5f9a182c589736ea4d49b918929463947bdebf42e5a9d33879d53327bf26f6ab",
+    ".claude/skills/plan-project/SKILL.md": "c7991b63e0d19edf646ac1a90537e89b1c5385b8c29ea3b72eed4ab4617df95b",
+    ".claude/skills/blast-radius/SKILL.md": "6dc0961bbdf444198ff76fb322e870bac6a943427f59e760930bdf09c84658aa",
+    ".claude/plans/.gitignore": "e5388670bdb4e570d8ee9c73582c10594ab3d8ddd8738fb7169bd90afec8730e",
+    ".claude/skills/orchestrate/SKILL.md": "c36bdfb886135ce67292d1e9adb19ce46b71229f1b99b0c8ddf2983eb51d83a4",
+    ".claude/skills/orchestrate/references/slicing.md": "36aac1d93f9fd39bacf0564caa024c249c27e4b3277fbd5ee4616441703ad0b5",
+    ".claude/skills/orchestrate/references/review-patterns.md": "7a45e72f363b01b3ff3f12e8d271f8deafc9f8e8dd9acec3d0e160c9c72901c9",
+    ".claude/skills/orchestrate/references/fixer-and-residue.md": "3be4f47aef77a410771409279dc5f91094a855247104bbcec74cdd644a8b7fa9",
+    ".claude/skills/orchestrate/references/closing.md": "709d0bf43b4f76c1cca05c56639c1681c90a562366bf16e5dd690f787e1cb9b9",
+    ".claude/agents/task-worker.md": "c7020a76057b3b040cc71c007b114fb6497f774f2cac57e2ce04caf806b9ca1b",
+    ".claude/scripts/plan-lint.mjs": "a80b72ffae5660a4d43728ee8f3071ff96661f419f422e1287d30af7073483fc",
+    ".claude/scripts/verify-changed.mjs": "2f38e7c93dd288c7d17d7f4053d1ffd783a2105240d6878c05c4c96e3f587ae3",
+    ".claude/skills/verify-changed/SKILL.md": "9852db23cfcf2a9951dafcc727052903921aa52ce5cdb5a5c1e8dc0874dac6a9",
+    ".claude/skills/ready/SKILL.md": "ddd8e35f45b842aa21cd4e7988077a6661b6140326f16b0f23fb05f80062f0e6",
+    ".claude/skills/sweep/SKILL.md": "debab11fdb2ec7932f975eca56c380c1390ae16dc32d541786f06bc1344822a4",
+    ".claude/scripts/guard-read.mjs": "18da5726e27ab1a2dda5fa4c9dad5d645d48fc2fd92b3de62fe0c6137448ac4e",
+    ".claude/scripts/regen-on-edit.mjs": "98844ca7ae3aa411fb33f6ec80e9c0f215d0ff2b6ac3d7f2fc7554f42270b35f",
+    ".claude/settings.ci.json": "b6a21552d285335aadc8579da821b056febba252cfeb9abe14cb02b934e14930",
+    ".prettierignore": "0ae8a8c28d1562a47e1c0c85a078a762f542d04cfe3bdbc954f50a1de2f06c3f",
+    ".claude/rules/code-comments.md": {
+      "body": "f30c58d60732d4c61498361ac16073f2cc988ba53c3d16e18b1a03b4b2a6cde3",
+      "frontmatter": "26f6e6023808560c1725ccde625e53c55ddcdfba96b742bc15b58b1499afc5ac"
+    },
+    ".claude/rules/prose-voice.md": {
+      "body": "6e553e7681aa8ee5ca5d8c8a08b1fd23f100bac7c39baa144f30657607dc0695",
+      "frontmatter": "15f0c04c9375db3b5b344e605ade6157cc2413b172345093778287b1cd86e715"
+    },
+    ".claude/scripts/prose-lint.mjs": "a8f0d40ce5832884e183db6db3a2a6e8ea2a7f2ecf7fa3b9adc3f4d53cddd7af",
+    ".claude/scripts/lib/markdown-segment.mjs": "ab45e42e7113d9dfa3d792a0189035a17f34ce5f794b0a8a8ad3e7613e348df7",
+    ".claude/skills/pr-description/SKILL.md": "3c6ab6a2b65054e4868111bcbb377fe2049719d0aae9047e242947d4adc4d670",
+    ".claude/scripts/pr-description-lint.mjs": "a5df4041e9b3a120803ad9e6e6da045d06b16eed8f1dfbe2d4ef7ccf1c2846d7",
+    ".claude/rules/typescript.md": {
+      "body": "a335c5ff79c3c8720b4171c3290821f14ed94c4538991b63f26cd0a72d575d58",
+      "frontmatter": "6b153f6b5ad98e0f52c1658e71896b8623c5063aee2c7116f9df2574bb019495"
+    },
+    ".claude/rules/svelte.md": {
+      "body": "11d4e91268225652e1737f9f5ff47d22bfaf2dcc6b7712ff379b6b031ef5ddfa",
+      "frontmatter": "01669efb05f684fa1dc9e59a07e67f1de288e8c6976b4c1f9219eda42ec210b0"
+    },
+    ".claude/scripts/svelte-lint.mjs": "391e376d5e997a3f041bb23a6511d7a58fe82846d7d39e8c9de434d42556b235",
+    ".claude/mcp/svelte.http.json": "deaa7ea22590061b0f152fb201478aad5c226950411df6353dc3eb7ad9604bc3",
+    ".claude/mcp/svelte.stdio.json": "2125ce807be24d4380c8bc5f00f700ed73ab2239d4f2d0dca459036a477e5103",
+    ".claude/mcp/svelte.vscode.json": "18c042f1740eacf294371ea167b96bd8d5873bde61e8e2c84f3db10dd87b53d4",
+    ".claude/rules/three-threlte.md": {
+      "body": "d2f3eb200f6a356d8b3c3fd0255aca72bf46caf57c41c445358cda637e91b850",
+      "frontmatter": "782b37e2a7e2ebe92f54802109fc6ca44469f4dcbfa9280847e88677c12ad485"
+    },
+    ".claude/rules/three.md": {
+      "body": "a54f9b6d7e6262eaeb53d94b8e722a122fd2f8ed1934d0c32d2c7c3f74d738ea",
+      "frontmatter": "ece667ed9cc6953e75673c74833711c1f3b3fd2c52c263fdd12714e3976e4a18"
+    },
+    ".claude/reference/three-upstream-docs.md": "fdbcadf0df2db03a93738fee1030b0e760d9b8e885b82001f9140b0b3524d676",
+    ".claude/reference/three-debugging.md": "2b1771e5f87c349a2ee572da746f6dcbd48f11ccc7b2d66bcbc1118866a20c81",
+    ".claude/rules/testing.md": {
+      "body": "934878ab7f33b3ae265c831a226e67babeeeebc5edb00176018a23e2a82f2184",
+      "frontmatter": "42d4ce2a2cc6233c36221f8d58d0bb235a13e645f6ed83066fd3f7edd9ae2012"
+    },
+    ".claude/rules/testing-typescript.md": {
+      "body": "911f143a71c78b84ab64bb0777607ac7242012ab15fc2563eadb8c3217570078",
+      "frontmatter": "5c5850fddf38db27c61e50fb1d52d3461eab4b64236a3f055a40257c438d1040"
+    },
+    ".claude/rules/testing-svelte.md": {
+      "body": "6fb09abcf04674e928ca956c604884caa6e122ec25c89d44e0cb2f81789b2b43",
+      "frontmatter": "1cf112ffd75b9b5b7d7954d9e70885a721dfe79780d1a88630665ed17c579fea"
+    },
+    ".claude/rules/testing-3d.md": {
+      "body": "7d7a1bea8b63204e9b333d6d1bd192488795d104c129da2103041521b523c0e3",
+      "frontmatter": "5c5850fddf38db27c61e50fb1d52d3461eab4b64236a3f055a40257c438d1040"
+    },
+    ".claude/scripts/test-layout.mjs": "cbea9c8c07a5a2b23bee0a0863ce2964132a15be0dc6345c967254304a83e4cf",
+    ".claude/scripts/test-config.mjs": "43e2bcb7b5cb1bb93bae1b451e41840b14c1811d97ed0859e7d01c719780855e",
+    ".claude/mcp/playwright.stdio.json": "1750d869f04eaea44deace452477a6cfc7e9879c755301c66b5547c1353cb56d",
+    ".claude/mcp/playwright.vscode.json": "99eb1d02caf898f3dbe8480205727791eee0aa6f789f1d9016ae3658ce3875d8",
+    ".claude/scripts/changeset-write.mjs": "2a717fa4c66c0358ead80e28f14e8983f24292e7c684db04af7b1f67f41792e0",
+    ".claude/scripts/changeset-check.mjs": "d79874c3fabc76977b5f901c9fa6db2a9a5faa384d1597ea4c5710756651b75c",
+    ".claude/scripts/changeset-gate.mjs": "c9dc135de92bd2f30f777b58db5b27faff351b7830ba26091d58f1edade44bf5",
+    ".claude/state/.gitignore": "6d306aec8fa79b4ddddcd3a59e52761ce3e33f81259cb508d965bb3fbc139a7b",
+    ".claude/skills/changeset/SKILL.md": "e63b634da5a076fc113300ce73ce8b898906f8ed1be562581d338862a3abf022",
+    ".claude/skills/changeset-condense/SKILL.md": "2a11b671b1a5a87d6713eb373a38652868d27f05ff97115acfc9e40834f520d2",
+    ".claude/agents/changeset-writer.md": "2fc6d4ac90203cf8cb20b588deba6bb87348690bb694eed183f4eeeebb2144b0",
+    ".claude/rules/design.md": {
+      "body": "e02bc7fc558c3a650970267c33404af184c5cdf9ac2f2f35cea520d3845189a5",
+      "frontmatter": "86e2936b957e71fafcded2efdb5789a1ca419e9526acf96939a709340de18624"
+    },
+    ".claude/reference/design-visual-principles.md": "c87093f4db1d4eb2e4a8ff51e0658b05ddc18931639bb930367f8716eb4cd04e",
+    ".claude/reference/design-layout.md": "3ded042212643d1cb964bf0d73faab38877e621a8684f1424d08f9be1dda936a",
+    ".claude/reference/design-performance.md": "de429e019be467cf2008fdc75afa405d725f8197aa6ff3c6946746d17d9c0f6f",
+    ".claude/scripts/design.mjs": "7e520ff7ece7b13358a99e2df69cc41e1d5690670713a22ecb9e01ab51170c09",
+    ".claude/scripts/lib/dtcg-normalize.mjs": "f85c154a810a50ef01770228dc961b8984c377283ef349d16b1e22740841176f",
+    ".claude/scripts/lib/tailwind-theme.mjs": "f18dd5c5e3c8febffc6d02c83c059e962c0d45fb9af3871094b0d8781b9ae2ba",
+    ".claude/scripts/lib/css-custom-properties.mjs": "cefae24c1b19cc0dcd87d18e99680131bd82dcdb27e5152548b9c9e801392e5c",
+    ".claude/scripts/lib/style-literals.mjs": "229073b4d9095a66a2f465c2ad1ba32e8cf6eda08b33900b98a957e6e8f54227",
+    ".claude/scripts/lib/design-checks.mjs": "5b61550ba2912310131b162332e90a7b71955fa0ac08a0ac4070dad295d01667",
+    ".claude/scripts/lib/cdp-session.mjs": "26b3ccce0ab727c1980c77e938f3747344275d92af4ac59967272ff292211471",
+    ".claude/scripts/lib/rendered-checks.mjs": "ce6b63838079f51fd22c90cadb4bf5f32f47c641a9b0aa8720869310b6b0b7dc",
+    ".claude/scripts/lib/tailwind-host-packages.mjs": "2710da8a9dbfec7abeda2a4a92fc031bea3f59584d49459d36a1dbbdf0f9df59",
+    ".claude/scripts/lib/tailwind-design-system.mjs": "264330f82221e586c0d8954f16a70d3e56c69d5219c95fa7f1db67f9da3a2979",
+    ".claude/scripts/lib/tailwind-theme-to-dtcg.mjs": "0d8d8966f74b6b9e7642792365539b4b3e8e3faf351d31cf60cb326e1d129229",
+    ".claude/scripts/lib/tailwind-candidates.mjs": "11beed84717ebe7ec31fed25f3e34f8826a20f8c688a14182bef2254ec56083c",
+    ".claude/scripts/lib/tailwind-checks.mjs": "1fe35f4695782a1e6090b333564e5ea6530648030524799f509c4163c9cbadfe",
+    ".claude/scripts/lib/is-record.mjs": "4778b3ad828f31ef767ba3a6f47338e177a21e5cdbc1bbb8e4a8783ff9f32d4b",
+    ".claude/templates/tailwind-theme.css.template": "7bb11e0528284f085951f72387025172feb97a4c67f6bf2c3b5b7a7659781392",
+    ".claude/reference/design-tailwind-theming.md": "a652b7212e14c1e8908ba70f3b1b6adb1ccd2283ec4a746fd972f69f908bfac9",
+    ".claude/output-styles/output-prose.md": "2fef7cb5457ba01736be41a9864b14c22c1102623ab4023b2311f30cfcf30186"
+  },
+  "settings": {
+    "hooks": [
+      {
+        "event": "PreToolUse",
+        "matcher": "Bash",
+        "script": "guard-bash.mjs"
+      },
+      {
+        "event": "UserPromptSubmit",
+        "matcher": null,
+        "script": "ledger-inject.mjs"
+      },
+      {
+        "event": "Stop",
+        "matcher": null,
+        "script": "lint-format-fix.mjs"
+      },
+      {
+        "event": "SubagentStop",
+        "matcher": null,
+        "script": "lint-format-fix.mjs"
+      },
+      {
+        "event": "SessionStart",
+        "matcher": null,
+        "script": "session-context.mjs"
+      },
+      {
+        "event": "PreToolUse",
+        "matcher": "Read",
+        "script": "guard-read.mjs"
+      },
+      {
+        "event": "PostToolUse",
+        "matcher": "Edit|Write|MultiEdit",
+        "script": "regen-on-edit.mjs"
+      },
+      {
+        "event": "Stop",
+        "matcher": null,
+        "script": "changeset-check.mjs"
+      },
+      {
+        "event": "Stop",
+        "matcher": null,
+        "script": "changeset-gate.mjs"
+      }
+    ],
+    "permissions": [
+      "allow:Bash(git status)",
+      "allow:Bash(git status:*)",
+      "allow:Bash(git diff:*)",
+      "allow:Bash(git log:*)",
+      "allow:Bash(git show:*)",
+      "allow:Bash(node .claude/scripts/verify-changed.mjs:*)",
+      "allow:Bash(node .claude/scripts/prose-lint.mjs:*)",
+      "allow:Bash(node .claude/scripts/pr-description-lint.mjs:*)",
+      "allow:Bash(node .claude/scripts/svelte-lint.mjs:*)",
+      "allow:Bash(node .claude/scripts/test-layout.mjs:*)",
+      "allow:Bash(node .claude/scripts/test-config.mjs:*)",
+      "allow:Bash(node .claude/scripts/changeset-write.mjs:*)",
+      "allow:Bash(node .claude/scripts/design.mjs:*)"
+    ]
+  },
+  "plugins": [
+    {
+      "name": "@houserules/plugin-prose",
+      "alias": "prose",
+      "version": "0.1.2",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-prose@0.1.2_@houserules+api@0.2.0/node_modules/@houserules/plugin-prose"
+    },
+    {
+      "name": "@houserules/plugin-typescript",
+      "alias": "ts",
+      "version": "0.1.1",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-typescript@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-typescript"
+    },
+    {
+      "name": "@houserules/plugin-svelte",
+      "alias": "svelte",
+      "version": "0.1.1",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-svelte@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-svelte"
+    },
+    {
+      "name": "@houserules/plugin-three",
+      "alias": "three",
+      "version": "0.1.1",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-three@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-three"
+    },
+    {
+      "name": "@houserules/plugin-testing",
+      "alias": "testing",
+      "version": "0.2.0",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-testing@0.2.0_@houserules+api@0.2.0/node_modules/@houserules/plugin-testing"
+    },
+    {
+      "name": "@houserules/plugin-changesets",
+      "alias": "changesets",
+      "version": "0.1.3",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-changesets@0.1.3_@houserules+api@0.2.0/node_modules/@houserules/plugin-changesets"
+    },
+    {
+      "name": "@houserules/plugin-design",
+      "alias": "design",
+      "version": "0.1.1",
+      "dir": "/Users/devin/Projects/motion-tools/node_modules/.pnpm/@houserules+plugin-design@0.1.1_@houserules+api@0.2.0/node_modules/@houserules/plugin-design"
+    }
+  ]
+}
