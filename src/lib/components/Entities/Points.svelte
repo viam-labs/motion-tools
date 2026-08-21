@@ -45,17 +45,22 @@
 	const maxPointSize = { value: 0 }
 	clampPointSize(material, maxPointSize)
 
-	$effect.pre(() => {
-		material.size = pointSize
+	// Orthographic size is driven per frame by the task below, which reads a zoom that isn't
+	// reactive. Writing it here too would clobber that between frames.
+	$effect(() => {
+		if (!orthographic) {
+			material.size = pointSize
+			invalidate()
+		}
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		// gl_PointSize is in framebuffer pixels; the setting is in CSS pixels.
 		maxPointSize.value = settings.current.maxPointSize * renderer.getPixelRatio()
 		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (geometry.current?.getAttribute('color')) {
 			material.color.set(0xffffff)
 		} else if (entityColor.current) {
@@ -66,6 +71,8 @@
 		} else {
 			material.color.set(settings.current.pointColor)
 		}
+
+		invalidate()
 	})
 
 	/**
@@ -73,7 +80,7 @@
 	 * Uniform opacity (entity trait) and per-vertex RGBA alpha are both considered here
 	 * to avoid the two sources conflicting with each other.
 	 */
-	$effect.pre(() => {
+	$effect(() => {
 		const vertexColors = geometry.current?.getAttribute('color')
 		const positions = geometry.current?.getAttribute('position')
 
@@ -96,17 +103,20 @@
 		}
 
 		material.transparent = hasUniformOpacity || hasVertexAlpha
+		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		material.depthTest = materialProps.current?.depthTest ?? true
 		material.depthWrite = materialProps.current?.depthWrite ?? true
+		invalidate()
 	})
 
-	$effect.pre(() => {
+	$effect(() => {
 		if (worldMatrix.current) {
 			points.matrix.copy(worldMatrix.current)
 			points.updateMatrixWorld()
+			invalidate()
 		}
 	})
 
@@ -123,12 +133,6 @@
 			autoInvalidate: false,
 		}
 	)
-
-	$effect(() => {
-		if (!orthographic) {
-			material.size = pointSize
-		}
-	})
 </script>
 
 {#if geometry.current}
