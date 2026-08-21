@@ -1,5 +1,11 @@
 # motion-tools
 
+## 1.45.1
+
+### Patch Changes
+
+- e08b88f: Show details panel for non-movable objects in move mode
+
 ## 1.45.0
 
 ### Minor Changes
