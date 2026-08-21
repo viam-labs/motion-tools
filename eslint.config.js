@@ -34,6 +34,21 @@ export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 
 	{
+		// houserules-owned files, refreshed by `npx houserules update`
+		ignores: [
+			'**/.claude/agents/**',
+			'.claude/houserules.config.json',
+			'.claude/houserules.manifest.json',
+			'**/.claude/ledgers/**',
+			'**/.claude/plans/**',
+			'**/.claude/scripts/**',
+			'.claude/settings.ci.json',
+			'**/.claude/skills/**',
+			'**/.claude/templates/**',
+		],
+	},
+
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		// See more details at: https://typescript-eslint.io/packages/parser/
 		languageOptions: {

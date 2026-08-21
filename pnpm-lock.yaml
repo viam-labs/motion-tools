@@ -79,6 +79,30 @@ importers:
       '@fontsource-variable/space-grotesk':
         specifier: ^5.2.10
         version: 5.2.10
+      '@houserules/cli':
+        specifier: ^0.2.1
+        version: 0.2.1
+      '@houserules/plugin-changesets':
+        specifier: ^0.1.3
+        version: 0.1.3(@houserules/api@0.2.0)
+      '@houserules/plugin-design':
+        specifier: ^0.1.1
+        version: 0.1.1(@houserules/api@0.2.0)
+      '@houserules/plugin-prose':
+        specifier: ^0.1.2
+        version: 0.1.2(@houserules/api@0.2.0)
+      '@houserules/plugin-svelte':
+        specifier: ^0.1.1
+        version: 0.1.1(@houserules/api@0.2.0)
+      '@houserules/plugin-testing':
+        specifier: ^0.2.0
+        version: 0.2.0(@houserules/api@0.2.0)
+      '@houserules/plugin-three':
+        specifier: ^0.1.1
+        version: 0.1.1(@houserules/api@0.2.0)
+      '@houserules/plugin-typescript':
+        specifier: ^0.1.1
+        version: 0.1.1(@houserules/api@0.2.0)
       '@langchain/anthropic':
         specifier: ^1.4.0
         version: 1.4.0(@langchain/core@1.1.48(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0))
@@ -553,6 +577,14 @@ packages:
 
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
+
+  '@clack/core@1.4.3':
+    resolution: {integrity: sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ==}
+    engines: {node: '>= 20.12.0'}
+
+  '@clack/prompts@1.7.0':
+    resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
+    engines: {node: '>= 20.12.0'}
 
   '@codemirror/autocomplete@6.20.3':
     resolution: {integrity: sha512-tlosUqb+3BbxCxZdu4tKeRghPFC+QM7q4X5YhKV2eCmPG+1r2F3f4AaSz5sCrFqUtX4Jh20VFTKecl16MgiV9g==}
@@ -1040,6 +1072,61 @@ packages:
 
   '@fontsource-variable/space-grotesk@5.2.10':
     resolution: {integrity: sha512-yJQO/o35/hAP3CFnpdFTwQku2yzJOae2HIpBmqkOVoxhhXJaQP3g+b6Jrz7u+eI7A5ZdCIf88uMWpBJdFiGr5w==}
+
+  '@houserules/api@0.2.0':
+    resolution: {integrity: sha512-qeLELSwfD0b81Oa6NxXeBKGc1wBBT2Dv7v2Dxd5oO6gtIAxFAgNJhKUR00nlhvv+a9OgFI/Almlti7uUx4bNvw==}
+    engines: {node: '>=22'}
+
+  '@houserules/cli@0.2.1':
+    resolution: {integrity: sha512-XFojyyFj3iyJC7prZQwDKh63f96fwwO+R4eTYYJXvqMjSaxKpPAWnXNtboMQHysoOzZKPp3IolwObcSZnfi/lA==}
+    engines: {node: '>=22'}
+    hasBin: true
+
+  '@houserules/payload@0.2.0':
+    resolution: {integrity: sha512-Xh5Nag0XHH4fuIP9LipNee6ph0vPxeCFWcd4Wdwr4/oME01NzMf5/neox/q7wc48eVp78IgLt0FmCuj2CuEK8A==}
+    engines: {node: '>=22'}
+
+  '@houserules/plugin-changesets@0.1.3':
+    resolution: {integrity: sha512-I/UTbanQBOuppo3/n0DinsLc0LN2gAJO4glmrgUoBcA4JUuRFDJG/mb9ZEHAFHnH5dOk5qO5LTR5vTY307+6Ug==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-design@0.1.1':
+    resolution: {integrity: sha512-Fmo6cDdccxI+FrwSrkc8iKKU3V+tA0dzVOSdhcvqnJrzi7qc4EVgcVQRpnDNMdqbg1xZghoJ15W9cCQj0aEB3w==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-prose@0.1.2':
+    resolution: {integrity: sha512-aTbpPEAOIpp3qr6OUaehrHaLzdmlEZN3BZ4JXuvziA2isqO5WpSm4Aijs7X4GUbTyCaSLFzRpuytHVNFGMtE9A==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-svelte@0.1.1':
+    resolution: {integrity: sha512-bNasWBaM5oOgbMSuiGvvMHIatVxHHtsEhje0yofKgKEQNcKV5pVztqRttTKj3BnTxkM8FYQdehcRbVHq0j2Cog==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-testing@0.2.0':
+    resolution: {integrity: sha512-I4fSweg65o+Ay/huuwP/bMyv63x78ic2PIlPZ5IHOa6eY0frF2yEtid1+G0YKLyEwvGL/gDJ0DdVow+Wv45PEg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-three@0.1.1':
+    resolution: {integrity: sha512-xVsZ5P26RZca372bM6X+51KllkZvJION/47Hlozsx7ZTtvD+KD4F0yPD97LYQ/ft0oRSBUBxMvKo2EMn1Occ6w==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-typescript@0.1.1':
+    resolution: {integrity: sha512-BOJd9Z/EmNWHbsKqED4fWu9V9A75r44IUN5Tf8U8XUO5bREdKTZf+Gt5k3UzTW1On1ZAkqNe61dEaFUpOwVq6A==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2592,6 +2679,10 @@ packages:
   comlink@4.4.2:
     resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
 
+  commander@15.0.0:
+    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+    engines: {node: '>=22.12.0'}
+
   concurrently@9.2.1:
     resolution: {integrity: sha512-fsfrO0MxV64Znoy8/l1vVIjjHa29SZyyqPgQBwhiDcaW8wJc2W3XWVOGx4M3oJBnv/zdUZIIp1gDeS98GzP8Ng==}
     engines: {node: '>=18'}
@@ -2698,6 +2789,10 @@ packages:
 
   diet-sprite@0.0.1:
     resolution: {integrity: sha512-zSHI2WDAn1wJqJYxcmjWfJv3Iw8oL9reQIbEyx2x2/EZ4/qmUTIo8/5qOCurnAcq61EwtJJaZ0XTy2NRYqpB5A==}
+
+  diff@9.0.0:
+    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
+    engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
@@ -2916,6 +3011,15 @@ packages:
 
   fast-sha256@1.3.0:
     resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
+
+  fast-string-truncated-width@3.0.3:
+    resolution: {integrity: sha512-0jjjIEL6+0jag3l2XWWizO64/aZVtpiGE3t0Zgqxv0DPuxiMjvB3M24fCyhZUO4KomJQPj3LTSUnDP3GpdwC0g==}
+
+  fast-string-width@3.0.2:
+    resolution: {integrity: sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==}
+
+  fast-wrap-ansi@0.2.2:
+    resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
 
   fastq@1.19.1:
     resolution: {integrity: sha512-GwLTyxkCXjXbxqIhTsMI2Nui8huMPtnxg7krajPJAjnEG/iiOS7i+zCtWGZR9G0NBKbXKh6X9m9UIsYX/N6vvQ==}
@@ -3989,6 +4093,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   set-cookie-parser@3.1.2:
     resolution: {integrity: sha512-5/r/lTwbJ3zQ+qwdUFZYeRNqda7P5HD8zQKqlSjdGt1/S0cjLAphHusj4Y58ahDtWn/g32xrIS58/ikOvwl0Lw==}
 
@@ -4020,6 +4129,9 @@ packages:
   sirv@3.0.2:
     resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
     engines: {node: '>=18'}
+
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
   slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
@@ -4282,6 +4394,10 @@ packages:
 
   type-fest@5.2.0:
     resolution: {integrity: sha512-xxCJm+Bckc6kQBknN7i9fnP/xobQRsRQxR01CztFkp/h++yfVxUUcmMgfR2HttJx/dpWjS9ubVuyspJv24Q9DA==}
+    engines: {node: '>=20'}
+
+  type-fest@5.8.0:
+    resolution: {integrity: sha512-YGYEVz3Fm5iy/AybuA0oyNFq7H4CgQNfRp/qfe8nurE1kuCeNm3/vfm9X4Mtl+qLyaKJUh5xrFZwogr41SMjYA==}
     engines: {node: '>=20'}
 
   typescript-eslint@8.56.1:
@@ -4904,6 +5020,18 @@ snapshots:
       human-id: 4.1.2
       prettier: 2.8.8
 
+  '@clack/core@1.4.3':
+    dependencies:
+      fast-wrap-ansi: 0.2.2
+      sisteransi: 1.0.5
+
+  '@clack/prompts@1.7.0':
+    dependencies:
+      '@clack/core': 1.4.3
+      fast-string-width: 3.0.2
+      fast-wrap-ansi: 0.2.2
+      sisteransi: 1.0.5
+
   '@codemirror/autocomplete@6.20.3':
     dependencies:
       '@codemirror/language': 6.12.3
@@ -5273,6 +5401,53 @@ snapshots:
   '@fontsource-variable/roboto-mono@5.2.9': {}
 
   '@fontsource-variable/space-grotesk@5.2.10': {}
+
+  '@houserules/api@0.2.0':
+    dependencies:
+      '@houserules/payload': 0.2.0
+      type-fest: 5.8.0
+      zod: 4.4.3
+
+  '@houserules/cli@0.2.1':
+    dependencies:
+      '@clack/prompts': 1.7.0
+      '@houserules/api': 0.2.0
+      '@houserules/payload': 0.2.0
+      commander: 15.0.0
+      dequal: 2.0.3
+      diff: 9.0.0
+      picocolors: 1.1.1
+      semver: 7.8.5
+
+  '@houserules/payload@0.2.0': {}
+
+  '@houserules/plugin-changesets@0.1.3(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-design@0.1.1(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-prose@0.1.2(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-svelte@0.1.1(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-testing@0.2.0(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-three@0.1.1(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
+
+  '@houserules/plugin-typescript@0.1.1(@houserules/api@0.2.0)':
+    dependencies:
+      '@houserules/api': 0.2.0
 
   '@humanfs/core@0.19.1': {}
 
@@ -7110,6 +7285,8 @@ snapshots:
 
   comlink@4.4.2: {}
 
+  commander@15.0.0: {}
+
   concurrently@9.2.1:
     dependencies:
       chalk: 4.1.2
@@ -7193,6 +7370,8 @@ snapshots:
   devalue@5.8.2: {}
 
   diet-sprite@0.0.1: {}
+
+  diff@9.0.0: {}
 
   dir-glob@3.0.1:
     dependencies:
@@ -7484,6 +7663,16 @@ snapshots:
   fast-levenshtein@2.0.6: {}
 
   fast-sha256@1.3.0: {}
+
+  fast-string-truncated-width@3.0.3: {}
+
+  fast-string-width@3.0.2:
+    dependencies:
+      fast-string-truncated-width: 3.0.3
+
+  fast-wrap-ansi@0.2.2:
+    dependencies:
+      fast-string-width: 3.0.2
 
   fastq@1.19.1:
     dependencies:
@@ -8388,6 +8577,8 @@ snapshots:
 
   semver@7.7.3: {}
 
+  semver@7.8.5: {}
+
   set-cookie-parser@3.1.2: {}
 
   shebang-command@2.0.0:
@@ -8411,6 +8602,8 @@ snapshots:
       '@polka/url': 1.0.0-next.29
       mrmime: 2.0.1
       totalist: 3.0.1
+
+  sisteransi@1.0.5: {}
 
   slash@3.0.0: {}
 
@@ -8699,6 +8892,10 @@ snapshots:
       prelude-ls: 1.2.1
 
   type-fest@5.2.0:
+    dependencies:
+      tagged-tag: 1.0.0
+
+  type-fest@5.8.0:
     dependencies:
       tagged-tag: 1.0.0
 

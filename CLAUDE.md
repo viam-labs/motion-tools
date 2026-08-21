@@ -40,17 +40,78 @@ Organize code by feature with **one focused unit per file**. File names should d
 
 ## Topic-specific rules
 
-Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude reads matching files; rules without `paths` load every session.
+Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude reads matching files; rules without `paths` load every session. Kit-managed rules (svelte, three, typescript, testing, code-comments, prose-voice, design, …) are installed and documented by houserules — see the houserules block below. The repo-owned rules:
 
-| Rule                     | Loads when                                          |
-| ------------------------ | --------------------------------------------------- |
-| `svelte.md`              | editing `.svelte`, `.svelte.ts`, `.svelte.js`       |
-| `three.md`               | editing files under `src/lib/three/`                |
-| `math.md`                | editing files under `src/lib/math/`                 |
-| `frontend-aesthetics.md` | editing `.svelte` or `.css`                         |
-| `go.md`                  | editing `.go`                                       |
-| `testing-go.md`          | editing Go test files (`*_test.go`)                 |
-| `testing-frontend.md`    | editing frontend test files (`src/**/*.spec.ts`)    |
-| `pr-description.md`      | editing files under `.changeset/`                   |
-| `changesets.md`          | editing files under `.changeset/` or `CHANGELOG.md` |
-| `viam-context.md`        | every session (no path scope)                       |
+| Rule                     | Loads when                                         |
+| ------------------------ | -------------------------------------------------- |
+| `koota-ecs.md`           | editing `.svelte`, `.svelte.ts`, or `src/lib/ecs/` |
+| `threlte-scene.md`       | editing `.svelte`, `.svelte.ts`                    |
+| `frontend-aesthetics.md` | editing `.svelte` or `.css`                        |
+| `math.md`                | editing files under `src/lib/math/`                |
+| `go.md`                  | editing `.go`                                      |
+| `testing-go.md`          | editing Go test files (`*_test.go`)                |
+| `testing-frontend.md`    | editing frontend test files (`src/**/*.spec.ts`)   |
+| `viam-context.md`        | every session (no path scope)                      |
+
+<!-- houserules:claude-md start -->
+
+### houserules sections
+
+This block is maintained by `npx houserules update`. Content outside the markers around it
+is yours and never touched. For a fuller from-scratch skeleton to compare structure against, see
+`.claude/templates/CLAUDE.md.template`, a gitignored reference that `npx houserules update`
+restores if absent. For decisions the repo keeps re-deriving on one axis (architecture, API
+conventions), instantiate `.claude/templates/rules/GUARDRAIL.md.template` into `.claude/rules/`.
+
+### Recording changes (changesets)
+
+After completing a meaningful change to a package, record a changeset **before the commit**,
+via the `/changeset` skill. See that skill for what it does and when to run it.
+
+### Planning large, multi-phase work
+
+For an implementation too big to hold in one plan, run the `/plan-project` skill. It persists
+to `.claude/plans/<name>/`, keeping `ROADMAP.md` current as each phase lands. See the skill
+for the full scaffold and when to use it.
+
+### Executing a planned phase
+
+To implement a phase from `.claude/plans/<slug>/`, run `/orchestrate`. See that skill for how
+it slices work and reviews it.
+
+### Conventions
+
+- **The user always handles `git commit` / `push` / PR-create.** Describe what is ready and stop.
+  (Enforced by `.claude/scripts/guard-bash.mjs`.)
+- **Edit from the file's current bytes.** Re-read before editing when your view of it is
+  second-hand (an earlier snapshot, a build or lint error, another tool's output) or the user may
+  have it open. A tool's report and the file on disk can disagree within seconds.
+- **Do not rewrite what is not yours to change.** When the user presents a file as their own
+  finished work, or has it open mid-edit, surface the problem and let them decide.
+
+### Cost & verification discipline
+
+- Stage-sized work (≤ a handful of files): implement directly in-context, with no implementation
+  subagents. Reserve subagents for genuinely parallel or unbounded work (wide sweeps, migrations).
+- Exception, a planned phase under `/orchestrate`: dispatch one scoped `task-worker` per slice
+  and review the returned reports. Never pull a worker’s diff into the main context.
+- Verify with static gates (tests, typecheck, lint) plus a short falsifiable acceptance checklist
+  for the user. No browser/screenshot verification unless explicitly asked.
+- Run those gates in order: format first, since it rewrites in place and settles the mechanical
+  noise, then lint with autofix so only real problems are left, then typecheck and test. Scope
+  each command to the packages you changed. This order is for work you do yourself.
+  When subagents are editing in parallel, the fixer runs once after they report, never inside
+  one of them, since it rewrites files their siblings still have open.
+- **"Done" means every check passed, not that the edits were made.** Report a check that failed
+  or never ran, with its output. Never claim success over one you did not see pass.
+- Derive empirical constants by parsing the artifact itself, not screenshot-and-iterate loops.
+- On AskUserQuestion timeout, stop and re-ask later. Never carry tentative selections forward.
+- Read the repo's own docs + targeted greps before fanning out Explore/Plan agents.
+
+### Tool-use efficiency
+
+- `grep -n` to locate, then `Read` with `offset`/`limit`. Never read big files whole.
+- Never `git stash` to baseline-check. Use `git diff --name-only` / `git show HEAD:<path>`.
+- Pipe long command output through `grep`, and batch related greps into one call.
+
+<!-- houserules:claude-md end -->
