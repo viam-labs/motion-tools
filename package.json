@@ -55,7 +55,9 @@
 		"release": "changeset publish",
 		"docs:dev": "pnpm --dir docs dev",
 		"docs:build": "pnpm --dir docs build",
-		"docs:preview": "pnpm --dir docs preview"
+		"docs:preview": "pnpm --dir docs preview",
+		"lint:scenes": "wireit",
+		"vet:scenes": "wireit"
 	},
 	"wireit": {
 		"up": {
@@ -120,16 +122,18 @@
 			]
 		},
 		"go-build": {
-			"command": "go build -o .bin/draw-server ./cmd/draw-server",
+			"command": "go build -o .bin/draw-server ./cmd/draw-server && go build -o .bin/draw-scenes ./e2e/fixtures/draw-scenes",
 			"files": [
 				"cmd/draw-server/**",
+				"e2e/fixtures/draw-scenes/**",
 				"client/**",
 				"draw/**",
 				"go.mod",
 				"go.sum"
 			],
 			"output": [
-				".bin/draw-server"
+				".bin/draw-server",
+				".bin/draw-scenes"
 			]
 		},
 		"package": {
@@ -219,7 +223,8 @@
 			"dependencies": [
 				"lint:prettier",
 				"lint:eslint",
-				"lint:draw"
+				"lint:draw",
+				"lint:scenes"
 			]
 		},
 		"lint:prettier": {
@@ -313,7 +318,8 @@
 		"vet": {
 			"dependencies": [
 				"vet:draw",
-				"vet:client"
+				"vet:client",
+				"vet:scenes"
 			]
 		},
 		"vet:draw": {
@@ -466,6 +472,29 @@
 			"packageLocks": [
 				"pnpm-lock.yaml"
 			]
+		},
+		"lint:scenes": {
+			"command": "golangci-lint run ./e2e/fixtures/draw-scenes/...",
+			"files": [
+				"e2e/fixtures/draw-scenes/**",
+				"client/**",
+				"draw/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"vet:scenes": {
+			"command": "go vet ./e2e/fixtures/draw-scenes/...",
+			"files": [
+				"e2e/fixtures/draw-scenes/**",
+				"client/**",
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
 		}
 	},
 	"devDependencies": {

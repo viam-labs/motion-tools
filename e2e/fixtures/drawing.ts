@@ -1,5 +1,5 @@
 import { test as base, expect } from '@playwright/test'
-import { type ChildProcess, exec, execSync, spawn } from 'node:child_process'
+import { type ChildProcess, execFile, execFileSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
 import os from 'node:os'
@@ -10,11 +10,12 @@ import { promisify } from 'node:util'
 import { createDrawClient, type DrawClient, resetScene } from '../helpers/drawClient'
 import { screenshotCanvas } from '../helpers/screenshot'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
-const API_PACKAGE = 'github.com/viam-labs/motion-tools/client/api'
+const drawScenesBinary = path.resolve(dirname, '../../.bin/draw-scenes')
+const sceneDataDir = path.resolve(dirname, '../../client/data')
 
 /** Clears 3000, 3030, 5173, 9090, and the 191xx range Go's own test servers use. */
 const BASE_PORT = 4100
@@ -50,21 +51,21 @@ const waitForListening = async (port: number, timeoutMs = 15_000): Promise<void>
  */
 const sceneUrl = (port: number, routePath = ''): string => `${routePath}?drawPort=${port}`
 
-const goTestCommand = (pattern: string, timeoutSeconds?: number): string => {
-	const timeout = timeoutSeconds === undefined ? '' : ` -timeout=${timeoutSeconds}s`
-	return `go test -run ${pattern} ${API_PACKAGE} -count=1${timeout}`
-}
+const sceneArgs = (name: string, port: number): string[] => [
+	'-port',
+	String(port),
+	'-data',
+	sceneDataDir,
+	name,
+]
 
 export type DroppedFile = string | { name: string; content: string }
 
-interface GoTestOptions {
-	/** Passed to `go test -timeout`. Go's own default is 10 minutes. */
-	timeoutSeconds?: number
-}
+/** Runs a scene and waits for it to finish. */
+export type DrawScene = (name: string) => void
 
-export type GoTest = (pattern: string, options?: GoTestOptions) => string
-
-export type GoTestAsync = (pattern: string, options?: GoTestOptions) => Promise<unknown>
+/** Starts a scene and resolves when it exits, for scenes the spec asserts against mid-flight. */
+export type DrawSceneAsync = (name: string) => Promise<unknown>
 
 interface DrawServer {
 	port: number
@@ -73,8 +74,8 @@ interface DrawServer {
 interface DrawingFixtures {
 	drawClient: DrawClient
 	dropFile: (file: DroppedFile) => Promise<void>
-	goTest: GoTest
-	goTestAsync: GoTestAsync
+	drawScene: DrawScene
+	drawSceneAsync: DrawSceneAsync
 	gotoScene: (routePath: string) => Promise<void>
 	resetScene: () => Promise<void>
 	snapshotAndReset: (testPrefix: string) => Promise<void>
@@ -83,6 +84,11 @@ interface DrawingFixtures {
 
 interface DrawingWorkerFixtures {
 	drawServer: DrawServer
+}
+
+const requireDrawScenesBinary = () => {
+	if (fs.existsSync(drawScenesBinary)) return
+	throw new Error(`draw-scenes binary not found at ${drawScenesBinary}. Run 'pnpm go-build'.`)
 }
 
 /**
@@ -174,21 +180,19 @@ export const test = base.extend<DrawingFixtures, DrawingWorkerFixtures>({
 		await use(createDrawClient(drawServer.port))
 	},
 
-	goTest: async ({ drawServer }, use) => {
-		await use((pattern, { timeoutSeconds }: GoTestOptions = {}) =>
-			execSync(goTestCommand(pattern, timeoutSeconds), {
-				encoding: 'utf8',
-				env: { ...process.env, DRAW_SERVER_PORT: String(drawServer.port) },
-			})
-		)
+	drawScene: async ({ drawServer }, use) => {
+		requireDrawScenesBinary()
+		// stdio piped rather than inherited: the binary logs a line about
+		// attaching on every run, which would bury the reporter output. On a
+		// failure execFileSync throws with both streams attached.
+		await use((name: string) => {
+			execFileSync(drawScenesBinary, sceneArgs(name, drawServer.port), { stdio: 'pipe' })
+		})
 	},
 
-	goTestAsync: async ({ drawServer }, use) => {
-		await use((pattern, { timeoutSeconds }: GoTestOptions = {}) =>
-			execAsync(goTestCommand(pattern, timeoutSeconds), {
-				env: { ...process.env, DRAW_SERVER_PORT: String(drawServer.port) },
-			})
-		)
+	drawSceneAsync: async ({ drawServer }, use) => {
+		requireDrawScenesBinary()
+		await use((name: string) => execFileAsync(drawScenesBinary, sceneArgs(name, drawServer.port)))
 	},
 
 	resetScene: async ({ page, drawClient }, use) => {

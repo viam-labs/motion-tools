@@ -20,9 +20,31 @@ is why it starts in seconds.
 
 `drawing` runs `fullyParallel`. Each worker owns a draw server on port `4100 + parallelIndex`
 with its own chunk buffer directory, and the page it drives carries a `?drawPort=` query so
-the app subscribes to that worker's server rather than a shared one. `go test` invocations get
-the same port through `DRAW_SERVER_PORT`. Nothing is shared, so the specs cannot see each
-other's entities. `robot` stays serial: its four specs push conflicting configs at one machine.
+the app subscribes to that worker's server rather than a shared one. Scene invocations get the
+same port through `-port`. Nothing is shared, so the specs cannot see each other's entities.
+`robot` stays serial: its four specs push conflicting configs at one machine.
+
+## Putting entities on screen
+
+Specs that need a scene rendered call the `drawScene` fixture, which runs `.bin/draw-scenes`,
+a Go binary that calls `client/api` the way a user would. That is the realism argument for
+having it: the e2e drives the public API through a script, not through a test harness.
+
+```bash
+# every scene name
+.bin/draw-scenes -list
+
+# draw one against a running visualizer
+.bin/draw-scenes -port 3030 hierarchy/draw
+```
+
+It replaced `go test -run` invocations, which cost about 1.9s each in package loading and
+linking against about 10ms to exec the binary. Two of the old `-run` patterns also matched more
+subtests than they named, because Go matches each element of the pattern unanchored, so a
+scene drew more than the spec asserted.
+
+The binary refuses to run when nothing is listening on `-port`. `server.Start` would otherwise
+stand up its own server inside the process, draw into it, and lose the scene on exit.
 
 `matrix` shares the drawing project's per-worker draw server but opens **one page per
 worker** instead of one per test, because a cell is two RPCs and a poll. A fresh page per cell
@@ -96,8 +118,8 @@ pnpm test:e2e-robot
 pnpm test:e2e-all
 ```
 
-Each of those runs `pnpm go-build` first, because the worker fixture spawns the prebuilt
-`.bin/draw-server` rather than compiling one per test.
+Each of those runs `pnpm go-build` first, which builds both `.bin/draw-server` and
+`.bin/draw-scenes`. The fixtures exec the prebuilt binaries rather than compiling per test.
 
 ### Running specific tests
 
@@ -173,8 +195,11 @@ When you make intentional UI changes that should change screenshots:
   A draw server from a killed run is still listening. The Go server attaches to an existing
   listener instead of failing, so the fixture refuses to start rather than silently sharing
   one. Find it with `lsof -nP -iTCP:4100 -sTCP:LISTEN` and kill it.
-- **`draw-server binary not found`**
+- **`draw-server binary not found`** or **`draw-scenes binary not found`**
   Run `pnpm go-build`.
+- **`no draw server is listening on port N`**
+  A scene was run by hand without a visualizer behind it. Start one with `make up`, or pass the
+  `-port` of a running worker's server.
 - **A draw server failed to start**
   Its log lives beside its chunk directory under the system temp dir, and the fixture's error
   message quotes it.

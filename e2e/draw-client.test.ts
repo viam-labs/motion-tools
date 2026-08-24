@@ -1,6 +1,6 @@
 import { packFloats, toDrawing, toTransform } from '../src/lib/__tests__/__fixtures__/entityDrafts'
 import { Points } from '../src/lib/buf/draw/v1/drawing_pb'
-import { expect, type GoTest, type GoTestAsync, type Page, test } from './fixtures/drawing'
+import { type DrawScene, type DrawSceneAsync, expect, type Page, test } from './fixtures/drawing'
 import { readCameraPose } from './helpers/cameraPose'
 import { screenshotCanvas, waitForCanvasToSettle } from './helpers/screenshot'
 
@@ -13,16 +13,16 @@ test.beforeEach(async ({ drawClient }) => {
 
 interface ChunkedRun {
 	page: Page
-	goTestAsync: GoTestAsync
+	drawSceneAsync: DrawSceneAsync
 	snapshotAndReset: (testPrefix: string) => Promise<void>
 }
 
 const runChunkedTest = async (
-	{ page, goTestAsync, snapshotAndReset }: ChunkedRun,
+	{ page, drawSceneAsync, snapshotAndReset }: ChunkedRun,
 	testPrefix: string,
-	goTestPath: string
+	sceneName: string
 ) => {
-	const pull = goTestAsync(goTestPath, { timeoutSeconds: 300 })
+	const pull = drawSceneAsync(sceneName)
 
 	await expect(page.getByRole('progressbar', { name: /Loading/ })).toBeVisible({
 		timeout: 120_000,
@@ -35,20 +35,20 @@ const runChunkedTest = async (
 	await snapshotAndReset(testPrefix)
 }
 
-test('draw service events lifecycle', async ({ page, goTest, resetScene }) => {
-	goTest('^TestDrawServiceEvents$/AddTransformAndDrawing')
+test('draw service events lifecycle', async ({ page, drawScene, resetScene }) => {
+	drawScene('lifecycle/add')
 
 	await expect(page.getByText('lifecycle-box')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('lifecycle-line')).toBeVisible({ timeout: 10000 })
 	await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_ADDED')
 
-	goTest('^TestDrawServiceEvents$/UpdateTransformAndDrawing')
+	drawScene('lifecycle/update')
 
 	await expect(page.getByText('lifecycle-box')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('lifecycle-line')).toBeVisible({ timeout: 10000 })
 	await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_UPDATED')
 
-	goTest('^TestDrawServiceEvents$/RemoveAll')
+	drawScene('lifecycle/remove-all')
 
 	await expect(page.getByText('No objects displayed', { exact: true })).toBeVisible({
 		timeout: 15000,
@@ -58,20 +58,20 @@ test('draw service events lifecycle', async ({ page, goTest, resetScene }) => {
 	await resetScene()
 })
 
-test('draw frame system', async ({ page, goTest, snapshotAndReset }) => {
+test('draw frame system', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_FRAME_SYSTEM'
 
-	goTest('^TestDrawFrameSystem$/DrawFrameSystem')
+	drawScene('frame-system/draw')
 
 	await expect(page.getByText('No objects displayed', { exact: true })).not.toBeVisible()
 
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw hierarchy', async ({ page, goTest, resetScene, takeScreenshot }) => {
+test('draw hierarchy', async ({ page, drawScene, resetScene, takeScreenshot }) => {
 	const testPrefix = 'DRAW_HIERARCHY'
 
-	goTest('^TestDrawHierarchy$/DrawHierarchy')
+	drawScene('hierarchy/draw')
 
 	await expect(page.getByText('zulu', { exact: true })).toBeVisible()
 	await expect(page.getByText('bravo', { exact: true })).toBeVisible()
@@ -99,22 +99,28 @@ test('draw hierarchy', async ({ page, goTest, resetScene, takeScreenshot }) => {
 	await resetScene()
 })
 
-test('draw frames', async ({ page, goTest, snapshotAndReset }) => {
+test('draw frames', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_FRAMES'
 
-	goTest('^TestDrawFrames$/DrawFrames')
+	drawScene('frames/draw')
 
 	await expect(page.getByText('DrawFrames Axes')).toBeVisible()
 	await expect(page.getByText('DrawFrames Sphere')).toBeVisible()
 	await expect(page.getByText('DrawFrames Capsule:Capsule')).toBeVisible()
 
+	// The colored group. Asserted here because the baseline has always held all
+	// six frames, and until now only the first three were named.
+	await expect(page.getByText('DrawFrames Red:Box')).toBeVisible()
+	await expect(page.getByText('DrawFrames Blue:Sphere')).toBeVisible()
+	await expect(page.getByText('DrawFrames Default')).toBeVisible()
+
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw geometries', async ({ page, goTest, snapshotAndReset }) => {
+test('draw geometries', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GEOMETRIES'
 
-	goTest('^TestDrawGeometries$/DrawGeometries')
+	drawScene('geometries/draw')
 
 	await expect(page.getByText('DrawGeometries Box')).toBeVisible()
 	await expect(page.getByText('DrawGeometries Sphere')).toBeVisible()
@@ -125,10 +131,10 @@ test('draw geometries', async ({ page, goTest, snapshotAndReset }) => {
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud', async ({ page, goTest, snapshotAndReset }) => {
+test('draw point cloud', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUD'
 
-	goTest('^TestDrawPointCloud$/DrawPointClouds')
+	drawScene('point-cloud/files')
 
 	await expect(page.getByText('octagon')).toBeVisible()
 	await expect(page.getByText('Zaghetto')).toBeVisible()
@@ -138,31 +144,31 @@ test('draw point cloud', async ({ page, goTest, snapshotAndReset }) => {
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud updating', async ({ page, goTest, snapshotAndReset }) => {
+test('draw point cloud updating', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUD_UPDATING'
 
-	goTest('^TestDrawPointCloudUpdating$/DrawPointCloudUpdating')
+	drawScene('point-cloud/updating')
 
 	await expect(page.getByText('DrawPointCloud updating')).toBeVisible()
 
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud in chunks', async ({ page, goTestAsync, snapshotAndReset }) => {
+test('draw point cloud in chunks', async ({ page, drawSceneAsync, snapshotAndReset }) => {
 	await runChunkedTest(
-		{ page, goTestAsync, snapshotAndReset },
+		{ page, drawSceneAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS',
-		'^TestDrawPointCloud$/^DrawPointCloudInChunks$'
+		'point-cloud/chunked'
 	)
 })
 
-test('chunked point cloud survives a reconnect', async ({ page, goTest, snapshotAndReset }) => {
+test('chunked point cloud survives a reconnect', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'CHUNKED_POINT_CLOUD_RECONNECT'
 
 	// The small chunked cloud on purpose: this test loads one twice, and the
 	// multi-million point fixtures are too slow to do that inside the timeout.
 	// Several chunks with per-point colors is all the coverage needs.
-	goTest('^TestDrawPointCloud$/DrawSmallChunkedPointCloud')
+	drawScene('point-cloud/chunked-small')
 
 	await expect(page.getByText('chunked_point_cloud_small')).toBeVisible({ timeout: 30_000 })
 	await expect(page.getByRole('progressbar')).toHaveCount(0, { timeout: 60_000 })
@@ -191,10 +197,10 @@ test('chunked point cloud survives a reconnect', async ({ page, goTest, snapshot
 	await snapshotAndReset(testPrefix)
 })
 
-test('draw world state', async ({ page, goTest, snapshotAndReset }) => {
+test('draw world state', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_WORLD_STATE'
 
-	goTest('^TestDrawWorldState$/DrawWorldState')
+	drawScene('world-state/draw')
 
 	await expect(page.getByText('box0')).toBeVisible()
 	await expect(page.getByText('box1')).toBeVisible()
@@ -209,20 +215,16 @@ test('draw world state', async ({ page, goTest, snapshotAndReset }) => {
  * geometry by `parsePointCloud`, so the matrix cannot reach them and the canvas
  * is the only assertion available.
  */
-test('draw point cloud colors', async ({ page, goTest, snapshotAndReset }) => {
+test('draw point cloud colors', async ({ page, drawScene, snapshotAndReset }) => {
 	const variants = [
-		['DRAW_POINT_CLOUDS_WITH_SINGLE_COLOR', 'DrawSingleColorPointCloud', 'octagon_single_color'],
-		[
-			'DRAW_POINT_CLOUD_WITH_OPACITY',
-			'DrawSingleColorPointCloudWithOpacity',
-			'octagon_with_opacity',
-		],
-		['DRAW_POINT_CLOUDS_WITH_COLOR_PALETTE', 'DrawPaletteColorPointCloud', 'Zaghetto_palette'],
-		['DRAW_POINT_CLOUDS_WITH_PER_POINT_COLOR', 'DrawPerPointColorPointCloud', 'simple_per_point'],
+		['DRAW_POINT_CLOUDS_WITH_SINGLE_COLOR', 'point-cloud/single-color', 'octagon_single_color'],
+		['DRAW_POINT_CLOUD_WITH_OPACITY', 'point-cloud/opacity', 'octagon_with_opacity'],
+		['DRAW_POINT_CLOUDS_WITH_COLOR_PALETTE', 'point-cloud/palette', 'Zaghetto_palette'],
+		['DRAW_POINT_CLOUDS_WITH_PER_POINT_COLOR', 'point-cloud/per-point-colors', 'simple_per_point'],
 	] as const
 
-	for (const [testPrefix, subtest, label] of variants) {
-		goTest(`^TestDrawPointCloud$/${subtest}`)
+	for (const [testPrefix, sceneName, label] of variants) {
+		drawScene(sceneName)
 
 		await expect(page.getByText(label)).toBeVisible()
 
@@ -230,10 +232,10 @@ test('draw point cloud colors', async ({ page, goTest, snapshotAndReset }) => {
 	}
 })
 
-test('draw point clouds with downscaling', async ({ page, goTest, snapshotAndReset }) => {
+test('draw point clouds with downscaling', async ({ page, drawScene, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS_WITH_DOWNSCALING'
 
-	goTest('^TestDrawPointCloud$/DrawPointCloudWithDownscaling')
+	drawScene('point-cloud/downscaled')
 
 	await expect(page.getByText('boat_downscaled')).toBeVisible()
 
@@ -245,8 +247,8 @@ test('draw point clouds with downscaling', async ({ page, goTest, snapshotAndRes
  * Asserted numerically rather than as a canvas baseline: a camera that lands a
  * few degrees off still produces a plausible-looking image.
  */
-test('set camera pose', async ({ page, goTest, resetScene }) => {
-	goTest('^TestSetCamera$/SetCameraTopDown')
+test('set camera pose', async ({ page, drawScene, resetScene }) => {
+	drawScene('camera/top-down')
 
 	await expect(page.getByText('reference_box')).toBeVisible()
 
@@ -255,7 +257,7 @@ test('set camera pose', async ({ page, goTest, resetScene }) => {
 		.poll(() => readCameraPose(page), { timeout: 15_000 })
 		.toEqual({ position: [0, 0, 5], target: [0, 0, 0] })
 
-	goTest('^TestSetCamera$/ResetCamera')
+	drawScene('camera/reset')
 
 	await expect
 		.poll(() => readCameraPose(page), { timeout: 15_000 })
@@ -327,10 +329,10 @@ test('scoped clears', async ({ page, drawClient, resetScene }) => {
 	await resetScene()
 })
 
-test('replay', async ({ page, goTest, resetScene }) => {
+test('replay', async ({ page, drawScene, resetScene }) => {
 	const testPrefix = 'REPLAY'
 
-	goTest('^TestReplay$/ReplayRecord')
+	drawScene('replay/record')
 
 	await expect(page.getByText('bouncing_ball')).toBeVisible()
 
@@ -338,7 +340,7 @@ test('replay', async ({ page, goTest, resetScene }) => {
 
 	await resetScene()
 
-	goTest('^TestReplay$/ReplayPlayback')
+	drawScene('replay/playback')
 
 	await expect(page.getByText('bouncing_ball')).toBeVisible()
 
@@ -349,16 +351,16 @@ test('replay', async ({ page, goTest, resetScene }) => {
 
 interface RedrawRun {
 	page: Page
-	goTest: GoTest
+	drawScene: DrawScene
 	snapshotAndReset: (testPrefix: string) => Promise<void>
 }
 
 const runRedrawLoop = async (
-	{ page, goTest, snapshotAndReset }: RedrawRun,
+	{ page, drawScene, snapshotAndReset }: RedrawRun,
 	testPrefix: string,
-	step: string
+	sceneName: string
 ) => {
-	goTest(`^TestRedrawLoop$/${step}$`)
+	drawScene(sceneName)
 
 	await expect(page.getByText('redraw-box-00', { exact: true })).toBeVisible({ timeout: 10000 })
 
@@ -377,27 +379,31 @@ const runRedrawLoop = async (
  * same scene either way. Before this fix the clearing variant lost entities: a removal and the
  * re-add that followed it could land in the same animation frame, where the re-add was discarded.
  */
-test('redraw loop clearing and redrawing', async ({ page, goTest, snapshotAndReset }) => {
-	await runRedrawLoop({ page, goTest, snapshotAndReset }, 'REDRAW_LOOP_WITH_CLEAR', 'RedrawLoop')
+test('redraw loop clearing and redrawing', async ({ page, drawScene, snapshotAndReset }) => {
+	await runRedrawLoop(
+		{ page, drawScene, snapshotAndReset },
+		'REDRAW_LOOP_WITH_CLEAR',
+		'redraw-loop/with-clear'
+	)
 })
 
 // The pattern we recommend instead: identities are deterministic, so redrawing upserts in place
 // and the service never publishes a removal at all.
-test('redraw loop without clearing', async ({ page, goTest, snapshotAndReset }) => {
+test('redraw loop without clearing', async ({ page, drawScene, snapshotAndReset }) => {
 	await runRedrawLoop(
-		{ page, goTest, snapshotAndReset },
+		{ page, drawScene, snapshotAndReset },
 		'REDRAW_LOOP_NO_CLEAR',
-		'RedrawWithoutClearing'
+		'redraw-loop/without-clear'
 	)
 })
 
-test('relationships', async ({ page, goTest, resetScene, takeScreenshot }) => {
-	goTest('^TestRelationships$/Setup')
+test('relationships', async ({ page, drawScene, resetScene, takeScreenshot }) => {
+	drawScene('relationships/setup')
 
 	await expect(page.getByText('rel-source', { exact: true })).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('rel-target', { exact: true })).toBeVisible({ timeout: 10000 })
 
-	goTest('^TestRelationships$/CreateRelationship')
+	drawScene('relationships/create')
 
 	await page.getByText('rel-source', { exact: true }).click()
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
@@ -407,7 +413,7 @@ test('relationships', async ({ page, goTest, resetScene, takeScreenshot }) => {
 	// replays entities to a reconnecting client but not relationships, so a HoverLink
 	// is lost on reload. Re-enable once relationships survive a reload.
 
-	goTest('^TestRelationships$/DeleteRelationship')
+	drawScene('relationships/delete')
 
 	await expect(page.getByText('rel-target (HoverLink)')).not.toBeVisible({ timeout: 10000 })
 	await takeScreenshot('RELATIONSHIPS_DELETED')
