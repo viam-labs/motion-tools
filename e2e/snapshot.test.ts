@@ -32,7 +32,7 @@ test.beforeAll(() => {
 
 for (const snapshot of snapshots) {
 	test(`drops ${snapshot.file}`, async ({ browser }) => {
-		const { page, dropFile, screenshotCanvas, assertScreenshots } = await createPage(browser)
+		const { page, dropFile, screenshotCanvas } = await createPage(browser)
 
 		await dropFile(path.resolve(snapshotsDir, `${snapshot.file}.pb.gz`))
 		await expect(page.getByText(`${snapshot.file}.pb.gz loaded.`)).toBeVisible({
@@ -52,12 +52,11 @@ for (const snapshot of snapshots) {
 		}
 
 		await screenshotCanvas(`SNAPSHOT_DROP_${snapshot.name.toUpperCase()}_PB_GZ`)
-		assertScreenshots()
 	})
 }
 
 test('drops visualization_snapshot_metadata', async ({ browser }) => {
-	const { page, dropFile, takeScreenshot, assertScreenshots } = await createPage(browser)
+	const { page, dropFile, takeScreenshot } = await createPage(browser)
 	const filename = 'visualization_snapshot_metadata.pb.gz'
 
 	await dropFile(path.resolve(snapshotsDir, filename))
@@ -71,11 +70,10 @@ test('drops visualization_snapshot_metadata', async ({ browser }) => {
 	await expect(page.getByText('relationship-capsule (HoverLink)')).toBeVisible()
 
 	await takeScreenshot('SNAPSHOT_METADATA_RELATIONSHIP_DETAILS')
-	assertScreenshots()
 })
 
 test('updates snapshots with the same UUID', async ({ browser }) => {
-	const { page, screenshotCanvas, assertScreenshots } = await createPage(browser)
+	const { page, screenshotCanvas } = await createPage(browser)
 
 	await page.goto('/snapshot/reconcile')
 
@@ -121,6 +119,4 @@ test('updates snapshots with the same UUID', async ({ browser }) => {
 	await expect(page.getByText('reconcile-static', { exact: true })).toHaveCount(0)
 	await expect(page.getByText('reconcile-added', { exact: true })).toHaveCount(0)
 	await screenshotCanvas('SNAPSHOT_RECONCILE_NEW')
-
-	assertScreenshots()
 })

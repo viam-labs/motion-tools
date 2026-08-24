@@ -1,10 +1,8 @@
-import { Browser, Page } from '@playwright/test'
-import { expect } from '@playwright/test'
-import { createViamClient } from '@viamrobotics/sdk'
-import { ViamClientOptions } from '@viamrobotics/sdk'
-import { ViamClient } from '@viamrobotics/sdk'
+import { type Browser, expect, type Page } from '@playwright/test'
+import { createViamClient, type ViamClient, type ViamClientOptions } from '@viamrobotics/sdk'
 import fs from 'node:fs'
 
+import { openScene } from './helpers/openScene'
 import { screenshotCanvas } from './helpers/screenshot'
 
 const getTestConfig = () => ({
@@ -22,35 +20,18 @@ type TestConfig = ReturnType<typeof getTestConfig>
 interface TestPage {
 	page: Page
 	testConfig: TestConfig
-	failedScreenshots: string[]
 	refresh: () => Promise<void>
 	takeScreenshot: (testPrefix: string) => Promise<void>
 	screenshotCanvas: (testPrefix: string) => Promise<void>
-	assertScreenshots: () => void
 	dropFile: (file: string | { name: string; content: string }) => Promise<void>
 	connect: () => Promise<ViamClient>
 }
 
 export const createPage = async (browser: Browser): Promise<TestPage> => {
 	const testConfig = getTestConfig()
-	const context = await browser.newContext()
-	const page = await context.newPage()
-	let failedScreenshots: string[] = []
-
-	page.on('console', (message) => {
-		console.log(`[${message.type()}] ${message.text()}`)
-	})
-
-	// goto('') rather than '/', so a baseURL that carries a path resolves correctly
-	// instead of jumping to the host root.
-	await page.goto('')
-	await page.waitForLoadState('load')
-	await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
-		timeout: 15000,
-	})
+	const page = await openScene(browser)
 
 	const refresh = async () => {
-		failedScreenshots = []
 		await page.reload()
 		await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
 			timeout: 15000,
@@ -58,27 +39,10 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 	}
 
 	const takeScreenshot = async (testPrefix: string) => {
-		try {
-			await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
-		} catch (error) {
-			console.warn(error)
-			failedScreenshots.push(`${testPrefix}.png`)
-		}
+		await expect.soft(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 	}
 
-	const takeCanvasScreenshot = async (testPrefix: string) => {
-		const failure = await screenshotCanvas(page, testPrefix)
-		if (failure) {
-			failedScreenshots.push(failure)
-		}
-	}
-
-	const assertScreenshots = () => {
-		if (failedScreenshots.length > 0) {
-			console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-			throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-		}
-	}
+	const takeCanvasScreenshot = (testPrefix: string) => screenshotCanvas(page, testPrefix)
 
 	const dropFile = async (file: string | { name: string; content: string }) => {
 		let base64Data: string
@@ -151,15 +115,11 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		get testConfig() {
 			return testConfig
 		},
-		get failedScreenshots() {
-			return failedScreenshots
-		},
 
 		refresh,
 		dropFile,
 		connect,
 		takeScreenshot,
 		screenshotCanvas: takeCanvasScreenshot,
-		assertScreenshots,
 	}
 }
