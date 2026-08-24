@@ -47,12 +47,23 @@ export interface EntityTypeDescriptor {
 	draft: (name: string) => EntityDraft
 }
 
-const PARENT_FRAME = 'matrix-parent'
+/** Exported because the e2e matrix asserts against the values these cases apply. */
+export const PARENT_FRAME = 'matrix-parent'
 
-const UNIFORM_COLOR = new Uint8Array([255, 0, 0])
+export const UNIFORM_COLOR = new Uint8Array([255, 0, 0])
 /** Three RGB triples, matching the three-vertex geometries below. */
-const VERTEX_COLORS = new Uint8Array([255, 0, 0, 0, 255, 0, 0, 0, 255])
-const HALF_OPACITY = new Uint8Array([128])
+export const VERTEX_COLORS = new Uint8Array([255, 0, 0, 0, 255, 0, 0, 0, 255])
+export const HALF_OPACITY = new Uint8Array([128])
+
+/** Values the type-specific `extraCases` apply, asserted by the e2e matrix. */
+export const POINT_SIZE = 20
+export const LINE_WIDTH = 12
+export const DOT_SIZE = 7
+export const DOT_COLORS = new Uint8Array([1, 2, 3])
+
+export const MOVED_POSE = { x: 100, y: 200, z: 300 }
+export const ROTATED_POSE = { x: 0, y: 0, z: 0, oX: 0, oY: 1, oZ: 0, theta: 90 }
+export const OFFSET_CENTER = { x: 10, y: 20, z: 30 }
 
 const TRIANGLE = packFloats(0, 0, 0, 100, 0, 0, 100, 100, 0)
 const ARROW_POSES = packFloats(0, 0, 0, 0, 0, 1, 100, 0, 0, 0, 0, 1)
@@ -82,12 +93,12 @@ const baseDraft = (name: string, kind: EntityKind): EntityDraft => ({
 export const SHARED_CASES: Record<SharedTrait, Omit<TraitCase, 'name'>> = {
 	pose: {
 		apply: (draft) => {
-			draft.pose = { x: 100, y: 200, z: 300 }
+			draft.pose = { ...MOVED_POSE }
 		},
 	},
 	rotation: {
 		apply: (draft) => {
-			draft.pose = { x: 0, y: 0, z: 0, oX: 0, oY: 1, oZ: 0, theta: 90 }
+			draft.pose = { ...ROTATED_POSE }
 		},
 	},
 	reparent: {
@@ -97,7 +108,7 @@ export const SHARED_CASES: Record<SharedTrait, Omit<TraitCase, 'name'>> = {
 	},
 	center: {
 		apply: (draft) => {
-			draft.center = { x: 10, y: 20, z: 30 }
+			draft.center = { ...OFFSET_CENTER }
 		},
 	},
 	'color-uniform': {
@@ -241,7 +252,7 @@ export const ENTITY_TYPES: EntityTypeDescriptor[] = [
 				apply: (draft) => {
 					draft.shape = {
 						case: 'points',
-						value: new Points({ positions: TRIANGLE, pointSize: 20 }),
+						value: new Points({ positions: TRIANGLE, pointSize: POINT_SIZE }),
 					}
 				},
 			},
@@ -260,13 +271,19 @@ export const ENTITY_TYPES: EntityTypeDescriptor[] = [
 			{
 				name: 'line-width',
 				apply: (draft) => {
-					draft.shape = { case: 'line', value: new Line({ positions: TRIANGLE, lineWidth: 12 }) }
+					draft.shape = {
+						case: 'line',
+						value: new Line({ positions: TRIANGLE, lineWidth: LINE_WIDTH }),
+					}
 				},
 			},
 			{
 				name: 'dot-size',
 				apply: (draft) => {
-					draft.shape = { case: 'line', value: new Line({ positions: TRIANGLE, dotSize: 7 }) }
+					draft.shape = {
+						case: 'line',
+						value: new Line({ positions: TRIANGLE, dotSize: DOT_SIZE }),
+					}
 				},
 			},
 			{
@@ -274,7 +291,7 @@ export const ENTITY_TYPES: EntityTypeDescriptor[] = [
 				apply: (draft) => {
 					draft.shape = {
 						case: 'line',
-						value: new Line({ positions: TRIANGLE, dotColors: new Uint8Array([1, 2, 3]) }),
+						value: new Line({ positions: TRIANGLE, dotColors: DOT_COLORS }),
 					}
 				},
 			},
@@ -298,7 +315,7 @@ export const ENTITY_TYPES: EntityTypeDescriptor[] = [
 						value: new Nurbs({
 							controlPoints: NURBS_CONTROL_POINTS,
 							knots: NURBS_KNOTS,
-							lineWidth: 12,
+							lineWidth: LINE_WIDTH,
 						}),
 					}
 				},

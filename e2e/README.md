@@ -9,6 +9,7 @@ The suite is split into Playwright projects so that a run only pays for what it 
 | Project          | Specs                                                      | Needs a Viam machine |
 | ---------------- | ---------------------------------------------------------- | -------------------- |
 | `drawing`        | `draw-client`, `file-drop`, `snapshot`                     | no                   |
+| `matrix`         | everything under `e2e/matrix/`                             | no                   |
 | `robot`          | `arm`, `edit-frame`, `obstacle-store`, `world-state-store` | yes                  |
 | `robot-setup`    | `robot.setup.ts`                                           | provisions it        |
 | `robot-teardown` | `robot.teardown.ts`                                        | deletes it           |
@@ -22,6 +23,36 @@ with its own chunk buffer directory, and the page it drives carries a `?drawPort
 the app subscribes to that worker's server rather than a shared one. `go test` invocations get
 the same port through `DRAW_SERVER_PORT`. Nothing is shared, so the specs cannot see each
 other's entities. `robot` stays serial: its four specs push conflicting configs at one machine.
+
+`matrix` shares the drawing project's per-worker draw server but opens **one page per
+worker** instead of one per test, because a cell is two RPCs and a poll. A fresh page per cell
+would spend the suite loading the app. Cells stay isolated by clearing the scene in
+`beforeEach` and asserting on an entity each cell names itself.
+
+## The entity matrix
+
+`e2e/matrix/` crosses every entity type with every behavior it supports, twice: once applied at
+spawn, once applied through an update. The table of types and cases is shared with the unit
+spec at `src/lib/__tests__/__fixtures__/entityMatrix.ts`, so the two suites cannot drift on
+what they cover.
+
+The two suites answer different questions. `draw-parity.spec.ts` runs in Vitest and proves the
+spawn and update code paths in `draw.ts` agree with each other. It cannot prove either one is
+right, because it hands protos straight to `draw.ts`. The e2e cells assert the absolute end
+state after a real round trip through the Go service and `StreamEntityChanges`, so a field the
+service drops still fails here even though both paths agree.
+
+| File                        | What it covers                                              |
+| --------------------------- | ----------------------------------------------------------- |
+| `entity-matrix.test.ts`     | one cell per type and trait, at spawn and on update         |
+| `entity-appearance.test.ts` | every type reaches the canvas, plus the `AddEntities` batch |
+| `field-mask.test.ts`        | partial updates, and the two masks the service rejects      |
+
+Cells assert ECS trait state read out of the page, which is where the wire ends. Where a
+renderer mounts an `Object3D` the cell also asserts its effective visibility and world
+position. For the instanced types, which have no per-entity object, a visibility cell compares
+the settled canvas against an empty-scene frame captured by the same worker on the same run,
+so nothing depends on a committed baseline.
 
 Setup hands the machine over through `e2e/.bin/machine.json` rather than environment
 variables, because Playwright runs each project in its own worker process. viam-server runs
@@ -49,11 +80,14 @@ The `drawing` project needs only Go and a working dev server. Everything below i
 ## Running E2E Tests
 
 ```bash
-# the drawing suite: no cloud machine, no setup.sh
+# the drawing and matrix suites: no cloud machine, no setup.sh
 pnpm test:e2e
 
-# the same suite in the Playwright UI
+# the same suites in the Playwright UI
 pnpm test:e2e-ui
+
+# the matrix alone
+pnpm test:e2e-matrix
 
 # the robot suite: installs viam-server, then provisions a machine
 pnpm test:e2e-robot
@@ -62,8 +96,8 @@ pnpm test:e2e-robot
 pnpm test:e2e-all
 ```
 
-Both `drawing` commands run `pnpm go-build` first, because the worker fixture spawns the
-prebuilt `.bin/draw-server` rather than compiling one per test.
+Each of those runs `pnpm go-build` first, because the worker fixture spawns the prebuilt
+`.bin/draw-server` rather than compiling one per test.
 
 ### Running specific tests
 
@@ -81,7 +115,11 @@ npx playwright test --project=robot e2e/world-state-store.test.ts
 npx playwright test --project=robot --grep "basic edit frame"
 
 # a family of tests
-npx playwright test --project=drawing --grep "draw lines"
+npx playwright test --project=drawing --grep "point cloud"
+
+# one row of the matrix, or one behavior across every type
+npx playwright test --project=matrix --grep "box "
+npx playwright test --project=matrix --grep visibility
 
 # the inverse: everything except the slow chunked point cloud test
 npx playwright test --project=drawing --grep-invert chunked
