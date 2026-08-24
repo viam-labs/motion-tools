@@ -1,7 +1,8 @@
 import { render } from '@testing-library/svelte'
 import { type Entity, type World } from 'koota'
+import { flushSync } from 'svelte'
 import { UuidTool } from 'uuid-tool'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { Geometry, PoseInFrame, Sphere, Transform } from '$lib/buf/common/v1/common_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
@@ -17,16 +18,30 @@ interface Mounted {
 	world: World
 }
 
+const mounted: Mounted[] = []
+
 const mount = (): Mounted => {
-	let mounted: Mounted | undefined
+	let current: Mounted | undefined
 	render(ReplayerHarness, {
-		onReady: (ctx: MotionPlanReplayerContext, world: World) => (mounted = { ctx, world }),
+		onReady: (ctx: MotionPlanReplayerContext, world: World) => (current = { ctx, world }),
 	})
-	if (!mounted) throw new Error('ReplayerHarness never called onReady')
-	return mounted
+	if (!current) throw new Error('ReplayerHarness never called onReady')
+	mounted.push(current)
+	return current
 }
 
-/** Snapshots whose transforms are named for their plan, so an assertion can tell which plan is drawn. */
+/**
+ * Koota hands out 16 world ids and then throws `Too many worlds created`, and unmounting the
+ * harness does not release one. Without this the spec dies at the seventeenth test.
+ */
+afterEach(() => {
+	for (const { world } of mounted.splice(0)) world.destroy()
+})
+
+/**
+ * Snapshots that name their own plan: cycling one fixture across every plan makes their geometry
+ * byte-identical, so a test could only notice a wrong length, never a wrong plan.
+ */
 const planSnapshots = (plan: string, steps: number): Snapshot[] =>
 	Array.from(
 		{ length: steps },
@@ -254,5 +269,50 @@ describe('display defaults', () => {
 
 		expect(entity.has(traits.Color)).toBe(true)
 		expect(entity.get(traits.Color)).toEqual({ r: 0, g: 0.47, b: 1 })
+	})
+})
+
+describe('playback', () => {
+	it('stops playback when a caller scrubs by hand', () => {
+		const { ctx } = mount()
+		addPlans(ctx, [6])
+		ctx.player.play()
+		flushSync()
+		expect(ctx.player.isPlaying).toBe(true)
+
+		ctx.setStep(3)
+
+		expect(ctx.player.isPlaying).toBe(false)
+		expect(ctx.currentStep).toBe(3)
+	})
+
+	it.each([
+		['reselected', (ctx: MotionPlanReplayerContext) => ctx.selectPlan(0)],
+		['removed', (ctx: MotionPlanReplayerContext) => ctx.removePlan(0)],
+	])('rewinds to the first frame when the active plan is %s', (_label, act) => {
+		const { ctx } = mount()
+		addPlans(ctx, [6])
+		ctx.setStep(4)
+		expect(ctx.currentStep).toBe(4)
+
+		act(ctx)
+
+		expect(ctx.currentStep).toBe(0)
+	})
+
+	// A short or gappy snapshot array is what a partial response from the host's
+	// `resolvePlanSnapshots` looks like from here, and `stepCount` is taken from its length either way.
+	it('holds the index on a step with no snapshot behind it', () => {
+		const { ctx } = mount()
+		const [first, , third] = planSnapshots('gappy', 3)
+		ctx.addPlan('gappy', 'content', [first!, undefined as unknown as Snapshot, third!])
+
+		expect(ctx.totalSteps).toBe(3)
+
+		ctx.setStep(1)
+		expect(ctx.currentStep).toBe(0)
+
+		ctx.setStep(2)
+		expect(ctx.currentStep).toBe(2)
 	})
 })

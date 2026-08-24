@@ -32,6 +32,8 @@ export type {
 	MotionPlanReplayerContext,
 	PlanEntry,
 } from './MotionPlanReplayer/useMotionPlanReplayer.svelte'
+// `MotionPlanReplayerContext.player` is public, so its type has to be nameable.
+export type { TrajectoryPlayer } from '../motion/trajectoryPlayer.svelte'
 export { transformBytesToSnapshots } from './MotionPlanReplayer/plan-to-snapshots'
 export type { ResolvePlanSnapshots } from './MotionPlanReplayer/plan-dropper'
 
