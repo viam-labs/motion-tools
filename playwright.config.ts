@@ -1,11 +1,19 @@
 import { defineConfig } from '@playwright/test'
-import path from 'node:path'
-import url from 'node:url'
 
-const dirname = path.dirname(url.fileURLToPath(import.meta.url))
+const DRAWING_SPECS = [
+	/draw-client\.test\.ts$/,
+	/file-drop\.test\.ts$/,
+	/snapshot\.test\.ts$/,
+] as const
+
+const ROBOT_SPECS = [
+	/arm\.test\.ts$/,
+	/edit-frame\.test\.ts$/,
+	/obstacle-store\.test\.ts$/,
+	/world-state-store\.test\.ts$/,
+] as const
 
 export default defineConfig({
-	globalSetup: path.resolve(dirname, './e2e/helpers/global-setup.ts'),
 	webServer: {
 		command: 'pnpm dev',
 		port: 5173,
@@ -31,10 +39,33 @@ export default defineConfig({
 		'{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{platform}{ext}',
 	expect: {
 		timeout: 10_000,
-		toHaveScreenshot: {
-			threshold: 0.1,
-			animations: 'disabled',
-			caret: 'hide',
-		},
+		toHaveScreenshot: { threshold: 0.1, animations: 'disabled', caret: 'hide' },
 	},
+	projects: [
+		{
+			name: 'drawing',
+			testMatch: [...DRAWING_SPECS],
+		},
+		{
+			// Provisioning is its own project so a drawing-only run never pays for a
+			// cloud machine. The robot project's dependency is what pulls it in.
+			name: 'robot-setup',
+			testMatch: /robot\.setup\.ts$/,
+			teardown: 'robot-teardown',
+			timeout: 5 * 60 * 1000,
+		},
+		{
+			name: 'robot-teardown',
+			testMatch: /robot\.teardown\.ts$/,
+			timeout: 2 * 60 * 1000,
+		},
+		{
+			// All four specs push conflicting configs at the one shared machine, so they
+			// stay serial even once the drawing project goes parallel.
+			name: 'robot',
+			testMatch: [...ROBOT_SPECS],
+			dependencies: ['robot-setup'],
+			fullyParallel: false,
+		},
+	],
 })

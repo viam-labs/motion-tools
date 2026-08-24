@@ -72,13 +72,14 @@ withRobot('arm', async ({ robotPage }) => {
 
 	await robotPage.screenshotCanvas(`${testPrefix}-0-loaded`)
 
+	const { host, apiKeyId, apiKey } = getE2EConfig()
 	execSync('go run e2e/fixtures/go-scripts/main.go moveArmJointPositions', {
 		encoding: 'utf8',
 		env: {
 			...process.env,
-			VIAM_E2E_HOST: process.env.VIAM_E2E_HOST,
-			VIAM_E2E_API_KEY_ID: process.env.VIAM_E2E_API_KEY_ID,
-			VIAM_E2E_API_KEY: process.env.VIAM_E2E_API_KEY,
+			VIAM_E2E_HOST: host,
+			VIAM_E2E_API_KEY_ID: apiKeyId,
+			VIAM_E2E_API_KEY: apiKey,
 		},
 	})
 

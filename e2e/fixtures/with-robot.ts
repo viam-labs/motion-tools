@@ -1,28 +1,29 @@
 import { test as base, expect, type Page } from '@playwright/test'
-import {
-	createViamClient,
-	type JsonValue,
-	Struct,
-	type ViamClient,
-	type ViamClientOptions,
-} from '@viamrobotics/sdk'
+import { type JsonValue, Struct, type ViamClient } from '@viamrobotics/sdk'
 
+import { APP_ADDRESS, connectAppClient } from '../helpers/appClient'
+import { loadE2EConfig } from '../helpers/e2e-config'
+import { machineStatePath, readMachineState } from '../helpers/machineState'
 import { screenshotCanvas } from '../helpers/screenshot'
 
 const getE2EConfig = () => {
-	const host = process.env.VIAM_E2E_HOST
-	const partId = process.env.VIAM_E2E_PART_ID
-	const machineName = process.env.VIAM_E2E_MACHINE_NAME
-	const robotId = process.env.VIAM_E2E_ROBOT_ID
-	const apiKeyId = process.env.VIAM_E2E_API_KEY_ID
-	const apiKey = process.env.VIAM_E2E_API_KEY
-	const orgId = process.env.VIAM_E2E_ORG_ID
-	const signalingAddress = process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443'
+	const state = readMachineState()
+	const {
+		host,
+		partId,
+		machineName,
+		robotId,
+		apiKeyId,
+		apiKey,
+		orgId,
+		signalingAddress = APP_ADDRESS,
+	} = state ?? {}
 
 	if (!host || !partId || !machineName || !robotId || !apiKeyId || !apiKey || !orgId) {
 		throw new Error(
-			'Missing E2E environment variables. The global setup may not have run.\n' +
-				'Make sure playwright.config.ts has globalSetup configured.'
+			`Incomplete machine state at ${machineStatePath}.\n` +
+				'The robot-setup project writes it. Run the robot specs through the robot\n' +
+				'project (pnpm test:e2e:robot) so that dependency fires.'
 		)
 	}
 
@@ -115,15 +116,7 @@ export const activateConnectionConfigByHost = async (page: Page, host: string) =
 
 export const connectViamClient = async (): Promise<ViamClient> => {
 	const config = getE2EConfig()
-	const opts: ViamClientOptions = {
-		serviceHost: config.signalingAddress,
-		credentials: {
-			type: 'api-key',
-			authEntity: config.apiKeyId,
-			payload: config.apiKey,
-		},
-	}
-	return createViamClient(opts)
+	return connectAppClient(config.apiKeyId, config.apiKey, config.signalingAddress)
 }
 
 interface ApplyMachineConfigOptions {
@@ -148,27 +141,10 @@ export const applyMachineConfig = async (
 	await new Promise((resolve) => setTimeout(resolve, settleMs))
 }
 
+/** Org-scoped credentials, for operations a machine key cannot do such as fragment management. */
 export const connectOrgViamClient = async (): Promise<ViamClient> => {
-	const orgApiKeyId = process.env.VIAM_E2E_ORG_API_KEY_ID
-	const orgApiKey = process.env.VIAM_E2E_ORG_API_KEY
-	const signalingAddress = process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443'
-
-	if (!orgApiKeyId || !orgApiKey) {
-		throw new Error(
-			'Missing VIAM_E2E_ORG_API_KEY_ID / VIAM_E2E_ORG_API_KEY env vars.\n' +
-				'These are required for org-level operations like fragment management.'
-		)
-	}
-
-	const opts: ViamClientOptions = {
-		serviceHost: signalingAddress,
-		credentials: {
-			type: 'api-key',
-			authEntity: orgApiKeyId,
-			payload: orgApiKey,
-		},
-	}
-	return createViamClient(opts)
+	const config = loadE2EConfig()
+	return connectAppClient(config.apiKeyId, config.apiKey)
 }
 
 export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
