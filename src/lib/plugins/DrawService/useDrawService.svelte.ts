@@ -35,7 +35,10 @@ import {
 } from './coalesceEvents'
 import { runWithReconnect } from './reconnect'
 import { createServerRelationships } from './serverRelationships'
-import { useDrawConnectionConfig } from './useDrawConnectionConfig.svelte'
+import {
+	DEFAULT_DRAW_SERVICE_PORT,
+	useDrawConnectionConfig,
+} from './useDrawConnectionConfig.svelte'
 
 const DRAW_SERVICE_KEY = Symbol('draw-service-context')
 const FLOAT32_SIZE = 4
@@ -61,11 +64,11 @@ export function provideDrawService() {
 
 	let connectionStatus = $state<ConnectionStatusType>(ConnectionStatus.DISCONNECTED)
 
-	const url = $derived(
-		drawConnectionConfig.current?.backendIP
-			? `http://${drawConnectionConfig.current.backendIP}:3030`
-			: undefined
-	)
+	const url = $derived.by(() => {
+		const config = drawConnectionConfig.current
+		if (!config?.backendIP) return undefined
+		return `http://${config.backendIP}:${config.drawServicePort ?? DEFAULT_DRAW_SERVICE_PORT}`
+	})
 
 	const transformEntities = new Map<string, Entity>()
 	const drawingEntities = new Map<string, Entity>()

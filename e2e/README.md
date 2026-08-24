@@ -17,6 +17,12 @@ The suite is split into Playwright projects so that a run only pays for what it 
 machine first and deletes it afterwards. The `drawing` project has no such dependency, which
 is why it starts in seconds.
 
+`drawing` runs `fullyParallel`. Each worker owns a draw server on port `4100 + parallelIndex`
+with its own chunk buffer directory, and the page it drives carries a `?drawPort=` query so
+the app subscribes to that worker's server rather than a shared one. `go test` invocations get
+the same port through `DRAW_SERVER_PORT`. Nothing is shared, so the specs cannot see each
+other's entities. `robot` stays serial: its four specs push conflicting configs at one machine.
+
 Setup hands the machine over through `e2e/.bin/machine.json` rather than environment
 variables, because Playwright runs each project in its own worker process. viam-server runs
 detached with its output in `e2e/.bin/viam-server.log`, and teardown kills it by the pid
@@ -55,6 +61,9 @@ pnpm test:e2e-robot
 # everything
 pnpm test:e2e-all
 ```
+
+Both `drawing` commands run `pnpm go-build` first, because the worker fixture spawns the
+prebuilt `.bin/draw-server` rather than compiling one per test.
 
 ### Running specific tests
 
@@ -122,6 +131,15 @@ When you make intentional UI changes that should change screenshots:
   A robot spec ran without `robot-setup`. Add `--project=robot` to the command.
 - **The machine never comes online**
   Read `e2e/.bin/viam-server.log`, which holds everything viam-server wrote.
+- **`port 41xx is already in use`**
+  A draw server from a killed run is still listening. The Go server attaches to an existing
+  listener instead of failing, so the fixture refuses to start rather than silently sharing
+  one. Find it with `lsof -nP -iTCP:4100 -sTCP:LISTEN` and kill it.
+- **`draw-server binary not found`**
+  Run `pnpm go-build`.
+- **A draw server failed to start**
+  Its log lives beside its chunk directory under the system temp dir, and the fixture's error
+  message quotes it.
 - **`E2E config not found at .../e2e/.env.e2e`**
   Same fix — run `cd e2e && ./setup.sh`. The script will create the API key and write the file.
 - **`Organization "Viam Viz E2E" not found`**

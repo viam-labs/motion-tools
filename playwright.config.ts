@@ -28,7 +28,11 @@ export default defineConfig({
 	testDir: 'e2e',
 	outputDir: 'test-results',
 	timeout: 120 * 1000,
-	workers: 1,
+	// Measured on an 8-core darwin box: 4 workers cut the drawing project from 451s
+	// to 377s but stretched the mean test from 6.4s to 15.6s, which is what pushed
+	// one snapshot test past its timeout. 2 keeps most of the gain with less
+	// contention. CI runners have 4 vCPUs.
+	workers: process.env.CI ? 4 : 2,
 	retries: process.env.CI ? 2 : 0,
 	reporter: process.env.CI
 		? [['list'], ['html', { open: 'never' }], ['github']]
@@ -43,8 +47,10 @@ export default defineConfig({
 	},
 	projects: [
 		{
+			// Each worker owns a draw server, so these specs share no scene state.
 			name: 'drawing',
 			testMatch: [...DRAWING_SPECS],
+			fullyParallel: true,
 		},
 		{
 			// Provisioning is its own project so a drawing-only run never pays for a
