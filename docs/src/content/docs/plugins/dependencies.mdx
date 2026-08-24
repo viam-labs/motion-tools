@@ -48,6 +48,12 @@ SettingsPortal ──► Settings   contributed tabs need a popover to live in
 
 The `<ControlWidgets />` ──► `<XR />` link only observes the session state XR publishes to `useEnvironment().current.isImmersive`, not the other plugin's internals — which is what lets `@threlte/xr` stay an optional peer. Which cameras appear in a headset is chosen independently in the [`<XR />`](../xr/) plugin's own **AR** settings panel.
 
+## Plugins
+
+Plugins are the visualizer's own chrome, split out so an embedded viewer doesn't inherit UI it has no use for: [`<Monitor />`](../monitor/), [`<WorldTree />`](../world-tree/), [`<Settings />`](../settings/), [`<BuildFrames />`](../build-frames/), [`<FileDrop />`](../file-drop/), and [`<FramePov />`](../frame-pov/). Mount all six — Monitor first, so it is the default mode — for the full standalone app; mount none for a bare scene with camera controls.
+
+One of them reaches beyond the visualizer element: `<FileDrop />` listens for drags on `window`, so it swallows drag-and-drop for the whole page. Keyboard shortcuts are dispatched by core but exist only when the feature contributing them is mounted, and `inputBindingsEnabled={false}` disables keyboard input wholesale.
+
 ## Runtime requirements
 
 Some plugins need more than a mounted `<Visualizer />`:
