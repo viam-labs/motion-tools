@@ -4,11 +4,11 @@
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { Eye, EyeOff } from 'lucide-svelte'
 
+	import TrajectoryScrubber from '$lib/components/motion/TrajectoryScrubber.svelte'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 
-	import MotionPlanReplayerScrubber from './MotionPlanReplayerScrubber.svelte'
 	import { planDropper, type ResolvePlanSnapshots } from './plan-dropper'
 	import { useMotionPlanReplayer } from './useMotionPlanReplayer.svelte'
 
@@ -142,7 +142,10 @@
 		{/each}
 
 		<div class="mt-auto flex flex-col gap-2 pt-1">
-			<MotionPlanReplayerScrubber />
+			<TrajectoryScrubber
+				player={ctx.player}
+				label="motion plan"
+			/>
 
 			{@render children?.()}
 			<input

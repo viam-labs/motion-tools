@@ -3,9 +3,11 @@ import type { Entity } from 'koota'
 import { onDestroy } from 'svelte'
 
 import type { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
+import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import { setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { useRelationships } from '$lib/hooks/useRelationships.svelte'
+import { createTrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 import { reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
 
 import { parsePlan, PlanParseError } from './parse-plan'
@@ -36,6 +38,8 @@ export interface MotionPlanReplayerContext {
 	readonly activePlanIndex: number | null
 	readonly currentStep: number
 	readonly totalSteps: number
+	/** Playback state, shared with `TrajectoryScrubber`. */
+	readonly player: TrajectoryPlayer
 	addPlan: (name: string, content: string, precomputedSnapshots?: Snapshot[]) => void
 	removePlan: (index: number) => void
 	selectPlan: (index: number) => void
@@ -67,7 +71,6 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}))
 	)
 	let activePlanIndex = $state<number | null>(null)
-	let currentStep = $state(0)
 	let entityMap = $state.raw(new Map<string, SnapshotEntity>())
 	let planEntity: Entity | undefined
 
@@ -75,16 +78,31 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		activePlanIndex === null ? 0 : (plans[activePlanIndex]?.stepCount ?? 0)
 	)
 
+	const player = createTrajectoryPlayer({
+		totalSteps: () => totalSteps,
+		onStep: (step) => {
+			if (activePlanIndex === null) return false
+			const active = plans[activePlanIndex]
+			const snapshots = active && snapshotStore.get(active.id)
+			if (!snapshots || snapshots.length === 0) return false
+			return applyStep(snapshots, step)
+		},
+	})
+
 	const clearActivePlan = () => {
 		if (planEntity && world.has(planEntity)) planEntity.destroy()
 		planEntity = undefined
 		entityMap = new Map()
-		currentStep = 0
+		player.reset()
 		activePlanIndex = null
 	}
 
-	const applyStep = (snapshots: Snapshot[], step: number) => {
-		const snap = snapshots[step]!
+	/** Reports whether the step was drawn; see `TrajectoryPlayerOptions.onStep`. */
+	const applyStep = (snapshots: Snapshot[], step: number): boolean => {
+		// The player clamps against `stepCount`, written from this same array, so a miss means the two
+		// came apart. Reconciling `undefined` would throw out of whatever input handler got here.
+		const snap = snapshots[step]
+		if (!snap) return false
 
 		// reconcile resets Opacity and removes Invisible/ShowAxesHelper every step, so capture the
 		// user's display edits first. Iterate PartOfPlan so sub-entities are covered too.
@@ -126,16 +144,14 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		}
 
 		entityMap = result.current
-		currentStep = step
+		return true
 	}
 
-	const setStep = (step: number) => {
-		if (activePlanIndex === null) return
-		const active = plans[activePlanIndex]
-		const snapshots = active && snapshotStore.get(active.id)
-		if (!snapshots || snapshots.length === 0) return
-		applyStep(snapshots, Math.max(0, Math.min(snapshots.length - 1, step)))
-	}
+	/**
+	 * For callers that scrub without a scrubber. Clamps, and also pauses: scrubbing by hand while
+	 * playback runs would fight it for the next frame.
+	 */
+	const setStep = (step: number) => player.seek(step)
 
 	const loadPlan = (index: number): void => {
 		const planState = plans[index]
@@ -144,7 +160,9 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 		const stored = snapshotStore.get(planState.id)
 		if (stored) {
 			activePlanIndex = index
-			currentStep = 0
+			// Rewind without notifying: step 0 is rendered directly below, and letting the player call
+			// back into `onStep` here would apply it twice.
+			player.reset()
 			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
 			applyStep(stored, 0)
 			return
@@ -161,7 +179,7 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			snapshotStore.set(planState.id, snapshots)
 			plans[index] = { ...planState, status: 'ready', stepCount: snapshots.length, error: null }
 			activePlanIndex = index
-			currentStep = 0
+			player.reset()
 			if (!planEntity) planEntity = world.spawn(traits.Name(planState.name))
 			applyStep(snapshots, 0)
 		} catch (error) {
@@ -216,10 +234,13 @@ export const provideMotionPlanReplayer = (initialPlans?: PlanEntry[]) => {
 			return activePlanIndex
 		},
 		get currentStep() {
-			return currentStep
+			return player.currentStep
 		},
 		get totalSteps() {
 			return totalSteps
+		},
+		get player() {
+			return player
 		},
 		addPlan,
 		removePlan,
