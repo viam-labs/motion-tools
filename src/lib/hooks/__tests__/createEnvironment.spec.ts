@@ -7,24 +7,43 @@ describe('createEnvironment mode availability', () => {
 		localStorage.removeItem(ENVIRONMENT_MODE_STORAGE_KEY)
 	})
 
-	it('offers only monitor until a plugin contributes a mode', () => {
+	it('has no mode until a plugin contributes one', () => {
 		const environment = createEnvironment()
 
-		expect(environment.availableModes).toEqual(['monitor'])
-		expect(environment.current.mode).toBe('monitor')
+		expect(environment.availableModes).toEqual([])
+		expect(environment.current.mode).toBe('none')
+		expect(environment.isLive).toBe(true)
 	})
 
-	it.each(['build', 'move'] as const)(
-		'resolves a persisted %s mode back to monitor when nothing contributes it',
-		(mode) => {
-			localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify(mode))
+	it('reports modes in registration order', () => {
+		const environment = createEnvironment()
 
-			const environment = createEnvironment()
+		environment.registerMode('move')
+		environment.registerMode('monitor')
 
-			expect(environment.current.mode).toBe('monitor')
-			expect(environment.availableModes).toEqual(['monitor'])
-		}
-	)
+		expect(environment.availableModes).toEqual(['move', 'monitor'])
+	})
+
+	it('falls back to the first registered mode when the stored one is unreachable', () => {
+		localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify('move'))
+
+		const environment = createEnvironment()
+		environment.registerMode('build')
+		environment.registerMode('monitor')
+
+		expect(environment.current.mode).toBe('build')
+	})
+
+	it('restores a persisted mode once its plugin registers it', () => {
+		localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify('build'))
+
+		const environment = createEnvironment()
+		environment.registerMode('monitor')
+		expect(environment.current.mode).toBe('monitor')
+
+		environment.registerMode('build')
+		expect(environment.current.mode).toBe('build')
+	})
 
 	it('keeps live data on when a stale build mode is unreachable', () => {
 		localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify('build'))
@@ -34,20 +53,9 @@ describe('createEnvironment mode availability', () => {
 		expect(createEnvironment().isLive).toBe(true)
 	})
 
-	it('restores a persisted mode once its plugin registers it', () => {
-		localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify('build'))
-
-		const environment = createEnvironment()
-		expect(environment.current.mode).toBe('monitor')
-
-		environment.registerMode('build')
-
-		expect(environment.current.mode).toBe('build')
-		expect(environment.availableModes).toEqual(['monitor', 'build'])
-	})
-
 	it('pauses live queries only while build mode is active', () => {
 		const environment = createEnvironment()
+		environment.registerMode('monitor')
 		environment.registerMode('build')
 
 		environment.current.mode = 'build'
@@ -59,6 +67,7 @@ describe('createEnvironment mode availability', () => {
 
 	it('does not pause live queries when setting a mode nothing contributes', () => {
 		const environment = createEnvironment()
+		environment.registerMode('monitor')
 
 		environment.current.mode = 'build'
 
@@ -66,17 +75,9 @@ describe('createEnvironment mode availability', () => {
 		expect(environment.isLive).toBe(true)
 	})
 
-	it('reports modes in declaration order, not registration order', () => {
+	it('falls back to the next registered mode when the active mode is released', () => {
 		const environment = createEnvironment()
-
-		environment.registerMode('move')
-		environment.registerMode('build')
-
-		expect(environment.availableModes).toEqual(['monitor', 'build', 'move'])
-	})
-
-	it('falls back to monitor when the active mode is released', () => {
-		const environment = createEnvironment()
+		environment.registerMode('monitor')
 		const release = environment.registerMode('build')
 		environment.current.mode = 'build'
 
@@ -90,6 +91,7 @@ describe('createEnvironment mode availability', () => {
 
 	it('keeps a mode available until every contributor releases it', () => {
 		const environment = createEnvironment()
+		environment.registerMode('monitor')
 		const releaseFirst = environment.registerMode('build')
 		const releaseSecond = environment.registerMode('build')
 		environment.current.mode = 'build'

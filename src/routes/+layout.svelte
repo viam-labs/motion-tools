@@ -18,6 +18,7 @@
 		FramePov,
 		Logs,
 		MeasureTool,
+		Monitor,
 		MotionPlanReplayer,
 		MoveFrame,
 		Settings,
@@ -90,7 +91,8 @@
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
-				<!-- Before MoveFrame: both portal a mode-toggle button, in mount order. -->
+
+				<Monitor />
 				<BuildFrames />
 				<MoveFrame />
 				<StandaloneLLMWrapper />

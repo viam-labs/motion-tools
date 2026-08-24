@@ -30,18 +30,18 @@ Two more build on packages that ship as **required peers** of `@viamrobotics/mot
 
 No plugin imports another as a hard requirement, but several pairs coordinate at runtime. Each is **soft**: the dependent plugin still works alone, just with reduced behavior.
 
-| Plugin                    | Coordinates with | What happens                                                                                                     |
-| ------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `<ControlWidgets />`      | `<XR />`         | Registry widget panels are hidden while an immersive XR session is active.                                       |
-| `<DrawService />`         | `<Logs />`       | Connection status and errors are written to the Logs panel. Without Logs, they're dropped silently.              |
-| `<BuildFrames />`         | `<MoveFrame />`  | Both portal a button into the mode toggle, in mount order. Mount BuildFrames first for monitor \| build \| move. |
-| `<FramePov />`            | `<XR />`         | POV panels hide while an immersive session owns the canvas.                                                      |
-| any `SettingsPortal` user | `<Settings />`   | The contributed tab is registered either way, but only renders when Settings is mounted.                         |
+| Plugin                    | Coordinates with | What happens                                                                                              |
+| ------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `<ControlWidgets />`      | `<XR />`         | Registry widget panels are hidden while an immersive XR session is active.                                |
+| `<DrawService />`         | `<Logs />`       | Connection status and errors are written to the Logs panel. Without Logs, they're dropped silently.       |
+| mode plugins              | each other       | Buttons portal into the mode toggle in mount order, which is also fallback priority. Mount Monitor first. |
+| `<FramePov />`            | `<XR />`         | POV panels hide while an immersive session owns the canvas.                                               |
+| any `SettingsPortal` user | `<Settings />`   | The contributed tab is registered either way, but only renders when Settings is mounted.                  |
 
 ```text
 ControlWidgets ──► XR         panels hide during an immersive session
 DrawService ──► Logs          draw-server diagnostics, if Logs is mounted
-BuildFrames ──► MoveFrame     mode-toggle button order follows mount order
+Monitor ──► BuildFrames ──► MoveFrame   mount order is button order and priority
 FramePov ──► XR               POV panels hide during an immersive session
 SettingsPortal ──► Settings   contributed tabs need a popover to live in
 ```
