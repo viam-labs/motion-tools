@@ -2,11 +2,30 @@
 
 This guide explains how to run and manage the Playwright end-to-end tests for the motion-tools application.
 
-The tests now provision their own ephemeral Viam machine for each run.
+## Projects
+
+The suite is split into Playwright projects so that a run only pays for what it needs.
+
+| Project          | Specs                                                      | Needs a Viam machine |
+| ---------------- | ---------------------------------------------------------- | -------------------- |
+| `drawing`        | `draw-client`, `file-drop`, `snapshot`                     | no                   |
+| `robot`          | `arm`, `edit-frame`, `obstacle-store`, `world-state-store` | yes                  |
+| `robot-setup`    | `robot.setup.ts`                                           | provisions it        |
+| `robot-teardown` | `robot.teardown.ts`                                        | deletes it           |
+
+`robot` declares `robot-setup` as a dependency, so selecting it provisions an ephemeral
+machine first and deletes it afterwards. The `drawing` project has no such dependency, which
+is why it starts in seconds.
+
+Setup hands the machine over through `e2e/.bin/machine.json` rather than environment
+variables, because Playwright runs each project in its own worker process. viam-server runs
+detached with its output in `e2e/.bin/viam-server.log`, and teardown kills it by the pid
+recorded in that file.
 
 ## Prerequisites
 
-Before running the tests, make sure you have:
+The `drawing` project needs only Go and a working dev server. Everything below is for the
+`robot` project:
 
 - **Go** (to build the `world-state-store` test module).
 - **The Viam CLI** installed and authenticated:
@@ -24,22 +43,47 @@ Before running the tests, make sure you have:
 ## Running E2E Tests
 
 ```bash
-# basic run
+# the drawing suite: no cloud machine, no setup.sh
 pnpm test:e2e
 
-# with ui
+# the same suite in the Playwright UI
 pnpm test:e2e-ui
+
+# the robot suite: installs viam-server, then provisions a machine
+pnpm test:e2e-robot
+
+# everything
+pnpm test:e2e-all
 ```
 
 ### Running specific tests
 
-```bash
-# run a single test file
-npx playwright test e2e/world-state-store.test.ts
+Narrow by project first, then by file or title. A project selection is what keeps a one-test
+run from provisioning a machine it does not need.
 
-# run a single test by title
-npx playwright test e2e/edit-frame.test.ts --grep "basic edit frame"
+```bash
+# one project
+npx playwright test --project=drawing
+
+# one file
+npx playwright test --project=robot e2e/world-state-store.test.ts
+
+# one test by title
+npx playwright test --project=robot --grep "basic edit frame"
+
+# a family of tests
+npx playwright test --project=drawing --grep "draw lines"
+
+# the inverse: everything except the slow chunked point cloud test
+npx playwright test --project=drawing --grep-invert chunked
 ```
+
+`--grep` matches the file path as well as the title, so anchoring a title with `^` finds
+nothing. Match on a distinctive substring instead.
+
+Selecting `--project=robot` runs `robot-setup` and `robot-teardown` around it, even for a
+single `--grep` match. Running the robot specs without a project selection fails with an
+`Incomplete machine state` error, because nothing provisioned the machine.
 
 ## Understanding Test Results
 
@@ -53,7 +97,7 @@ Playwright captures screenshots during test execution and compares them against 
 
 These land in the `test-results/` folder.
 
-NOTE: running many tests back-to-back can be flaky because each test shares the same ephemeral machine. If a test fails, try re-running just that one with `--grep` before investigating further.
+NOTE: the robot specs share one ephemeral machine and push conflicting configs at it, which is why the `robot` project stays serial. If one fails, re-run just that one with `--grep` before investigating further.
 
 ## Updating Screenshots
 
@@ -62,6 +106,8 @@ When you make intentional UI changes that should change screenshots:
 1. Run with the update flag:
    ```bash
    pnpm test:e2e -u
+   # or, for the robot specs
+   pnpm test:e2e-robot -u
    ```
 2. Review the updated files in `e2e/**/*-snapshots/`.
 3. Commit the new snapshots alongside your code changes.
@@ -71,7 +117,11 @@ When you make intentional UI changes that should change screenshots:
 ## Troubleshooting
 
 - **`viam-server binary not found at .../e2e/.bin/viam-server`**
-  Run `cd e2e && ./setup.sh` to install it.
+  Run `./e2e/setup.sh` to install it, or use `pnpm test:e2e-robot`, which runs it for you.
+- **`Incomplete machine state at .../e2e/.bin/machine.json`**
+  A robot spec ran without `robot-setup`. Add `--project=robot` to the command.
+- **The machine never comes online**
+  Read `e2e/.bin/viam-server.log`, which holds everything viam-server wrote.
 - **`E2E config not found at .../e2e/.env.e2e`**
   Same fix — run `cd e2e && ./setup.sh`. The script will create the API key and write the file.
 - **`Organization "Viam Viz E2E" not found`**
@@ -79,4 +129,4 @@ When you make intentional UI changes that should change screenshots:
 - **Not authenticated with the Viam CLI**
   Run `viam login` and re-run `./e2e/setup.sh`.
 - **Stuck/stale machines in the cloud**
-  Global teardown deletes the machine it created, but if a run is killed (SIGKILL, crash) it may leak. Clean up orphaned `e2e-<username>-*` machines under the `e2e-tests` location in the `Viam Viz E2E` org.
+  `robot-teardown` deletes the machine, and setup records it in `machine.json` before anything else can fail, so a run that dies partway through still gets cleaned up. A hard kill (SIGKILL, crash) can still leak one. Clean up orphaned `e2e-<username>-*` machines under the `e2e-tests` location in the `Viam Viz E2E` org.

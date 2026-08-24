@@ -1,42 +1,18 @@
 import { type Browser, expect, type Page } from '@playwright/test'
-import { createViamClient, type ViamClient, type ViamClientOptions } from '@viamrobotics/sdk'
 import fs from 'node:fs'
 
 import { openScene } from './helpers/openScene'
 import { screenshotCanvas } from './helpers/screenshot'
 
-const getTestConfig = () => ({
-	host: process.env.VIAM_E2E_HOST ?? '',
-	name: process.env.VIAM_E2E_MACHINE_NAME ?? '',
-	partId: process.env.VIAM_E2E_PART_ID ?? '',
-	apiKeyId: process.env.VIAM_E2E_API_KEY_ID ?? '',
-	apiKeyValue: process.env.VIAM_E2E_API_KEY ?? '',
-	signalingAddress: process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443',
-	organizationId: process.env.VIAM_E2E_ORG_ID ?? '',
-})
-
-type TestConfig = ReturnType<typeof getTestConfig>
-
 interface TestPage {
 	page: Page
-	testConfig: TestConfig
-	refresh: () => Promise<void>
 	takeScreenshot: (testPrefix: string) => Promise<void>
 	screenshotCanvas: (testPrefix: string) => Promise<void>
 	dropFile: (file: string | { name: string; content: string }) => Promise<void>
-	connect: () => Promise<ViamClient>
 }
 
 export const createPage = async (browser: Browser): Promise<TestPage> => {
-	const testConfig = getTestConfig()
 	const page = await openScene(browser)
-
-	const refresh = async () => {
-		await page.reload()
-		await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
-			timeout: 15000,
-		})
-	}
 
 	const takeScreenshot = async (testPrefix: string) => {
 		await expect.soft(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
@@ -94,31 +70,9 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 		)
 	}
 
-	const connect = async (): Promise<ViamClient> => {
-		const opts: ViamClientOptions = {
-			serviceHost: testConfig.signalingAddress,
-			credentials: {
-				type: 'api-key',
-				authEntity: testConfig.apiKeyId,
-				payload: testConfig.apiKeyValue,
-			},
-		}
-
-		const client = await createViamClient(opts)
-		return client
-	}
-
 	return {
-		get page() {
-			return page
-		},
-		get testConfig() {
-			return testConfig
-		},
-
-		refresh,
+		page,
 		dropFile,
-		connect,
 		takeScreenshot,
 		screenshotCanvas: takeCanvasScreenshot,
 	}

@@ -1,38 +1,26 @@
-import {
-	createViamClient,
-	Struct,
-	type ViamClient,
-	type ViamClientOptions,
-} from '@viamrobotics/sdk'
-import { type ChildProcess, execSync, spawn } from 'node:child_process'
+import { test as setup } from '@playwright/test'
+import { Struct, type ViamClient } from '@viamrobotics/sdk'
+import { execSync, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import url from 'node:url'
 
-import { loadE2EConfig } from './e2e-config'
+import { APP_ADDRESS, connectAppClient } from './helpers/appClient'
+import { loadE2EConfig } from './helpers/e2e-config'
+import {
+	type MachineState,
+	machineStatePath,
+	viamServerConfigPath,
+	viamServerLogPath,
+	writeMachineState,
+} from './helpers/machineState'
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url))
-
-let serverProcess: ChildProcess | undefined
-let viamClient: ViamClient | undefined
-let createdRobotId: string | undefined
 
 const E2E_ORG_NAME = 'Viam Viz E2E'
 const E2E_LOCATION_NAME = 'e2e-tests'
 const VIAM_SERVER_PORT = 9090
-
-const connectAppClient = async (apiKeyId: string, apiKey: string): Promise<ViamClient> => {
-	const opts: ViamClientOptions = {
-		serviceHost: 'https://app.viam.com:443',
-		credentials: {
-			type: 'api-key',
-			authEntity: apiKeyId,
-			payload: apiKey,
-		},
-	}
-	return createViamClient(opts)
-}
 
 const waitForMachineOnline = async (
 	client: ViamClient,
@@ -63,22 +51,71 @@ const waitForMachineOnline = async (
 			setTimeout(resolve, 2000)
 		})
 	}
-	throw new Error(`Machine failed to come online within ${maxAttempts * 2} seconds`)
+	throw new Error(
+		`Machine failed to come online within ${maxAttempts * 2} seconds.\n` +
+			`Check ${viamServerLogPath} for what viam-server reported.`
+	)
 }
 
-export const setup = async (): Promise<() => Promise<void>> => {
-	const binaryPath = path.resolve(dirname, '../.bin/viam-server')
+/**
+ * viam-server has to outlive this worker, which exits as soon as the setup test
+ * finishes, so it is spawned detached with its output redirected to a file
+ * rather than piped back to a parent that will be gone. `robot-teardown` kills
+ * it by the recorded pid.
+ */
+const startViamServer = (partId: string, partSecret: string): number => {
+	const binaryPath = path.resolve(dirname, './.bin/viam-server')
+
+	fs.writeFileSync(
+		viamServerConfigPath,
+		JSON.stringify(
+			{
+				cloud: {
+					id: partId,
+					secret: partSecret,
+					app_address: APP_ADDRESS,
+				},
+			},
+			undefined,
+			2
+		),
+		{ mode: 0o600 }
+	)
+
+	const logFd = fs.openSync(viamServerLogPath, 'w')
+	const serverProcess = spawn(binaryPath, ['-config', viamServerConfigPath], {
+		stdio: ['ignore', logFd, logFd],
+		detached: true,
+	})
+	fs.closeSync(logFd)
+
+	serverProcess.on('error', (error) => {
+		console.error('Failed to start viam-server:', error)
+	})
+
+	const { pid } = serverProcess
+	if (pid === undefined) {
+		throw new Error(`Failed to spawn viam-server from ${binaryPath}`)
+	}
+
+	serverProcess.unref()
+
+	return pid
+}
+
+setup('provision machine', async () => {
+	const binaryPath = path.resolve(dirname, './.bin/viam-server')
 	if (!fs.existsSync(binaryPath)) {
 		throw new Error(
 			`viam-server binary not found at ${binaryPath}.\n` +
-				`Run 'cd e2e && ./setup.sh' to install it.`
+				`Run './e2e/setup.sh' to install it, or 'pnpm test:e2e:robot' which runs it for you.`
 		)
 	}
 
 	const config = loadE2EConfig()
 
 	console.log('Connecting to Viam cloud...')
-	viamClient = await connectAppClient(config.apiKeyId, config.apiKey)
+	const viamClient = await connectAppClient(config.apiKeyId, config.apiKey)
 	console.log('   Connected.')
 
 	console.log(`Finding "${E2E_ORG_NAME}" organization...`)
@@ -108,8 +145,12 @@ export const setup = async (): Promise<() => Promise<void>> => {
 	const machineName = `e2e-${username}-${Date.now()}`
 	console.log(`Creating machine "${machineName}"...`)
 	const robotId = await viamClient.appClient.newRobot(location?.id ?? '', machineName)
-	createdRobotId = robotId
 	console.log('   Created machine.')
+
+	// Recorded before anything else can fail, so teardown deletes the machine
+	// even when provisioning dies partway through.
+	const state: MachineState = { robotId, machineName, orgId, signalingAddress: APP_ADDRESS }
+	writeMachineState(state)
 
 	console.log('Getting machine parts...')
 	const parts = await viamClient.appClient.getRobotParts(robotId)
@@ -118,6 +159,8 @@ export const setup = async (): Promise<() => Promise<void>> => {
 	}
 	const part = parts[0]!
 	const partId = part.id
+	state.partId = partId
+	writeMachineState(state)
 	console.log('   Got part.')
 
 	console.log('Creating part secret...')
@@ -155,8 +198,9 @@ export const setup = async (): Promise<() => Promise<void>> => {
 	if (!keyIdMatch || !keyValueMatch) {
 		throw new Error('Failed to parse API key from Viam CLI output.')
 	}
-	const machineApiKeyId = keyIdMatch[1]!.trim()
-	const machineApiKey = keyValueMatch[1]!.trim()
+	state.apiKeyId = keyIdMatch[1]!.trim()
+	state.apiKey = keyValueMatch[1]!.trim()
+	writeMachineState(state)
 	console.log('   Machine API key created.')
 
 	console.log(`Pushing initial config (bind_address :${VIAM_SERVER_PORT})...`)
@@ -171,120 +215,19 @@ export const setup = async (): Promise<() => Promise<void>> => {
 	)
 	console.log('   Config pushed.')
 
-	const credentialsPath = path.resolve(dirname, '../.bin/viam-e2e.json')
-	console.log(`Writing viam-server credentials to ${credentialsPath}...`)
-	const viamServerConfig = {
-		cloud: {
-			id: partId,
-			secret: partSecret,
-			app_address: 'https://app.viam.com:443',
-		},
-	}
-	fs.writeFileSync(credentialsPath, JSON.stringify(viamServerConfig, null, 2))
-
-	console.log('Starting viam-server...')
-	serverProcess = spawn(binaryPath, ['-config', credentialsPath], {
-		stdio: ['ignore', 'pipe', 'pipe'],
-		detached: false,
-	})
-
-	serverProcess.stdout?.on('data', (data: Buffer) => {
-		const text = data.toString().trim()
-		if (text) console.log(`[viam-server]: ${text}`)
-	})
-
-	serverProcess.stderr?.on('data', (data: Buffer) => {
-		const text = data.toString().trim()
-		if (text) console.error(`[viam-server ERROR]: ${text}`)
-	})
-
-	serverProcess.on('error', (error) => {
-		console.error('Failed to start viam-server:', error)
-		throw error
-	})
-
-	serverProcess.on('exit', (code, signal) => {
-		if (code !== 0 && code !== null) {
-			console.error(`viam-server exited with code ${code}`)
-		}
-		if (signal) {
-			console.log(`viam-server killed with signal ${signal}`)
-		}
-	})
+	console.log(`Starting viam-server (logging to ${viamServerLogPath})...`)
+	state.viamServerPid = startViamServer(partId, partSecret)
+	writeMachineState(state)
+	console.log(`   Started as pid ${state.viamServerPid}.`)
 
 	console.log('Waiting for machine to come online...')
 	await waitForMachineOnline(viamClient, partId)
 
-	const signalingAddress = 'https://app.viam.com:443'
-
 	// Derive the machine-level FQDN (without part suffix) to match signaling registration.
 	// Part FQDN: "e2e-devin-123-main.location.viam.cloud"
 	// Signaling host: "e2e-devin-123.location.viam.cloud"
-	const locationSuffix = fqdn.slice(fqdn.indexOf('.'))
-	const signalingHost = `${machineName}${locationSuffix}`
+	state.host = `${machineName}${fqdn.slice(fqdn.indexOf('.'))}`
+	writeMachineState(state)
 
-	process.env.VIAM_E2E_HOST = signalingHost
-	process.env.VIAM_E2E_PART_ID = partId
-	process.env.VIAM_E2E_MACHINE_NAME = machineName
-	process.env.VIAM_E2E_ROBOT_ID = robotId
-	process.env.VIAM_E2E_API_KEY_ID = machineApiKeyId
-	process.env.VIAM_E2E_API_KEY = machineApiKey
-	process.env.VIAM_E2E_ORG_ID = orgId
-	process.env.VIAM_E2E_SIGNALING_ADDRESS = signalingAddress
-	process.env.VIAM_E2E_ORG_API_KEY_ID = config.apiKeyId
-	process.env.VIAM_E2E_ORG_API_KEY = config.apiKey
-
-	console.log('\nE2E Global Setup Complete\n')
-
-	return teardown
-}
-
-export const teardown = async (): Promise<void> => {
-	if (serverProcess) {
-		console.log('Stopping viam-server...')
-		const exitPromise = new Promise<void>((resolve) => {
-			if (!serverProcess) {
-				resolve()
-				return
-			}
-
-			const timeout = setTimeout(() => {
-				console.warn('   viam-server did not exit gracefully, forcing kill...')
-				serverProcess?.kill('SIGKILL')
-				resolve()
-			}, 5000)
-
-			serverProcess.on('exit', () => {
-				clearTimeout(timeout)
-				serverProcess = undefined
-				resolve()
-			})
-		})
-
-		serverProcess.kill('SIGTERM')
-		await exitPromise
-		console.log('   viam-server stopped.')
-	}
-
-	if (viamClient && createdRobotId) {
-		console.log('Deleting machine...')
-		try {
-			await viamClient.appClient.deleteRobot(createdRobotId)
-			console.log('   Machine deleted.')
-		} catch (error) {
-			console.warn('   Failed to delete machine:', error)
-		}
-	}
-
-	const credentialsPath = path.resolve(dirname, '../.bin/viam-e2e.json')
-	if (fs.existsSync(credentialsPath)) {
-		console.log('Cleaning up credentials file...')
-		fs.unlinkSync(credentialsPath)
-	}
-
-	viamClient = undefined
-
-	console.log('\nGlobal Teardown Complete\n')
-}
-
-export default setup
+	console.log(`\nRobot setup complete, state in ${machineStatePath}\n`)
+})
