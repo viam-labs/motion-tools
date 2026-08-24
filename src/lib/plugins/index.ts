@@ -38,4 +38,6 @@ export { useSelectionPlugin } from './Selection/useSelectionPlugin.svelte'
 
 export { default as Skybox } from './Skybox/Skybox.svelte'
 
+export { default as WorldTree } from './WorldTree/WorldTree.svelte'
+
 export { default as XR } from './XR/XR.svelte'

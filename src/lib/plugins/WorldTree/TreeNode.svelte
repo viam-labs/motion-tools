@@ -4,11 +4,11 @@
 	import { ChevronRight, Eye, EyeOff, Folder, FolderOpen } from 'lucide-svelte'
 	import { VirtualList } from 'svelte-virtuallists'
 
+	import EntityLink from '$lib/components/overlay/EntityLink.svelte'
 	import { traits, useTrait } from '$lib/ecs'
 
 	import type { TreeNode } from './buildTree'
 
-	import EntityLink from '../EntityLink.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {

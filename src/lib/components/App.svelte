@@ -15,7 +15,6 @@
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
-	import TreeContainer from '$lib/components/overlay/left-pane/TreeContainer.svelte'
 	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
@@ -160,8 +159,6 @@
 				{/each}
 
 				<LiveUpdatesBanner />
-
-				<TreeContainer />
 
 				{#if !$isPresenting}
 					{#each currentFramePovWidgets as povFrameName (povFrameName)}

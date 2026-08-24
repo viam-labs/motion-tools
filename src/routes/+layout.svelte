@@ -17,6 +17,7 @@
 		MeasureTool,
 		MotionPlanReplayer,
 		MoveFrame,
+		WorldTree,
 		XR,
 	} from '$lib/plugins'
 
@@ -94,6 +95,7 @@
 				<Logs />
 				<ControlWidgets />
 				<Machines bind:isOpen={isMachinesPageOpen} />
+				<WorldTree />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

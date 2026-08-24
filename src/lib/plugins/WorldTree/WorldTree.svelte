@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { type Entity, IsExcluded } from 'koota'
 
+	import FloatingPanel from '$lib/components/overlay/FloatingPanel.svelte'
 	import { traits, useWorld } from '$lib/ecs'
 
 	import type { TreeNode } from './buildTree'
 
-	import FloatingPanel from '../FloatingPanel.svelte'
 	import PoseStalenessIndicator from './PoseStalenessIndicator.svelte'
 	import Tree from './Tree.svelte'
 	import { provideTreeExpandedContext } from './useExpanded.svelte'

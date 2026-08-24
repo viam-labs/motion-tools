@@ -62,6 +62,7 @@ export default defineConfig({
 						{ label: '<SelectionTool />', link: '/plugins/selection/' },
 						{ label: '<Skybox />', link: '/plugins/skybox/' },
 						{ label: '<TopDownLock />', link: '/plugins/top-down-lock/' },
+						{ label: '<WorldTree />', link: '/plugins/world-tree/' },
 						{ label: '<XR />', link: '/plugins/xr/' },
 						{ label: '<LLMSceneBuilder />', link: '/plugins/llm-scene-builder/' },
 					],

@@ -591,7 +591,13 @@
 		"@tanstack/svelte-query-devtools": {
 			"optional": true
 		},
+		"@zag-js/tree-view": {
+			"optional": true
+		},
 		"earcut": {
+			"optional": true
+		},
+		"svelte-virtuallists": {
 			"optional": true
 		}
 	},
