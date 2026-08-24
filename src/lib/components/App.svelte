@@ -15,7 +15,6 @@
 	import Controls from '$lib/components/overlay/controls/Controls.svelte'
 	import Dashboard from '$lib/components/overlay/dashboard/Dashboard.svelte'
 	import Details from '$lib/components/overlay/Details.svelte'
-	import Settings from '$lib/components/overlay/settings/Settings.svelte'
 	import Workspace from '$lib/components/overlay/workspace/Workspace.svelte'
 	import { provideWorld, traits, useQuery } from '$lib/ecs'
 	import { type CameraPose, provideCameraControls } from '$lib/hooks/useControls.svelte'
@@ -172,7 +171,6 @@
 					<RenderStats />
 				{/if}
 
-				<Settings />
 				<AddFrames />
 			</div>
 		</SceneProviders>

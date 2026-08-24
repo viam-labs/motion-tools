@@ -60,6 +60,7 @@ export default defineConfig({
 						{ label: '<MeasureTool />', link: '/plugins/measure-tool/' },
 						{ label: '<MotionPlanReplayer />', link: '/plugins/motion-plan-replayer/' },
 						{ label: '<SelectionTool />', link: '/plugins/selection/' },
+						{ label: '<Settings />', link: '/plugins/settings/' },
 						{ label: '<Skybox />', link: '/plugins/skybox/' },
 						{ label: '<TopDownLock />', link: '/plugins/top-down-lock/' },
 						{ label: '<WorldTree />', link: '/plugins/world-tree/' },
