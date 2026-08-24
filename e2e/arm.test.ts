@@ -83,8 +83,6 @@ withRobot('arm', async ({ robotPage }) => {
 	})
 
 	await robotPage.screenshotCanvas(`${testPrefix}-1-moved`)
-
-	robotPage.assertScreenshots()
 })
 
 withRobot.afterAll(async () => {

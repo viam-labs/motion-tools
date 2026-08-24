@@ -19,6 +19,7 @@
 		"prepack": "wireit",
 		"preview": "vite preview",
 		"check": "wireit",
+		"check:e2e": "wireit",
 		"check:watch": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write . && ./etc/eslint-progress.sh . --fix --concurrency auto",
 		"lint": "wireit",
@@ -186,7 +187,27 @@
 				"proto:gen-ts",
 				"svelte-sync",
 				"build:workers",
-				"vet"
+				"vet",
+				"check:e2e"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"check:e2e": {
+			"command": "tsc -p tsconfig.e2e.json",
+			"files": [
+				"e2e/**/*.ts",
+				"playwright.config.ts",
+				"playwright.ci.config.ts",
+				"tsconfig.e2e.json",
+				"tsconfig.json",
+				"src/lib/buf/**"
+			],
+			"output": [],
+			"dependencies": [
+				"proto:gen-ts",
+				"svelte-sync"
 			],
 			"packageLocks": [
 				"pnpm-lock.yaml"

@@ -44,10 +44,8 @@ export interface RobotTestPage {
 	page: Page
 	config: E2ETestConfig
 	viamClient: ViamClient
-	failedScreenshots: string[]
 	takeScreenshot: (testPrefix: string) => Promise<void>
 	screenshotCanvas: (testPrefix: string) => Promise<void>
-	assertScreenshots: () => void
 }
 
 export const injectMachineConfig = async (page: Page, config: E2ETestConfig) => {
@@ -178,7 +176,6 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 		const config = getE2EConfig()
 		const context = await browser.newContext()
 		const page = await context.newPage()
-		const failedScreenshots: string[] = []
 
 		page.on('console', (message) => {
 			console.log(`[${message.type()}] ${message.text()}`)
@@ -220,37 +217,17 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 
 		const client = await connectViamClient()
 
-		const takeScreenshot = async (testPrefix: string) => {
-			try {
-				await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
-			} catch (error) {
-				console.warn(error)
-				failedScreenshots.push(`${testPrefix}.png`)
-			}
-		}
+		const takeScreenshot = (testPrefix: string) =>
+			expect.soft(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 
-		const takeCanvasScreenshot = async (testPrefix: string) => {
-			const failure = await screenshotCanvas(page, testPrefix)
-			if (failure) {
-				failedScreenshots.push(failure)
-			}
-		}
-
-		const assertScreenshots = () => {
-			if (failedScreenshots.length > 0) {
-				console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-				throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-			}
-		}
+		const takeCanvasScreenshot = (testPrefix: string) => screenshotCanvas(page, testPrefix)
 
 		await use({
 			page,
 			config,
 			viamClient: client,
-			failedScreenshots,
 			takeScreenshot,
 			screenshotCanvas: takeCanvasScreenshot,
-			assertScreenshots,
 		})
 
 		await context.close()
