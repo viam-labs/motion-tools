@@ -563,7 +563,6 @@
 		"@viamrobotics/prime-core": ">=0.1",
 		"@viamrobotics/svelte-sdk": ">=0.1",
 		"@viamrobotics/test-widgets": ">=0.10.1",
-		"@zag-js/collapsible": ">=1",
 		"@zag-js/dialog": ">=1",
 		"@zag-js/floating-panel": ">=1",
 		"@zag-js/popover": ">=1",
@@ -588,7 +587,16 @@
 		"@connectrpc/connect-web": {
 			"optional": true
 		},
+		"@dimforge/rapier3d-compat": {
+			"optional": true
+		},
 		"@tanstack/svelte-query-devtools": {
+			"optional": true
+		},
+		"@threlte/rapier": {
+			"optional": true
+		},
+		"@threlte/xr": {
 			"optional": true
 		},
 		"@zag-js/tabs": {

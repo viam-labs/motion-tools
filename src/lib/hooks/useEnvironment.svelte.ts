@@ -20,6 +20,11 @@ interface Environment {
 	mode: EnvironmentMode
 	isStandalone: boolean
 	inputBindingsEnabled: boolean
+	/**
+	 * Whether an immersive XR session owns the canvas. Published by the XR plugin
+	 * so readers don't need `@threlte/xr`, which is an optional peer.
+	 */
+	isImmersive: boolean
 }
 
 interface Context {
@@ -68,6 +73,7 @@ export const createEnvironment = (): Context => {
 		},
 		isStandalone: true,
 		inputBindingsEnabled: true,
+		isImmersive: false,
 	})
 
 	const context: Context = {

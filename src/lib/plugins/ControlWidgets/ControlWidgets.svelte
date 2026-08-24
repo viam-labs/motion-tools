@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { useXR } from '@threlte/xr'
-
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 
 	import ResourceWidgetList from './ResourceWidgetList.svelte'
 	import ResourceWidgetPanel from './ResourceWidgetPanel.svelte'
 	import { useResourceWidgets } from './useResourceWidgets.svelte'
 
-	const { isPresenting } = useXR()
+	const environment = useEnvironment()
 	const resolved = useResourceWidgets()
 </script>
 
@@ -32,7 +31,8 @@
 	</fieldset>
 </WorkspacePortal>
 
-{#if !$isPresenting}
+<!-- Registry widget panels render only outside XR. -->
+{#if !environment.current.isImmersive}
 	{#each resolved.current as widget, stackIndex (widget.key)}
 		<ResourceWidgetPanel
 			resource={widget.resource}

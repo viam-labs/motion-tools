@@ -3,7 +3,6 @@
 
 	import { T, useThrelte } from '@threlte/core'
 	import { Environment, Grid, interactivity, PortalTarget } from '@threlte/extras'
-	import { useXR } from '@threlte/xr'
 	import { ShaderMaterial } from 'three'
 
 	import Camera from '$lib/components/Camera.svelte'
@@ -13,6 +12,7 @@
 	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useHotkey } from '$lib/hooks/useHotkeys.svelte'
 	import { providePointBudget } from '$lib/hooks/usePointBudget.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
@@ -31,6 +31,7 @@
 
 	const threlte = useThrelte()
 	const settings = useSettings()
+	const environment = useEnvironment()
 
 	// @ts-expect-error This is for debugging
 	globalThis.__threlte__ = threlte
@@ -77,8 +78,6 @@
 			}
 		},
 	})
-
-	const { isPresenting } = useXR()
 </script>
 
 <KeyboardBindings />
@@ -87,7 +86,7 @@
 <PointerMissBox />
 <SelectedTransformControls />
 
-{#if !$isPresenting && settings.current.grid}
+{#if !environment.current.isImmersive && settings.current.grid}
 	<Grid
 		oncreate={(ref) => {
 			const material = ref.material as ShaderMaterial
@@ -105,7 +104,7 @@
 	/>
 {/if}
 
-{#if !$isPresenting}
+{#if !environment.current.isImmersive}
 	<Camera position={[3, 3, 3]}>
 		<CameraControls />
 	</Camera>

@@ -5,6 +5,7 @@
 	import { Quaternion } from 'three'
 
 	import SettingsPortal from '$lib/components/overlay/Portals/SettingsPortal.svelte'
+	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
@@ -30,6 +31,17 @@
 	const { isPresenting } = useXR()
 	const settings = useSettings()
 	const resourceByName = useResourceByName()
+	const environment = useEnvironment()
+
+	// Publish the session state so the default camera, the grid and the DOM panels
+	// can stand down without every one of them depending on `@threlte/xr`.
+	$effect(() => {
+		environment.current.isImmersive = $isPresenting
+
+		return () => {
+			environment.current.isImmersive = false
+		}
+	})
 
 	const enableXR = $derived(settings.current.enableXR)
 

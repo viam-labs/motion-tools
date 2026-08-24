@@ -17,6 +17,7 @@ export const createBuildModeSyncHarness = (initialMode: EnvironmentMode = 'monit
 			},
 			isStandalone: true,
 			inputBindingsEnabled: true,
+			isImmersive: false,
 		},
 		get isLive() {
 			return isLive
