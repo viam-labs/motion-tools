@@ -51,6 +51,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Authoring plugins', link: '/plugins/authoring/' },
 						{ label: 'Plugin dependencies', link: '/plugins/dependencies/' },
+						{ label: '<BuildFrames />', link: '/plugins/build-frames/' },
 						{ label: '<ControlWidgets />', link: '/plugins/control-widgets/' },
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },

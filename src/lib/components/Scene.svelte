@@ -9,7 +9,6 @@
 	import Entities from '$lib/components/Entities/Entities.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
-	import StaticGeometries from '$lib/components/StaticGeometries.svelte'
 	import { traits, useQuery } from '$lib/ecs'
 	import { bvh } from '$lib/hooks/plugins/bvh.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
@@ -110,7 +109,6 @@
 	</Camera>
 {/if}
 
-<StaticGeometries />
 <Selected />
 
 <PortalTarget />

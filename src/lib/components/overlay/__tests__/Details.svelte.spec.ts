@@ -137,6 +137,8 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		// Register build as mounting the BuildFrames plugin would, so it can be entered.
+		environmentContext.registerMode('build')
 		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)
@@ -187,6 +189,8 @@ describe('Details component', () => {
 		weblabContext.isActive = vi.fn(() => true)
 		const environmentContext = createEnvironment()
 		environmentContext.current.isStandalone = true
+		// Register build as mounting the BuildFrames plugin would, so it can be entered.
+		environmentContext.registerMode('build')
 		environmentContext.current.mode = 'build'
 
 		entity.add(traits.FramesAPI)

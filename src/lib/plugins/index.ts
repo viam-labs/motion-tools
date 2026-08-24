@@ -1,5 +1,7 @@
 export { default as TopDownLock } from './TopDownLock/TopDownLock.svelte'
 
+export { default as BuildFrames } from './BuildFrames/BuildFrames.svelte'
+
 export { default as ControlWidgets } from './ControlWidgets/ControlWidgets.svelte'
 export { useControlWidgets } from './ControlWidgets/useControlWidgets.svelte'
 

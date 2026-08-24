@@ -10,6 +10,7 @@
 	import { Visualizer } from '$lib'
 	import { backendIP, websocketPort } from '$lib/defines'
 	import {
+		BuildFrames,
 		ControlWidgets,
 		DrawService,
 		FileDrop,
@@ -89,6 +90,8 @@
 				<DrawService config={{ backendIP, websocketPort }} />
 				<Focus />
 				<MeasureTool />
+				<!-- Before MoveFrame: both portal a mode-toggle button, in mount order. -->
+				<BuildFrames />
 				<MoveFrame />
 				<StandaloneLLMWrapper />
 				<MotionPlanReplayer />
