@@ -1,37 +1,35 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
 	import type { HTMLAttributes } from 'svelte/elements'
 
-	import { PortalTarget } from '@threlte/extras'
 	import { Button } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 
 	import AddRelationship from '$lib/components/overlay/AddRelationship.svelte'
+	import AxesHelperDetails from '$lib/components/overlay/details/AxesHelperDetails.svelte'
+	import ColorDetails from '$lib/components/overlay/details/ColorDetails.svelte'
+	import CountDetails from '$lib/components/overlay/details/CountDetails.svelte'
+	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
+	import DimensionsDetails from '$lib/components/overlay/details/DimensionsDetails.svelte'
+	import EditGeometryDetails from '$lib/components/overlay/details/EditGeometryDetails.svelte'
+	import OpacityDetails from '$lib/components/overlay/details/OpacityDetails.svelte'
+	import PoseDetails from '$lib/components/overlay/details/PoseDetails.svelte'
+	import RelationshipDetails from '$lib/components/overlay/details/RelationshipDetails.svelte'
 	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
+	import { useDetailsSections } from '$lib/hooks/useDetailsSections.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 
-	import AxesHelperDetails from './AxesHelperDetails.svelte'
-	import ColorDetails from './ColorDetails.svelte'
-	import CountDetails from './CountDetails.svelte'
-	import DetailsPanel from './DetailsPanel.svelte'
-	import DimensionsDetails from './DimensionsDetails.svelte'
-	import EditGeometryDetails from './EditGeometryDetails.svelte'
-	import OpacityDetails from './OpacityDetails.svelte'
-	import PoseDetails from './PoseDetails.svelte'
-	import RelationshipDetails from './RelationshipDetails.svelte'
-
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		entity: Entity
-		details?: Snippet<[{ entity: Entity }]>
 	}
 
-	const { entity, details, ...rest }: Props = $props()
+	const { entity, ...rest }: Props = $props()
 
 	const environment = useEnvironment()
+	const sections = useDetailsSections()
 	const buildModeSync = useBuildModeSync()
 	const fragmentInfo = useFragmentInfo()
 	const partConfig = usePartConfig()
@@ -91,7 +89,7 @@
 			role="status"
 		>
 			<p>Frame editing is disabled — this machine's configuration could not be read.</p>
-			<p class="mt-1 break-words text-yellow-800">{partConfig.error}</p>
+			<p class="mt-1 wrap-break-word text-yellow-800">{partConfig.error}</p>
 		</div>
 	{/if}
 
@@ -118,8 +116,6 @@
 
 		<CountDetails {entity} />
 
-		<PortalTarget id="details-extensions" />
-
 		{#if !customDetails.current}
 			<ColorDetails {entity} />
 			<OpacityDetails {entity} />
@@ -129,7 +125,11 @@
 
 	<RelationshipDetails {entity} />
 
-	{@render details?.({ entity })}
+	{#each sections?.current ?? [] as section (section)}
+		{#if section.when?.(entity) ?? true}
+			{@render section.snippet({ entity })}
+		{/if}
+	{/each}
 
 	{#if showRelationshipOptions || (showEditFrameOptions && environment.current.isStandalone)}
 		<h3 class="text-subtle-2 pt-3 pb-2">Actions</h3>

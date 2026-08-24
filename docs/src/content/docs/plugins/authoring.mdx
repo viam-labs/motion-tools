@@ -195,7 +195,24 @@ For a launcher-plus-panel pattern, pair a `WorkspacePortal` button with a `Float
 </FloatingPanel>
 ```
 
-To add UI to the per-entity **details card** instead, pass a `details` snippet to `<Visualizer />` — it receives the selected `{ entity }` and renders inside each card.
+To add UI to the per-entity **details card** instead, contribute a section with `useDetailsSection`. Every card renders it with that card's `{ entity }`, and the optional `when` gates which entities get it — this is another contribution point, like keyboard shortcuts and workspace modes below:
+
+```svelte
+<script lang="ts">
+	import { traits, useDetailsSection } from '@viamrobotics/motion-tools'
+
+	useDetailsSection({
+		snippet: batteryRow,
+		when: (entity) => entity.has(traits.FramesAPI),
+	})
+</script>
+
+{#snippet batteryRow({ entity })}
+	<!-- rows for this entity's card -->
+{/snippet}
+```
+
+Sections render at the bottom of the card in registration order. An embedding app can also pass a `details` snippet straight to `<Visualizer />` — it is registered as a section automatically. For an entity whose card is fully custom, add the `traits.CustomDetails` tag to it: the card then suppresses its default pose, color, opacity, and axes rows and shows only contributed content.
 
 ## Reading and writing scene state
 
