@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+/**
+ * Duplicates `frameDescriptors.ts`'s `RawFrame` rather than importing it: this file decodes
+ * untrusted JSON, that one reads a trusted shape. Narrow this and `buildFrameDescriptors` stops
+ * compiling.
+ */
 const RawFrameSchema = z.object({
 	frame_type: z.string(),
 	frame: z.unknown(),

@@ -38,6 +38,18 @@ export interface RawFrame {
 }
 
 /**
+ * Not an RDK frame type. `frameSystemToPlanFrames` carries a part's pose and geometry already
+ * decoded: encoding them as a `static` frame would round-trip `Geometry` through a lossy
+ * `GeometryConfig`.
+ */
+export const DECODED_FRAME_TYPE = 'decoded'
+
+export interface DecodedFrame {
+	pose: Pose
+	geometry: Geometry | null
+}
+
+/**
  * The subset of RDK's `FrameSystem.MarshalJSON()` this file reads. `frames` is flat — a frame's
  * entry never names its parent, which is why `parents` is a separate index.
  */
@@ -87,8 +99,8 @@ export type FrameDescriptor = StaticFrameDescriptor | JointFrameDescriptor
 const tmpQ = new Quaternion()
 
 /**
- * RDK's `GeometryConfig.ParseConfig` reads an empty `type` as "infer from the dimensions that were
- * set": box, then capsule, then sphere. This is that chain, without RDK's per-shape validation.
+ * RDK's `ParseConfig` infers an empty `type` from whichever dimensions are set: box, then capsule,
+ * then sphere. The predicates below are that chain, in that order.
  */
 const inferGeometryType = (g: Record<string, unknown>): string => {
 	const declared = (g.type ?? '') as string
@@ -115,8 +127,8 @@ const inferGeometryType = (g: Record<string, unknown>): string => {
 type MeshDataProblem = 'absent' | 'unreadable' | 'empty'
 
 /**
- * `mesh_data` arrives base64 from a plan dump, which `encoding/json` marshals, and as a number array
- * from `frameSystemConfig`, which `protoutils.StructToStructPb` reflects over element by element.
+ * `mesh_data` is base64 from a plan dump and a number array from `frameSystemConfig`, decided by the
+ * route rather than by the data. Both shapes are read here.
  */
 const meshBytes = (raw: unknown): Uint8Array<ArrayBuffer> | MeshDataProblem => {
 	if (raw === undefined || raw === null || raw === '') return 'absent'
@@ -447,6 +459,19 @@ const buildDescriptors = (
 				} else {
 					warnUnhandledFrame(frameName, inner.frame_type)
 				}
+				break
+			}
+
+			case DECODED_FRAME_TYPE: {
+				const { pose, geometry } = entry.frame as DecodedFrame
+				descriptors.push({
+					kind: 'static',
+					name: frameName,
+					parent,
+					localPose: pose,
+					geometry,
+					uuid: newUuid(),
+				})
 				break
 			}
 
