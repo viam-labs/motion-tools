@@ -31,7 +31,6 @@
 	import AddFrames from './overlay/AddFrames.svelte'
 	import LiveUpdatesBanner from './overlay/LiveUpdatesBanner.svelte'
 	import { provideSettingsTabs } from './overlay/Portals/useSettingsTabs.svelte'
-	import FramePov from './overlay/widgets/FramePov.svelte'
 	import RenderStats from './overlay/widgets/RenderStats.svelte'
 	import Scene from './Scene.svelte'
 	import SceneProviders from './SceneProviders.svelte'
@@ -94,8 +93,6 @@
 	const environment = provideEnvironment()
 	const fullscreen = provideFullscreen()
 
-	const currentFramePovWidgets = $derived(settings.current.openFramePovWidgets[partID] || [])
-
 	provideCameraControls(() => cameraPose)
 	createPartIDContext(() => partID)
 
@@ -154,12 +151,6 @@
 				{/each}
 
 				<LiveUpdatesBanner />
-
-				{#if !environment.current.isImmersive}
-					{#each currentFramePovWidgets as povFrameName (povFrameName)}
-						<FramePov frameName={povFrameName} />
-					{/each}
-				{/if}
 
 				<PortalTarget id="dom" />
 
