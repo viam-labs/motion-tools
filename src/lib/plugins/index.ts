@@ -7,6 +7,8 @@ export { default as Debug } from './Debug/Debug.svelte'
 
 export { default as DrawService } from './DrawService/DrawService.svelte'
 
+export { default as FileDrop } from './FileDrop/FileDrop.svelte'
+
 export { default as Focus } from './Focus/Focus.svelte'
 
 export { default as Fullscreen } from './Fullscreen/Fullscreen.svelte'

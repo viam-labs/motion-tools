@@ -54,6 +54,7 @@ export default defineConfig({
 						{ label: '<ControlWidgets />', link: '/plugins/control-widgets/' },
 						{ label: '<Debug />', link: '/plugins/debug/' },
 						{ label: '<DrawService />', link: '/plugins/draw-service/' },
+						{ label: '<FileDrop />', link: '/plugins/file-drop/' },
 						{ label: '<Focus />', link: '/plugins/focus/' },
 						{ label: '<Fullscreen />', link: '/plugins/fullscreen/' },
 						{ label: '<Logs />', link: '/plugins/logs/' },

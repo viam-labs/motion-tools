@@ -6,7 +6,7 @@ import {
 	FileDropperError,
 	type FileDropperParams,
 	parseFailure,
-} from './file-dropper'
+} from '$lib/fileDropper'
 
 export const plyDropper: FileDropper = async (params: FileDropperParams) => {
 	const { name, content } = params

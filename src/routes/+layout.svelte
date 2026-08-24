@@ -12,6 +12,7 @@
 	import {
 		ControlWidgets,
 		DrawService,
+		FileDrop,
 		Focus,
 		Logs,
 		MeasureTool,
@@ -98,6 +99,7 @@
 				<Machines bind:isOpen={isMachinesPageOpen} />
 				<WorldTree />
 				<Settings />
+				<FileDrop />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

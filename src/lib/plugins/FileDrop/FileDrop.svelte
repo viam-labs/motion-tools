@@ -3,15 +3,16 @@
 
 	import { ToastVariant, useToast } from '@viamrobotics/prime-core'
 
+	import type { FileDropperSuccess } from '$lib/fileDropper'
+
 	import { createBufferGeometry } from '$lib/attribute'
 	import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
+	import OverlayPortal from '$lib/components/overlay/Portals/OverlayPortal.svelte'
 	import { traits } from '$lib/ecs'
 	import { useWorld } from '$lib/ecs/useWorld'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { spawnSnapshotEntities } from '$lib/snapshot'
-
-	import type { FileDropperSuccess } from './file-dropper'
 
 	import { useFileDrop } from './useFileDrop.svelte'
 
@@ -90,14 +91,16 @@
 	ondragover={fileDrop.ondragover}
 />
 
-<div
-	class={{
-		'fixed inset-0 z-9999': true,
-		'pointer-events-none': fileDrop.dropState === 'inactive',
-		'bg-black/10': fileDrop.dropState !== 'inactive',
-	}}
-	role="region"
-	aria-label="File drop zone"
-	ondrop={fileDrop.ondrop}
-	{...props}
-></div>
+<OverlayPortal>
+	<div
+		class={{
+			'fixed inset-0 z-9999': true,
+			'pointer-events-none': fileDrop.dropState === 'inactive',
+			'bg-black/10': fileDrop.dropState !== 'inactive',
+		}}
+		role="region"
+		aria-label="File drop zone"
+		ondrop={fileDrop.ondrop}
+		{...props}
+	></div>
+</OverlayPortal>
