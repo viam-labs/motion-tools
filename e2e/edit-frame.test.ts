@@ -251,8 +251,11 @@ withRobot('create and delete frame', async ({ browser }) => {
 	})
 
 	await enterBuildMode(page)
-	await expect(page.getByLabel('Add frames', { exact: true })).toBeVisible()
-	page.getByLabel('Add frames', { exact: true }).click()
+
+	// The folder is collapsed on first render, so its rows need it opened first.
+	await expect(page.getByText('Frameless components')).toBeVisible()
+	await page.getByText('Frameless components').click()
+	await page.getByText('no-frame', { exact: true }).click()
 
 	await expect(page.getByRole('button', { name: 'Add frame', exact: true })).toBeVisible()
 	page.getByRole('button', { name: 'Add frame', exact: true }).click()

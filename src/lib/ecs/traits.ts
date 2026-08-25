@@ -206,6 +206,14 @@ export const PointCloudObjectAPI = trait(() => true)
 export const DroppedFile = trait(() => true)
 
 /**
+ * A component that the part config declares with no frame. It carries a `Name`
+ * so the world tree can list it, and nothing else — there is no scene object
+ * behind it. Queries that assume one (labels, orphan resolution, relationship
+ * targets) exclude it with `Not(FramelessComponent)`.
+ */
+export const FramelessComponent = trait()
+
+/**
  * This entity has somewhere for an edit to land: a config entry, or an ad-hoc
  * geometry that stages into `Matrix`. Opt-in, so an unrecognized frame is inert.
  */

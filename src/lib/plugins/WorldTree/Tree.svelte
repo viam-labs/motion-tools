@@ -78,7 +78,7 @@
 			if (openedFolders.has(value)) continue
 
 			openedFolders.add(value)
-			expandedValues.add(value)
+			if (!node.collapsed) expandedValues.add(value)
 		}
 	})
 

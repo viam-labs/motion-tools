@@ -30,9 +30,14 @@
 		entity: Entity
 		/** The mode's details, rendered under the shared header. */
 		children: Snippet
+		/**
+		 * Header actions that read a scene object: zoom to it, view from it, copy
+		 * its pose. Turn off for a row that only exists in the config.
+		 */
+		sceneActions?: boolean
 	}
 
-	const { entity, children, ...rest }: Props = $props()
+	const { entity, children, sceneActions = true, ...rest }: Props = $props()
 
 	const world = useWorld()
 	const { scene } = useThrelte()
@@ -60,11 +65,12 @@
 	// when one of those sources exists.
 	const focusBox = new Box3()
 	const focusable = $derived(
-		object3d !== undefined ||
-			box.current !== undefined ||
-			sphere.current !== undefined ||
-			capsule.current !== undefined ||
-			worldMatrix.current !== undefined
+		sceneActions &&
+			(object3d !== undefined ||
+				box.current !== undefined ||
+				sphere.current !== undefined ||
+				capsule.current !== undefined ||
+				worldMatrix.current !== undefined)
 	)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
@@ -203,7 +209,7 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				</Tooltip>
 			{/if}
 
-			{#if name.current}
+			{#if name.current && sceneActions}
 				<Tooltip placement="bottom">
 					{#snippet children(tooltipID)}
 						<button
@@ -249,31 +255,33 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				</Tooltip>
 			{/if}
 
-			<Tooltip placement="bottom">
-				{#snippet children(tooltipID)}
-					<button
-						class="text-subtle-2"
-						aria-describedby={tooltipID}
-						onclick={async () => {
-							try {
-								await navigator.clipboard.writeText(getCopyClipboardText())
-							} catch {
-								// clipboard unavailable (non-secure context or permission denied)
-							}
-							copied = true
-							setTimeout(() => (copied = false), 1000)
-						}}
-					>
-						{#if copied}
-							<Check size={14} />
-						{:else}
-							<Copy size={14} />
-						{/if}
-					</button>
-				{/snippet}
+			{#if sceneActions}
+				<Tooltip placement="bottom">
+					{#snippet children(tooltipID)}
+						<button
+							class="text-subtle-2"
+							aria-describedby={tooltipID}
+							onclick={async () => {
+								try {
+									await navigator.clipboard.writeText(getCopyClipboardText())
+								} catch {
+									// clipboard unavailable (non-secure context or permission denied)
+								}
+								copied = true
+								setTimeout(() => (copied = false), 1000)
+							}}
+						>
+							{#if copied}
+								<Check size={14} />
+							{:else}
+								<Copy size={14} />
+							{/if}
+						</button>
+					{/snippet}
 
-				{#snippet content()}Copy details to clipboard{/snippet}
-			</Tooltip>
+					{#snippet content()}Copy details to clipboard{/snippet}
+				</Tooltip>
+			{/if}
 		</div>
 
 		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>
