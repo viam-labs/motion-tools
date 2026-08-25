@@ -90,8 +90,6 @@ withRobot('world state store geometry rendering', async ({ robotPage }) => {
 	await page.getByText('test-mesh', { exact: true }).click()
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	await robotPage.screenshotCanvas('WORLD-STATE-5-mesh-selected')
-
-	robotPage.assertScreenshots()
 })
 
 withRobot('world state store transform update', async ({ robotPage }) => {
@@ -129,8 +127,6 @@ withRobot('world state store transform update', async ({ robotPage }) => {
 
 	runGoTest('^TestTransformUpdate$/Cleanup')
 	await expect(page.getByText('dynamic-sphere', { exact: true })).toBeHidden({ timeout: 10000 })
-
-	robotPage.assertScreenshots()
 })
 
 withRobot('world state store transform removal', async ({ robotPage }) => {
@@ -149,8 +145,6 @@ withRobot('world state store transform removal', async ({ robotPage }) => {
 		timeout: 10000,
 	})
 	await robotPage.screenshotCanvas('WORLD-STATE-REMOVE-1-removed')
-
-	robotPage.assertScreenshots()
 })
 
 withRobot('world state store point cloud update', async ({ robotPage }) => {
@@ -174,8 +168,6 @@ withRobot('world state store point cloud update', async ({ robotPage }) => {
 	await expect(page.getByText('updating-pointcloud', { exact: true })).toBeHidden({
 		timeout: 10000,
 	})
-
-	robotPage.assertScreenshots()
 })
 
 withRobot('world state store point cloud chunking', async ({ robotPage }) => {
@@ -193,8 +185,6 @@ withRobot('world state store point cloud chunking', async ({ robotPage }) => {
 
 	runGoTest('^TestPointCloudChunking$/Cleanup')
 	await expect(page.getByText('chunked-cloud', { exact: true })).toBeHidden({ timeout: 10000 })
-
-	robotPage.assertScreenshots()
 })
 
 withRobot.afterAll(async () => {

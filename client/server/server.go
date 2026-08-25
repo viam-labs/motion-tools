@@ -80,6 +80,10 @@ type DrawServerConfig struct {
 
 	// StaticPort is the port for the static file server (Production mode only).
 	StaticPort int
+
+	// TempDir buffers chunked-entity payloads. Empty means ".tmp" beside go.mod.
+	// Two servers must not share one: NewDrawService empties it at startup.
+	TempDir string
 }
 
 var (
@@ -125,7 +129,6 @@ func Start(cfg DrawServerConfig) error {
 		return nil
 	}
 
-	svc := draw.NewDrawService(resolveTmpDir())
 	rpcAddr := fmt.Sprintf(":%d", cfg.Port)
 	address = fmt.Sprintf("localhost:%d", cfg.Port)
 
@@ -148,6 +151,16 @@ func Start(cfg DrawServerConfig) error {
 		}
 		return fmt.Errorf("failed to listen on %s: %w", rpcAddr, err)
 	}
+
+	tempDir := cfg.TempDir
+	if tempDir == "" {
+		tempDir = resolveTmpDir()
+	}
+
+	// Built only after the listen succeeds. NewDrawService empties its temp dir,
+	// so constructing one on the attach path would delete the chunk files the
+	// server already listening on this port is serving.
+	svc := draw.NewDrawService(tempDir)
 
 	rpcSrv = &http.Server{
 		Addr:    rpcAddr,

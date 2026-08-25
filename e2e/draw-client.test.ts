@@ -1,7 +1,4 @@
-import { Browser, expect, Page, test } from '@playwright/test'
-import { exec, execSync } from 'node:child_process'
-import { promisify } from 'node:util'
-
+import { expect, type GoTest, type GoTestAsync, type Page, test } from './fixtures/drawing'
 import {
 	captureCanvas,
 	screenshotCanvas,
@@ -9,202 +6,102 @@ import {
 	waitForCanvasToSettle,
 } from './helpers/screenshot'
 
-const execAsync = promisify(exec)
+// The draw server outlives each page and replays every entity to a reconnecting
+// client. A test that dies before its reset would otherwise strand entities into
+// the snapshots of later tests sharing this worker's server.
+test.beforeEach(async ({ drawClient }) => {
+	await drawClient.removeAll({})
+})
 
-const createPage = async (browser: Browser): Promise<Page> => {
-	const context = await browser.newContext()
-	const page = await context.newPage()
-	page.on('console', (message) => {
-		console.log(`[${message.type()}] ${message.text()}`)
-	})
-	await page.goto('/')
-	await expect(page.getByText('World', { exact: true })).toBeVisible({ timeout: 10000 })
-	return page
+interface ChunkedRun {
+	page: Page
+	goTestAsync: GoTestAsync
+	snapshotAndReset: (testPrefix: string) => Promise<void>
 }
 
-const takeScreenshot = async (page: Page, testPrefix: string): Promise<string> => {
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
-		return ''
-	} catch (error) {
-		console.warn(error)
-		return `${testPrefix}.png`
-	}
-}
-
-const resetDrawService = () => {
-	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAllHelper github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
-}
-
-const cleanup = async (page: Page) => {
-	resetDrawService()
-
-	await expect(page.getByText('No objects displayed', { exact: true })).toBeVisible({
-		timeout: 15000,
-	})
-}
-
-// The draw service outlives each page and replays every entity to a reconnecting
-// client. A test that dies before its cleanup() would otherwise strand entities
-// into later tests' snapshots.
-test.beforeEach(resetDrawService)
-
-const assertNoFailedScreenshots = (failedScreenshots: string[]) => {
-	const failures = failedScreenshots.filter((screenshot) => screenshot !== '')
-	if (failures.length > 0) {
-		console.log(`Failed screenshots: ${failures.join(', ')}`)
-		throw new Error(`Failed screenshots: ${failures.join(', ')}`)
-	}
-}
-
-const assertTestSuccess = async (page: Page, testPrefix: string) => {
-	const failedScreenshot = await screenshotCanvas(page, testPrefix)
-	await cleanup(page)
-	assertNoFailedScreenshots([failedScreenshot])
-}
-
-const runChunkedTest = async (browser: Browser, testPrefix: string, goTestPath: string) => {
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
-
-	const goTest = execAsync(
-		`go test -run ${goTestPath} github.com/viamrobotics/visualization/client/api -count=1 -timeout=300s`
-	)
+const runChunkedTest = async (
+	{ page, goTestAsync, snapshotAndReset }: ChunkedRun,
+	testPrefix: string,
+	goTestPath: string
+) => {
+	const pull = goTestAsync(goTestPath, { timeoutSeconds: 300 })
 
 	await expect(page.getByRole('progressbar', { name: /Loading/ })).toBeVisible({
 		timeout: 120_000,
 	})
 
-	await goTest
+	await pull
 
 	await expect(page.getByRole('progressbar')).toHaveCount(0, { timeout: 120_000 })
 
-	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
-
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await snapshotAndReset(testPrefix)
 }
 
-test('draw service events lifecycle', async ({ browser }) => {
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
-
-	execSync(
-		'go test -run ^TestDrawServiceEvents$/AddTransformAndDrawing github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+test('draw service events lifecycle', async ({ page, goTest, resetScene }) => {
+	goTest('^TestDrawServiceEvents$/AddTransformAndDrawing')
 
 	await expect(page.getByText('lifecycle-box')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('lifecycle-line')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_ADDED'))
+	await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_ADDED')
 
-	execSync(
-		'go test -run ^TestDrawServiceEvents$/UpdateTransformAndDrawing github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestDrawServiceEvents$/UpdateTransformAndDrawing')
 
 	await expect(page.getByText('lifecycle-box')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('lifecycle-line')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_UPDATED'))
+	await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_UPDATED')
 
-	execSync(
-		'go test -run ^TestDrawServiceEvents$/RemoveAll github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestDrawServiceEvents$/RemoveAll')
 
 	await expect(page.getByText('No objects displayed', { exact: true })).toBeVisible({
 		timeout: 15000,
 	})
-	failedScreenshots.push(await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_REMOVED'))
+	await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_REMOVED')
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('invisible entity', async ({ browser }) => {
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
-
-	execSync(
-		'go test -run ^TestInvisible$/DrawVisible github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+test('invisible entity', async ({ page, goTest, resetScene }) => {
+	goTest('^TestInvisible$/DrawVisible')
 
 	await expect(page.getByText('invisible-box')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'INVISIBLE_ENTITY_VISIBLE'))
+	await screenshotCanvas(page, 'INVISIBLE_ENTITY_VISIBLE')
 
-	execSync(
-		'go test -run ^TestInvisible$/DrawInvisible github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestInvisible$/DrawInvisible')
 
 	await expect(page.getByText('invisible-box')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'INVISIBLE_ENTITY_INVISIBLE'))
+	await screenshotCanvas(page, 'INVISIBLE_ENTITY_INVISIBLE')
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('show axes helper', async ({ browser }) => {
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
-
-	execSync(
-		'go test -run ^TestShowAxesHelper$/DrawWithAxesHelper github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+test('show axes helper', async ({ page, goTest, resetScene }) => {
+	goTest('^TestShowAxesHelper$/DrawWithAxesHelper')
 
 	await expect(page.getByText('show-axes-helper-box')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'SHOW_AXES_HELPER_WITH'))
+	await screenshotCanvas(page, 'SHOW_AXES_HELPER_WITH')
 
-	execSync(
-		'go test -run ^TestShowAxesHelper$/DrawWithoutAxesHelper github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestShowAxesHelper$/DrawWithoutAxesHelper')
 
 	await expect(page.getByText('show-axes-helper-box')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, 'SHOW_AXES_HELPER_WITHOUT'))
+	await screenshotCanvas(page, 'SHOW_AXES_HELPER_WITHOUT')
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('draw frame system', async ({ browser }) => {
+test('draw frame system', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_FRAME_SYSTEM'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawFrameSystem$/DrawFrameSystem github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawFrameSystem$/DrawFrameSystem')
 
 	await expect(page.getByText('No objects displayed', { exact: true })).not.toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw hierarchy', async ({ browser }) => {
+test('draw hierarchy', async ({ page, goTest, resetScene, takeScreenshot }) => {
 	const testPrefix = 'DRAW_HIERARCHY'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestDrawHierarchy$/DrawHierarchy github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawHierarchy$/DrawHierarchy')
 
 	await expect(page.getByText('zulu', { exact: true })).toBeVisible()
 	await expect(page.getByText('bravo', { exact: true })).toBeVisible()
@@ -217,7 +114,7 @@ test('draw hierarchy', async ({ browser }) => {
 	await expect(page.getByText('tango', { exact: true })).toBeVisible()
 	await expect(page.getByText('delta', { exact: true })).toBeVisible()
 
-	failedScreenshots.push(await takeScreenshot(page, `${testPrefix}_ZULU_EXPANDED`))
+	await takeScreenshot(`${testPrefix}_ZULU_EXPANDED`)
 
 	await page
 		.locator('[data-part="branch-control"]')
@@ -227,41 +124,27 @@ test('draw hierarchy', async ({ browser }) => {
 	await expect(page.getByText('sierra', { exact: true })).toBeVisible()
 	await expect(page.getByText('foxtrot', { exact: true })).toBeVisible()
 
-	failedScreenshots.push(await takeScreenshot(page, `${testPrefix}_TANGO_EXPANDED`))
+	await takeScreenshot(`${testPrefix}_TANGO_EXPANDED`)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('draw frames', async ({ browser }) => {
+test('draw frames', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_FRAMES'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawFrames$/DrawFrames github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawFrames$/DrawFrames')
 
 	await expect(page.getByText('DrawFrames Axes')).toBeVisible()
 	await expect(page.getByText('DrawFrames Sphere')).toBeVisible()
 	await expect(page.getByText('DrawFrames Capsule:Capsule')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw geometries', async ({ browser }) => {
+test('draw geometries', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GEOMETRIES'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawGeometries$/DrawGeometries github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawGeometries$/DrawGeometries')
 
 	await expect(page.getByText('DrawGeometries Box')).toBeVisible()
 	await expect(page.getByText('DrawGeometries Sphere')).toBeVisible()
@@ -269,18 +152,14 @@ test('draw geometries', async ({ browser }) => {
 	await expect(page.getByText('DrawGeometries Mesh')).toBeVisible()
 	await expect(page.getByText('DrawGeometries PointCloud')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw geometry', async ({ browser }) => {
+test('draw geometry', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GEOMETRY'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run "^TestDrawGeometry$/(DrawGeometry_box|DrawGeometry_sphere|DrawGeometry_capsule|DrawGeometry_mesh)" github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
+	goTest(
+		'"^TestDrawGeometry$/(DrawGeometry_box|DrawGeometry_sphere|DrawGeometry_capsule|DrawGeometry_mesh)"'
 	)
 
 	await expect(page.getByText('DrawGeometry box')).toBeVisible()
@@ -288,103 +167,89 @@ test('draw geometry', async ({ browser }) => {
 	await expect(page.getByText('DrawGeometry capsule')).toBeVisible()
 	await expect(page.getByText('DrawGeometry mesh')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw geometry updating', async ({ browser }) => {
+test('draw geometry updating', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GEOMETRY_UPDATING'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run "^TestDrawGeometry$/DrawGeometry_updating" github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('"^TestDrawGeometry$/DrawGeometry_updating"')
 
 	await expect(page.getByText('DrawGeometry box updating')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud', async ({ browser }) => {
+test('draw point cloud', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUD'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawPointClouds')
 
 	await expect(page.getByText('octagon')).toBeVisible()
 	await expect(page.getByText('Zaghetto')).toBeVisible()
 	await expect(page.getByText('simple')).toBeVisible()
 	await expect(page.getByText('boat')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud updating', async ({ browser }) => {
+test('draw point cloud updating', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUD_UPDATING'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloudUpdating$/DrawPointCloudUpdating github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloudUpdating$/DrawPointCloudUpdating')
 
 	await expect(page.getByText('DrawPointCloud updating')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud in chunks', async ({ browser }) => {
+test('draw point cloud in chunks', async ({ page, goTestAsync, snapshotAndReset }) => {
 	await runChunkedTest(
-		browser,
+		{ page, goTestAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS',
 		'^TestDrawPointCloud$/^DrawPointCloudInChunks$'
 	)
 })
 
-test('draw point cloud in chunks with palette', async ({ browser }) => {
+test('draw point cloud in chunks with palette', async ({ page, goTestAsync, snapshotAndReset }) => {
 	await runChunkedTest(
-		browser,
+		{ page, goTestAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS_WITH_PALETTE',
 		'^TestDrawPointCloud$/DrawPointCloudInChunksWithPalette'
 	)
 })
 
-test('draw point cloud in chunks with per point colors', async ({ browser }) => {
+test('draw point cloud in chunks with per point colors', async ({
+	page,
+	goTestAsync,
+	snapshotAndReset,
+}) => {
 	await runChunkedTest(
-		browser,
+		{ page, goTestAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS_WITH_PER_POINT_COLORS',
 		'^TestDrawPointCloud$/DrawPointCloudInChunksWithPerPointColors'
 	)
 })
 
-test('draw point cloud in chunks with uniform opacity', async ({ browser }) => {
+test('draw point cloud in chunks with uniform opacity', async ({
+	page,
+	goTestAsync,
+	snapshotAndReset,
+}) => {
 	await runChunkedTest(
-		browser,
+		{ page, goTestAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS_WITH_UNIFORM_OPACITY',
 		'^TestDrawPointCloud$/DrawPointCloudInChunksWithUniformOpacity'
 	)
 })
 
-test('chunked point cloud survives a reconnect', async ({ browser }) => {
+test('chunked point cloud survives a reconnect', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'CHUNKED_POINT_CLOUD_RECONNECT'
-	const page = await createPage(browser)
 
 	// The small chunked cloud on purpose: this test loads one twice, and the
 	// multi-million point fixtures are too slow to do that inside the timeout.
 	// Several chunks with per-point colors is all the coverage needs.
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSmallChunkedPointCloud github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestDrawPointCloud$/DrawSmallChunkedPointCloud')
 
 	await expect(page.getByText('chunked_point_cloud_small')).toBeVisible({ timeout: 30_000 })
 	await expect(page.getByRole('progressbar')).toHaveCount(0, { timeout: 60_000 })
@@ -410,669 +275,430 @@ test('chunked point cloud survives a reconnect', async ({ browser }) => {
 	// The snapshot catches a partial pull that still cleared the progress bar: a cloud missing
 	// most of its chunks looks obviously wrong.
 	await waitForCanvasToSettle(page, { timeoutMs: 30_000 })
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw geometries updating', async ({ browser }) => {
+test('draw geometries updating', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GEOMETRIES_UPDATING'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawGeometriesUpdating$/DrawGeometriesUpdating github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawGeometriesUpdating$/DrawGeometriesUpdating')
 
 	await expect(page.getByText('DrawGeometries box1 updating')).toBeVisible()
 	await expect(page.getByText('DrawGeometries box2 updating')).toBeVisible()
 	await expect(page.getByText('DrawGeometries box3 updating')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw world state', async ({ browser }) => {
+test('draw world state', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_WORLD_STATE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawWorldState$/DrawWorldState github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawWorldState$/DrawWorldState')
 
 	await expect(page.getByText('box0')).toBeVisible()
 	await expect(page.getByText('box1')).toBeVisible()
 	await expect(page.getByText('box2')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw nurbs', async ({ browser }) => {
+test('draw nurbs', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_NURBS'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawNurbs$/DrawNurbs github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawNurbs$/DrawNurbs')
 
 	await expect(page.getByText('nurbs-1')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines', async ({ browser }) => {
+test('draw lines', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLine$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLine$')
 
 	await expect(page.getByText('upwardSpiral')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with line color', async ({ browser }) => {
+test('draw lines with line color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_LINE_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineColor$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithLineColor$')
 
 	await expect(page.getByText('upwardSpiralLineColor')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with dot color', async ({ browser }) => {
+test('draw lines with dot color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_DOT_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotColor$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithDotColor$')
 
 	await expect(page.getByText('upwardSpiralDotColor')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with line width', async ({ browser }) => {
+test('draw lines with line width', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_LINE_WIDTH'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineWidth$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithLineWidth$')
 
 	await expect(page.getByText('upwardSpiralLineWidth')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with dot size', async ({ browser }) => {
+test('draw lines with dot size', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_DOT_SIZE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotSize$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithDotSize$')
 
 	await expect(page.getByText('upwardSpiralDotSize')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with line color palette', async ({ browser }) => {
+test('draw lines with line color palette', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_LINE_COLOR_PALETTE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithLineColorPalette$')
 
 	await expect(page.getByText('upwardSpiralLineColorPalette')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with per-line colors', async ({ browser }) => {
+test('draw lines with per-line colors', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_PER_LINE_COLORS'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithPerLineColors$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithPerLineColors$')
 
 	await expect(page.getByText('upwardSpiralPerLineColors')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with dot color palette', async ({ browser }) => {
+test('draw lines with dot color palette', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_DOT_COLOR_PALETTE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithDotColorPalette$')
 
 	await expect(page.getByText('upwardSpiralDotColorPalette')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw lines with per-dot colors', async ({ browser }) => {
+test('draw lines with per-dot colors', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_LINE_WITH_PER_DOT_COLORS'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithPerDotColors$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawLine$/DrawLineWithPerDotColors$')
 
 	await expect(page.getByText('upwardSpiralPerDotColors')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points', async ({ browser }) => {
+test('draw points', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINTS'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPoints$/DrawPoints$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPoints$/DrawPoints$')
 
 	await expect(page.getByText('myPoints')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points with single color', async ({ browser }) => {
+test('draw points with single color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINTS_WITH_SINGLE_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithSingleColor$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPoints$/DrawPointsWithSingleColor$')
 
 	await expect(page.getByText('myPointsSingleColor')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points with color palette', async ({ browser }) => {
+test('draw points with color palette', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINTS_WITH_COLOR_PALETTE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPoints$/DrawPointsWithColorPalette$')
 
 	await expect(page.getByText('myPointsPalette')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points with per point color', async ({ browser }) => {
+test('draw points with per point color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINTS_WITH_PER_POINT_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithPerPointColors$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPoints$/DrawPointsWithPerPointColors$')
 
 	await expect(page.getByText('myPointsPerPoint')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points with point size', async ({ browser }) => {
+test('draw points with point size', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINTS_WITH_POINT_SIZE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithPointSize$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPoints$/DrawPointsWithPointSize$')
 
 	await expect(page.getByText('myPointsWithSize')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw points in chunks', async ({ browser }) => {
-	await runChunkedTest(browser, 'DRAW_POINTS_IN_CHUNKS', '^TestDrawPoints$/DrawPointsInChunks')
-})
-
-test('draw poses as arrows', async ({ browser }) => {
-	const testPrefix = 'DRAW_POSES_AS_ARROWS'
-	const page = await createPage(browser)
-
-	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrows$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
+test('draw points in chunks', async ({ page, goTestAsync, snapshotAndReset }) => {
+	await runChunkedTest(
+		{ page, goTestAsync, snapshotAndReset },
+		'DRAW_POINTS_IN_CHUNKS',
+		'^TestDrawPoints$/DrawPointsInChunks'
 	)
+})
+
+test('draw poses as arrows', async ({ page, goTest, snapshotAndReset }) => {
+	const testPrefix = 'DRAW_POSES_AS_ARROWS'
+
+	goTest('^TestDrawPosesAsArrows$/DrawPosesAsArrows$')
 
 	await expect(page.getByText('mySpherePoses', { exact: true })).toBeVisible()
 	await expect(page.getByText('mySphere', { exact: true })).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-const drawArrowsUpdateStep = (step: 'Start' | 'Move' | 'MoveAgain') => {
-	execSync(
-		`go test -run '^TestDrawPosesAsArrowsUpdating$/^${step}$' github.com/viamrobotics/visualization/client/api -count=1`,
-		{ encoding: 'utf8' }
-	)
+const drawArrowsUpdateStep = (goTest: GoTest, step: 'Start' | 'Move' | 'MoveAgain') => {
+	goTest(`'^TestDrawPosesAsArrowsUpdating$/^${step}$'`)
 }
 
-test('draw poses as arrows updating', async ({ browser }) => {
+test('draw poses as arrows updating', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'DRAW_POSES_AS_ARROWS_UPDATING'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	drawArrowsUpdateStep('Start')
+	drawArrowsUpdateStep(goTest, 'Start')
 	await expect(page.getByText('DrawPosesAsArrows updating')).toBeVisible({ timeout: 10000 })
 	await page.waitForTimeout(1000)
 	const initial = await captureCanvas(page)
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_START`))
+	await screenshotCanvas(page, `${testPrefix}_0_START`)
 
-	drawArrowsUpdateStep('Move')
+	drawArrowsUpdateStep(goTest, 'Move')
 	const moved = await waitForCanvasToChange(page, initial)
 	expect(moved, 'arrows did not move on the first same-UUID redraw').not.toBeNull()
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_1_MOVED`))
+	await screenshotCanvas(page, `${testPrefix}_1_MOVED`)
 
-	drawArrowsUpdateStep('MoveAgain')
+	drawArrowsUpdateStep(goTest, 'MoveAgain')
 	const movedAgain = await waitForCanvasToChange(page, moved ?? initial)
 	expect(movedAgain, 'arrows did not move on the second same-UUID redraw').not.toBeNull()
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_2_MOVED_AGAIN`))
+	await screenshotCanvas(page, `${testPrefix}_2_MOVED_AGAIN`)
 
-	await cleanup(page)
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('draw poses as arrows with color palette', async ({ browser }) => {
+test('draw poses as arrows with color palette', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POSES_AS_ARROWS_WITH_COLOR_PALETTE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithColorPalette$')
 
 	await expect(page.getByText('mySpherePoses', { exact: true })).toBeVisible()
 	await expect(page.getByText('mySphere', { exact: true })).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw poses as arrows with single color', async ({ browser }) => {
+test('draw poses as arrows with single color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POSES_AS_ARROWS_WITH_SINGLE_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithSingleColor$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithSingleColor$')
 
 	await expect(page.getByText('mySpherePoses', { exact: true })).toBeVisible()
 	await expect(page.getByText('mySphere', { exact: true })).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw poses as arrows with per point color', async ({ browser }) => {
+test('draw poses as arrows with per point color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POSES_AS_ARROWS_WITH_PER_POINT_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithPerPointColors$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithPerPointColors$')
 
 	await expect(page.getByText('mySpherePoses', { exact: true })).toBeVisible()
 	await expect(page.getByText('mySphere', { exact: true })).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw gltf', async ({ browser }) => {
+test('draw gltf', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_GLTF'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawGLTF$/^DrawGLTF$ github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawGLTF$/^DrawGLTF$')
 
 	await expect(page.getByText('flamingo', { exact: true })).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point clouds', async ({ browser }) => {
+test('draw point clouds', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawPointClouds')
 
 	await page.getByText('octagon').waitFor({ state: 'visible' })
 	await page.getByText('Zaghetto').waitFor({ state: 'visible' })
 	await page.getByText('simple').waitFor({ state: 'visible' })
 	await page.getByText('boat').waitFor({ state: 'visible' })
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point clouds with downscaling', async ({ browser }) => {
+test('draw point clouds with downscaling', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS_WITH_DOWNSCALING'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointCloudWithDownscaling github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawPointCloudWithDownscaling')
 
 	await expect(page.getByText('boat_downscaled')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point clouds with single color', async ({ browser }) => {
+test('draw point clouds with single color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS_WITH_SINGLE_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawSingleColorPointCloud')
 
 	await expect(page.getByText('octagon_single_color')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point cloud with opacity', async ({ browser }) => {
+test('draw point cloud with opacity', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUD_WITH_OPACITY'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloudWithOpacity github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawSingleColorPointCloudWithOpacity')
 
 	await expect(page.getByText('octagon_with_opacity')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point clouds with color palette', async ({ browser }) => {
+test('draw point clouds with color palette', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS_WITH_COLOR_PALETTE'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPaletteColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawPaletteColorPointCloud')
 
 	await expect(page.getByText('Zaghetto_palette')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('draw point clouds with per point color', async ({ browser }) => {
+test('draw point clouds with per point color', async ({ page, goTest, snapshotAndReset }) => {
 	const testPrefix = 'DRAW_POINT_CLOUDS_WITH_PER_POINT_COLOR'
-	const page = await createPage(browser)
 
-	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPerPointColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestDrawPointCloud$/DrawPerPointColorPointCloud')
 
 	await expect(page.getByText('simple_per_point')).toBeVisible()
 
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 })
 
-test('set camera pose', async ({ browser }) => {
+test('set camera pose', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'SET_CAMERA_POSE'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestSetCamera$/SetCameraTopDown github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestSetCamera$/SetCameraTopDown')
 
 	await expect(page.getByText('reference_box')).toBeVisible()
 
-	const setCameraScreenshot = await screenshotCanvas(page, `${testPrefix}_SET_CAMERA`)
-	failedScreenshots.push(setCameraScreenshot)
+	await screenshotCanvas(page, `${testPrefix}_SET_CAMERA`)
 
-	execSync(
-		'go test -run ^TestSetCamera$/ResetCamera github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestSetCamera$/ResetCamera')
 
-	const resetCameraScreenshot = await screenshotCanvas(page, `${testPrefix}_RESET_CAMERA`)
-	failedScreenshots.push(resetCameraScreenshot)
+	await screenshotCanvas(page, `${testPrefix}_RESET_CAMERA`)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('remove all', async ({ browser }) => {
+test('remove all', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'REMOVE_ALL'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAllSetup github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveAll$/RemoveAllSetup')
 
 	await expect(page.getByText('box2delete')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
+	await screenshotCanvas(page, `${testPrefix}_SETUP`)
 
-	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAll github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveAll$/RemoveAll')
 
 	await expect(page.getByText('box2delete')).not.toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
+	await screenshotCanvas(page, testPrefix)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('remove drawings', async ({ browser }) => {
+test('remove drawings', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'REMOVE_DRAWINGS'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestRemoveDrawings$/RemoveDrawingsSetup github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveDrawings$/RemoveDrawingsSetup')
 
 	await expect(page.getByText('box2delete')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
+	await screenshotCanvas(page, `${testPrefix}_SETUP`)
 
-	execSync(
-		'go test -run ^TestRemoveDrawings$/RemoveDrawings github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveDrawings$/RemoveDrawings')
 
 	await expect(page.getByText('box2delete')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
+	await screenshotCanvas(page, testPrefix)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('remove transforms', async ({ browser }) => {
+test('remove transforms', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'REMOVE_TRANSFORMS'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestRemoveTransforms$/RemoveTransformsSetup github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveTransforms$/RemoveTransformsSetup')
 
 	await expect(page.getByText('box2delete')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
+	await screenshotCanvas(page, `${testPrefix}_SETUP`)
 
-	execSync(
-		'go test -run ^TestRemoveTransforms$/RemoveTransforms github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestRemoveTransforms$/RemoveTransforms')
 
 	await expect(page.getByText('box2delete')).not.toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
+	await screenshotCanvas(page, testPrefix)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('replay', async ({ browser }) => {
+test('replay', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'REPLAY'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestReplay$/ReplayRecord github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestReplay$/ReplayRecord')
 
 	await expect(page.getByText('bouncing_ball')).toBeVisible()
 
-	const recordScreenshot = await screenshotCanvas(page, `${testPrefix}_RECORD`)
-	failedScreenshots.push(recordScreenshot)
+	await screenshotCanvas(page, `${testPrefix}_RECORD`)
 
-	await cleanup(page)
+	await resetScene()
 
-	execSync(
-		'go test -run ^TestReplay$/ReplayPlayback github.com/viamrobotics/visualization/client/api -count=1',
-		{
-			encoding: 'utf8',
-		}
-	)
+	goTest('^TestReplay$/ReplayPlayback')
 
 	await expect(page.getByText('bouncing_ball')).toBeVisible()
 
-	const playbackScreenshot = await screenshotCanvas(page, `${testPrefix}_PLAYBACK`)
-	failedScreenshots.push(playbackScreenshot)
+	await screenshotCanvas(page, `${testPrefix}_PLAYBACK`)
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string) => {
-	const page = await createPage(browser)
+interface RedrawRun {
+	page: Page
+	goTest: GoTest
+	snapshotAndReset: (testPrefix: string) => Promise<void>
+}
 
-	execSync(
-		`go test -run ^TestRedrawLoop$/${step}$ github.com/viamrobotics/visualization/client/api -count=1`,
-		{ encoding: 'utf8' }
-	)
+const runRedrawLoop = async (
+	{ page, goTest, snapshotAndReset }: RedrawRun,
+	testPrefix: string,
+	step: string
+) => {
+	goTest(`^TestRedrawLoop$/${step}$`)
 
 	await expect(page.getByText('redraw-box-00', { exact: true })).toBeVisible({ timeout: 10000 })
 
@@ -1080,7 +706,7 @@ const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string)
 	// assertion: the boxes are a 6x4 grid in a fixed palette, so a lost change reads
 	// as a hole and a misapplied one as a wrong-colored cell.
 	await waitForCanvasToSettle(page)
-	await assertTestSuccess(page, testPrefix)
+	await snapshotAndReset(testPrefix)
 }
 
 /**
@@ -1091,39 +717,35 @@ const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string)
  * same scene either way. Before this fix the clearing variant lost entities: a removal and the
  * re-add that followed it could land in the same animation frame, where the re-add was discarded.
  */
-test('redraw loop clearing and redrawing', async ({ browser }) => {
-	await runRedrawLoop(browser, 'REDRAW_LOOP_WITH_CLEAR', 'RedrawLoop')
+test('redraw loop clearing and redrawing', async ({ page, goTest, snapshotAndReset }) => {
+	await runRedrawLoop({ page, goTest, snapshotAndReset }, 'REDRAW_LOOP_WITH_CLEAR', 'RedrawLoop')
 })
 
 // The pattern we recommend instead: identities are deterministic, so redrawing upserts in place
 // and the service never publishes a removal at all.
-test('redraw loop without clearing', async ({ browser }) => {
-	await runRedrawLoop(browser, 'REDRAW_LOOP_NO_CLEAR', 'RedrawWithoutClearing')
+test('redraw loop without clearing', async ({ page, goTest, snapshotAndReset }) => {
+	await runRedrawLoop(
+		{ page, goTest, snapshotAndReset },
+		'REDRAW_LOOP_NO_CLEAR',
+		'RedrawWithoutClearing'
+	)
 })
 
-test('update entity partial updates', async ({ browser }) => {
+test('update entity partial updates', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'UPDATE_ENTITY'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestUpdateEntity$/Setup$ github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestUpdateEntity$/Setup$')
 
 	await expect(page.getByText('update-entity box')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('update-entity points')).toBeVisible({ timeout: 10000 })
 	const initial = await waitForCanvasToSettle(page)
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_SETUP`))
+	await screenshotCanvas(page, `${testPrefix}_0_SETUP`)
 
 	// Each step screenshots after the canvas settles, not at the first changed pixel.
 	// A mesh and its axes helper are flushed by separate batched renderers, so the
 	// first differing frame can show the box moved with its helper still behind.
-	const applyStep = async (step: string, reference: Uint8Array, description: string) => {
-		execSync(
-			`go test -run ^TestUpdateEntity$/${step}$ github.com/viamrobotics/visualization/client/api -count=1`,
-			{ encoding: 'utf8' }
-		)
+	const applyStep = async (step: string, reference: Buffer, description: string) => {
+		goTest(`^TestUpdateEntity$/${step}$`)
 
 		const changed = await waitForCanvasToChange(page, reference)
 		expect(changed, description).not.toBeNull()
@@ -1133,7 +755,7 @@ test('update entity partial updates', async ({ browser }) => {
 	// A pose-only update: the box moves without its geometry or color being resent.
 	const moved = await applyStep('MoveTransform', initial, 'box did not move on a pose-only update')
 	await expect(page.getByText('update-entity box')).toBeVisible()
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_1_MOVED`))
+	await screenshotCanvas(page, `${testPrefix}_1_MOVED`)
 
 	// A metadata-only update: the box recolors and must stay where the move put it.
 	const recoloredBox = await applyStep(
@@ -1141,7 +763,7 @@ test('update entity partial updates', async ({ browser }) => {
 		moved,
 		'box did not recolor on a metadata-only update'
 	)
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_2_BOX_RECOLORED`))
+	await screenshotCanvas(page, `${testPrefix}_2_BOX_RECOLORED`)
 
 	// The same for a drawing: the points recolor without their positions being resent.
 	await applyStep(
@@ -1150,74 +772,50 @@ test('update entity partial updates', async ({ browser }) => {
 		'points did not recolor on a metadata-only update'
 	)
 	await expect(page.getByText('update-entity points')).toBeVisible()
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_3_POINTS_RECOLORED`))
+	await screenshotCanvas(page, `${testPrefix}_3_POINTS_RECOLORED`)
 
-	await cleanup(page)
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('remove entity', async ({ browser }) => {
+test('remove entity', async ({ page, goTest, resetScene }) => {
 	const testPrefix = 'REMOVE_ENTITY'
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
 
-	execSync(
-		'go test -run ^TestRemoveEntity$/Setup$ github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestRemoveEntity$/Setup$')
 
 	await expect(page.getByText('remove-entity keep')).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('remove-entity drop')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
+	await screenshotCanvas(page, `${testPrefix}_SETUP`)
 
-	execSync(
-		'go test -run ^TestRemoveEntity$/RemoveOne$ github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestRemoveEntity$/RemoveOne$')
 
 	// Only the targeted entity goes. The rest of the scene is untouched.
 	await expect(page.getByText('remove-entity drop')).not.toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('remove-entity keep')).toBeVisible()
-	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
+	await screenshotCanvas(page, testPrefix)
 
-	await cleanup(page)
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })
 
-test('relationships', async ({ browser }) => {
-	const page = await createPage(browser)
-	const failedScreenshots: string[] = []
-
-	execSync(
-		'go test -run ^TestRelationships$/Setup github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+test('relationships', async ({ page, goTest, resetScene, takeScreenshot }) => {
+	goTest('^TestRelationships$/Setup')
 
 	await expect(page.getByText('rel-source', { exact: true })).toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('rel-target', { exact: true })).toBeVisible({ timeout: 10000 })
 
-	execSync(
-		'go test -run ^TestRelationships$/CreateRelationship github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestRelationships$/CreateRelationship')
 
 	await page.getByText('rel-source', { exact: true }).click()
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await takeScreenshot(page, 'RELATIONSHIPS_CREATED'))
+	await takeScreenshot('RELATIONSHIPS_CREATED')
 
 	// TODO(relationships): reload-persistence is not checked here. StreamEntityChanges
 	// replays entities to a reconnecting client but not relationships, so a HoverLink
 	// is lost on reload. Re-enable once relationships survive a reload.
 
-	execSync(
-		'go test -run ^TestRelationships$/DeleteRelationship github.com/viamrobotics/visualization/client/api -count=1',
-		{ encoding: 'utf8' }
-	)
+	goTest('^TestRelationships$/DeleteRelationship')
 
 	await expect(page.getByText('rel-target (HoverLink)')).not.toBeVisible({ timeout: 10000 })
-	failedScreenshots.push(await takeScreenshot(page, 'RELATIONSHIPS_DELETED'))
+	await takeScreenshot('RELATIONSHIPS_DELETED')
 
-	await cleanup(page)
-
-	assertNoFailedScreenshots(failedScreenshots)
+	await resetScene()
 })

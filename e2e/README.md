@@ -25,10 +25,10 @@ Before running the tests, make sure you have:
 
 ```bash
 # basic run
-pnpm test:e2e
+pnpm e2e
 
 # with ui
-pnpm test:e2e-ui
+pnpm e2e:ui
 ```
 
 ### Running specific tests
@@ -61,7 +61,7 @@ When you make intentional UI changes that should change screenshots:
 
 1. Run with the update flag:
    ```bash
-   pnpm test:e2e -u
+   pnpm e2e -u
    ```
 2. Review the updated files in `e2e/**/*-snapshots/`.
 3. Commit the new snapshots alongside your code changes.
