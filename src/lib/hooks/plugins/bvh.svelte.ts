@@ -12,7 +12,7 @@ import {
 	SAH,
 } from 'three-mesh-bvh'
 
-import { pointsBvhOptions } from '$lib/three/pointsBvh'
+import { pointsBvhOptions, raycastNearestPointToRay } from '$lib/three/pointsBvh'
 
 interface Options extends BVHOptions {
 	helper?: boolean
@@ -60,7 +60,7 @@ export const bvh = (raycaster: Raycaster, options?: () => Options) => {
 			if (isInstanceOf(ref, 'Points') && ref.geometry?.attributes.position) {
 				ref.geometry.computeBoundsTree = computeBoundsTree
 				ref.geometry.disposeBoundsTree = disposeBoundsTree
-				ref.raycast = acceleratedRaycast
+				ref.raycast = raycastNearestPointToRay
 				// A cloud parsed in a worker arrives with its tree already built, and rebuilding it
 				// here would stall the main thread for as long as the parse itself took.
 				if (!ref.geometry.boundsTree) {

@@ -1,6 +1,12 @@
-import type { BufferGeometry } from 'three'
+import type { BufferGeometry, Intersection, Points, Raycaster } from 'three'
 
-import { type BVHOptions, CENTER, PointsBVH, SKIP_GENERATION } from 'three-mesh-bvh'
+import {
+	acceleratedRaycast,
+	type BVHOptions,
+	CENTER,
+	PointsBVH,
+	SKIP_GENERATION,
+} from 'three-mesh-bvh'
 
 declare module 'three-mesh-bvh' {
 	// Exported from the package entry point, and read by the constructor, but left out of the
@@ -67,4 +73,44 @@ export const attachPointsBvh = (geometry: BufferGeometry, serialized: Serialized
 	internals._indirectBuffer = serialized.indirectBuffer
 
 	geometry.boundsTree = bvh
+}
+
+/**
+ * Reports the point nearest the cursor rather than the one nearest the camera.
+ *
+ * `PointsBVH.raycastObject3D` under `firstHitOnly` keeps whichever candidate has the smallest
+ * `distance`, which is depth along the ray, so any point inside the threshold tube can win over
+ * the one actually under the cursor. `distanceToRay` is the perpendicular distance, which is what
+ * screen proximity is, and it already accounts for depth under a perspective camera: two points
+ * projecting to the same pixel differ in perpendicular distance in proportion to their depth, so
+ * the nearer one still wins. The tie-break covers an orthographic camera, where it does not.
+ *
+ * Assign to `Points.raycast` in place of `acceleratedRaycast`.
+ */
+export function raycastNearestPointToRay(
+	this: Points,
+	raycaster: Raycaster,
+	intersects: Intersection[]
+) {
+	const candidates: Intersection[] = []
+
+	// Collecting every candidate costs the traversal its distance-based early out. The tube is
+	// one threshold wide, so what it gives up is a handful of leaf nodes.
+	const { firstHitOnly } = raycaster
+	raycaster.firstHitOnly = false
+	acceleratedRaycast.call(this, raycaster, candidates)
+	raycaster.firstHitOnly = firstHitOnly
+
+	let nearest: Intersection | undefined
+	for (const candidate of candidates) {
+		if (
+			nearest === undefined ||
+			candidate.distanceToRay! < nearest.distanceToRay! ||
+			(candidate.distanceToRay === nearest.distanceToRay && candidate.distance < nearest.distance)
+		) {
+			nearest = candidate
+		}
+	}
+
+	if (nearest) intersects.push(nearest)
 }

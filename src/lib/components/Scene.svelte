@@ -49,15 +49,7 @@
 		enabled.set(settings.current.interactionMode === 'navigate')
 	})
 
-	const bvhEnabled = $derived(
-		settings.current.renderSubEntityHoverDetail ||
-			settings.current.interactionMode === 'measure' ||
-			settings.current.interactionMode === 'select' ||
-			settings.current.interactionMode === 'gizmo' ||
-			settings.current.interactionMode === 'move'
-	)
-
-	bvh(raycaster, () => ({ helper: false, enabled: bvhEnabled }))
+	bvh(raycaster, () => ({ helper: false }))
 
 	providePointBudget(() => settings.current.pointBudget)
 

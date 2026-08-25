@@ -138,9 +138,7 @@
 				{@render appChildren?.()}
 			</Scene>
 
-			{#if settings.current.renderSubEntityHoverDetail}
-				<HoveredEntities />
-			{/if}
+			<HoveredEntities />
 
 			<!-- Overlays that need Threlte context -->
 			<div {@attach domPortal(root)}>
