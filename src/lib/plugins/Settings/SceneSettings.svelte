@@ -37,10 +37,6 @@
 	</label>
 
 	<label class="flex items-center justify-between gap-2">
-		Single item hover details <Switch bind:on={settings.current.renderSubEntityHoverDetail} />
-	</label>
-
-	<label class="flex items-center justify-between gap-2">
 		Object labels <Switch bind:on={settings.current.enableLabels} />
 	</label>
 

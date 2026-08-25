@@ -139,7 +139,6 @@
 	<T
 		is={points}
 		name={entity}
-		bvh={{ maxDepth: 40, maxLeafSize: 20 }}
 		visible={invisible.current !== true}
 		renderOrder={renderOrder.current}
 		{...events}

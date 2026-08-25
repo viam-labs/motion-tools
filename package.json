@@ -495,7 +495,7 @@
 		"@typescript-eslint/parser": "8.56.1",
 		"@viamrobotics/prime-core": "0.1.23",
 		"@viamrobotics/sdk": "0.69.0",
-		"@viamrobotics/svelte-sdk": "1.2.2",
+		"@viamrobotics/svelte-sdk": "1.2.3",
 		"@viamrobotics/tailwind-config": "1.2.0",
 		"@viamrobotics/test-widgets": "0.10.1",
 		"@viamrobotics/tweakpane-config": "0.1.1",
@@ -668,7 +668,7 @@
 		"filtrex": "^3.1.0",
 		"koota": "0.6.5",
 		"lodash-es": "4.18.1",
-		"three-mesh-bvh": "^0.9.8",
+		"three-mesh-bvh": "^0.9.14",
 		"uuid-tool": "^2.0.3"
 	}
 }
