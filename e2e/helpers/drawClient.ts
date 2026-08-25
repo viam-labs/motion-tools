@@ -6,7 +6,7 @@ import { DrawService } from '../../src/lib/buf/draw/v1/service_connect'
 
 export type DrawClient = Client<typeof DrawService>
 
-export const DEFAULT_DRAW_PORT = 3030
+const DEFAULT_DRAW_PORT = 3030
 
 /**
  * Talks to the same Connect service the browser subscribes to, so a test can

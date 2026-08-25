@@ -43,10 +43,6 @@ export const screenshotCanvas = (page: Page, name: string): Promise<void> =>
 		await expect.soft(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`)
 	})
 
-export const captureCanvas = async (page: Page): Promise<Buffer> => {
-	return withOverlaysHidden(page, () => page.locator('canvas').first().screenshot())
-}
-
 export const waitForCanvasToChange = async (
 	page: Page,
 	reference: Buffer,
