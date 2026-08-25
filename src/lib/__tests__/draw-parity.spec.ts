@@ -13,9 +13,23 @@ import { drawDrawing, drawTransform, updateDrawing, updateModel, updateTransform
 import { toDrawing, toTransform } from './__fixtures__/entityDrafts'
 import { casesFor, ENTITY_TYPES } from './__fixtures__/entityMatrix'
 
+// Three points rather than none. An empty cloud makes `parseColors` build a
+// colour attribute of itemSize 0, whose count is NaN, which is a shape no real
+// cloud produces and which makes the pcd cases fail for the wrong reason.
 vi.mock('$lib/loaders/pcd', () => ({
-	parsePcdInWorker: vi.fn(() => Promise.resolve({ positions: new Float32Array(), colors: null })),
+	parsePcdInWorker: vi.fn(() =>
+		Promise.resolve({
+			positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+			colors: null,
+		})
+	),
 }))
+
+/** Lets an already-resolved worker promise deliver before the worlds are compared. */
+const flushMicrotasks = async () => {
+	await Promise.resolve()
+	await Promise.resolve()
+}
 
 const round = (value: number) => Math.round(value * 1e6) / 1e6
 
@@ -106,7 +120,7 @@ describe('draw spawn/update parity', () => {
 	for (const type of ENTITY_TYPES) {
 		describe(type.name, () => {
 			for (const traitCase of casesFor(type)) {
-				it(`${type.name} ${traitCase.name}`, () => {
+				it(`${type.name} ${traitCase.name}`, async () => {
 					const reference = createWorld()
 					const candidate = createWorld()
 
@@ -118,8 +132,18 @@ describe('draw spawn/update parity', () => {
 						const initial = type.draft(type.name)
 						traitCase.base?.(initial)
 
+						// A point cloud is parsed off the main thread, so each world has to
+						// settle before the next step runs. Updating an entity whose buffer
+						// has not arrived yet is a different question from whether spawn and
+						// update agree, and it is covered separately below.
 						const spawned = spawn(reference, target)
-						const updated = update(candidate, spawn(candidate, initial), target, type)
+						await flushMicrotasks()
+
+						const existing = spawn(candidate, initial)
+						await flushMicrotasks()
+
+						const updated = update(candidate, existing, target, type)
+						await flushMicrotasks()
 
 						expect(dumpTraits(updated)).toStrictEqual(dumpTraits(spawned))
 					} finally {

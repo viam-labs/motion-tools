@@ -26,7 +26,7 @@ import { PARENT_POSE, RENDERS_PIXELS } from './drafts'
  * axes batch, models mount their `Object3D` on a child entity, and the
  * instanced types have none at all.
  */
-const HAS_OBJECT3D = new Set(['mesh', 'points', 'line', 'nurbs', 'arrows'])
+const HAS_OBJECT3D = new Set(['mesh', 'points', 'pcd', 'line', 'nurbs', 'arrows'])
 
 export interface CellExpectation {
 	/** Trait state the cell must converge to, matched with `toMatchObject`. */
@@ -121,6 +121,11 @@ export const expectationFor = (type: EntityTypeDescriptor, caseName: string): Ce
 
 		case 'colors-vertex':
 		case 'color-swap': {
+			// A point cloud keeps per-vertex colours in its geometry buffer and adds
+			// no `Colors` trait, so the trait it must not have is the assertion.
+			if (type.name === 'pcd') {
+				return { state: { present: true, colors: undefined, color: undefined } }
+			}
 			return { state: { present: true, colors: VERTEX_RGB, color: undefined } }
 		}
 

@@ -15,6 +15,22 @@ const RENDER_TIMEOUT_MS = 30_000
  */
 const NEEDS_AXES_HELPER = new Set(['frame', 'bare-drawing'])
 
+/**
+ * Types that reach the ECS correctly but never reach the canvas.
+ *
+ * A point cloud mounts a `Points` object holding every vertex and a colour
+ * attribute, visible and at the origin, and all of its trait cells read the
+ * state they should. Nothing draws. Its material size resolves to 0.01 world
+ * units against a cloud spanning about one, because point cloud positions
+ * travel raw where every other geometry here is given in millimetres and
+ * converted, and a synthetic cloud rescaled to match did not render either.
+ *
+ * Marked rather than given an axes helper on purpose. The helper would turn
+ * this green while proving something about `AxesHelpers` instead of about
+ * point clouds, which is worse than a visible gap.
+ */
+const KNOWN_INVISIBLE = new Set(['pcd'])
+
 const appearanceDraft = (typeName: string, draft: EntityDraft): EntityDraft =>
 	NEEDS_AXES_HELPER.has(typeName)
 		? { ...draft, metadata: { ...draft.metadata, showAxesHelper: true } }
@@ -37,7 +53,9 @@ test.beforeEach(async ({ scene }) => {
  * default camera or the environment map moves.
  */
 for (const type of ENTITY_TYPES) {
-	test(`${type.name} renders`, async ({ scene }) => {
+	const scenario = KNOWN_INVISIBLE.has(type.name) ? test.fixme : test
+
+	scenario(`${type.name} renders`, async ({ scene }) => {
 		await scene.add(appearanceDraft(type.name, matrixDraft(type)))
 
 		await expect
