@@ -29,7 +29,7 @@ func TestDrawGLTFScale(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		scale   r3.Vector
-		wantErr bool
+		wantErr string
 	}{
 		{name: "zero uses the default"},
 		{name: "a uniform scale", scale: r3.Vector{X: 2, Y: 2, Z: 2}},
@@ -39,7 +39,7 @@ func TestDrawGLTFScale(t *testing.T) {
 			// axis as 1.
 			name:    "a partly-zero scale is rejected",
 			scale:   r3.Vector{X: 1, Y: 0, Z: 1},
-			wantErr: true,
+			wantErr: "scale cannot be zero",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,8 +51,9 @@ func TestDrawGLTFScale(t *testing.T) {
 				Scale:    tc.scale,
 			})
 
-			if tc.wantErr {
+			if tc.wantErr != "" {
 				test.That(t, err, test.ShouldNotBeNil)
+				test.That(t, err.Error(), test.ShouldContainSubstring, tc.wantErr)
 				test.That(t, fake.addEntityCount(), test.ShouldEqual, 0)
 				return
 			}

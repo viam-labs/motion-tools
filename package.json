@@ -26,6 +26,7 @@
 		"lint:eslint": "wireit",
 		"lint:draw": "wireit",
 		"lint:client": "wireit",
+		"lint:scenes": "wireit",
 		"knip": "npx knip --include files,exports,types",
 		"test": "wireit",
 		"test:unit": "vitest",
@@ -41,6 +42,7 @@
 		"vet": "wireit",
 		"vet:draw": "wireit",
 		"vet:client": "wireit",
+		"vet:scenes": "wireit",
 		"proto": "wireit",
 		"proto:vendor": "wireit",
 		"proto:dep-update": "buf dep update",
@@ -119,16 +121,18 @@
 			]
 		},
 		"go-build": {
-			"command": "go build -o .bin/draw-server ./cmd/draw-server",
+			"command": "go build -o .bin/draw-server ./cmd/draw-server && go build -o .bin/draw-scenes ./e2e/fixtures/draw-scenes",
 			"files": [
 				"cmd/draw-server/**",
+				"e2e/fixtures/draw-scenes/**",
 				"client/**",
 				"draw/**",
 				"go.mod",
 				"go.sum"
 			],
 			"output": [
-				".bin/draw-server"
+				".bin/draw-server",
+				".bin/draw-scenes"
 			]
 		},
 		"package": {
@@ -218,7 +222,8 @@
 			"dependencies": [
 				"lint:prettier",
 				"lint:eslint",
-				"lint:draw"
+				"lint:draw",
+				"lint:scenes"
 			]
 		},
 		"lint:prettier": {
@@ -290,7 +295,7 @@
 			]
 		},
 		"lint:draw": {
-			"command": "golangci-lint run ./draw/...",
+			"command": "golangci-lint run --allow-parallel-runners ./draw/...",
 			"files": [
 				"draw/**",
 				"go.mod",
@@ -300,7 +305,7 @@
 			"output": []
 		},
 		"lint:client": {
-			"command": "golangci-lint run ./client/...",
+			"command": "golangci-lint run --allow-parallel-runners ./client/...",
 			"files": [
 				"client/**",
 				"go.mod",
@@ -312,7 +317,8 @@
 		"vet": {
 			"dependencies": [
 				"vet:draw",
-				"vet:client"
+				"vet:client",
+				"vet:scenes"
 			]
 		},
 		"vet:draw": {
@@ -465,6 +471,29 @@
 			"packageLocks": [
 				"pnpm-lock.yaml"
 			]
+		},
+		"lint:scenes": {
+			"command": "golangci-lint run --allow-parallel-runners ./e2e/fixtures/draw-scenes/...",
+			"files": [
+				"e2e/fixtures/draw-scenes/**",
+				"client/**",
+				"draw/**",
+				"go.mod",
+				"go.sum",
+				".golangci.yml"
+			],
+			"output": []
+		},
+		"vet:scenes": {
+			"command": "go vet ./e2e/fixtures/draw-scenes/...",
+			"files": [
+				"e2e/fixtures/draw-scenes/**",
+				"client/**",
+				"draw/**",
+				"go.mod",
+				"go.sum"
+			],
+			"output": []
 		}
 	},
 	"devDependencies": {
