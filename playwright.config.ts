@@ -69,7 +69,17 @@ export default defineConfig({
 		'{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{platform}{ext}',
 	expect: {
 		timeout: 10_000,
-		toHaveScreenshot: { threshold: 0.1, animations: 'disabled', caret: 'hide' },
+		toHaveScreenshot: {
+			threshold: 0.1,
+			// `threshold` is per-pixel colour tolerance, so without a pixel budget
+			// any single differing pixel fails. Every baseline is 1280x720, and the
+			// gap between noise and a real mismatch is wide: a settled scene drifts
+			// by 2 pixels out of 921,600, while the smallest genuine failure in the
+			// suite is 2435. 100 sits well clear of both.
+			maxDiffPixels: 100,
+			animations: 'disabled',
+			caret: 'hide',
+		},
 	},
 	projects: [
 		{
