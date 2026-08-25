@@ -9,6 +9,7 @@ import (
 
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/referenceframe"
+	"go.viam.com/rdk/spatialmath"
 )
 
 // DrawGeometries draws a list of geometries in the visualizer.
@@ -43,6 +44,12 @@ func DrawGeometries(geometriesInFrame *referenceframe.GeometriesInFrame, colors 
 
 			numPointclouds += 1
 			continue
+		}
+
+		// A Cylinder has no wire representation (its ToProtobuf panics by design);
+		// tessellate it to a mesh, which the renderer draws as a model.
+		if cyl, ok := geo.(*spatialmath.Cylinder); ok {
+			geo = cyl.ToMesh()
 		}
 
 		pb := geo.ToProtobuf()

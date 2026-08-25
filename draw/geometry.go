@@ -77,6 +77,9 @@ func WithGeometryDownscaling(threshold float64) DrawGeometryOption {
 // converts it to a basic octree before storage. Returns an error if the threshold
 // is negative or if octree conversion fails.
 func NewDrawnGeometry(geometry spatialmath.Geometry, options ...DrawGeometryOption) (*DrawnGeometry, error) {
+	// Lower geometries with no wire representation (e.g. a Cylinder, whose ToProtobuf panics)
+	// to a renderable equivalent before serializing or storing them.
+	geometry = renderableGeometry(geometry)
 	proto := geometry.ToProtobuf()
 	isPointCloud := proto.GetPointcloud() != nil
 
