@@ -46,7 +46,12 @@ withRobot.beforeAll(async () => {
 		Struct.fromJson(getObstacleConfig() as unknown as JsonValue)
 	)
 
-	// Give viam-server time to load the module and configure both resources
+	// Elapsed time, and it is load-bearing. The browser subscribes once on
+	// connect, so a service that appears after the page loads never reaches it,
+	// and dropping this made the first test in this file fail outright. It cannot
+	// become a poll: the machine is only reachable over WebRTC from a browser, and
+	// `createRobotClient` hangs when called from the test process.
+	// Give viam-server time to load the module and configure both resources.
 	await new Promise((resolve) => setTimeout(resolve, 10000))
 })
 
@@ -83,16 +88,22 @@ withRobot('obstacle store: obstacles churn over time', async ({ robotPage }) => 
 	const before = await visibleObs()
 	expect(before.size).toBeGreaterThan(0)
 
-	// The visibility cycle is sin(t * 0.1 + phase) > -0.3, period about 62s. In an 8s
-	// window at least one slot crosses the threshold, which is enough to prove
-	// ADDED and REMOVED flow through the stream.
-	await page.waitForTimeout(8000)
+	// The visibility cycle is sin(t * 0.1 + phase) > -0.3, period about 62s, so a slot
+	// crosses the threshold every few seconds. Polling for the crossing rather than
+	// sleeping through a worst case ends this as soon as ADDED and REMOVED have both
+	// been seen, and says which one is missing when they have not.
+	let after = before
+	await expect
+		.poll(
+			async () => {
+				after = await visibleObs()
+				return [...before, ...after].filter((i) => before.has(i) !== after.has(i)).length
+			},
+			{ timeout: 30_000, intervals: [500] }
+		)
+		.toBeGreaterThan(0)
 
-	const after = await visibleObs()
 	expect(after.size).toBeGreaterThan(0)
-
-	const symmetricDiff = [...before, ...after].filter((i) => before.has(i) !== after.has(i))
-	expect(symmetricDiff.length).toBeGreaterThan(0)
 })
 
 withRobot('obstacle store: stable UUIDs across polls', async ({ robotPage }) => {
@@ -107,9 +118,11 @@ withRobot('obstacle store: stable UUIDs across polls', async ({ robotPage }) => 
 	await obs0.click()
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
-	// Wait several poll cycles (poll = 1s). Re-derived UUIDs would churn the entity
-	// through ADDED and REMOVED and drop the selection. Stable UUIDs mean UPDATED on
-	// the same entity, so the selection persists.
+	// Elapsed time on purpose, not a readiness guess. This asserts that something
+	// does not happen across several 1s poll cycles: re-derived UUIDs would churn
+	// the entity through ADDED and REMOVED and drop the selection, while stable
+	// UUIDs mean UPDATED on the same entity. There is no event to poll for, so the
+	// cycles have to actually pass.
 	await page.waitForTimeout(5000)
 
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
