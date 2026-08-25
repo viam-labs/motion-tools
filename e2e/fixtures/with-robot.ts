@@ -123,6 +123,14 @@ interface ApplyMachineConfigOptions {
 	settleMs?: number
 }
 
+/**
+ * Pushes a config to the machine and gives viam-server time to apply it.
+ *
+ * The wait is elapsed time because there is nothing to poll. `getRobotPart`
+ * only proves the cloud accepted the config, and the machine itself cannot be
+ * dialled from here: `createRobotClient` needs a browser for WebRTC and hangs
+ * in the test process.
+ */
 export const applyMachineConfig = async (
 	client: ViamClient,
 	partId: string,
