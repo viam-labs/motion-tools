@@ -1,3 +1,5 @@
+import type { Intersection } from 'three'
+
 import { BufferAttribute, BufferGeometry, Points, Raycaster, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
@@ -17,7 +19,7 @@ describe('a points BVH carried through its serialized form', () => {
 		const raycaster = new Raycaster()
 		raycaster.params.Points.threshold = 0.1
 		raycaster.set(new Vector3(1, 0, 10), new Vector3(0, 0, -1))
-		const hits: { index?: number }[] = []
+		const hits: Intersection[] = []
 
 		geometry.boundsTree!.raycastObject3D(points, raycaster, hits)
 
