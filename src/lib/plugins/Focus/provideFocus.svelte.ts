@@ -1,4 +1,4 @@
-import { type Entity, trait } from 'koota'
+import { type Entity, Not, trait } from 'koota'
 import { untrack } from 'svelte'
 
 import { relations, traits, useQuery, useWorld } from '$lib/ecs'
@@ -42,7 +42,7 @@ export const provideFocus = (focusing: () => boolean) => {
 		}
 
 		// Hide the rest. Skip already-invisible entities so focus does not take ownership of user-hidden ones and reveal them on exit.
-		for (const entity of world.query(traits.Name)) {
+		for (const entity of world.query(traits.Name, Not(traits.FramelessComponent))) {
 			if (keep.has(entity)) continue
 			if (!entity.has(traits.Invisible)) {
 				entity.add(HiddenByFocus, traits.Invisible)

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, Input, Select } from '@viamrobotics/prime-core'
-	import { type Entity } from 'koota'
+	import { type Entity, Not } from 'koota'
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { SubEntityLinkType } from '$lib/ecs/relations'
@@ -11,7 +11,7 @@
 
 	const { entity }: Props = $props()
 
-	const allEntities = useQuery(traits.Name)
+	const allEntities = useQuery(traits.Name, Not(traits.FramelessComponent))
 	const name = useTrait(() => entity, traits.Name)
 	const drawServiceAPI = useTrait(() => entity, traits.DrawServiceAPI)
 	const isServiceManaged = $derived(!!drawServiceAPI.current)

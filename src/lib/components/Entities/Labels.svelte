@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { useTask, useThrelte } from '@threlte/core'
 
+	import { Not } from 'koota'
+
 	import { traits, useQuery } from '$lib/ecs'
 
 	import Label from './Label.svelte'
@@ -9,7 +11,7 @@
 
 	const { camera, invalidate, size } = useThrelte()
 
-	const entities = useQuery(traits.Name)
+	const entities = useQuery(traits.Name, Not(traits.FramelessComponent))
 
 	const layout = createLabelLayout({ camera, size, invalidate, labels })
 
