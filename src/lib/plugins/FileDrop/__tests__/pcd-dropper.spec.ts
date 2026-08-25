@@ -15,6 +15,7 @@ describe('pcdDropper', () => {
 		positions: new Float32Array([0, 0, 0, 1, 1, 1]),
 		colors: new Uint8Array([255, 0, 0, 0, 255, 0]),
 		bounds: undefined,
+		boundsTree: undefined,
 		shuffled: 0,
 	}
 

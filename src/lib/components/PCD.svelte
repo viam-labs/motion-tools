@@ -7,6 +7,7 @@
 	import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 	import { traits, useWorld } from '$lib/ecs'
 	import { parsePcdInWorker } from '$lib/loaders/pcd'
+	import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 	interface Props {
 		data: Uint8Array
@@ -36,7 +37,7 @@
 		let entity: Entity | undefined
 		let cancelled = false
 
-		parsePcdInWorker(data).then(({ positions, colors, bounds, shuffled }) => {
+		parsePcdInWorker(data).then(({ boundsTree, positions, colors, bounds, shuffled }) => {
 			if (cancelled) return
 
 			const geometry = createBufferGeometry(
@@ -44,6 +45,7 @@
 				{ colors, colorFormat: ColorFormat.RGB },
 				bounds
 			)
+			if (boundsTree) attachPointsBvh(geometry, boundsTree)
 
 			const entityTraits: ConfigurableTrait[] = [
 				traits.Name(name ?? 'Random points'),

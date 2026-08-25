@@ -1,20 +1,14 @@
-import { Box3, BufferAttribute, BufferGeometry, Sphere } from 'three'
+import { Box3, BufferAttribute, BufferGeometry, Sphere, type Vector3Like } from 'three'
 
 import type { Metadata } from './metadata'
 
 import { colorStride, STRIDE } from './buffer'
 
-interface Vec3 {
-	x: number
-	y: number
-	z: number
-}
-
 /** Extent of a set of positions, in the form three.js caches on a `BufferGeometry`. */
 export interface Bounds {
-	min: Vec3
-	max: Vec3
-	center: Vec3
+	min: Vector3Like
+	max: Vector3Like
+	center: Vector3Like
 	radius: number
 }
 

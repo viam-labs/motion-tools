@@ -13,6 +13,7 @@
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { spawnSnapshotEntities } from '$lib/snapshot'
+	import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 	import { useFileDrop } from './useFileDrop.svelte'
 
@@ -54,6 +55,7 @@
 						{ colors: result.pcd.colors, colorFormat: ColorFormat.RGB },
 						result.pcd.bounds
 					)
+					if (result.pcd.boundsTree) attachPointsBvh(geometry, result.pcd.boundsTree)
 
 					world.spawn(
 						traits.Name(result.name),

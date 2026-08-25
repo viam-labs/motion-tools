@@ -14,6 +14,7 @@ import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -146,7 +147,7 @@ export const providePointclouds = (partID: () => string) => {
 				}
 
 				parsePcdInWorker(data, settings.current.pointBudget)
-					.then(({ positions, colors, bounds, shuffled }) => {
+					.then(({ boundsTree, positions, colors, bounds, shuffled }) => {
 						if (disposed) {
 							return
 						}
@@ -163,6 +164,8 @@ export const providePointclouds = (partID: () => string) => {
 
 							if (geometry) {
 								updateBufferGeometry(geometry, positions, metadata, bounds)
+								// Replaces the tree built for the points this refresh just overwrote.
+								if (boundsTree) attachPointsBvh(geometry, boundsTree)
 								setOrAddTrait(existing, traits.PointSampling, {
 									total: positions.length / 3,
 									shuffled,
@@ -172,6 +175,7 @@ export const providePointclouds = (partID: () => string) => {
 						}
 
 						const geometry = createBufferGeometry(positions, metadata, bounds)
+						if (boundsTree) attachPointsBvh(geometry, boundsTree)
 
 						const entity = world.spawn(
 							...hierarchy.parentTraits(name),
