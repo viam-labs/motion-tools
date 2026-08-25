@@ -8,8 +8,6 @@
 
 	const linkedEntities = useLinkedEntities()
 
-	// `InstancedMatrix` rather than `Hovered`: it carries the hovered sub-element these components
-	// read, and an instanced renderer can drop `Hovered` while leaving the matrix in place.
 	const hovered = useQuery(traits.Selected, traits.InstancedMatrix)
 </script>
 

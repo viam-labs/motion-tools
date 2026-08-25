@@ -47,8 +47,12 @@
 	const geometry = new BufferGeometry()
 	geometry.setAttribute('position', new BufferAttribute(new Float32Array(3), 3))
 
-	// `power-wire`, which a material cannot take as a Tailwind class.
-	const material = new PointsMaterial({ color: 0xff_00_47, depthTest: false, depthWrite: false })
+	const material = new PointsMaterial({
+		// `power-wire`
+		color: 0xff_00_47,
+		depthTest: false,
+		depthWrite: false,
+	})
 	material.toneMapped = false
 
 	const maxPointSize = { value: 0 }
@@ -56,7 +60,6 @@
 
 	const marker = new Points(geometry, material)
 	marker.matrixAutoUpdate = false
-	// Drawn over the scene rather than into it, matching how `Selected.svelte` surfaces its axes.
 	marker.renderOrder = 999
 
 	// Orthographic size is driven per frame by the task below, which reads a zoom that isn't
@@ -79,11 +82,8 @@
 		if (!instanced.current) return
 
 		marker.matrix.copy(instanced.current.matrix)
-		// Forced, because assigning `matrix` leaves `matrixWorldNeedsUpdate` false and the
-		// unforced call is then a no-op. Without it the marker sticks at the first point hovered.
-		marker.updateMatrixWorld(true)
-		// Pointer events never invalidate on their own, so without this the marker would sit at
-		// the previous point until something else asked for a frame.
+		marker.updateMatrixWorld()
+
 		invalidate()
 	})
 
