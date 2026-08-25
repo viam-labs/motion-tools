@@ -223,9 +223,15 @@ export const updateMetadata = (
 	if (colors) {
 		if (pointCloud) {
 			updatePointCloudColors(entity, metadata)
+			// A point cloud carries per-vertex colours in its geometry buffer, which
+			// is why `drawTransform` adds no `Colors` trait for one. Duplicating the
+			// array into a trait here is what made an updated cloud disagree with a
+			// spawned one, and on a multi-million point cloud it is megabytes.
+			if (isSingleColor(colors)) setColorTraits(entity, colors)
+			else entity.remove(traits.Color)
+		} else {
+			setColorTraits(entity, colors)
 		}
-		// Always set color traits so any subsequent async work can read them
-		setColorTraits(entity, colors)
 	}
 
 	entity.set(traits.Opacity, asOpacity(opacities, DEFAULT_OPACITY))

@@ -1,4 +1,4 @@
-import { Mesh } from '$lib/buf/common/v1/common_pb'
+import { Mesh, PointCloud } from '$lib/buf/common/v1/common_pb'
 import { Arrows, Line, Nurbs, Points } from '$lib/buf/draw/v1/drawing_pb'
 
 import type { EntityDraft, EntityKind } from './entityDrafts'
@@ -232,6 +232,20 @@ export const ENTITY_TYPES: EntityTypeDescriptor[] = [
 		draft: (name) => ({
 			...baseDraft(name, 'transform'),
 			geometry: { case: 'mesh', value: new Mesh({ contentType: 'ply', mesh: new Uint8Array(0) }) },
+		}),
+	},
+	{
+		// The only type whose colours take a second path. `draw.ts` runs
+		// `updatePointCloudColors` for it on top of `setColorTraits`, to write the
+		// buffer without resetting a chunked cloud's draw range, and nothing else
+		// in this table reaches that branch.
+		name: 'pcd',
+		kind: 'transform',
+		renderer: 'per-entity',
+		traits: TRANSFORM_TRAITS,
+		draft: (name) => ({
+			...baseDraft(name, 'transform'),
+			geometry: { case: 'pointcloud', value: new PointCloud({ pointCloud: new Uint8Array(0) }) },
 		}),
 	},
 	{
