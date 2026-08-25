@@ -50,7 +50,6 @@ export interface Settings {
 
 	renderStats: boolean
 	renderArmModels: 'colliders' | 'colliders+model' | 'model'
-	renderSubEntityHoverDetail: boolean
 
 	enableXR: boolean
 	xrMode: 'frame-configure' | 'arm-teleop'
@@ -128,7 +127,6 @@ const defaults = (): Settings => ({
 
 	renderStats: false,
 	renderArmModels: 'colliders+model',
-	renderSubEntityHoverDetail: false,
 
 	enableXR: false,
 	xrMode: 'frame-configure',
