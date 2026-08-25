@@ -1,7 +1,5 @@
-import { Not } from 'koota'
-
 import { resolveOrphans } from './hierarchy'
-import { FramelessComponent, Name, Orphan } from './traits'
+import { Name, Orphan } from './traits'
 import { useQuery } from './useQuery.svelte'
 import { useWorld } from './useWorld'
 
@@ -26,7 +24,7 @@ export const provideHierarchy = (): void => {
 	const orphans = useQuery(Orphan)
 	// A frameless component has no transform to compose through, so it must never
 	// be picked as an orphan's parent.
-	const named = useQuery(Name, Not(FramelessComponent))
+	const named = useQuery(Name)
 
 	$effect(() => {
 		resolveOrphans(named.current, orphans.current)

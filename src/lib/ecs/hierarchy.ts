@@ -92,10 +92,7 @@ export const destroyEntityTree = (world: World, entity: Entity): void => {
  *      it. This catches the case where the orphan is the only entity in
  *      the world with that `Name`.
  */
-export const resolveOrphans = (
-	named: readonly Entity[],
-	orphans: readonly Entity[]
-): void => {
+export const resolveOrphans = (named: readonly Entity[], orphans: readonly Entity[]): void => {
 	const index = new Map<string, Entity>()
 	for (const entity of named) {
 		const name = entity.get(traits.Name)

@@ -1,6 +1,7 @@
 <script lang="ts">
+	import type { Entity } from 'koota'
+
 	import { Button, Input, Select } from '@viamrobotics/prime-core'
-	import { type Entity, Not } from 'koota'
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { SubEntityLinkType } from '$lib/ecs/relations'
@@ -11,14 +12,14 @@
 
 	const { entity }: Props = $props()
 
-	const allEntities = useQuery(traits.Name, Not(traits.FramelessComponent))
+	const allNamed = useQuery(traits.Name)
 	const name = useTrait(() => entity, traits.Name)
 	const drawServiceAPI = useTrait(() => entity, traits.DrawServiceAPI)
 	const isServiceManaged = $derived(!!drawServiceAPI.current)
 
 	const entityNames = $derived.by(() => {
 		const currentEntityName = name.current
-		return allEntities.current
+		return allNamed.current
 			.filter((e: Entity) => {
 				const entityName = e.get(traits.Name)
 				if (!entityName || entityName === currentEntityName) return false
@@ -48,7 +49,7 @@
 
 	function handleAdd() {
 		if (!entity || !relationshipFormula.includes('index')) return
-		const selectedEntity = allEntities.current.find(
+		const selectedEntity = allNamed.current.find(
 			(e: Entity) => e.get(traits.Name) === selectedRelationshipEntity
 		)
 		if (!selectedEntity) return
