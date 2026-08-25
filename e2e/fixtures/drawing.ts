@@ -8,6 +8,7 @@ import url from 'node:url'
 import { promisify } from 'node:util'
 
 import { createDrawClient, type DrawClient, resetScene } from '../helpers/drawClient'
+import { dropFileOnPage, type DroppedFile } from '../helpers/dropFile'
 import { screenshotCanvas } from '../helpers/screenshot'
 
 const execFileAsync = promisify(execFile)
@@ -58,8 +59,6 @@ const sceneArgs = (name: string, port: number): string[] => [
 	sceneDataDir,
 	name,
 ]
-
-export type DroppedFile = string | { name: string; content: string }
 
 /** Runs a scene and waits for it to finish. */
 export type DrawScene = (name: string) => void
@@ -213,42 +212,9 @@ export const test = base.extend<DrawingFixtures, DrawingWorkerFixtures>({
 	},
 
 	dropFile: async ({ page }, use) => {
-		await use(async (file: DroppedFile) => {
-			const isPath = typeof file === 'string'
-			const base64Data = isPath
-				? fs.readFileSync(file).toString('base64')
-				: Buffer.from(file.content).toString('base64')
-			const fileName = isPath ? (file.split('/').pop() ?? file) : file.name
-
-			await page.evaluate(
-				({ base64Data, fileName }) => {
-					const binaryString = atob(base64Data)
-					const bytes = new Uint8Array(binaryString.length)
-					for (let i = 0; i < binaryString.length; i++) {
-						bytes[i] = binaryString.charCodeAt(i)
-					}
-
-					const dropped = new File([bytes], fileName, { type: 'application/octet-stream' })
-					const dataTransfer = new DataTransfer()
-					dataTransfer.items.add(dropped)
-
-					globalThis.dispatchEvent(
-						new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer })
-					)
-
-					const dropZone = document.querySelector('[aria-label="File drop zone"]')
-					if (!dropZone) {
-						throw new Error('Drop zone not found')
-					}
-
-					dropZone.dispatchEvent(
-						new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer })
-					)
-				},
-				{ base64Data, fileName }
-			)
-		})
+		await use((file: DroppedFile) => dropFileOnPage(page, file))
 	},
 })
 
 export { expect, type Page } from '@playwright/test'
+export type { DroppedFile } from '../helpers/dropFile'

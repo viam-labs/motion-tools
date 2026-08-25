@@ -170,7 +170,11 @@ NOTE: the robot specs share one ephemeral machine and push conflicting configs a
 
 ## Updating Screenshots
 
-When you make intentional UI changes that should change screenshots:
+Baselines are per platform. `-darwin` files come from a laptop and `-linux` files come from a
+CI runner, and a run only reads the set matching where it runs. That is why the two are updated
+in different places.
+
+For `-darwin`, when you have intentionally changed the UI:
 
 1. Run with the update flag:
    ```bash
@@ -182,6 +186,43 @@ When you make intentional UI changes that should change screenshots:
 3. Commit the new snapshots alongside your code changes.
 
 > Only update screenshots when you've intentionally modified the UI. Random test failures should be investigated rather than blindly updating snapshots.
+
+For `-linux`, run the **Update E2E Baselines** workflow from the Actions tab. It records on the
+same runner image CI verifies against and opens a PR with the result. Do not record these
+locally: an Apple Silicon machine produces arm64 pixels, CI renders on x86_64, and the two do
+not match closely enough to share a baseline.
+
+## CI
+
+Three workflows, none of them on pull requests. Rendering the scene needs a GPU-backed browser,
+and gating every PR on that costs more than it catches.
+
+| Workflow                   | Trigger                              | What it runs                                                                                          |
+| -------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `playwright.yml`           | after Deploy Docs on main, or manual | `drawing` and `matrix` against a local production build, plus a smoke test of the deployed playground |
+| `e2e-robot.yml`            | nightly at 07:00 UTC, or manual      | `robot`, against a machine it provisions and deletes                                                  |
+| `update-e2e-baselines.yml` | manual only                          | the same specs with `--update-snapshots`, then opens a PR                                             |
+
+The post-deploy run builds the app and serves it through the bun server rather than testing the
+gh-pages deploy, so a failure points at a commit instead of at a deploy. Baselines recorded
+against `pnpm dev` still apply: the two were measured pixel for pixel identical across both
+projects. `playground-smoke.test.ts` is what still covers the deploy, and it takes no
+screenshots, because the deploy differs from a local build by `BASE_PATH` and Sentry and cannot
+share baselines.
+
+Nothing in CI passes `--update-snapshots` except the workflow whose entire job is to. A visual
+regression fails the run and posts to Slack.
+
+Slack only hears about a failure once. `.github/actions/notify-e2e-failure` hashes the set of
+failing specs and the baselines they compared, then uses that hash as an `actions/cache` key: a
+hit means this exact set was already reported, so the run stays quiet. A failure that appears or
+disappears changes the hash and posts. Pixel counts are deliberately left out of the hash,
+because they drift by a few pixels between runs on the same commit and would make every run look
+new. A run that never wrote a report posts unconditionally, since that is a broken workflow
+rather than a known-failing test.
+
+The nightly robot job sweeps machines named `e2e-<user>-<millis>` older than two hours whether
+it passed or failed, which cleans up after a run killed before its teardown project.
 
 ## Troubleshooting
 
