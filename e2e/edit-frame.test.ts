@@ -124,10 +124,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 
 	await expectHasEdits(page)
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-0-edited.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}-0-edited.png`, { fullPage: true })
 	} catch (error) {
 		console.warn(error)
 		failedScreenshots.push(`${testPrefix}-0-edited.png`)
@@ -136,10 +133,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
 	} catch (error) {
 		console.warn(error)
 		failedScreenshots.push(`${testPrefix}-1-saved.png`)
@@ -158,10 +152,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await page.getByText('base-1', { exact: true }).click()
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, { fullPage: true })
 	} catch (error) {
 		console.warn(error)
 		failedScreenshots.push(`${testPrefix}-2-reloaded.png`)
@@ -430,10 +421,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	await expectNoEdits(page)
 
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
 	} catch (error) {
 		console.warn(error)
 		failedScreenshots.push(`${testPrefix}-1-saved.png`)

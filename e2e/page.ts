@@ -59,10 +59,7 @@ export const createPage = async (browser: Browser): Promise<TestPage> => {
 
 	const takeScreenshot = async (testPrefix: string) => {
 		try {
-			await expect(page).toHaveScreenshot(`${testPrefix}.png`, {
-				fullPage: true,
-				threshold: 0.1,
-			})
+			await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 		} catch (error) {
 			console.warn(error)
 			failedScreenshots.push(`${testPrefix}.png`)

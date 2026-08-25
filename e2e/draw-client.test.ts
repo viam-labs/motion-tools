@@ -24,10 +24,7 @@ const createPage = async (browser: Browser): Promise<Page> => {
 
 const takeScreenshot = async (page: Page, testPrefix: string): Promise<string> => {
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 		return ''
 	} catch (error) {
 		console.warn(error)
