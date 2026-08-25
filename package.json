@@ -296,7 +296,7 @@
 			]
 		},
 		"lint:draw": {
-			"command": "golangci-lint run ./draw/...",
+			"command": "golangci-lint run --allow-parallel-runners ./draw/...",
 			"files": [
 				"draw/**",
 				"go.mod",
@@ -306,7 +306,7 @@
 			"output": []
 		},
 		"lint:client": {
-			"command": "golangci-lint run ./client/...",
+			"command": "golangci-lint run --allow-parallel-runners ./client/...",
 			"files": [
 				"client/**",
 				"go.mod",
@@ -474,7 +474,7 @@
 			]
 		},
 		"lint:scenes": {
-			"command": "golangci-lint run ./e2e/fixtures/draw-scenes/...",
+			"command": "golangci-lint run --allow-parallel-runners ./e2e/fixtures/draw-scenes/...",
 			"files": [
 				"e2e/fixtures/draw-scenes/**",
 				"client/**",
