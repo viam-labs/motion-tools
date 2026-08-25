@@ -12,6 +12,8 @@ import {
 	SAH,
 } from 'three-mesh-bvh'
 
+import { pointsBvhOptions } from '$lib/three/pointsBvh'
+
 interface Options extends BVHOptions {
 	helper?: boolean
 	enabled?: boolean
@@ -23,7 +25,7 @@ export const bvh = (raycaster: Raycaster, options?: () => Options) => {
 		verbose: false,
 		setBoundingBox: true,
 		maxDepth: 20,
-		maxLeafSize: 10,
+		targetLeafSize: 10,
 		indirect: false,
 		helper: false,
 		...options?.(),
@@ -59,7 +61,11 @@ export const bvh = (raycaster: Raycaster, options?: () => Options) => {
 				ref.geometry.computeBoundsTree = computeBoundsTree
 				ref.geometry.disposeBoundsTree = disposeBoundsTree
 				ref.raycast = acceleratedRaycast
-				computeBoundsTree.call(ref.geometry, { type: PointsBVH, ...opts })
+				// A cloud parsed in a worker arrives with its tree already built, and rebuilding it
+				// here would stall the main thread for as long as the parse itself took.
+				if (!ref.geometry.boundsTree) {
+					computeBoundsTree.call(ref.geometry, { type: PointsBVH, ...opts, ...pointsBvhOptions })
+				}
 			} else if (isInstanceOf(ref, 'BatchedMesh')) {
 				/* @ts-expect-error Some sort of ambient type is conflicing here, likely from @threlte/extras */
 				ref.geometry.computeBoundsTree = computeBatchedBoundsTree

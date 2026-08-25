@@ -10,6 +10,7 @@ import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
 import { isParsedFrom, parseMesh } from '$lib/mesh'
+import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 import { setOrAddTrait } from './setOrAddTrait'
 
@@ -389,12 +390,15 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 						{ colors, colorFormat: ColorFormat.RGB },
 						parsed.bounds
 					)
+					// Replaces the tree built for the points this update just overwrote.
+					if (parsed.boundsTree) attachPointsBvh(buffer, parsed.boundsTree)
 				} else {
 					const fresh = createBufferGeometry(
 						parsed.positions,
 						{ colors, colorFormat: ColorFormat.RGB },
 						parsed.bounds
 					)
+					if (parsed.boundsTree) attachPointsBvh(fresh, parsed.boundsTree)
 					buffer.dispose()
 					entity.set(BufferGeometry, fresh)
 				}
@@ -403,15 +407,13 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 			}
 
 			entity.remove(Box, Capsule, Sphere)
-			entity.add(
-				BufferGeometry(
-					createBufferGeometry(
-						parsed.positions,
-						{ colors: parsed.colors, colorFormat: ColorFormat.RGB },
-						parsed.bounds
-					)
-				)
+			const geometry = createBufferGeometry(
+				parsed.positions,
+				{ colors: parsed.colors, colorFormat: ColorFormat.RGB },
+				parsed.bounds
 			)
+			if (parsed.boundsTree) attachPointsBvh(geometry, parsed.boundsTree)
+			entity.add(BufferGeometry(geometry))
 			if (!entity.has(Points)) entity.add(Points)
 		})
 		.catch((error) => {

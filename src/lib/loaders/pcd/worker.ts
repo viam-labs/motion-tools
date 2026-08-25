@@ -5,6 +5,8 @@ import { PCDLoader } from 'three/examples/jsm/loaders/PCDLoader.js'
 import type { Bounds } from '../../attribute'
 import type { Message } from './messages'
 
+import { buildPointsBvh } from '../../three/pointsBvh'
+
 const loader = new PCDLoader()
 
 /**
@@ -115,11 +117,23 @@ globalThis.onmessage = async (event) => {
 
 			const shuffled = shufflePoints(positions, colors, shuffleDepth)
 
+			// After the shuffle, so the tree indexes the order the renderer will draw in.
+			const boundsTree = buildPointsBvh(pcd.geometry)
+
+			const transfer: Transferable[] = [positions.buffer]
+			if (colors) transfer.push(colors.buffer)
+			if (boundsTree) transfer.push(...boundsTree.roots, boundsTree.indirectBuffer.buffer)
+
 			postMessage(
-				{ positions, colors, shuffled, bounds: measure(pcd.geometry), id } satisfies Message,
 				{
-					transfer: colors ? [positions.buffer, colors.buffer] : [positions.buffer],
-				}
+					positions,
+					colors,
+					shuffled,
+					bounds: measure(pcd.geometry),
+					boundsTree,
+					id,
+				} satisfies Message,
+				{ transfer }
 			)
 		} else {
 			postMessage({ id, error: 'Failed to extract geometry' } satisfies Message)

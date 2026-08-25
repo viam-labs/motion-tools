@@ -156,6 +156,7 @@ describe('drawTransform', () => {
 			positions,
 			colors: undefined,
 			bounds: undefined,
+			boundsTree: undefined,
 			shuffled: 0,
 		})
 
@@ -191,6 +192,7 @@ describe('drawTransform', () => {
 			positions,
 			colors: pcdColors,
 			bounds: undefined,
+			boundsTree: undefined,
 			shuffled: 0,
 		})
 
