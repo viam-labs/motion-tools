@@ -6,6 +6,8 @@ const DRAWING_SPECS = [
 	/snapshot\.test\.ts$/,
 ] as const
 
+const MATRIX_SPECS = [/matrix\/.*\.test\.ts$/] as const
+
 const ROBOT_SPECS = [
 	/arm\.test\.ts$/,
 	/edit-frame\.test\.ts$/,
@@ -13,16 +15,22 @@ const ROBOT_SPECS = [
 	/world-state-store\.test\.ts$/,
 ] as const
 
+const DEV_SERVER_PORT = 5173
+
 export default defineConfig({
 	webServer: {
 		command: 'pnpm dev',
-		port: 5173,
+		port: DEV_SERVER_PORT,
 		reuseExistingServer: !process.env.CI,
 		env: {
 			VITE_CONFIGS: '{}',
 		},
 	},
 	use: {
+		// Stated rather than left to `webServer.port`, which Playwright only
+		// resolves into the context it creates per test. The matrix project builds
+		// its own worker-scoped context and reads the base URL off the project.
+		baseURL: `http://localhost:${DEV_SERVER_PORT}`,
 		trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
 	},
 	testDir: 'e2e',
@@ -50,6 +58,14 @@ export default defineConfig({
 			// Each worker owns a draw server, so these specs share no scene state.
 			name: 'drawing',
 			testMatch: [...DRAWING_SPECS],
+			fullyParallel: true,
+		},
+		{
+			// Cells are one or two RPCs and a poll against a page the whole worker
+			// shares, so this project parallelizes on RPC latency rather than on
+			// page loads the way `drawing` does.
+			name: 'matrix',
+			testMatch: [...MATRIX_SPECS],
 			fullyParallel: true,
 		},
 		{
