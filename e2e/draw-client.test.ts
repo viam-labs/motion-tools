@@ -409,14 +409,32 @@ test('relationships', async ({ page, drawScene, resetScene, takeScreenshot }) =>
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
 	await takeScreenshot('RELATIONSHIPS_CREATED')
 
-	// TODO(relationships): reload-persistence is not checked here. StreamEntityChanges
-	// replays entities to a reconnecting client but not relationships, so a HoverLink
-	// is lost on reload. Re-enable once relationships survive a reload.
-
 	drawScene('relationships/delete')
 
 	await expect(page.getByText('rel-target (HoverLink)')).not.toBeVisible({ timeout: 10000 })
 	await takeScreenshot('RELATIONSHIPS_DELETED')
+
+	await resetScene()
+})
+
+/**
+ * A known service gap, not a flake: StreamEntityChanges replays entities to a reconnecting
+ * client but not relationships, so a HoverLink is lost on reload. Written out as a fixme so
+ * the gap is visible in the report and turns green on its own once the service replays them.
+ */
+test.fixme('relationships survive a reload', async ({ page, drawScene, resetScene }) => {
+	drawScene('relationships/setup')
+	await expect(page.getByText('rel-source', { exact: true })).toBeVisible({ timeout: 10000 })
+
+	drawScene('relationships/create')
+	await page.getByText('rel-source', { exact: true }).click()
+	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
+
+	await page.reload()
+	await expect(page.getByText('World', { exact: true })).toBeVisible({ timeout: 30_000 })
+
+	await page.getByText('rel-source', { exact: true }).click()
+	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
 
 	await resetScene()
 })
