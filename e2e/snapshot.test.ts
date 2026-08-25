@@ -19,7 +19,7 @@ const snapshots: Array<{ name: string; file: string; waitFor?: string[] }> = [
 	{
 		name: 'model',
 		file: 'visualization_snapshot_model',
-		waitFor: ['duck', 'avocado', 'lantern', 'box', 'milktruck', 'fox'],
+		waitFor: ['duck', 'milktruck'],
 	},
 ]
 

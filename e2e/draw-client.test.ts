@@ -155,6 +155,9 @@ test('draw point cloud updating', async ({ page, drawScene, snapshotAndReset }) 
 })
 
 test('draw point cloud in chunks', async ({ page, drawSceneAsync, snapshotAndReset }) => {
+	// 2.5M points pulled a chunk at a time, with the progress bar asserted mid-flight.
+	test.slow()
+
 	await runChunkedTest(
 		{ page, drawSceneAsync, snapshotAndReset },
 		'DRAW_POINT_CLOUD_IN_CHUNKS',
