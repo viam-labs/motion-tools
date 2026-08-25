@@ -8,6 +8,7 @@ import { handleSceneBuilder } from './routes/scene-builder'
 const connections = new Set<Bun.ServerWebSocket<unknown>>()
 const isProduction = process.env.NODE_ENV === 'production' || process.argv.includes('--production')
 const buildDir = path.resolve(import.meta.dir, '../build')
+const indexPath = path.join(buildDir, 'index.html')
 
 const STATIC_PORT = Number.parseInt(process.env.STATIC_PORT || '5173', 10)
 const WS_PORT = Number.parseInt(process.env.WS_PORT || '3000', 10)
@@ -89,20 +90,31 @@ const startStaticServer = () => {
 	}
 }
 
+/**
+ * Where a request path could live in an `adapter-static` build, most specific
+ * first.
+ *
+ * The `.html` sibling is the one that matters. `adapter-static` prerenders each
+ * route to `<route>.html`, not `<route>/index.html`, so without it `/select`
+ * misses every candidate and falls through to the root page. That fallback is
+ * the last entry for a reason: it answers an unknown path with the app rather
+ * than a 404, which is right for client-side routing and silently wrong for a
+ * route that does have a prerendered page.
+ */
+const staticCandidates = (pathname: string): string[] => {
+	// path.join keeps a trailing slash, which would make the sibling candidate
+	// `<route>/.html`, so the slash comes off before joining.
+	const resolved = path.join(buildDir, pathname.replace(/\/+$/, ''))
+	return [resolved, `${resolved}.html`, path.join(resolved, 'index.html'), indexPath]
+}
+
 const serveStatic = async (pathname: string): Promise<Response | null> => {
 	try {
-		let filePath = path.join(buildDir, pathname)
-
-		const fileStats = await stat(filePath).catch(() => null)
-		if (fileStats?.isFile()) {
-			return new Response(file(filePath))
-		}
-
-		filePath = path.join(fileStats?.isDirectory() ? filePath : buildDir, 'index.html')
-
-		const indexStats = await stat(filePath).catch(() => null)
-		if (indexStats?.isFile()) {
-			return new Response(file(filePath))
+		for (const candidate of staticCandidates(pathname)) {
+			const stats = await stat(candidate).catch(() => null)
+			if (stats?.isFile()) {
+				return new Response(file(candidate))
+			}
 		}
 
 		return null
