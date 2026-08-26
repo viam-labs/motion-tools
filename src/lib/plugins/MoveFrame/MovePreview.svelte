@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Banner, BannerVariant, Button } from '@viamrobotics/prime-core'
+	import { Banner, BannerVariant, Button, ToggleButtons } from '@viamrobotics/prime-core'
 
 	import TrajectoryScrubber from '$lib/components/motion/TrajectoryScrubber.svelte'
 
-	import type { PreviewMove } from './usePreviewMove.svelte'
+	import type { PreviewDetail, PreviewMove } from './usePreviewMove.svelte'
 
 	interface Props {
 		preview: PreviewMove
@@ -17,6 +17,16 @@
 
 	const planning = $derived(preview.status === 'planning')
 	const ready = $derived(preview.status === 'ready')
+
+	const detailLabels: Record<PreviewDetail, string> = {
+		waypoints: 'Waypoints',
+		interpolated: 'Interpolated',
+	}
+	const detailByLabel = new Map<string, PreviewDetail>(
+		Object.entries(detailLabels).map(([value, label]) => [label, value as PreviewDetail])
+	)
+
+	const frameCount = $derived(preview.player.totalSteps)
 </script>
 
 <div class="flex flex-col gap-2">
@@ -69,16 +79,41 @@
 			{/snippet}
 		</Banner>
 
-		<p
-			class="text-subtle-1"
-			role="status"
-		>
-			Planned {preview.plannedSteps} waypoint{preview.plannedSteps === 1 ? '' : 's'}.
-		</p>
+		<div class="flex flex-col gap-1">
+			<!--
+				`on:input` because `ToggleButtons` dispatches a `CustomEvent` and offers no callback prop.
+				PRIME ships this control, so extending it beats re-deriving a toggle out of two buttons.
+			-->
+			<ToggleButtons
+				options={Object.values(detailLabels)}
+				selected={detailLabels[preview.detail]}
+				on:input={(event) => {
+					const next = detailByLabel.get(event.detail)
+					if (next) preview.detail = next
+				}}
+			>
+				{#snippet legend()}
+					Each frame is
+				{/snippet}
+			</ToggleButtons>
+
+			<p
+				class="text-subtle-2"
+				role="status"
+			>
+				{#if preview.detail === 'waypoints'}
+					{frameCount} frames, one per configuration the planner returned and nothing between.
+				{:else}
+					{frameCount} frames across {preview.plannedSteps} planned waypoints, along the straight joint
+					path the planner checks between them.
+				{/if}
+			</p>
+		</div>
 
 		<TrajectoryScrubber
 			player={preview.player}
 			label="{frameName} preview"
+			markers={preview.waypointIndices}
 		/>
 	{/if}
 </div>
