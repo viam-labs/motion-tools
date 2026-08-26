@@ -441,67 +441,67 @@ describe('scrubbing the preview', () => {
 
 describe('what the scrubber walks', () => {
 	it('plays one frame per planned configuration by default', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		expect(h.preview.detail).toBe('waypoints')
-		expect(h.preview.player.totalSteps).toBe(2)
-		expect(h.preview.waypointIndices).toEqual([0, 1])
+		expect(previewHarness.preview.detail).toBe('waypoints')
+		expect(previewHarness.preview.player.totalSteps).toBe(2)
+		expect(previewHarness.preview.waypointIndices).toEqual([0, 1])
 	})
 
 	it('fills in frames between the waypoints when asked to interpolate', async () => {
-		const h = setup()
-		await planned(h)
+		const previewHarness = setup()
+		await planned(previewHarness)
 
-		h.preview.detail = 'interpolated'
+		previewHarness.preview.detail = 'interpolated'
 
-		expect(h.preview.player.totalSteps).toBeGreaterThan(2)
-		expect(h.preview.plannedSteps).toBe(2)
+		expect(previewHarness.preview.player.totalSteps).toBeGreaterThan(2)
+		expect(previewHarness.preview.plannedSteps).toBe(2)
 	})
 
 	it('marks which of the played frames are planned waypoints', async () => {
-		const h = setup()
-		await planned(h)
+		const previewHarness = setup()
+		await planned(previewHarness)
 
-		h.preview.detail = 'interpolated'
+		previewHarness.preview.detail = 'interpolated'
 
-		const marks = h.preview.waypointIndices
+		const marks = previewHarness.preview.waypointIndices
 		expect(marks[0]).toBe(0)
-		expect(marks.at(-1)).toBe(h.preview.player.lastStep)
+		expect(marks.at(-1)).toBe(previewHarness.preview.player.lastStep)
 		expect(marks).toHaveLength(2)
 	})
 
 	it('keeps handing execute the plan rather than the frames it played', async () => {
-		const h = setup()
-		await planned(h)
+		const previewHarness = setup()
+		await planned(previewHarness)
 
-		h.preview.detail = 'interpolated'
+		previewHarness.preview.detail = 'interpolated'
 
-		expect(h.preview.trajectory).toEqual([
+		expect(previewHarness.preview.trajectory).toEqual([
 			{ 'left-arm': [0, 0, 0, 0, 0, 0] },
 			{ 'left-arm': [1, 0, 0, 0, 0, 0] },
 		])
 	})
 
 	it('restarts playback, since a frame index does not carry across the two framings', async () => {
-		const h = setup()
-		await planned(h)
-		h.preview.player.seek(1)
+		const previewHarness = setup()
+		await planned(previewHarness)
+		previewHarness.preview.player.seek(1)
 
-		h.preview.detail = 'interpolated'
+		previewHarness.preview.detail = 'interpolated'
 
-		expect(h.preview.player.currentStep).toBe(0)
+		expect(previewHarness.preview.player.currentStep).toBe(0)
 	})
 
 	it('leaves playback alone when the framing already in effect is reselected', async () => {
-		const h = setup()
-		await planned(h)
-		h.preview.player.seek(1)
+		const previewHarness = setup()
+		await planned(previewHarness)
+		previewHarness.preview.player.seek(1)
 
-		h.preview.detail = 'waypoints'
+		previewHarness.preview.detail = 'waypoints'
 
-		expect(h.preview.player.currentStep).toBe(1)
+		expect(previewHarness.preview.player.currentStep).toBe(1)
 	})
 })
 

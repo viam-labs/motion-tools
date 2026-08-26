@@ -105,6 +105,11 @@ export interface PreviewMove {
 	readonly plannedSteps: number
 	/** Which played frames are planned waypoints, for marking them on a scrubber. */
 	readonly waypointIndices: number[]
+	/**
+	 * Setting this rebuilds the played frames for the new framing and restarts playback at frame 0,
+	 * because a frame index does not carry across the two framings. Setting the current value is a
+	 * no-op.
+	 */
 	detail: PreviewDetail
 	readonly player: TrajectoryPlayer
 	/** Plans. Resolves once the answer is in hand; never rejects. */
@@ -323,8 +328,6 @@ export const usePreviewMove = ({
 		get detail() {
 			return detail
 		},
-		// A frame index does not carry across the two framings, so playback restarts rather than
-		// trying to map it.
 		set detail(next: PreviewDetail) {
 			if (next === detail) return
 			detail = next

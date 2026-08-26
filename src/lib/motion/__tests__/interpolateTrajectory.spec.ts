@@ -10,8 +10,9 @@ import {
 	DEFAULT_DEGREES_PER_FRAME,
 	interpolatedFrames,
 	jointMotionsOf,
-	jointTravelRadians,
+	largestJointDelta,
 	lerpTrajectoryStep,
+	MAX_INTERPOLATED_FRAMES,
 	segmentFrameCost,
 	waypointFrames,
 } from '../interpolateTrajectory'
@@ -33,9 +34,7 @@ const plans = {
 const GANTRY_MOTIONS: JointMotions = new Map([['gantry-1', ['translational'] as const]])
 
 const segmentDegrees = (trajectory: TrajectoryStep[]) =>
-	trajectory
-		.slice(1)
-		.map((step, index) => jointTravelRadians(trajectory[index]!, step) * RAD_TO_DEG)
+	trajectory.slice(1).map((step, index) => largestJointDelta(trajectory[index]!, step) * RAD_TO_DEG)
 
 describe('captured plans still have the shape these rules were built for', () => {
 	it.each([
@@ -69,19 +68,19 @@ describe('captured plans still have the shape these rules were built for', () =>
 	})
 })
 
-describe('jointTravelRadians', () => {
+describe('largestJointDelta', () => {
 	it('reports the largest single-joint change, not the sum', () => {
-		const travel = jointTravelRadians({ arm: [0, 0, 0] }, { arm: [0.1, 0.5, -0.2] })
+		const travel = largestJointDelta({ arm: [0, 0, 0] }, { arm: [0.1, 0.5, -0.2] })
 		expect(travel).toBeCloseTo(0.5)
 	})
 
 	it('spans every component in the step', () => {
-		const travel = jointTravelRadians({ arm: [0.1], gantry: [2] }, { arm: [0.2], gantry: [0] })
+		const travel = largestJointDelta({ arm: [0.1], gantry: [2] }, { arm: [0.2], gantry: [0] })
 		expect(travel).toBeCloseTo(2)
 	})
 
 	it('ignores the zero-DoF frames a real trajectory carries', () => {
-		const travel = jointTravelRadians({ arm: [1], table: [] }, { arm: [1.5], table: [] })
+		const travel = largestJointDelta({ arm: [1], table: [] }, { arm: [1.5], table: [] })
 		expect(travel).toBeCloseTo(0.5)
 	})
 })
@@ -94,14 +93,14 @@ describe('jointTravelRadians', () => {
 describe('a step that does not carry the same columns as its neighbour', () => {
 	it.each([
 		['segmentFrameCost', segmentFrameCost],
-		['jointTravelRadians', jointTravelRadians],
+		['largestJointDelta', largestJointDelta],
 	])('%s skips a component the next step drops', (_label, cost) => {
 		expect(cost({ arm: [0], gripper: [0] }, { arm: [0] })).toBe(0)
 	})
 
 	it.each([
 		['segmentFrameCost', segmentFrameCost],
-		['jointTravelRadians', jointTravelRadians],
+		['largestJointDelta', largestJointDelta],
 	])('%s skips a joint the next step drops', (_label, cost) => {
 		expect(cost({ arm: [0, 0] }, { arm: [0] })).toBe(0)
 	})
@@ -119,8 +118,8 @@ describe('lerpTrajectoryStep', () => {
 		[0, [0, 10]],
 		[0.5, [0.5, 0]],
 		[1, [1, -10]],
-	])('blends each joint at t=%s', (t, expected) => {
-		expect(lerpTrajectoryStep(from, to, t).arm).toEqual(expected)
+	])('blends each joint at t=%s', (alpha, expected) => {
+		expect(lerpTrajectoryStep(from, to, alpha).arm).toEqual(expected)
 	})
 
 	it('leaves the endpoints untouched', () => {
@@ -248,7 +247,7 @@ describe('interpolatedFrames', () => {
 		expect(coarsening).toBeGreaterThan(1)
 		// The cap bounds interpolation; each planned waypoint keeps its own frame regardless, so the
 		// ceiling is the budget plus the plan's own length.
-		expect(steps.length).toBeLessThanOrEqual(2000 + plans.linear.length)
+		expect(steps.length).toBeLessThanOrEqual(MAX_INTERPOLATED_FRAMES + plans.linear.length)
 		expect(steps.at(-1)).toEqual(plans.linear.at(-1))
 		expect(waypoints).toHaveLength(plans.linear.length)
 	})
@@ -276,7 +275,10 @@ describe('interpolatedFrames', () => {
 			.slice(1)
 			.reduce((sum, step, index) => sum + segmentFrameCost(plans.linear[index]!, step, budget), 0)
 
-		expect(interpolatedFrames(plans.linear, budget).coarsening).toBeCloseTo(total / 2000, 6)
+		expect(interpolatedFrames(plans.linear, budget).coarsening).toBeCloseTo(
+			total / MAX_INTERPOLATED_FRAMES,
+			6
+		)
 	})
 
 	it.each([
@@ -407,7 +409,7 @@ describe('a component named like an Object.prototype member', () => {
 			const to = proto('{"arm": [1]}')
 
 			expect(segmentFrameCost(from, to)).toBeCloseTo((1 * RAD_TO_DEG) / DEFAULT_DEGREES_PER_FRAME)
-			expect(jointTravelRadians(from, to)).toBeCloseTo(1)
+			expect(largestJointDelta(from, to)).toBeCloseTo(1)
 		}
 	)
 

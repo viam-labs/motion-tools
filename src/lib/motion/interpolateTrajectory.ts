@@ -1,8 +1,3 @@
-/**
- * Turns a planned trajectory into frames to play back, allocating them in proportion to joint
- * travel so playback reads at a constant speed whether the planner returned 2 waypoints or 225.
- */
-
 import type { FrameDescriptor } from './frameDescriptors'
 import type { TrajectoryStep } from './jointPose'
 
@@ -59,7 +54,7 @@ export const jointMotionsOf = (descriptors: readonly FrameDescriptor[]): JointMo
  * Backstop for a plan beyond anything observed; the worst real plan came to 236 frames. It bounds
  * interpolation only, since every planned waypoint keeps its own frame whatever this is set to.
  */
-const MAX_INTERPOLATED_FRAMES = 2000
+export const MAX_INTERPOLATED_FRAMES = 2000
 
 export interface PreviewFrames {
 	/** What to render, in order. Contains every planned waypoint, plus any frames added between. */
@@ -77,10 +72,10 @@ export interface PreviewFrames {
 }
 
 /**
- * The largest single-joint change between two steps, unit-blind and with no production caller: the
- * spec measures captured plans against it, while {@link segmentFrameCost} budgets the frames.
+ * The largest single-joint change between two steps, with no production caller: the spec
+ * measures captured plans against it, while {@link segmentFrameCost} budgets the frames.
  */
-export const jointTravelRadians = (from: TrajectoryStep, to: TrajectoryStep): number => {
+export const largestJointDelta = (from: TrajectoryStep, to: TrajectoryStep): number => {
 	let worst = 0
 
 	for (const [component, start] of Object.entries(from)) {
@@ -98,13 +93,15 @@ export const jointTravelRadians = (from: TrajectoryStep, to: TrajectoryStep): nu
 }
 
 /**
- * `from` and `to` blended at `t`, over the union of both steps' components. Not angle-aware: RDK
- * collision-checks with this same expression, so wrapping would draw a path it never validated.
+ * `from` and `to` blended at `alpha`, over the union of both steps' components. Not angle-aware:
+ * mirrors RDK's `interpolateInputs` in `referenceframe/input.go`, which computes
+ * `j1+((to[i]-j1)*by)` per joint, the same expression as line 128, so wrapping would draw a path
+ * it never validated.
  */
 export const lerpTrajectoryStep = (
 	from: TrajectoryStep,
 	to: TrajectoryStep,
-	t: number
+	alpha: number
 ): TrajectoryStep => {
 	// `constructor` and `__proto__` are legal RDK resource names. On a plain object the first reads a
 	// function off the prototype and the second hits the prototype setter, so neither stays data.
@@ -125,7 +122,7 @@ export const lerpTrajectoryStep = (
 
 		blended[component] = start.map((value, index) => {
 			const target = end[index]
-			return target === undefined ? value : value + (target - value) * t
+			return target === undefined ? value : value + (target - value) * alpha
 		})
 
 		// A component that gained joints between steps would otherwise lose them here.
@@ -185,8 +182,10 @@ export const waypointFrames = (trajectory: TrajectoryStep[]): PreviewFrames => (
 })
 
 /**
- * Frames spread across `trajectory` at roughly one budget's worth of joint travel each. A segment
- * shorter than that, a zero-length one included, still gets its frame from `steps.push(to)` below.
+ * Frames spread across `trajectory` at roughly one budget's worth of joint travel each, so
+ * playback reads at a constant speed whether the planner returned 2 waypoints or 225. A segment
+ * shorter than that, a zero-length one included, still gets its frame from `steps.push(to)`
+ * below.
  */
 export const interpolatedFrames = (
 	trajectory: TrajectoryStep[],
