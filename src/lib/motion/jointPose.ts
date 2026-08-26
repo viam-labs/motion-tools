@@ -29,6 +29,8 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
 	vec3.set(axis.X, axis.Y, axis.Z)
 	// Three's `normalize()` guards `length() || 1`, so a zero axis would pass through it unchanged and
 	// yield a meaningless quaternion in silence.
+	// RDK's `R4AA.Normalize` panics here too. `translationalFrame` instead keeps `r3.Vector.Normalize`'s
+	// zero vector and draws a motionless frame. We reject both rather than draw a joint that never moves.
 	if (vec3.lengthSq() === 0) {
 		throw new Error(`joint "${descriptor.name}" has a zero-length axis`)
 	}
@@ -59,6 +61,9 @@ export const jointValueAt = (
 
 /**
  * The frame's pose relative to its parent at `stepInputs`, whichever kind of frame it is.
+ *
+ * The static branch stands in for `referenceframe/frame.go`'s `staticFrame.Transform`, which
+ * returns its stored pose directly and errors when it is handed inputs at all.
  *
  * @returns A fresh `Pose` the caller owns. A static frame's is cloned rather than handed out,
  * because the descriptor keeps its copy for every later step and a caller that wrote into a

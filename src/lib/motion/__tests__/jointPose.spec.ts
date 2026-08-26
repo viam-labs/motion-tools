@@ -40,6 +40,8 @@ describe('computeJointPose', () => {
 				.toQuaternion()
 				.angleTo(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI / 2))
 		).toBeCloseTo(0)
+		expect(pose.theta).toBeCloseTo(90)
+		expect(pose.oZ).toBeCloseTo(1)
 		// A revolute joint contributes no translation: RDK's `NewPoseFromOrientation` leaves the dual
 		// part zero.
 		expect([pose.x, pose.y, pose.z]).toEqual([0, 0, 0])
@@ -126,8 +128,10 @@ describe('descriptorLocalPose', () => {
 			mimic: { multiplier: -1, offset: 0.25 },
 		})
 
-		expect(descriptorLocalPose(mimic, { arm: [0.5] })).toEqual(
-			computeJointPose(mimic, jointValueAt(mimic, { arm: [0.5] }))
-		)
+		const pose = descriptorLocalPose(mimic, { arm: [0.5] })
+
+		expect(pose.theta).toBeCloseTo(-14.3239)
+		expect(pose.oZ).toBeCloseTo(1)
+		expect([pose.x, pose.y, pose.z]).toEqual([0, 0, 0])
 	})
 })

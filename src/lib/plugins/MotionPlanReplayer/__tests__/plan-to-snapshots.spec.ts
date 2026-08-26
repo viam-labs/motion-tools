@@ -351,6 +351,8 @@ describe('parsedPlanToSnapshots given a frame it cannot draw', () => {
 			caught = error
 		}
 
-		expect((caught as PlanParseError).cause).toBeInstanceOf(Error)
+		expect((caught as PlanParseError).cause).toMatchObject({
+			message: 'joint "arm:waist" has a zero-length axis',
+		})
 	})
 })
