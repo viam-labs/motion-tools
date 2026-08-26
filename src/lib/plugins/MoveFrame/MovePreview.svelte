@@ -44,7 +44,21 @@
 		>
 			{preview.message}
 		</p>
-	{:else if ready}
+	{/if}
+
+	{#if ready}
+		<!--
+			Information rather than a warning: a plan is a validated path and nothing more, so the
+			caveat is true of every plan, always, and nothing has gone wrong when it is.
+		-->
+		<div class="border-info-medium bg-info-light border px-2 py-1.5">
+			<p class="text-info-dark font-medium">This preview is an approximation</p>
+			<p class="text-subtle-1 mt-0.5">
+				The arm may deviate from the planned waypoints. How it moves between them is the component's
+				decision, not the planner's.
+			</p>
+		</div>
+
 		<p
 			class="text-subtle-1"
 			role="status"

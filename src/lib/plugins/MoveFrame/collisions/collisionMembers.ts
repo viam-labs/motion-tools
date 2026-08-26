@@ -5,6 +5,7 @@ import { hierarchy, traits } from '$lib/ecs'
 import type { CollisionMember } from './collisionWorld'
 
 import { GhostOf } from '../relations'
+import { PreviewGhost } from '../traits'
 import { ENVIRONMENT_BIT } from './interactionGroups'
 
 /** Cycle guard for the parent walk, mirroring `recomputeWorldMatrix`. */
@@ -47,7 +48,15 @@ export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>):
 }
 
 /** Whether the entity is a staged-move ghost rather than something really there. */
-export const isGhost = (entity: Entity): boolean => entity.targetFor(GhostOf) !== undefined
+/**
+ * Whether the entity stands in for something rather than being it: a staged-move ghost points at
+ * the entity it copies, a preview twin is a future moment of one.
+ *
+ * A preview twin needs no `GhostOf`. It sits in the hierarchy under the live frame its plan hangs
+ * off, so `armBitFor` already walks into the live chain and finds the arm that owns it.
+ */
+export const isGhost = (entity: Entity): boolean =>
+	entity.targetFor(GhostOf) !== undefined || entity.has(PreviewGhost)
 
 /**
  * Every collidable entity in the scene, paired with the group bit that decides

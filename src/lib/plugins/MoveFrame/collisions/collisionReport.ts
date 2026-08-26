@@ -5,18 +5,22 @@ import { traits } from '$lib/ecs'
 import type { CollisionReport } from './collisionStore.svelte'
 import type { CollisionPair } from './collisionWorld'
 
+import { liveFrameName } from '../previewNames'
 import { GhostOf } from '../relations'
 import { isGhost } from './collisionMembers'
 
 /**
- * What to call an entity in the panel. A ghost has no `Name` of its own, so it
- * borrows its source's — the pair reads "gripper ↔ table" whether it describes
- * where the gripper is or where it would end up, and `staged` carries the
- * difference.
+ * What to call an entity in the panel. A staged-move ghost has no `Name` of its own, so it borrows
+ * its source's: the pair reads "gripper ↔ table" whether it describes where the gripper is or where
+ * it would end up, and `staged` carries the difference.
+ *
+ * A preview twin has a real name, carrying the prefix that keeps it from colliding with the live
+ * frame it mirrors. The panel is about the machine, not about how the preview is wired, so it reads
+ * the live name.
  */
 const displayName = (entity: Entity): string => {
 	const own = entity.get(traits.Name)
-	if (own) return own
+	if (own) return liveFrameName(own)
 
 	const source = entity.targetFor(GhostOf)
 	const sourceName = source?.isAlive() ? source.get(traits.Name) : undefined

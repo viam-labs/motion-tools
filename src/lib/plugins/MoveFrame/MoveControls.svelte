@@ -24,6 +24,8 @@
 	import type { Pose } from '$lib/math'
 
 	import DetailsPanel from '$lib/components/overlay/details/DetailsPanel.svelte'
+	import { useWorld } from '$lib/ecs'
+	import { useFrames } from '$lib/hooks/useFrames.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { setOrientationFromEuler } from '$lib/math/transform'
 
@@ -52,6 +54,8 @@
 	/** The gizmo is dragged in world space, so the goal is committed against it. */
 	const WORLD_FRAME = 'world'
 
+	const world = useWorld()
+	const frames = useFrames()
 	const partID = usePartID()
 	const toast = useToast()
 	const motionResources = useResourceNames(() => partID.current, 'motion')
@@ -181,6 +185,8 @@
 	}
 
 	const preview = usePreviewMove({
+		world,
+		frames,
 		client: () => motion.current,
 		service: () => service,
 		frameName: () => frameName,
@@ -191,6 +197,9 @@
 			worldStateJson.current,
 			constraintsJson.current,
 			service,
+			// `useFrames` refetches on every config revision, and kinematics that changed underneath a
+			// drawn plan put the twins somewhere the machine never was.
+			frames.parts,
 		],
 	})
 

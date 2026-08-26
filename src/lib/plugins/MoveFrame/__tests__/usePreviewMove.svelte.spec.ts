@@ -1,12 +1,59 @@
 import type { JsonValue } from '@bufbuild/protobuf'
+import type { Entity } from 'koota'
 
+import { Struct } from '@bufbuild/protobuf'
+import { PoseInFrame, robotApi, Transform } from '@viamrobotics/sdk'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { traits } from '$lib/ecs'
+import { parsePlan } from '$lib/plugins/MotionPlanReplayer/parse-plan'
+
+import planJson from '../../MotionPlanReplayer/__tests__/__fixtures__/plan.json?raw'
 import { parseMoveOptions } from '../parseMoveOptions'
+import { liveFrameName } from '../previewNames'
+import { PreviewGhost } from '../traits'
 import {
 	createPreviewMoveHarness,
 	type PreviewMoveHarness,
 } from './__fixtures__/previewMoveHarness.svelte'
+
+const dump = parsePlan(planJson)
+
+/** A part's `kinematics` is the same `ModelConfigJSON` a dump nests under `frame.model`. */
+const kinematicsFromDump = (partName: string): Struct => {
+	const entry = dump.frames[partName]
+	if (!entry || entry.frame_type !== 'model') {
+		throw new Error(`fixture has no model frame named "${partName}"`)
+	}
+	return Struct.fromJson((entry.frame as { model: Record<string, unknown> }).model as never)
+}
+
+const part = (name: string, kinematics: Struct): robotApi.FrameSystemConfig =>
+	new robotApi.FrameSystemConfig({
+		frame: new Transform({
+			referenceFrame: name,
+			poseInObserverFrame: new PoseInFrame({
+				referenceFrame: 'world',
+				pose: { x: 0, y: 0, z: 0, oX: 0, oY: 0, oZ: 1, theta: 0 },
+			}),
+		}),
+		kinematics,
+	})
+
+const ARM = part('left-arm', kinematicsFromDump('left-arm'))
+
+/** Joints and a link, no shapes: plenty of descriptors and nothing a twin could be drawn from. */
+const SHAPELESS = part(
+	'left-arm',
+	Struct.fromJson({
+		name: 'shapeless',
+		links: [
+			{ id: 'base', parent: 'world' },
+			{ id: 'tip', parent: 'waist' },
+		],
+		joints: [{ id: 'waist', type: 'revolute', parent: 'base', axis: { X: 0, Y: 0, Z: 1 } }],
+	} as never)
+)
 
 /** Two distinct configurations, so it never reads as "already at the goal". */
 const PLAN_REPLY: JsonValue = {
@@ -15,15 +62,34 @@ const PLAN_REPLY: JsonValue = {
 
 let harness: PreviewMoveHarness | undefined
 
-const setup = () => {
-	harness = createPreviewMoveHarness()
+const setup = (parts = [ARM]) => {
+	harness = createPreviewMoveHarness(parts)
 	return harness
 }
 
 afterEach(() => {
-	harness?.dispose()
+	harness?.destroy()
 	harness = undefined
 })
+
+const twins = (h: PreviewMoveHarness) => [...h.world.query(PreviewGhost)]
+
+/** `traits.Geometry` resolves to one of these, so drawing is what having one of them means. */
+const SHAPES = [traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry] as const
+
+const draws = (entity: Entity | undefined) =>
+	entity !== undefined && SHAPES.some((shape) => entity.has(shape))
+
+const twinNames = (h: PreviewMoveHarness) =>
+	twins(h)
+		.map((entity) => entity.get(traits.Name) ?? '')
+		.toSorted()
+
+const planned = async (h: PreviewMoveHarness, reply: JsonValue = PLAN_REPLY) => {
+	const done = h.preview.requestPreview()
+	h.pending[0]!.resolve(reply)
+	await done
+}
 
 describe('a preview that resolves', () => {
 	it('arms the panel with the trajectory the planner returned', async () => {
@@ -183,7 +249,7 @@ describe('the request the panel sends', () => {
 	 * forwarded and silently dropped look identical, so no other test here can tell them apart.
 	 */
 	it('passes through the world state and constraints the panel parsed', () => {
-		harness = createPreviewMoveHarness({
+		harness = createPreviewMoveHarness([ARM], {
 			moveOptions: () =>
 				parseMoveOptions(
 					'{"obstacles":[{"referenceFrame":"world","geometries":[{"sphere":{"radiusMm":50}}]}]}',
@@ -202,5 +268,118 @@ describe('the request the panel sends', () => {
 			obstacles: [{ referenceFrame: 'world', geometries: [{ sphere: { radiusMm: 50 } }] }],
 		})
 		expect(request.constraints).toEqual({ linearConstraint: [{ lineToleranceMm: 5 }] })
+	})
+})
+
+describe('the twins a preview draws', () => {
+	/**
+	 * `left-arm` in the dump is 14 frames: `left-arm_origin` and `left-arm:base` sit above the first
+	 * joint, so the machine already has them where the plan leaves them.
+	 */
+	it('twins the frames the plan moves and leaves the ones above the first joint alone', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		expect(twins(h)).toHaveLength(12)
+		expect(twinNames(h)).not.toContain('preview:left-arm_origin')
+		expect(twinNames(h)).not.toContain('preview:left-arm:base')
+		expect(twinNames(h)).toContain('preview:left-arm:waist')
+		expect(twinNames(h)).toContain('preview:left-arm:gripper_mount')
+	})
+
+	it('hangs the chain off the live frame the plan holds still', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		const anchors = twins(h)
+			.map((entity) => entity.get(traits.Orphan))
+			.filter((parent): parent is string => parent !== undefined && !parent.startsWith('preview:'))
+
+		expect(anchors).toEqual(['left-arm:base'])
+	})
+
+	it('names every twin after the live frame it mirrors', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		const mirrored = twinNames(h).map((name) => liveFrameName(name))
+		expect(mirrored).toContain('left-arm:waist')
+		expect(mirrored.every((name) => !name.startsWith('preview:'))).toBe(true)
+	})
+
+	it('draws only the twins that carry geometry', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		const drawn = twins(h).filter((entity) => draws(entity))
+		expect(drawn).toHaveLength(6)
+	})
+
+	it('gives a joint a transform to carry and nothing to draw', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		const waist = twins(h).find((entity) => entity.get(traits.Name) === 'preview:left-arm:waist')
+		expect(waist?.has(traits.Matrix)).toBe(true)
+		expect(draws(waist)).toBe(false)
+	})
+
+	it('keeps every twin out of the selection', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		expect(twins(h).every((entity) => entity.has(traits.NonSelectable))).toBe(true)
+	})
+
+	it('drops every twin when the preview is cleared', async () => {
+		const h = setup()
+		await planned(h)
+
+		h.preview.clear()
+
+		expect(twins(h)).toHaveLength(0)
+	})
+
+	it('drops every twin when the panel unmounts', async () => {
+		const h = setup()
+		await planned(h)
+
+		h.dispose()
+
+		expect(twins(h)).toHaveLength(0)
+	})
+})
+
+describe('a hidden frame', () => {
+	it('still carries its transform, so the frames below it stay put', async () => {
+		const h = setup()
+		h.world.spawn(traits.Name('left-arm:upper_arm'), traits.Invisible)
+
+		await planned(h)
+
+		const twin = twins(h).find((entity) => entity.get(traits.Name) === 'preview:left-arm:upper_arm')
+		expect(twin?.has(traits.Matrix)).toBe(true)
+		expect(draws(twin)).toBe(false)
+	})
+})
+
+describe('a frame system with nothing to draw', () => {
+	it.each([
+		['no parts at all', [] as robotApi.FrameSystemConfig[], /no frame system/i],
+		['parts whose frames carry no geometry', [SHAPELESS], /no geometry/i],
+	])('reports %s rather than arming an empty preview', async (_label, parts, message) => {
+		const h = setup(parts)
+
+		await planned(h)
+
+		expect(h.preview.status).toBe('error')
+		expect(h.preview.message).toMatch(message)
+		expect(twins(h)).toHaveLength(0)
 	})
 })

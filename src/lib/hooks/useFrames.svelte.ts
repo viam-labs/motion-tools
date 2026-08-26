@@ -22,7 +22,7 @@ import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
-interface FramesContext {
+export interface FramesContext {
 	current: Transform[]
 	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
 	readonly kinematicsComponents: ReadonlySet<string>
