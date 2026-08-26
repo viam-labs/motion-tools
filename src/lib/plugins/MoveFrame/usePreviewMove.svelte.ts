@@ -5,16 +5,19 @@ import { untrack } from 'svelte'
 import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import { useWorld } from '$lib/ecs'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
 import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
+import { createTrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import type { MoveOptions } from './parseMoveOptions'
 import type { TrajectoryStep } from './planDoCommand'
 
 import { isAlreadyAtGoal, parsePlanResult, planCommand } from './planDoCommand'
 import {
+	applyPreviewStep,
 	clearPreviewGhosts,
 	createPreviewGhosts,
 	type PreviewGhosts,
@@ -26,6 +29,15 @@ import {
  * configuration written twice, the correct answer to "how do I get somewhere I already am".
  */
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
+
+/**
+ * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than a
+ * frame rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable.
+ */
+const PREVIEW_DURATION_MS = 4000
+
+/** Faster than this is wasted on a display. Very dense plans run longer than the target instead. */
+const MIN_FRAME_MS = 16
 
 export interface PreviewMoveOptions {
 	frames: FramesContext
@@ -58,14 +70,15 @@ export interface PreviewMove {
 	readonly trajectory: TrajectoryStep[]
 	/** How many waypoints the planner returned. */
 	readonly plannedSteps: number
+	readonly player: TrajectoryPlayer
 	/** Plans. Resolves once the answer is in hand; never rejects. */
 	requestPreview: () => Promise<void>
 	clear: () => void
 }
 
 /**
- * Ask the builtin motion service to plan a move without executing it. One instance per open move
- * panel.
+ * Ask the builtin motion service to plan a move without executing it, draw the answer, and drive a
+ * scrubber with it. One instance per open move panel.
  */
 export const usePreviewMove = ({
 	frames,
@@ -87,12 +100,31 @@ export const usePreviewMove = ({
 	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
 	const ghosts: PreviewGhosts = createPreviewGhosts()
 
+	// Playback covers `trajectory.length - 1` transitions, so that is what the duration divides.
+	const frameIntervalMs = $derived(
+		Math.max(MIN_FRAME_MS, PREVIEW_DURATION_MS / Math.max(1, trajectory.length - 1))
+	)
+
 	/**
 	 * Which request the state on screen belongs to. Bumped by every reset, so a plan that resolves
 	 * after the goal moved can tell that its answer is for a question nobody is asking any more.
 	 */
 	let generation = 0
 	let inFlight: AbortController | undefined
+
+	/** Reports whether the step was drawn; see `TrajectoryPlayerOptions.onStep`. */
+	const renderStep = (step: number): boolean => {
+		const inputs = trajectory[step]
+		if (!inputs) return false
+		applyPreviewStep(ghosts, inputs)
+		return true
+	}
+
+	const player = createTrajectoryPlayer({
+		totalSteps: () => trajectory.length,
+		onStep: renderStep,
+		intervalMs: () => frameIntervalMs,
+	})
 
 	/**
 	 * Drop everything a preview owns. The three callers (`clear`, `settle`, and the top of
@@ -107,6 +139,7 @@ export const usePreviewMove = ({
 
 		clearPreviewGhosts(ghosts)
 		trajectory = []
+		player.reset()
 	}
 
 	const clear = () => {
@@ -228,6 +261,7 @@ export const usePreviewMove = ({
 		get plannedSteps() {
 			return trajectory.length
 		},
+		player,
 		requestPreview,
 		clear,
 	}

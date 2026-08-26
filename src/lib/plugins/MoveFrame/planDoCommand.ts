@@ -68,6 +68,24 @@ export const planCommand = ({
 }
 
 /**
+ * Selects RDK's own `defaultExecuteEpsilon`: `builtin.go` reads any value at or below zero as "use
+ * the default". How far an arm may drift before its plan is stale is a property of the arm.
+ */
+const RDK_DEFAULT_EPSILON = 0
+
+/**
+ * The service's other `DoCommand` verb, absent from the motion proto for the same reason as `plan`.
+ * Runs a trajectory verbatim.
+ *
+ * Builds the `execute` command. `executeCheckStart`'s presence is the switch (`builtin.go`); omit it
+ * and epsilon is `math.MaxFloat64`, so the trajectory runs from wherever the components happen to be.
+ */
+export const executeCommand = (trajectory: TrajectoryStep[]): Record<string, JsonValue> => ({
+	execute: trajectory,
+	executeCheckStart: RDK_DEFAULT_EPSILON,
+})
+
+/**
  * `every` says yes to two degenerate shapes by default: an array is `typeof 'object'`, and
  * `Object.values({})` is vacuously fine. Finite, not merely numeric, since `typeof NaN === 'number'`.
  */

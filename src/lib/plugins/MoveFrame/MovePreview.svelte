@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { Banner, BannerVariant, Button } from '@viamrobotics/prime-core'
 
+	import TrajectoryScrubber from '$lib/components/motion/TrajectoryScrubber.svelte'
+
 	import type { PreviewMove } from './usePreviewMove.svelte'
 
 	interface Props {
 		preview: PreviewMove
+		/** The frame this previews, for labelling the controls when several panels are open. */
+		frameName: string
 		/** No goal staged, or a move already running, so there is nothing worth planning. */
 		disabled?: boolean
 	}
 
-	const { preview, disabled = false }: Props = $props()
+	const { preview, frameName, disabled = false }: Props = $props()
 
 	const planning = $derived(preview.status === 'planning')
 	const ready = $derived(preview.status === 'ready')
@@ -60,8 +64,8 @@
 				This preview is an approximation
 			{/snippet}
 			{#snippet subtitle()}
-				The arm may deviate from the planned waypoints. How it moves between them is the component's
-				decision, not the planner's.
+				Plans carry no timing, so this plays at a fixed rate. The arm may also deviate from the
+				planned waypoints: how it moves between them is the component's decision, not the planner's.
 			{/snippet}
 		</Banner>
 
@@ -71,5 +75,10 @@
 		>
 			Planned {preview.plannedSteps} waypoint{preview.plannedSteps === 1 ? '' : 's'}.
 		</p>
+
+		<TrajectoryScrubber
+			player={preview.player}
+			label="{frameName} preview"
+		/>
 	{/if}
 </div>

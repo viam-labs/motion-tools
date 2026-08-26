@@ -6,6 +6,7 @@ import { Pose } from '$lib/math'
 
 import { parseMoveOptions } from '../parseMoveOptions'
 import {
+	executeCommand,
 	isAlreadyAtGoal,
 	parsePlanResult,
 	planCommand,
@@ -106,6 +107,27 @@ describe('planCommand', () => {
 			obstacles: [{ referenceFrame: 'world', geometries: [{ sphere: { radiusMm: 50 } }] }],
 		})
 		expect(moveRequest.constraints).toEqual({ linearConstraint: [{ lineToleranceMm: 5 }] })
+	})
+})
+
+describe('executeCommand', () => {
+	const trajectory: TrajectoryStep[] = [{ 'left-arm': [0, 0.5] }, { 'left-arm': [0.1, 0.4] }]
+
+	// Against a literal, not against `trajectory` itself: the command holds the same array reference,
+	// so comparing it to its own source is a tautology any in-place reordering would survive.
+	it('sends the trajectory back verbatim', () => {
+		expect(executeCommand(trajectory).execute).toEqual([
+			{ 'left-arm': [0, 0.5] },
+			{ 'left-arm': [0.1, 0.4] },
+		])
+	})
+
+	it('arms the start-state check RDK will not run unasked', () => {
+		expect(executeCommand(trajectory)).toHaveProperty('executeCheckStart')
+	})
+
+	it('defers the tolerance to RDK rather than naming one', () => {
+		expect(executeCommand(trajectory).executeCheckStart).toBeLessThanOrEqual(0)
 	})
 })
 

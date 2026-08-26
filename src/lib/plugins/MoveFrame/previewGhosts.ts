@@ -1,7 +1,7 @@
 import { type ConfigurableTrait, type Entity, type World } from 'koota'
 import { Color } from 'three'
 
-import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+import type { FrameDescriptor, JointFrameDescriptor } from '$lib/motion/frameDescriptors'
 import type { TrajectoryStep } from '$lib/motion/jointPose'
 
 import { hierarchy, traits } from '$lib/ecs'
@@ -20,14 +20,22 @@ const PREVIEW_OPACITY = 0.35
 /** Matches `moveGhosts`: `traits.Color` is read back through `Color.setRGB`, which does not convert. */
 const ghostColor = new Color(MOVE_GHOST_COLOR)
 
+/** A joint twin and the descriptor that says where it sits at a given step. */
+interface PreviewJoint {
+	descriptor: JointFrameDescriptor
+	entity: Entity
+}
+
 export interface PreviewGhosts {
 	/** Every twin the preview owns, root-most first, which is the order teardown wants. */
 	entities: Entity[]
+	/** The twins a step rewrites. Static frames hold still for the whole scrub. */
+	joints: PreviewJoint[]
 	/** How many twins carry geometry. Zero means the preview would draw nothing at all. */
 	drawn: number
 }
 
-export const createPreviewGhosts = (): PreviewGhosts => ({ entities: [], drawn: 0 })
+export const createPreviewGhosts = (): PreviewGhosts => ({ entities: [], joints: [], drawn: 0 })
 
 /**
  * Three orders above the noise trajectory optimization leaves on a component the plan holds still
@@ -188,6 +196,23 @@ export const spawnPreviewGhosts = (
 
 		ghosts.entities.push(entity)
 		if (drawable.length > 0) ghosts.drawn += 1
+		if (descriptor.kind === 'joint') ghosts.joints.push({ descriptor, entity })
+	}
+}
+
+/**
+ * Move the preview to one step of the plan. Only the joints are rewritten, because only a joint's
+ * local pose depends on the step, and the ECS recomposes everything below each one.
+ */
+export const applyPreviewStep = (ghosts: PreviewGhosts, stepInputs: TrajectoryStep): void => {
+	for (const { descriptor, entity } of ghosts.joints) {
+		if (!entity.isAlive()) continue
+
+		const matrix = entity.get(traits.Matrix)
+		if (!matrix) continue
+
+		descriptorLocalPose(descriptor, stepInputs).toMatrix4(matrix)
+		entity.changed(traits.Matrix)
 	}
 }
 
@@ -197,5 +222,6 @@ export const clearPreviewGhosts = (ghosts: PreviewGhosts): void => {
 		if (entity.isAlive()) entity.destroy()
 	}
 	ghosts.entities.length = 0
+	ghosts.joints.length = 0
 	ghosts.drawn = 0
 }

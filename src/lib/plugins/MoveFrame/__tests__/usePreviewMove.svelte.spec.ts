@@ -85,6 +85,9 @@ const twinNames = (previewHarness: PreviewMoveHarness) =>
 		.map((entity) => entity.get(traits.Name) ?? '')
 		.toSorted()
 
+const twinNamed = (previewHarness: PreviewMoveHarness, name: string) =>
+	twins(previewHarness).find((entity) => entity.get(traits.Name) === name)
+
 const planned = async (previewHarness: PreviewMoveHarness, reply: JsonValue = PLAN_REPLY) => {
 	const done = previewHarness.preview.requestPreview()
 	previewHarness.pending[0]!.resolve(reply)
@@ -385,5 +388,52 @@ describe('a frame system with nothing to draw', () => {
 		expect(previewHarness.preview.status).toBe('error')
 		expect(previewHarness.preview.message).toMatch(message)
 		expect(twins(previewHarness)).toHaveLength(0)
+	})
+})
+
+describe('scrubbing the preview', () => {
+	it('walks one frame per configuration the planner returned', async () => {
+		const h = setup()
+
+		await planned(h)
+
+		expect(h.preview.player.totalSteps).toBe(2)
+	})
+
+	it('moves the joints and leaves the static frames where they were', async () => {
+		const h = setup()
+		await planned(h)
+		const waist = twinNamed(h, 'preview:left-arm:waist')!
+		const link = twinNamed(h, 'preview:left-arm:base_top')!
+		const waistBefore = waist.get(traits.Matrix)!.clone()
+		const linkBefore = link.get(traits.Matrix)!.clone()
+
+		h.preview.player.seek(1)
+
+		expect(waist.get(traits.Matrix)!.equals(waistBefore)).toBe(false)
+		expect(link.get(traits.Matrix)!.equals(linkBefore)).toBe(true)
+	})
+
+	it('returns to the pose it drew first when scrubbed back to the start', async () => {
+		const h = setup()
+		await planned(h)
+		const waist = twinNamed(h, 'preview:left-arm:waist')!
+		const atStart = waist.get(traits.Matrix)!.clone()
+
+		h.preview.player.seek(1)
+		h.preview.player.seek(0)
+
+		expect(waist.get(traits.Matrix)!.equals(atStart)).toBe(true)
+	})
+
+	it('parks playback when the preview is cleared', async () => {
+		const h = setup()
+		await planned(h)
+		h.preview.player.seek(1)
+
+		h.preview.clear()
+
+		expect(h.preview.player.currentStep).toBe(0)
+		expect(h.preview.player.totalSteps).toBe(0)
 	})
 })
