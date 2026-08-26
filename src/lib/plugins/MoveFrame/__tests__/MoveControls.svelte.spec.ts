@@ -99,6 +99,15 @@ describe('MoveControls', () => {
 		expect(screen.getByRole('combobox')).toHaveValue('planner')
 	})
 
+	it('offers the preview action alongside the move it previews', () => {
+		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
+
+		expect(screen.getByRole('button', { name: /preview move/i })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: /execute move/i })).toBeInTheDocument()
+	})
+
 	it('waits for the frame pose before offering the pose inputs', () => {
 		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
 
