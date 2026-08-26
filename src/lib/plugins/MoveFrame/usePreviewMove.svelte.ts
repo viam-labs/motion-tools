@@ -1,8 +1,3 @@
-/**
- * Ask the builtin motion service to plan a move without executing it. One instance per open move
- * panel.
- */
-
 import type { MotionClient } from '@viamrobotics/sdk'
 
 import { untrack } from 'svelte'
@@ -55,6 +50,10 @@ export interface PreviewMove {
 	clear: () => void
 }
 
+/**
+ * Ask the builtin motion service to plan a move without executing it. One instance per open move
+ * panel.
+ */
 export const usePreviewMove = ({
 	client,
 	service,

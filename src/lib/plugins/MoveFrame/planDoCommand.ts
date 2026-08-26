@@ -1,8 +1,3 @@
-/**
- * The builtin motion service's `plan` verb, absent from the motion proto and so from any generated
- * client. It takes a protojson `MoveRequest` string and answers with a trajectory.
- */
-
 import type { JsonValue } from '@bufbuild/protobuf'
 
 import { Constraints, WorldState } from '@viamrobotics/sdk'
@@ -26,6 +21,9 @@ export interface PlanRequest {
 }
 
 /**
+ * The builtin motion service's `plan` verb, absent from the motion proto and so from any generated
+ * client.
+ *
  * RDK `protojson.Unmarshal`s the string, so the payload uses protojson field names
  * (`componentName`, `oX`/`oY`/`oZ`) and the message's own units: millimeters, `theta` in degrees.
  */
@@ -152,8 +150,8 @@ const describeMalformedTrajectory = (value: unknown): string => {
 }
 
 export class PlanCommandError extends Error {
-	constructor(message: string) {
-		super(message)
+	constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 		this.name = 'PlanCommandError'
 	}
 }
@@ -194,17 +192,18 @@ export const parsePlanResult = (value: JsonValue): PlanResult => {
 	return { trajectory }
 }
 
-const sameInputs = (a: TrajectoryStep, b: TrajectoryStep): boolean => {
-	const names = Object.keys(a)
-	if (names.length !== Object.keys(b).length) return false
+const sameInputs = (firstStep: TrajectoryStep, secondStep: TrajectoryStep): boolean => {
+	const names = Object.keys(firstStep)
+	if (names.length !== Object.keys(secondStep).length) return false
 
 	return names.every((name) => {
-		// `hasOwn` rather than testing `b[name]`: a plain index reads through to `Object.prototype`, so
-		// a component named `toString` matched a member function whose `length` happens to be 0.
-		if (!Object.hasOwn(b, name)) return false
+		// `hasOwn` rather than testing `secondStep[name]`: a plain index reads through to
+		// `Object.prototype`, so a component named `toString` matched a member function whose
+		// `length` happens to be 0.
+		if (!Object.hasOwn(secondStep, name)) return false
 
-		const left = a[name]
-		const right = b[name]
+		const left = firstStep[name]
+		const right = secondStep[name]
 		return (
 			left !== undefined &&
 			right !== undefined &&

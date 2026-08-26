@@ -1,8 +1,3 @@
-/**
- * `usePreviewMove` owns `$state` and two `$effect`s, and runes only compile in a `.svelte.ts` file,
- * so the reactive scaffolding lives here and the assertions stay in the spec.
- */
-
 import type { JsonValue } from '@bufbuild/protobuf'
 import type { MotionClient } from '@viamrobotics/sdk'
 
@@ -37,6 +32,10 @@ export interface PreviewMoveHarness {
 	dispose: () => void
 }
 
+/**
+ * `usePreviewMove` owns `$state` and two `$effect`s, and runes only compile in a `.svelte.ts` file,
+ * so the reactive scaffolding lives here and the assertions stay in the spec.
+ */
 export const createPreviewMoveHarness = (
 	options: { moveOptions?: () => MoveOptions } = {}
 ): PreviewMoveHarness => {
