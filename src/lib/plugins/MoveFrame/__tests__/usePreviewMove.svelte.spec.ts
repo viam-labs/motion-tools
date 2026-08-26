@@ -72,7 +72,7 @@ afterEach(() => {
 	harness = undefined
 })
 
-const twins = (h: PreviewMoveHarness) => [...h.world.query(PreviewGhost)]
+const twins = (previewHarness: PreviewMoveHarness) => [...previewHarness.world.query(PreviewGhost)]
 
 /** `traits.Geometry` resolves to one of these, so drawing is what having one of them means. */
 const SHAPES = [traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry] as const
@@ -80,14 +80,14 @@ const SHAPES = [traits.Box, traits.Capsule, traits.Sphere, traits.BufferGeometry
 const draws = (entity: Entity | undefined) =>
 	entity !== undefined && SHAPES.some((shape) => entity.has(shape))
 
-const twinNames = (h: PreviewMoveHarness) =>
-	twins(h)
+const twinNames = (previewHarness: PreviewMoveHarness) =>
+	twins(previewHarness)
 		.map((entity) => entity.get(traits.Name) ?? '')
 		.toSorted()
 
-const planned = async (h: PreviewMoveHarness, reply: JsonValue = PLAN_REPLY) => {
-	const done = h.preview.requestPreview()
-	h.pending[0]!.resolve(reply)
+const planned = async (previewHarness: PreviewMoveHarness, reply: JsonValue = PLAN_REPLY) => {
+	const done = previewHarness.preview.requestPreview()
+	previewHarness.pending[0]!.resolve(reply)
 	await done
 }
 
@@ -277,23 +277,23 @@ describe('the twins a preview draws', () => {
 	 * joint, so the machine already has them where the plan leaves them.
 	 */
 	it('twins the frames the plan moves and leaves the ones above the first joint alone', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		expect(twins(h)).toHaveLength(12)
-		expect(twinNames(h)).not.toContain('preview:left-arm_origin')
-		expect(twinNames(h)).not.toContain('preview:left-arm:base')
-		expect(twinNames(h)).toContain('preview:left-arm:waist')
-		expect(twinNames(h)).toContain('preview:left-arm:gripper_mount')
+		expect(twins(previewHarness)).toHaveLength(12)
+		expect(twinNames(previewHarness)).not.toContain('preview:left-arm_origin')
+		expect(twinNames(previewHarness)).not.toContain('preview:left-arm:base')
+		expect(twinNames(previewHarness)).toContain('preview:left-arm:waist')
+		expect(twinNames(previewHarness)).toContain('preview:left-arm:gripper_mount')
 	})
 
 	it('hangs the chain off the live frame the plan holds still', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		const anchors = twins(h)
+		const anchors = twins(previewHarness)
 			.map((entity) => entity.get(traits.Orphan))
 			.filter((parent): parent is string => parent !== undefined && !parent.startsWith('preview:'))
 
@@ -301,69 +301,73 @@ describe('the twins a preview draws', () => {
 	})
 
 	it('names every twin after the live frame it mirrors', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		const mirrored = twinNames(h).map((name) => liveFrameName(name))
+		const mirrored = twinNames(previewHarness).map((name) => liveFrameName(name))
 		expect(mirrored).toContain('left-arm:waist')
 		expect(mirrored.every((name) => !name.startsWith('preview:'))).toBe(true)
 	})
 
 	it('draws only the twins that carry geometry', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		const drawn = twins(h).filter((entity) => draws(entity))
+		const drawn = twins(previewHarness).filter((entity) => draws(entity))
 		expect(drawn).toHaveLength(6)
 	})
 
 	it('gives a joint a transform to carry and nothing to draw', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		const waist = twins(h).find((entity) => entity.get(traits.Name) === 'preview:left-arm:waist')
+		const waist = twins(previewHarness).find(
+			(entity) => entity.get(traits.Name) === 'preview:left-arm:waist'
+		)
 		expect(waist?.has(traits.Matrix)).toBe(true)
 		expect(draws(waist)).toBe(false)
 	})
 
 	it('keeps every twin out of the selection', async () => {
-		const h = setup()
+		const previewHarness = setup()
 
-		await planned(h)
+		await planned(previewHarness)
 
-		expect(twins(h).every((entity) => entity.has(traits.NonSelectable))).toBe(true)
+		expect(twins(previewHarness).every((entity) => entity.has(traits.NonSelectable))).toBe(true)
 	})
 
 	it('drops every twin when the preview is cleared', async () => {
-		const h = setup()
-		await planned(h)
+		const previewHarness = setup()
+		await planned(previewHarness)
 
-		h.preview.clear()
+		previewHarness.preview.clear()
 
-		expect(twins(h)).toHaveLength(0)
+		expect(twins(previewHarness)).toHaveLength(0)
 	})
 
 	it('drops every twin when the panel unmounts', async () => {
-		const h = setup()
-		await planned(h)
+		const previewHarness = setup()
+		await planned(previewHarness)
 
-		h.dispose()
+		previewHarness.dispose()
 
-		expect(twins(h)).toHaveLength(0)
+		expect(twins(previewHarness)).toHaveLength(0)
 	})
 })
 
 describe('a hidden frame', () => {
 	it('still carries its transform, so the frames below it stay put', async () => {
-		const h = setup()
-		h.world.spawn(traits.Name('left-arm:upper_arm'), traits.Invisible)
+		const previewHarness = setup()
+		previewHarness.world.spawn(traits.Name('left-arm:upper_arm'), traits.Invisible)
 
-		await planned(h)
+		await planned(previewHarness)
 
-		const twin = twins(h).find((entity) => entity.get(traits.Name) === 'preview:left-arm:upper_arm')
+		const twin = twins(previewHarness).find(
+			(entity) => entity.get(traits.Name) === 'preview:left-arm:upper_arm'
+		)
 		expect(twin?.has(traits.Matrix)).toBe(true)
 		expect(draws(twin)).toBe(false)
 	})
@@ -374,12 +378,12 @@ describe('a frame system with nothing to draw', () => {
 		['no parts at all', [] as robotApi.FrameSystemConfig[], /no frame system/i],
 		['parts whose frames carry no geometry', [SHAPELESS], /no geometry/i],
 	])('reports %s rather than arming an empty preview', async (_label, parts, message) => {
-		const h = setup(parts)
+		const previewHarness = setup(parts)
 
-		await planned(h)
+		await planned(previewHarness)
 
-		expect(h.preview.status).toBe('error')
-		expect(h.preview.message).toMatch(message)
-		expect(twins(h)).toHaveLength(0)
+		expect(previewHarness.preview.status).toBe('error')
+		expect(previewHarness.preview.message).toMatch(message)
+		expect(twins(previewHarness)).toHaveLength(0)
 	})
 })

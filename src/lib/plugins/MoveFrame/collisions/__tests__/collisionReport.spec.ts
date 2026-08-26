@@ -71,6 +71,10 @@ describe('toReports', () => {
 		const ghost = stagedGhost(gone)
 		gone.destroy()
 
-		expect(toReports([{ a: ghost, b: live('table') }])[0]?.a).toBe('table')
+		// Destroying the source drops the `GhostOf` relation with it, so `isGhost` reads false here and
+		// the pair reports as live. The placeholder name is what this test pins.
+		expect(toReports([{ a: ghost, b: live('table') }])).toEqual([
+			{ a: 'table', b: 'unnamed', staged: false },
+		])
 	})
 })

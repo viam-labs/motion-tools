@@ -47,7 +47,6 @@ export const armBitFor = (entity: Entity, armBits: ReadonlyMap<string, number>):
 	return ENVIRONMENT_BIT
 }
 
-/** Whether the entity is a staged-move ghost rather than something really there. */
 /**
  * Whether the entity stands in for something rather than being it: a staged-move ghost points at
  * the entity it copies, a preview twin is a future moment of one.

@@ -1,11 +1,3 @@
-/**
- * A previewed plan drawn as a ghost twin of every frame it moves, laid over the live machine rather
- * than replacing it: the real arm is not moving, and animating its frames would say otherwise.
- *
- * The twins are ordinary frames. They carry a `Name`, a parent and a local `Matrix`, so the ECS
- * composes their world matrices the same way it does the live ones.
- */
-
 import { type ConfigurableTrait, type Entity, type World } from 'koota'
 import { Color } from 'three'
 
@@ -47,7 +39,7 @@ const MOTION_TOLERANCE = 1e-6
  * The components whose joint values actually change over the plan. RDK answers with a column for
  * every component in the frame system, not just the ones it moved.
  */
-export const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<string> => {
+const movingComponents = (trajectory: readonly TrajectoryStep[]): Set<string> => {
 	const moving = new Set<string>()
 	const [first] = trajectory
 	if (!first) return moving
@@ -134,6 +126,15 @@ const hiddenFrameNames = (world: World): Set<string> => {
  * Every frame the plan moves gets a twin, not only the ones that draw. A joint and a geometry-less
  * mount carry a transform the frames below them compose against, so leaving them out would strand
  * everything under them at the wrong pose.
+ *
+ * A previewed plan drawn as a ghost twin of every frame it moves, laid over the live machine rather
+ * than replacing it: the real arm is not moving, and animating its frames would say otherwise. The
+ * twins are ordinary frames. They carry a `Name`, a parent and a local `Matrix`, so the ECS
+ * composes their world matrices the same way it does the live ones, and a step only has to rewrite
+ * the joints.
+ *
+ * That frame is one this plan holds still, so wherever the machine has it is where the preview
+ * should hang, and hiding or moving it carries the whole preview along.
  */
 export const spawnPreviewGhosts = (
 	world: World,
@@ -159,8 +160,7 @@ export const spawnPreviewGhosts = (
 		if (!previewed.has(descriptor.name)) continue
 
 		// The prefix stops at the edge of the previewed set, so the topmost twins parent to the live
-		// frame they branch from. That frame is one this plan holds still, so wherever the machine has
-		// it is where the preview should hang, and hiding or moving it carries the whole preview along.
+		// frame they branch from.
 		const parent = previewed.has(descriptor.parent)
 			? previewName(descriptor.parent)
 			: descriptor.parent
