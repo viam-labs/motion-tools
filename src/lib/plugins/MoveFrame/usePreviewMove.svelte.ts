@@ -1,5 +1,4 @@
 import type { MotionClient } from '@viamrobotics/sdk'
-import type { World } from 'koota'
 
 import { untrack } from 'svelte'
 
@@ -7,6 +6,7 @@ import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
 
+import { useWorld } from '$lib/ecs'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
 import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
 
@@ -28,11 +28,6 @@ import {
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 export interface PreviewMoveOptions {
-	/**
-	 * Passed in rather than read off Svelte context, so a spec can drive this hook with a bare world
-	 * and a fixed frame system and no component mounted.
-	 */
-	world: World
 	frames: FramesContext
 	client: () => MotionClient | undefined
 	/** The motion service's resource name; the request names it, and only builtin answers. */
@@ -73,7 +68,6 @@ export interface PreviewMove {
  * panel.
  */
 export const usePreviewMove = ({
-	world,
 	frames,
 	client,
 	service,
@@ -82,6 +76,8 @@ export const usePreviewMove = ({
 	moveOptions,
 	invalidateOn,
 }: PreviewMoveOptions): PreviewMove => {
+	const world = useWorld()
+
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
 	// Raw: replaced wholesale rather than mutated, so the deep proxy would go unused.

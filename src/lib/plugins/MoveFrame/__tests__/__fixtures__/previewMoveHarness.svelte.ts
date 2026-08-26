@@ -1,8 +1,8 @@
 import type { JsonValue } from '@bufbuild/protobuf'
 import type { MotionClient, robotApi } from '@viamrobotics/sdk'
+import type { World } from 'koota'
 
-import { createWorld, type World } from 'koota'
-import { flushSync } from 'svelte'
+import { flushSync, mount, unmount } from 'svelte'
 
 import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 
@@ -11,7 +11,7 @@ import { Pose } from '$lib/math'
 import type { MoveOptions } from '../../parseMoveOptions'
 import type { PreviewMove } from '../../usePreviewMove.svelte'
 
-import { usePreviewMove } from '../../usePreviewMove.svelte'
+import PreviewMoveHost from './PreviewMoveHost.svelte'
 
 /** One `doCommand` the harness is holding open, so a spec decides when — and whether — it answers. */
 export interface PendingCommand {
@@ -47,14 +47,14 @@ export interface PreviewMoveHarness {
 }
 
 /**
- * `usePreviewMove` owns `$state` and two `$effect`s, and runes only compile in a `.svelte.ts` file,
- * so the reactive scaffolding lives here and the assertions stay in the spec.
+ * Mounts {@link PreviewMoveHost}, which is a component because `usePreviewMove` reads the world
+ * off Svelte context. The inputs a spec drives are runes, which only compile in a `.svelte.ts`
+ * file, so they live here and the assertions stay in the spec.
  */
 export const createPreviewMoveHarness = (
 	initialParts: robotApi.FrameSystemConfig[] = [],
 	options: { moveOptions?: () => MoveOptions } = {}
 ): PreviewMoveHarness => {
-	const world = createWorld()
 	const pending: PendingCommand[] = []
 
 	let key = $state(0)
@@ -86,9 +86,15 @@ export const createPreviewMoveHarness = (
 	}
 
 	let preview!: PreviewMove
-	const stopRoot = $effect.root(() => {
-		preview = usePreviewMove({
-			world,
+	let world!: World
+
+	// A real element, because `mount` needs one and an unattached node is not what production does.
+	const target = document.createElement('div')
+	document.body.append(target)
+
+	const component = mount(PreviewMoveHost, {
+		target,
+		props: {
 			frames,
 			client: () => client,
 			service: () => 'builtin',
@@ -97,7 +103,11 @@ export const createPreviewMoveHarness = (
 			moveOptions:
 				options.moveOptions ?? (() => ({ worldState: undefined, constraints: undefined })),
 			invalidateOn: () => key,
-		})
+			onReady: (nextPreview: PreviewMove, nextWorld: World) => {
+				preview = nextPreview
+				world = nextWorld
+			},
+		},
 	})
 
 	flushSync()
@@ -106,7 +116,8 @@ export const createPreviewMoveHarness = (
 	const dispose = () => {
 		if (disposed) return
 		disposed = true
-		stopRoot()
+		unmount(component)
+		target.remove()
 	}
 
 	return {
