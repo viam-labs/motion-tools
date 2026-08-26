@@ -1,6 +1,6 @@
 ---
 name: pr-description
-description: Write the pull request description for a change: a pasteable markdown body with an opening paragraph, one section per layer touched, an optional Why, and Testing last. Use before opening or updating a PR, or when asked for a PR body, PR summary, or gh pr create text.
+description: Write the pull request description for a change as a pasteable markdown body. Use before opening or updating a PR, or when asked for a PR body, PR summary, or gh pr create text.
 argument-hint: [base-branch]
 allowed-tools: Bash(git diff:*), Bash(git log:*), Bash(git status:*), Bash(node .claude/scripts/pr-description-lint.mjs:*), Read, Glob, Grep
 ---

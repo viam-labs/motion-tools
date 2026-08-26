@@ -30,6 +30,10 @@
     {
       "name": "@houserules/plugin-design",
       "alias": "design"
+    },
+    {
+      "name": "@houserules/plugin-accessibility",
+      "alias": "accessibility"
     }
   ],
   "fix": {
@@ -114,6 +118,10 @@
       "typescript",
       "svelte",
       "3d"
+    ],
+    "accessibility/accessibility": [
+      "html",
+      "svelte"
     ]
   }
 }

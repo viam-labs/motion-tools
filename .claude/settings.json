@@ -14,7 +14,9 @@
 			"Bash(node .claude/scripts/test-layout.mjs:*)",
 			"Bash(node .claude/scripts/test-config.mjs:*)",
 			"Bash(node .claude/scripts/changeset-write.mjs:*)",
-			"Bash(node .claude/scripts/design.mjs:*)"
+			"Bash(node .claude/scripts/design.mjs:*)",
+			"Bash(node .claude/scripts/wcag.mjs:*)",
+			"Bash(node .claude/scripts/a11y-markup.mjs:*)"
 		]
 	},
 	"hooks": {
@@ -86,6 +88,10 @@
 					{
 						"type": "command",
 						"command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/scripts/session-context.mjs\" ] && exec node \"$CLAUDE_PROJECT_DIR/.claude/scripts/session-context.mjs\" || { echo \"[houserules] session-context.mjs missing. Run: npx houserules update\" >&2; exit 1; }"
+					},
+					{
+						"type": "command",
+						"command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/scripts/debug-session-check.mjs\" ] && exec node \"$CLAUDE_PROJECT_DIR/.claude/scripts/debug-session-check.mjs\" || { echo \"[houserules] debug-session-check.mjs missing. Run: npx houserules update\" >&2; exit 1; }"
 					}
 				]
 			}
@@ -101,5 +107,9 @@
 				]
 			}
 		]
+	},
+	"statusLine": {
+		"type": "command",
+		"command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/scripts/statusline.mjs\" ] && exec node \"$CLAUDE_PROJECT_DIR/.claude/scripts/statusline.mjs\" || { echo \"[houserules] statusline.mjs missing. Run: npx houserules update\" >&2; exit 1; }"
 	}
 }

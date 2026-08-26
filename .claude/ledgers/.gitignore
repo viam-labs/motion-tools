@@ -1,6 +1,0 @@
-# This whole directory is local. GitHub Projects is the durable record, the .jsonl
-# ledgers here are a push queue drained by `projects-sync.mjs push`, and the .md
-# files are a rendered view. The .gitignore itself stays tracked so this rule
-# travels with a clone.
-*
-!.gitignore

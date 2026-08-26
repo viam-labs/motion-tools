@@ -1,6 +1,6 @@
 ---
 name: blast-radius
-description: Map a change's blast radius once and archive a dated impact map to .claude/plans/, with per-file consumers and a completeness self-audit. Use before a wide or risky change.
+description: Map a change's blast radius once and archive a dated impact map to .claude/plans/. Use before a wide or risky change.
 argument-hint: <the change / symbol / module whose impact to map>
 allowed-tools: Bash, Read, Grep, Glob, Agent, Write
 ---
@@ -16,18 +16,21 @@ file instead of re-fanning the whole survey.
 Identify the exact thing changing: the exported symbol(s), file(s), route, config key, or schema.
 Get the concrete names to search for. A blast-radius map is only as good as the seeds you fan out on.
 
-## 2. Fan out read-only explorers — once, in one message
+## 2. Fan out read-only mappers — once, in one message
 
-Dispatch parallel read-only `Agent`/Explore calls, one per search angle, so no single agent holds the
-whole picture and you don't serialize the survey:
+Dispatch one `blast-radius-mapper` agent per search angle, in parallel, so no single agent holds the
+whole picture and you don't serialize the survey. The agent definition pins the sonnet model, the
+read-only toolset, and the report format, so a brief carries only the surface and its one angle:
 
 - **by symbol:** direct importers and callers of each changed export.
 - **by string:** config keys, route paths, feature flags, magic strings the change renames or removes.
 - **by contract:** types, enums, and interfaces the change alters, and their structural consumers.
 - **by boundary:** cross-package edges, such as a monorepo dependent that imports the changed package.
 
-Each explorer returns a compact list of `file:line → how it consumes the surface → risk if it breaks`.
-They are read-only. They map, they don't edit.
+Each mapper returns a compact list of `file:line → how it consumes the surface → risk if it breaks`,
+plus a coverage note. When the `blast-radius-mapper` agent is not installed, fall back to read-only
+`Agent`/Explore calls with `model: "sonnet"` passed on each. Mapping consumers is search-and-report
+work, and inheriting a premium session model multiplies the survey's cost without widening it.
 
 ## 3. Write the dated artifact
 
