@@ -48,7 +48,11 @@ export const planDropper = async ({
 		const snapshots = parsedPlanToSnapshots(plan)
 		return { success: true, name, content, snapshots, stepCount: snapshots.length }
 	} catch (error) {
-		const message = error instanceof PlanParseError ? error.message : `"${label}" failed to parse.`
-		return { success: false, error: new FileDropperError(message) }
+		// The name stays in front of the reason: it is what tells several dropped files apart.
+		const message =
+			error instanceof PlanParseError
+				? `"${label}" could not be read: ${error.message}`
+				: `"${label}" failed to parse.`
+		return { success: false, error: new FileDropperError(message, { cause: error }) }
 	}
 }

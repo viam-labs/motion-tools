@@ -42,8 +42,8 @@ export type ObstaclesInWorldFrame = z.infer<typeof ObstaclesInWorldFrameSchema>
 type RawFrame = z.infer<typeof RawFrameSchema>
 
 export class PlanParseError extends Error {
-	constructor(message: string) {
-		super(message)
+	constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 		this.name = 'PlanParseError'
 	}
 }
