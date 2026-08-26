@@ -87,8 +87,9 @@ rustdoc in Rust.
   files. Split it and name each one after the section it replaced.
 - **No commented-out code.** Delete it. Version control remembers it, and nobody left reading
   it knows whether it still works.
-- **No bare `TODO`.** A TODO with no ticket, issue, or backlog ID is permanent. Reference where
-  the work is tracked, or do not leave the marker.
+- **No bare `TODO`.** A TODO that names no tracker is permanent. Reference the ticket or issue
+  where the work is tracked, or do not leave the marker. Never reference a ledger id. Committed
+  text is public, and the id resolves only against the local ledger.
 
 ## Examples
 

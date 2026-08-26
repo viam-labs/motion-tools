@@ -14,7 +14,7 @@ components consume what it exports, never rebuild it declaratively.
 
 ## Check the upstream docs before writing an unfamiliar API
 
-Three.js, Threlte, and React Three Fiber all publish their documentation in `llms.txt` form. The
+Three.js and its framework bindings publish their documentation in `llms.txt` form. The
 URLs are in `../reference/three-upstream-docs.md`. Fetch the relevant one rather than recalling a
 signature, since much of the Three.js material on the web predates the current API.
 

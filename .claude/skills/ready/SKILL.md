@@ -31,6 +31,9 @@ houserules' Stop hooks already enforce the auto-fix and changeset-nudge on every
 
 ## 4. Backlog resolved-but-not-removed (the novel check)
 
+If `.claude/scripts/backlog-log.mjs` is absent, no backlog module is installed and there is no
+ledger to ask. Skip this check and say backlog was not checked.
+
 A backlog item you _fixed_ during this work must be _removed_ from its ledger. A resolved item left
 open misleads the next session. Detect it:
 

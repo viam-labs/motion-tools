@@ -80,29 +80,32 @@ importers:
         specifier: ^5.2.10
         version: 5.2.10
       '@houserules/cli':
-        specifier: ^0.2.1
-        version: 0.2.1
-      '@houserules/plugin-changesets':
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@houserules/plugin-accessibility':
         specifier: ^0.1.3
-        version: 0.1.3(@houserules/api@0.2.0)
+        version: 0.1.3(@houserules/api@0.3.2)
+      '@houserules/plugin-changesets':
+        specifier: ^0.2.2
+        version: 0.2.2(@houserules/api@0.3.2)
       '@houserules/plugin-design':
-        specifier: ^0.1.1
-        version: 0.1.1(@houserules/api@0.2.0)
+        specifier: ^0.2.2
+        version: 0.2.2(@houserules/api@0.3.2)
       '@houserules/plugin-prose':
-        specifier: ^0.1.2
-        version: 0.1.2(@houserules/api@0.2.0)
+        specifier: ^0.1.4
+        version: 0.1.4(@houserules/api@0.3.2)
       '@houserules/plugin-svelte':
-        specifier: ^0.1.1
-        version: 0.1.1(@houserules/api@0.2.0)
+        specifier: ^0.1.2
+        version: 0.1.2(@houserules/api@0.3.2)
       '@houserules/plugin-testing':
-        specifier: ^0.2.0
-        version: 0.2.0(@houserules/api@0.2.0)
+        specifier: ^0.2.1
+        version: 0.2.1(@houserules/api@0.3.2)
       '@houserules/plugin-three':
-        specifier: ^0.1.1
-        version: 0.1.1(@houserules/api@0.2.0)
+        specifier: ^0.2.1
+        version: 0.2.1(@houserules/api@0.3.2)
       '@houserules/plugin-typescript':
-        specifier: ^0.1.1
-        version: 0.1.1(@houserules/api@0.2.0)
+        specifier: ^0.1.2
+        version: 0.1.2(@houserules/api@0.3.2)
       '@langchain/anthropic':
         specifier: ^1.4.0
         version: 1.4.0(@langchain/core@1.1.48(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0))
@@ -127,6 +130,9 @@ importers:
       '@tailwindcss/forms':
         specifier: 0.5.10
         version: 0.5.10(tailwindcss@4.3.1)
+      '@tailwindcss/oxide':
+        specifier: 4.3.1
+        version: 4.3.1
       '@tailwindcss/vite':
         specifier: 4.3.1
         version: 4.3.1(vite@8.1.0(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.20.5)(yaml@2.8.1))
@@ -1073,57 +1079,63 @@ packages:
   '@fontsource-variable/space-grotesk@5.2.10':
     resolution: {integrity: sha512-yJQO/o35/hAP3CFnpdFTwQku2yzJOae2HIpBmqkOVoxhhXJaQP3g+b6Jrz7u+eI7A5ZdCIf88uMWpBJdFiGr5w==}
 
-  '@houserules/api@0.2.0':
-    resolution: {integrity: sha512-qeLELSwfD0b81Oa6NxXeBKGc1wBBT2Dv7v2Dxd5oO6gtIAxFAgNJhKUR00nlhvv+a9OgFI/Almlti7uUx4bNvw==}
+  '@houserules/api@0.3.2':
+    resolution: {integrity: sha512-GH+nx51QNBLGJe7Ig6dAQST0q2LRATTrCNqkTwEFoIH21SwRnqS8taQSl3kTowtL9S+JXC3kgwvwh/IZjNCrzw==}
     engines: {node: '>=22'}
 
-  '@houserules/cli@0.2.1':
-    resolution: {integrity: sha512-XFojyyFj3iyJC7prZQwDKh63f96fwwO+R4eTYYJXvqMjSaxKpPAWnXNtboMQHysoOzZKPp3IolwObcSZnfi/lA==}
+  '@houserules/cli@0.4.1':
+    resolution: {integrity: sha512-ij+S4yK8yTnkBPbgWM4bDGNmjBOSFRs3+wweeNqQQ4K2FvFNS1W1kFuQewWn9HwsvVo2uz/DTnBjNIRKxG89Dw==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@houserules/payload@0.2.0':
-    resolution: {integrity: sha512-Xh5Nag0XHH4fuIP9LipNee6ph0vPxeCFWcd4Wdwr4/oME01NzMf5/neox/q7wc48eVp78IgLt0FmCuj2CuEK8A==}
+  '@houserules/payload@0.2.2':
+    resolution: {integrity: sha512-t/0hKmoExR7WolGLE17urZauqIT3b34LbzkWOCNooiPH65d27J1/QGpf0wU74jpbHJc41LbaceUvjm6AavHDxQ==}
     engines: {node: '>=22'}
 
-  '@houserules/plugin-changesets@0.1.3':
-    resolution: {integrity: sha512-I/UTbanQBOuppo3/n0DinsLc0LN2gAJO4glmrgUoBcA4JUuRFDJG/mb9ZEHAFHnH5dOk5qO5LTR5vTY307+6Ug==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      '@houserules/api': '>=0.0.0 <1.0.0'
-
-  '@houserules/plugin-design@0.1.1':
-    resolution: {integrity: sha512-Fmo6cDdccxI+FrwSrkc8iKKU3V+tA0dzVOSdhcvqnJrzi7qc4EVgcVQRpnDNMdqbg1xZghoJ15W9cCQj0aEB3w==}
+  '@houserules/plugin-accessibility@0.1.3':
+    resolution: {integrity: sha512-bQe03a5HdkPLIIG2omDiUukrtR0bznmuvliidTy9SRMitvf78/+ylamg1HRqCDVnIvq2uH9Q0iqLmEtalE2Zeg==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
 
-  '@houserules/plugin-prose@0.1.2':
-    resolution: {integrity: sha512-aTbpPEAOIpp3qr6OUaehrHaLzdmlEZN3BZ4JXuvziA2isqO5WpSm4Aijs7X4GUbTyCaSLFzRpuytHVNFGMtE9A==}
+  '@houserules/plugin-changesets@0.2.2':
+    resolution: {integrity: sha512-b1k4hPNNGMn31z4PbHNelxYg+4ZUJmLYbrBncGDtVOT414YmB469U3DzIqucbH52OjBoG3M3/ysqD2rFH0QVXA==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
 
-  '@houserules/plugin-svelte@0.1.1':
-    resolution: {integrity: sha512-bNasWBaM5oOgbMSuiGvvMHIatVxHHtsEhje0yofKgKEQNcKV5pVztqRttTKj3BnTxkM8FYQdehcRbVHq0j2Cog==}
+  '@houserules/plugin-design@0.2.2':
+    resolution: {integrity: sha512-cyWKT5f6MxRk/QizN1QpxoEXsoiczU8vgE0lEJvdKZzv4158HzVonXIhBjq8ik6uFjEwwGxhHKr5D9L7NNBOFA==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
 
-  '@houserules/plugin-testing@0.2.0':
-    resolution: {integrity: sha512-I4fSweg65o+Ay/huuwP/bMyv63x78ic2PIlPZ5IHOa6eY0frF2yEtid1+G0YKLyEwvGL/gDJ0DdVow+Wv45PEg==}
+  '@houserules/plugin-prose@0.1.4':
+    resolution: {integrity: sha512-ru+/3kSu8DwlvSkdT67DVIdBHYKeiOEBlWts81UPw0lyNJH2XwfiE/HXXHD2SzNDcZCr5m6MCsio3rb7y+YGYQ==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
 
-  '@houserules/plugin-three@0.1.1':
-    resolution: {integrity: sha512-xVsZ5P26RZca372bM6X+51KllkZvJION/47Hlozsx7ZTtvD+KD4F0yPD97LYQ/ft0oRSBUBxMvKo2EMn1Occ6w==}
+  '@houserules/plugin-svelte@0.1.2':
+    resolution: {integrity: sha512-x2kE5X3jZhFX3OpGPzzaGL2yefCaZHv9RvSKAKiQ3PTBQyinNakqRdnF4himq/W5tqvE+2T4hqPjMyWcMbbPYA==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
 
-  '@houserules/plugin-typescript@0.1.1':
-    resolution: {integrity: sha512-BOJd9Z/EmNWHbsKqED4fWu9V9A75r44IUN5Tf8U8XUO5bREdKTZf+Gt5k3UzTW1On1ZAkqNe61dEaFUpOwVq6A==}
+  '@houserules/plugin-testing@0.2.1':
+    resolution: {integrity: sha512-IvmcJ+qHBKTWLGun2FV03+6heSPt1AOH2Zjn2iDYbNUulH5bTSkZwoU2UH3mNjxfn+slgjWgNqyQagdXtnPLgQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-three@0.2.1':
+    resolution: {integrity: sha512-nidpahtj3QWUySHWZqSmBowwOEdGp9Lc3qVcoFQrDnp5PHUFuTwWYnlYYWdObPRLAvBhCkFtUF+t0MHi3JpXIw==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@houserules/api': '>=0.0.0 <1.0.0'
+
+  '@houserules/plugin-typescript@0.1.2':
+    resolution: {integrity: sha512-xiyYqAxRexh9YoJceaDEv2/PizW/eg3lzlpy/xlx2k/2NsfYgDHm+6GOfY57JbHloDGruYuK7PWfYOKsPBfNBg==}
     engines: {node: '>=22'}
     peerDependencies:
       '@houserules/api': '>=0.0.0 <1.0.0'
@@ -3382,8 +3394,8 @@ packages:
       react:
         optional: true
 
-  langsmith@0.8.7:
-    resolution: {integrity: sha512-QWcc7JwmGy+sPRJwqCf9xLiiSIhwc/i7oVwjQezkx6UzyFlokME3Wxy80qKqirTyJvWG1S9ylqtxBDpFRpas5g==}
+  langsmith@0.9.0:
+    resolution: {integrity: sha512-tlg/aG7qezAKY6G3fgADSX7PkRj+JKoF3z7QNkCMsAOvwvuzhiwP9Amn1Z+zAIxuKoWuXQdIjtFN0LVmUC1oUQ==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -5409,52 +5421,56 @@ snapshots:
 
   '@fontsource-variable/space-grotesk@5.2.10': {}
 
-  '@houserules/api@0.2.0':
+  '@houserules/api@0.3.2':
     dependencies:
-      '@houserules/payload': 0.2.0
+      '@houserules/payload': 0.2.2
       type-fest: 5.8.0
       zod: 4.4.3
 
-  '@houserules/cli@0.2.1':
+  '@houserules/cli@0.4.1':
     dependencies:
       '@clack/prompts': 1.7.0
-      '@houserules/api': 0.2.0
-      '@houserules/payload': 0.2.0
+      '@houserules/api': 0.3.2
+      '@houserules/payload': 0.2.2
       commander: 15.0.0
       dequal: 2.0.3
       diff: 9.0.0
       picocolors: 1.1.1
       semver: 7.8.5
 
-  '@houserules/payload@0.2.0': {}
+  '@houserules/payload@0.2.2': {}
 
-  '@houserules/plugin-changesets@0.1.3(@houserules/api@0.2.0)':
+  '@houserules/plugin-accessibility@0.1.3(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-design@0.1.1(@houserules/api@0.2.0)':
+  '@houserules/plugin-changesets@0.2.2(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-prose@0.1.2(@houserules/api@0.2.0)':
+  '@houserules/plugin-design@0.2.2(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-svelte@0.1.1(@houserules/api@0.2.0)':
+  '@houserules/plugin-prose@0.1.4(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-testing@0.2.0(@houserules/api@0.2.0)':
+  '@houserules/plugin-svelte@0.1.2(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-three@0.1.1(@houserules/api@0.2.0)':
+  '@houserules/plugin-testing@0.2.1(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
 
-  '@houserules/plugin-typescript@0.1.1(@houserules/api@0.2.0)':
+  '@houserules/plugin-three@0.2.1(@houserules/api@0.3.2)':
     dependencies:
-      '@houserules/api': 0.2.0
+      '@houserules/api': 0.3.2
+
+  '@houserules/plugin-typescript@0.1.2(@houserules/api@0.3.2)':
+    dependencies:
+      '@houserules/api': 0.3.2
 
   '@humanfs/core@0.19.1': {}
 
@@ -5553,7 +5569,7 @@ snapshots:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
       js-tiktoken: 1.0.21
-      langsmith: 0.8.7(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0)
+      langsmith: 0.9.0(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0)
       mustache: 4.2.0
       p-queue: 6.6.2
       zod: 4.4.3
@@ -8027,7 +8043,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.2
 
-  langsmith@0.8.7(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0):
+  langsmith@0.9.0(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(ws@8.21.0):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:

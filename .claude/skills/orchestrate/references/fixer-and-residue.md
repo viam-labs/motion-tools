@@ -12,6 +12,8 @@ most often contradicted is the fixer prohibition. `task-worker.md` says a worker
 format, or fix commands, because a fixer rewrites files its siblings still have open. A verification
 recipe written for in-context work says the opposite, and copying that recipe into a brief is the
 easiest mistake in this skill. **The fixer runs once, at the barrier (§7), and never in a worker.**
+`/tidy` is bound by the same rule for the same reason: it rewrites files, so its one run is the
+barrier's, after the fixer and before verify.
 
 ## Why the fixer belongs at the barrier
 

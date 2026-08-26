@@ -47,7 +47,9 @@ feature is one bullet there, however many commits it took.
    - No semicolons and no second clause. "So that…", "whenever…", "because…", and ", and also…"
      all mean you are packing in too much. A run-on is still too much even when it's one sentence.
    - Use exact names and numbers from the diff, not from memory.
-   - Put any backlog IDs it resolves in parentheses.
+   - Never put a ledger id in the summary. The summary ships in the public CHANGELOG, and a
+     backlog or decision id resolves only against the local ledger. Name what was fixed in
+     plain words instead.
 
    Good: `Fix compact tool output hook to reduce noise.`
 
@@ -58,8 +60,11 @@ installed, so files match the version; the zero-dep writer remains as fallback.`
 5. **Record it.** The script validates package names against the real workspace.
 
    ```
-   node .claude/scripts/changeset-write.mjs --pkg <name>:<level> [--pkg <name>:<level> ...] --summary "<summary>"
+   node .claude/scripts/changeset-write.mjs --pkg <name>:<level> [--pkg <name>:<level> ...] --summary "<summary>" --chat <session-id>
    ```
+
+   Pass the current session's id as `--chat` when you know it. It stamps the outcome
+   record that links the changeset to its session, and it is safe to omit.
 
    To fold this change into a pending changeset instead, name it with `--amend`:
 
