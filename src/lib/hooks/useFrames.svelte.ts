@@ -41,10 +41,7 @@ export const provideFrames = (partID: () => string) => {
 	const logs = useLogs()
 
 	// In build mode the user authors the scene from the part config, so config
-	// frames win the merge below. The query itself stays enabled, since pausing it
-	// left a cold load straight into build mode with no kinematics at all, and
-	// `usePoses` needs those to redirect a component's pose query to its origin
-	// frame.
+	// frames win the merge below.
 	const isBuildMode = $derived(environment.current.mode === 'build')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
