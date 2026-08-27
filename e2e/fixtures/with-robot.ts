@@ -141,7 +141,7 @@ export const applyMachineConfig = async (
 	await new Promise((resolve) => setTimeout(resolve, settleMs))
 }
 
-/** Org-scoped credentials, for operations a machine key cannot do such as fragment management. */
+/** Org-scoped credentials from `.env.e2e`, for operations a machine key cannot do (e.g. fragment management). */
 export const connectOrgViamClient = async (): Promise<ViamClient> => {
 	const config = loadE2EConfig()
 	return connectAppClient(config.apiKeyId, config.apiKey)

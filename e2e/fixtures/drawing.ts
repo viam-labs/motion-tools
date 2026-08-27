@@ -14,9 +14,9 @@ const execAsync = promisify(exec)
 
 const dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
-const API_PACKAGE = 'github.com/viam-labs/motion-tools/client/api'
+const API_PACKAGE = 'github.com/viamrobotics/visualization/client/api'
 
-/** Clears 3000, 3030, 5173, 9090, and the 191xx range Go's own test servers use. */
+/** Avoids 3000, 3030, 5173, 9090, and the 191xx range Go's own test servers use. */
 const BASE_PORT = 4100
 
 const CONNECT_PROBE_TIMEOUT_MS = 500
@@ -48,7 +48,8 @@ const waitForListening = async (port: number, timeoutMs = 15_000): Promise<void>
  * A relative URL, so a baseURL carrying a path resolves against it instead of
  * jumping to the host root. `drawPort` points the app at this worker's server.
  */
-const sceneUrl = (port: number, routePath = ''): string => `${routePath}?drawPort=${port}`
+const sceneUrl = (port: number, routePath = ''): string =>
+	`${routePath ? `/${routePath}` : ''}?drawPort=${port}`
 
 const goTestCommand = (pattern: string, timeoutSeconds?: number): string => {
 	const timeout = timeoutSeconds === undefined ? '' : ` -timeout=${timeoutSeconds}s`
@@ -155,7 +156,6 @@ export const test = base.extend<DrawingFixtures, DrawingWorkerFixtures>({
 		}
 
 		await page.goto(sceneUrl(drawServer.port))
-		await page.waitForLoadState('load')
 		await expect(page.getByRole('heading', { name: 'World', exact: true })).toBeVisible({
 			timeout: 15_000,
 		})
@@ -178,7 +178,7 @@ export const test = base.extend<DrawingFixtures, DrawingWorkerFixtures>({
 		await use((pattern, { timeoutSeconds }: GoTestOptions = {}) =>
 			execSync(goTestCommand(pattern, timeoutSeconds), {
 				encoding: 'utf8',
-				env: { ...process.env, DRAW_SERVER_PORT: String(drawServer.port) },
+				env: { ...process.env, DRAW_SERVICE_PORT: String(drawServer.port) },
 			})
 		)
 	},
@@ -186,7 +186,7 @@ export const test = base.extend<DrawingFixtures, DrawingWorkerFixtures>({
 	goTestAsync: async ({ drawServer }, use) => {
 		await use((pattern, { timeoutSeconds }: GoTestOptions = {}) =>
 			execAsync(goTestCommand(pattern, timeoutSeconds), {
-				env: { ...process.env, DRAW_SERVER_PORT: String(drawServer.port) },
+				env: { ...process.env, DRAW_SERVICE_PORT: String(drawServer.port) },
 			})
 		)
 	},
