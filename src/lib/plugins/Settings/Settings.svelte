@@ -17,8 +17,8 @@
 	import WeblabSettings from './WeblabSettings.svelte'
 
 	const BUILT_IN_TABS = [
-		{ label: 'Frames', component: FramesSettings },
 		{ label: 'Scene', component: SceneSettings },
+		{ label: 'Frames', component: FramesSettings },
 		{ label: 'Pointclouds', component: PointcloudSettings },
 		{ label: 'Vision', component: VisionSettings },
 		{ label: 'Debug', component: DebugSettings },
