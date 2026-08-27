@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/geo/r3"
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/test"
 )

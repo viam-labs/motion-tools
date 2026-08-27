@@ -1,13 +1,13 @@
 ---
 title: Plugin dependencies
-description: How motion-tools plugins depend on external packages, each other, and the runtime environment.
+description: How visualizer plugins depend on external packages, each other, and the runtime environment.
 ---
 
 Every plugin mounts independently inside `<Visualizer />`, and none _requires_ another plugin to function. A few, though, rely on optional npm packages, a live machine connection, or coordinate with a sibling plugin at runtime. This page audits those relationships so you know what to install and mount together.
 
 ## External packages
 
-Most plugins need nothing beyond `@viamrobotics/motion-tools`. Several use **optional peer dependencies** — install them only when you use the plugin:
+Most plugins need nothing beyond `@viamrobotics/visualization`. Several use **optional peer dependencies** — install them only when you use the plugin:
 
 | Plugin              | Install                                       |
 | ------------------- | --------------------------------------------- |
@@ -19,7 +19,7 @@ Most plugins need nothing beyond `@viamrobotics/motion-tools`. Several use **opt
 | `<WorldTree />`     | `@zag-js/tree-view svelte-virtuallists`       |
 | `<XR />`            | `@threlte/xr`                                 |
 
-Two more build on packages that ship as **required peers** of `@viamrobotics/motion-tools` — already installed with it, and listed here only for completeness:
+Two more build on packages that ship as **required peers** of `@viamrobotics/visualization` — already installed with it, and listed here only for completeness:
 
 | Plugin               | Required peers                                           |
 | -------------------- | -------------------------------------------------------- |

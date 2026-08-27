@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/viam-labs/motion-tools/client/server"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	"github.com/viamrobotics/visualization/client/server"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 	commonv1 "go.viam.com/api/common/v1"
 	"go.viam.com/test"
 )

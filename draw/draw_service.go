@@ -14,8 +14,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 	commonv1 "go.viam.com/api/common/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

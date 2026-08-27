@@ -189,8 +189,13 @@ export const FramesAPI = trait(() => true)
  * neither rigid with its parent nor drivable by the motion service.
  */
 export const KinematicLink = trait(() => true)
+
+/**
+ * Drawn into the scene through the draw API, rather than sourced from the robot.
+ * The distinction drives grouping in the world tree and which entities may be
+ * related to one another.
+ */
 export const DrawAPI = trait(() => true)
-export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
 

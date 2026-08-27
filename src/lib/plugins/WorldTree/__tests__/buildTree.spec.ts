@@ -34,13 +34,12 @@ describe('buildTree', () => {
 
 	it('folds the draw service and snapshot sources into Drawn', () => {
 		world = createWorld()
-		world.spawn(traits.Name('a'), traits.DrawAPI)
-		world.spawn(traits.Name('b'), traits.DrawServiceAPI)
+		world.spawn(traits.Name('b'), traits.DrawAPI)
 		world.spawn(traits.Name('c'), traits.SnapshotAPI)
 
 		const { nodes } = buildTree(world, spawnFolderEntities())
 
-		expect(namesIn(folderNamed(nodes, 'Drawn'))).toEqual(['a', 'b', 'c'])
+		expect(namesIn(folderNamed(nodes, 'Drawn'))).toEqual(['b', 'c'])
 	})
 
 	it('marks a collapsed folder so the tree starts it closed', () => {

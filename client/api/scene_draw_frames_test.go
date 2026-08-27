@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/golang/geo/r3"
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"

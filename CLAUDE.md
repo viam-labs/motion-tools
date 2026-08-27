@@ -11,14 +11,14 @@
 | RPC             | Connect-RPC (not standard gRPC)                               |
 | Proto tooling   | Buf (`buf.yaml`, `buf.gen.*.yaml`)                            |
 | Package manager | pnpm                                                          |
-| Dev server      | Bun (`server/server.ts`)                                      |
+| Dev server      | Go (`cmd/draw-server`), Vite for HMR                          |
 | Go              | 1.25                                                          |
 | Testing         | Vitest + Playwright (TS); `go.viam.com/test` (Go)             |
 
 ## Commands
 
 ```
-make up            # build if needed, start server (ports 5173 + 3000)
+make up            # build if needed, start the draw server (5173 app, 3030 RPC)
 pnpm proto         # vendor, lint, format, regenerate all protobuf
 pnpm check         # svelte-check + go vet
 pnpm lint          # prettier + eslint + golangci-lint

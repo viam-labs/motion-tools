@@ -3,7 +3,7 @@ package draw
 import (
 	"sync"
 
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 // maxPendingEntityChanges bounds how far behind a single stream subscriber may fall.
