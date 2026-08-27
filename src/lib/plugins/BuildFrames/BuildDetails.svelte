@@ -16,7 +16,6 @@
 	import RelationshipDetails from '$lib/components/overlay/details/RelationshipDetails.svelte'
 	import { traits, useTag, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
-	import { useBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
 	import { useDetailsSections } from '$lib/hooks/useDetailsSections.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -30,7 +29,6 @@
 
 	const environment = useEnvironment()
 	const sections = useDetailsSections()
-	const buildModeSync = useBuildModeSync()
 	const fragmentInfo = useFragmentInfo()
 	const partConfig = usePartConfig()
 
@@ -50,8 +48,7 @@
 		!!framesAPI.current &&
 			!!editable.current &&
 			partConfig.hasEditPermissions &&
-			!isFragmentComponentWithVariables &&
-			!buildModeSync.syncing
+			!isFragmentComponentWithVariables
 	)
 	const showConfigUnavailableWarning = $derived(
 		!!framesAPI.current && !partConfig.hasEditPermissions && partConfig.error !== undefined
@@ -63,15 +60,6 @@
 	{entity}
 	{...rest}
 >
-	{#if buildModeSync.syncing}
-		<p
-			class="border-info-dark bg-info-light text-info-dark mt-2 rounded border-l-4 px-2 py-1.5"
-			role="status"
-		>
-			Refreshing machine state before editing…
-		</p>
-	{/if}
-
 	{#if isFragmentComponentWithVariables}
 		<p
 			class="mt-2 rounded border-l-4 border-yellow-600 bg-yellow-50 px-2 py-1.5 text-yellow-900"

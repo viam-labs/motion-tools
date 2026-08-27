@@ -59,15 +59,18 @@
 			class="absolute bottom-4 z-4 flex w-full justify-center gap-2"
 			{...rest}
 		>
-			<div
-				class="flex items-center gap-8 rounded border-l-4 border-yellow-600 bg-yellow-50 px-4 py-2 shadow-2xl"
-			>
+			<div class="border-light bg-light flex items-center gap-8 rounded border px-4 py-2 shadow-sm">
 				<div class="flex flex-col">
-					<p class="text-sm">
-						<strong>Live updates paused</strong>
+					<p class="text-heading text-sm">
+						<strong>Editing frames</strong>
 					</p>
 
-					<p class="text-subtle-2 text-sm">You are viewing a snapshot while editing.</p>
+					<p
+						class="text-subtle-2 text-sm"
+						role="status"
+					>
+						{partConfig.isDirty ? 'Unsaved changes' : 'No unsaved changes'}
+					</p>
 				</div>
 
 				<div class="flex gap-2">

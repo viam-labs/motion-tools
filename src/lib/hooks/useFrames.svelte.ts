@@ -23,8 +23,6 @@ import { useResourceByName } from './useResourceByName.svelte'
 
 interface FramesContext {
 	current: Transform[]
-	/** Whether the current part's frame set has been reconciled into the world. */
-	readonly isReady: boolean
 	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
 	readonly kinematicsComponents: ReadonlySet<string>
 }
@@ -43,11 +41,11 @@ export const provideFrames = (partID: () => string) => {
 	const logs = useLogs()
 
 	// In build mode the user authors the scene from the part config, so config
-	// frames win and the live frame-system query is paused (see the merge below).
+	// frames win the merge below.
 	const isBuildMode = $derived(environment.current.mode === 'build')
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
-		enabled: partID() !== '' && !isBuildMode,
+		enabled: partID() !== '',
 	}))
 
 	const revision = $derived(machineStatus.current?.config?.revision)
@@ -143,8 +141,6 @@ export const provideFrames = (partID: () => string) => {
 	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
 
 	const entities = new Map<string, Entity | undefined>()
-	let reconciledFrames = $state.raw<Transform[]>()
-	let reconciledPartID = $state<string>()
 
 	$effect(() => {
 		if (revision) {
@@ -281,9 +277,6 @@ export const provideFrames = (partID: () => string) => {
 				}
 			}
 		})
-
-		reconciledFrames = currentFrames
-		reconciledPartID = currentPartID
 	})
 
 	$effect(() => {
@@ -301,9 +294,6 @@ export const provideFrames = (partID: () => string) => {
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
-		},
-		get isReady() {
-			return reconciledPartID === partID() && reconciledFrames === current
 		},
 		get kinematicsComponents() {
 			return kinematicsComponents
