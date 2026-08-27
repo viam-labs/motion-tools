@@ -14,8 +14,8 @@
 
 	const allNamed = useQuery(traits.Name)
 	const name = useTrait(() => entity, traits.Name)
-	const drawServiceAPI = useTrait(() => entity, traits.DrawServiceAPI)
-	const isServiceManaged = $derived(!!drawServiceAPI.current)
+	const drawAPI = useTrait(() => entity, traits.DrawAPI)
+	const isDrawn = $derived(!!drawAPI.current)
 
 	const entityNames = $derived.by(() => {
 		const currentEntityName = name.current
@@ -23,7 +23,7 @@
 			.filter((e: Entity) => {
 				const entityName = e.get(traits.Name)
 				if (!entityName || entityName === currentEntityName) return false
-				if (isServiceManaged) return !!e.get(traits.DrawServiceAPI)
+				if (isDrawn) return !!e.get(traits.DrawAPI)
 				return true
 			})
 			.map((e: Entity) => e.get(traits.Name)!)

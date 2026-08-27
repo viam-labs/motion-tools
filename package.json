@@ -5,8 +5,7 @@
 	"license": "Apache-2.0",
 	"type": "module",
 	"scripts": {
-		"dev": "concurrently \"pnpm dev:bun\" \"go run cmd/draw-server/main.go -port 3030\"",
-		"dev:bun": "tsx server/check-bun && bun run server/server.ts",
+		"dev": "concurrently \"vite dev\" \"go run cmd/draw-server/main.go -port ${DRAW_SERVICE_PORT:-3030}\"",
 		"dev:https": "vite dev -- --https",
 		"up": "wireit",
 		"build": "wireit",
@@ -56,7 +55,7 @@
 	},
 	"wireit": {
 		"up": {
-			"command": "WS_PORT=3000 STATIC_PORT=5173 bun run server/server.ts --production > /dev/null 2>&1 & .bin/draw-server -port 3030",
+			"command": ".bin/draw-server -production -port ${DRAW_SERVICE_PORT:-3030} -static-port ${STATIC_PORT:-5173}",
 			"dependencies": [
 				"vite-build",
 				"go-build"
@@ -95,7 +94,7 @@
 				"BASE_PATH": {
 					"external": true
 				},
-				"WS_PORT": {
+				"DRAW_SERVICE_PORT": {
 					"external": true
 				},
 				"STATIC_PORT": {
@@ -468,7 +467,6 @@
 		"@houserules/plugin-testing": "^0.2.1",
 		"@houserules/plugin-three": "^0.2.1",
 		"@houserules/plugin-typescript": "^0.1.2",
-		"@langchain/anthropic": "^1.4.0",
 		"@playwright/test": "1.55.1",
 		"@sentry/sveltekit": "10.10.0",
 		"@sveltejs/adapter-static": "3.0.9",
@@ -487,7 +485,6 @@
 		"@threlte/extras": "9.21.1",
 		"@threlte/rapier": "3.5.0",
 		"@threlte/xr": "1.6.1",
-		"@types/bun": "1.2.21",
 		"@types/d3-force": "^3.0.10",
 		"@types/earcut": "^3.0.0",
 		"@types/lodash-es": "4.17.12",
@@ -538,7 +535,6 @@
 		"tailwindcss": "4.3.1",
 		"three": "0.185.1",
 		"threlte-uikit": "2.0.1",
-		"tsx": "4.20.5",
 		"type-fest": "^5.0.1",
 		"typescript": "5.9.2",
 		"typescript-eslint": "8.56.1",
@@ -547,8 +543,7 @@
 		"vite-plugin-glsl": "^1.5.5",
 		"vite-plugin-mkcert": "1.17.9",
 		"vitest": "4.1.9",
-		"wireit": "0.14.13",
-		"zod": "^4.4.3"
+		"wireit": "0.14.13"
 	},
 	"peerDependencies": {
 		"@ag-grid-community/client-side-row-model": ">=32.3.0",
@@ -652,6 +647,10 @@
 		"./plugins": {
 			"types": "./dist/plugins/index.d.ts",
 			"svelte": "./dist/plugins/index.js"
+		},
+		"./scene-builder": {
+			"types": "./dist/plugins/LLMSceneBuilder/index.d.ts",
+			"default": "./dist/plugins/LLMSceneBuilder/index.js"
 		}
 	},
 	"repository": {
@@ -671,6 +670,7 @@
 		"koota": "0.6.6",
 		"lodash-es": "4.18.1",
 		"three-mesh-bvh": "^0.9.14",
-		"uuid-tool": "^2.0.3"
+		"uuid-tool": "^2.0.3",
+		"zod": "^4.4.3"
 	}
 }

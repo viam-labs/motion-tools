@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	port := flag.Int("port", 3030, "port for the Connect-RPC API server")
+	port := flag.Int("port", server.DefaultPort, "port for the Connect-RPC API server")
 	staticPort := flag.Int("static-port", 5173, "port for the static file server (production mode only)")
 	production := flag.Bool("production", false, "serve static files on -static-port from -build-dir")
 	flag.Parse()

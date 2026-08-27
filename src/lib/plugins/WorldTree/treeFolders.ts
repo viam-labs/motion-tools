@@ -23,7 +23,7 @@ export const treeFolders: TreeFolder[] = [
 	{ name: 'Point clouds', sources: [traits.PointCloudAPI] },
 	{ name: 'Point cloud objects', sources: [traits.PointCloudObjectAPI] },
 	{ name: 'World state store', sources: [traits.WorldStateStoreAPI] },
-	{ name: 'Drawn', sources: [traits.DrawAPI, traits.DrawServiceAPI, traits.SnapshotAPI] },
+	{ name: 'Drawn', sources: [traits.DrawAPI, traits.SnapshotAPI] },
 	{ name: 'Imported files', sources: [traits.DroppedFile] },
 	{ name: 'Other', sources: [] },
 ]
