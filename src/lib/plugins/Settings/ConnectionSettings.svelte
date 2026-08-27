@@ -16,7 +16,6 @@
 	<RefreshRate
 		id={RefreshRates.poses}
 		label="Poses"
-		allowLive
 		onManualRefetch={() => {
 			refetchPoses()
 		}}

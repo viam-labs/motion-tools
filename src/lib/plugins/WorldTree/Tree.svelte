@@ -72,13 +72,13 @@
 	// renders collapsed for a frame and then pops open.
 	$effect.pre(() => {
 		for (const node of rootChildren) {
-			if (!node.isFolder) continue
+			if (!node.folder) continue
 
 			const value = `${node.entity}`
 			if (openedFolders.has(value)) continue
 
 			openedFolders.add(value)
-			if (!node.collapsed) expandedValues.add(value)
+			if (!node.folder.collapsed) expandedValues.add(value)
 		}
 	})
 

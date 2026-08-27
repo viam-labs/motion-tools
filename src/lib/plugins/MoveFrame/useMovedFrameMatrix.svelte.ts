@@ -3,7 +3,7 @@ import type { Matrix4 } from 'three'
 
 import { createRobotQuery, useRobotClient } from '@viamrobotics/svelte-sdk'
 
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { RefetchRates } from '$lib/components/overlay/refetchRates'
 import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
 import { Pose } from '$lib/math'
 

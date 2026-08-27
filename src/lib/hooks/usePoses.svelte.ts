@@ -4,7 +4,7 @@ import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext, untrack } from 'svelte'
 
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { RefetchRates } from '$lib/components/overlay/refetchRates'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
 import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'

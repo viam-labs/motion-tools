@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Api } from '@zag-js/tree-view'
+	import type { Snippet } from 'svelte'
 
 	import { ChevronRight, Eye, EyeOff, Folder, FolderOpen } from 'lucide-svelte'
 	import { VirtualList } from 'svelte-virtuallists'
@@ -9,6 +10,7 @@
 
 	import type { TreeNode } from './buildTree'
 
+	import FolderRefreshControls from './FolderRefreshControls.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {
@@ -39,8 +41,8 @@
 	 * behind it.
 	 */
 	const rowClass = $derived([
-		nodeState.selected && !node.isFolder ? 'bg-medium' : 'bg-white hover:bg-light',
-		node.isFolder && 'text-subtle-2 font-medium',
+		nodeState.selected && !node.folder ? 'bg-medium' : 'bg-white hover:bg-light',
+		node.folder && 'text-subtle-2 font-medium',
 		inheritedInvisible.current && 'text-disabled',
 	])
 
@@ -51,7 +53,7 @@
 	 */
 	const branchControlProps = $derived.by(() => {
 		const props = api.getBranchControlProps(nodeProps)
-		if (!node.isFolder) return props
+		if (!node.folder) return props
 
 		return {
 			...props,
@@ -64,46 +66,59 @@
 	})
 </script>
 
-{#snippet actions()}
+{#snippet actionColumn(content: Snippet)}
 	<!--
-		Sticks to the trailing edge of the scroll port so the visibility toggle stays
+		Sticks to the trailing edge of the scroll port so the row's controls stay
 		reachable however deeply the row is indented. `bg-inherit` picks up whichever
 		row fill is in play (default, hover, selected) to mask the name behind it.
 	-->
 	<div class="sticky right-0 flex items-center gap-1 bg-inherit pr-4 pl-2">
-		{#if loading}
-			<span
-				role="progressbar"
-				aria-label="Loading {Math.round(progress * 100)}%"
-				aria-valuenow={Math.round(progress * 100)}
-				aria-valuemin={0}
-				aria-valuemax={100}
-				class="border-gray-6 size-3 rounded-full border"
-				style:background="conic-gradient(var(--color-gray-6, #9c9ca4) {progress * 100}%, transparent {progress *
-					100}%)"
-			></span>
-		{/if}
-
-		<button
-			type="button"
-			class="text-gray-6"
-			onclick={(event) => {
-				event.stopPropagation()
-
-				if (node.entity.has(traits.Invisible)) {
-					node.entity.remove(traits.Invisible)
-				} else {
-					node.entity.add(traits.Invisible)
-				}
-			}}
-		>
-			{#if invisible.current}
-				<EyeOff size={14} />
-			{:else}
-				<Eye size={14} />
-			{/if}
-		</button>
+		{@render content()}
 	</div>
+{/snippet}
+
+{#snippet folderActions()}
+	{#if node.folder?.refreshRate}
+		<FolderRefreshControls
+			id={node.folder.refreshRate}
+			label={name.current ?? ''}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet itemActions()}
+	{#if loading}
+		<span
+			role="progressbar"
+			aria-label="Loading {Math.round(progress * 100)}%"
+			aria-valuenow={Math.round(progress * 100)}
+			aria-valuemin={0}
+			aria-valuemax={100}
+			class="border-gray-6 size-3 rounded-full border"
+			style:background="conic-gradient(var(--color-gray-6, #9c9ca4) {progress * 100}%, transparent {progress *
+				100}%)"
+		></span>
+	{/if}
+
+	<button
+		type="button"
+		class="text-gray-6"
+		onclick={(event) => {
+			event.stopPropagation()
+
+			if (node.entity.has(traits.Invisible)) {
+				node.entity.remove(traits.Invisible)
+			} else {
+				node.entity.add(traits.Invisible)
+			}
+		}}
+	>
+		{#if invisible.current}
+			<EyeOff size={14} />
+		{:else}
+			<Eye size={14} />
+		{/if}
+	</button>
 {/snippet}
 
 {#if nodeState.isBranch}
@@ -118,9 +133,9 @@
 				type="button"
 				aria-label={expanded ? 'Collapse' : 'Expand'}
 				{...api.getBranchTriggerProps(nodeProps)}
-				class={['flex shrink-0 items-center', { 'rotate-90': expanded && !node.isFolder }]}
+				class={['flex shrink-0 items-center', { 'rotate-90': expanded && !node.folder }]}
 			>
-				{#if node.isFolder}
+				{#if node.folder}
 					{#if expanded}
 						<FolderOpen size={14} />
 					{:else}
@@ -135,10 +150,10 @@
 				{...api.getBranchTextProps(nodeProps)}
 			>
 				{name.current}
-				{#if node.itemCount !== undefined}
+				{#if node.folder}
 					<span class="text-disabled">
 						<span aria-hidden="true">·</span>
-						{node.itemCount}
+						{node.folder.itemCount}
 					</span>
 				{/if}
 				{#if node.detachedParent}
@@ -148,8 +163,10 @@
 				{/if}
 			</span>
 
-			{#if !node.isFolder}
-				{@render actions()}
+			{#if !node.folder}
+				{@render actionColumn(itemActions)}
+			{:else if node.folder.refreshRate}
+				{@render actionColumn(folderActions)}
 			{/if}
 		</div>
 		<div {...api.getBranchContentProps(nodeProps)}>
@@ -197,7 +214,7 @@
 		</span>
 
 		{#if !node.sceneless}
-			{@render actions()}
+			{@render actionColumn(itemActions)}
 		{/if}
 	</div>
 {/if}

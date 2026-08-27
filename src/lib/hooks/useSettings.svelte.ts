@@ -82,15 +82,20 @@ export const RefreshRates = {
 	vision: 'vision',
 } as const
 
+export type RefreshRateId = keyof Settings['refreshRates']
+
+/** Also what a group resumes at when the user un-pauses one that has never polled. */
+export const DEFAULT_REFRESH_RATES: Settings['refreshRates'] = {
+	poses: 1000,
+	pointclouds: 5000,
+	vision: 1000,
+}
+
 const defaults = (): Settings => ({
 	anthropicKey: '',
 	cameraMode: 'perspective',
 
-	refreshRates: {
-		poses: 1000,
-		pointclouds: 5000,
-		vision: 1000,
-	},
+	refreshRates: { ...DEFAULT_REFRESH_RATES },
 
 	disabledCameras: {},
 	disabledVisionServices: {},

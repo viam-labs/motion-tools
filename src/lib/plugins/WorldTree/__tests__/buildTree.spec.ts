@@ -49,7 +49,7 @@ describe('buildTree', () => {
 
 		const { nodes } = buildTree(world, spawnFolderEntities())
 
-		expect(folderNamed(nodes, 'Frameless components')?.collapsed).toBe(true)
+		expect(folderNamed(nodes, 'Frameless components')?.folder?.collapsed).toBe(true)
 	})
 
 	it('marks the rows of a sceneless folder, which drops their visibility toggle', () => {
@@ -80,7 +80,7 @@ describe('buildTree', () => {
 		const frames = folderNamed(nodes, 'Frames')
 
 		expect(namesIn(frames)).toEqual(['arm'])
-		expect(frames?.itemCount).toBe(3)
+		expect(frames?.folder?.itemCount).toBe(3)
 	})
 
 	it('keeps ChildOf nesting when parent and child share a folder', () => {
