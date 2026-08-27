@@ -8,7 +8,6 @@
 
 	import { relations, traits, useQuery, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
-	import { useBuildModeSync } from '$lib/hooks/useBuildModeSync.svelte'
 	import { useTransformControls } from '$lib/hooks/useControls.svelte'
 	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { useFragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
@@ -21,7 +20,6 @@
 	const { invalidate } = useThrelte()
 	const settings = useSettings()
 	const environment = useEnvironment()
-	const buildModeSync = useBuildModeSync()
 	const fragmentInfo = useFragmentInfo()
 	const transformControls = useTransformControls()
 	const partConfig = usePartConfig()
@@ -96,7 +94,6 @@
 
 	const transforming = $derived(
 		isBuildMode &&
-			!buildModeSync.syncing &&
 			ref &&
 			entity &&
 			activeMode &&
