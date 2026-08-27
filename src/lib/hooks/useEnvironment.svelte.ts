@@ -26,12 +26,6 @@ interface Environment {
 
 interface Context {
 	current: Environment
-	/** Whether live scene queries may run. Normally follows mode, but remains true
-	 * temporarily while build mode captures its initial machine snapshot. */
-	readonly isLive: boolean
-	/** Updates the live-query gate; used by build-mode synchronization to open and
-	 * close its temporary snapshot window. */
-	setLive: (value: boolean) => void
 	/**
 	 * Declares `mode` reachable for as long as the caller is mounted, and returns
 	 * the matching release function.
@@ -67,15 +61,12 @@ export const createEnvironment = (): Context => {
 		return availableModes.keys().next().value ?? 'none'
 	})
 
-	let isLive = $state(effectiveMode !== 'build')
-
 	const environment = $state<Environment>({
 		get mode() {
 			return effectiveMode
 		},
 		set mode(value) {
 			stored.current = value
-			isLive = effectiveMode !== 'build'
 		},
 		isStandalone: true,
 		inputBindingsEnabled: true,
@@ -86,14 +77,8 @@ export const createEnvironment = (): Context => {
 		get current() {
 			return environment
 		},
-		get isLive() {
-			return isLive
-		},
 		get availableModes() {
 			return [...availableModes.keys()]
-		},
-		setLive(value) {
-			isLive = value
 		},
 		registerMode(mode) {
 			availableModes.set(mode, (availableModes.get(mode) ?? 0) + 1)
