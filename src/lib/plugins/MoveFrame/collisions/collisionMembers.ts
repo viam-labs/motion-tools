@@ -15,7 +15,7 @@ const MAX_DEPTH = 64
  * trimesh-vs-trimesh case produces no contacts, so including them would look
  * supported while reporting nothing.
  */
-const COLLIDABLE = [traits.Box, traits.Capsule, traits.Sphere] as const
+const COLLIDABLE = [traits.Box, traits.Capsule, traits.Cylinder, traits.Sphere] as const
 
 /**
  * The group bit of the arm that owns `entity`, or `ENVIRONMENT_BIT` when

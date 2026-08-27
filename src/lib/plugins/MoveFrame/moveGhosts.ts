@@ -18,7 +18,7 @@ import { GhostOf } from './relations'
  *
  * Each ghost is an entity holding a copy of its source's geometry, tinted and
  * marked `NonSelectable`. The renderers the scene already runs draw them:
- * boxes, spheres and capsules fold into the instanced draw calls, bare frames
+ * boxes, spheres, capsules and cylinders fold into the instanced draw calls, bare frames
  * into the batched axes helpers, meshes into `Mesh.svelte`. Nothing here
  * draws, and nothing here allocates a material.
  *
@@ -61,6 +61,7 @@ const hasGeometry = (entity: Entity): boolean =>
 	entity.has(traits.Box) ||
 	entity.has(traits.Sphere) ||
 	entity.has(traits.Capsule) ||
+	entity.has(traits.Cylinder) ||
 	entity.has(traits.BufferGeometry)
 
 /**
@@ -107,11 +108,12 @@ const collectDescendants = (world: World, entity: Entity, out: Entity[]): Entity
 
 /** Which renderers a source lands in, so a shape swap can respawn the ghost. */
 const shapeKind = (entity: Entity): number =>
-	(entity.has(traits.Box) ? 0b0_0001 : 0) |
-	(entity.has(traits.Sphere) ? 0b0_0010 : 0) |
-	(entity.has(traits.Capsule) ? 0b0_0100 : 0) |
-	(entity.has(traits.BufferGeometry) ? 0b0_1000 : 0) |
-	(entity.has(traits.Center) ? 0b1_0000 : 0)
+	(entity.has(traits.Box) ? 0b00_0001 : 0) |
+	(entity.has(traits.Sphere) ? 0b00_0010 : 0) |
+	(entity.has(traits.Capsule) ? 0b00_0100 : 0) |
+	(entity.has(traits.Cylinder) ? 0b00_1000 : 0) |
+	(entity.has(traits.BufferGeometry) ? 0b01_0000 : 0) |
+	(entity.has(traits.Center) ? 0b10_0000 : 0)
 
 /** Set on a ghost's cloned geometry, naming the geometry it was cloned from. */
 const GHOST_OF = 'moveGhostOf'
@@ -150,6 +152,9 @@ const spawnGhost = (world: World, source: Entity): Entity => {
 	const capsule = source.get(traits.Capsule)
 	if (capsule) shape.push(traits.Capsule(capsule))
 
+	const cylinder = source.get(traits.Cylinder)
+	if (cylinder) shape.push(traits.Cylinder(cylinder))
+
 	const geometry = cloneGeometry(source)
 	if (geometry) shape.push(traits.BufferGeometry(geometry))
 
@@ -187,6 +192,9 @@ const syncShape = (source: Entity, ghost: Entity) => {
 
 	const capsule = source.get(traits.Capsule)
 	if (capsule) ghost.set(traits.Capsule, capsule)
+
+	const cylinder = source.get(traits.Cylinder)
+	if (cylinder) ghost.set(traits.Cylinder, cylinder)
 
 	const center = source.get(traits.Center)
 	if (center) ghost.set(traits.Center, center)

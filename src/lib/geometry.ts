@@ -1,10 +1,10 @@
 import type {
 	Capsule,
-	Geometry,
 	PointCloud,
+	Geometry as RDKGeometry,
+	Transform as RDKTransform,
 	RectangularPrism,
 	Sphere,
-	Transform,
 } from '@viamrobotics/sdk'
 
 import { Pose } from '$lib/math'
@@ -12,7 +12,34 @@ import { inferGeometryType } from '$lib/math/geometryJson'
 
 import type { Frame } from './frame'
 
-export const createGeometry = (geometryType?: Geometry['geometryType'], label = ''): Geometry => {
+/** Radius and tip-to-tip length in mm about the Z axis. `capped` false is an open tube. */
+export interface Cylinder {
+	radiusMm: number
+	lengthMm: number
+	capped: boolean
+}
+
+/**
+ * The geometry union the scene works in: the SDK's, widened with the cylinder
+ * case `common.v1.Geometry` has no room for (rdk's own `Cylinder.ToProtobuf`
+ * panics over the same gap).
+ *
+ * A cylinder reaches the scene only through `deriveKinematicsFrames`, whose
+ * transforms never leave this client, so one cannot end up in a request body.
+ * Anything that writes to the wire takes `RDKGeometry` instead.
+ */
+export type Geometry = Omit<RDKGeometry, 'geometryType'> & {
+	geometryType: RDKGeometry['geometryType'] | { case: 'cylinder'; value: Cylinder }
+}
+
+export type Transform = Omit<RDKTransform, 'physicalObject'> & {
+	physicalObject?: Geometry
+}
+
+export const createGeometry = (
+	geometryType?: RDKGeometry['geometryType'],
+	label = ''
+): RDKGeometry => {
 	return {
 		center: new Pose(),
 		label,
@@ -24,7 +51,7 @@ export const createGeometry = (geometryType?: Geometry['geometryType'], label = 
  * Reads a geometry the frame editor cannot write but rdk accepts: an untyped one
  * for rdk to infer, or a shape the SDK's `Geometry` union has no case for.
  */
-const createGeometryFromRdkConfig = (raw: Record<string, unknown>): Geometry | undefined => {
+const createGeometryFromRdkConfig = (raw: Record<string, unknown>): RDKGeometry | undefined => {
 	const x = (raw.x as number) ?? 0
 	const y = (raw.y as number) ?? 0
 	const z = (raw.z as number) ?? 0
@@ -55,7 +82,7 @@ const createGeometryFromRdkConfig = (raw: Record<string, unknown>): Geometry | u
 	}
 }
 
-export const createGeometryFromFrame = (frame: Partial<Frame>): Geometry | undefined => {
+export const createGeometryFromFrame = (frame: Partial<Frame>): RDKGeometry | undefined => {
 	const geometry = frame.geometry
 	if (!geometry) {
 		return undefined
@@ -125,6 +152,14 @@ export const createSphere = (sphere?: Sphere) => {
 	}
 }
 
+export const createCylinder = (cylinder?: Cylinder) => {
+	return {
+		r: cylinder?.radiusMm ?? 0,
+		l: cylinder?.lengthMm ?? 0,
+		capped: cylinder?.capped ?? true,
+	}
+}
+
 export const isPointCloud = (
 	geometry?: Geometry['geometryType']
 ): geometry is { case: 'pointcloud'; value: PointCloud } => {
@@ -133,7 +168,8 @@ export const isPointCloud = (
 
 /**
  * Reverse of {@link createGeometryFromFrame}: reads a Transform's geometry back into
- * the frame geometry shape. Point clouds and absent geometry resolve to undefined.
+ * the frame geometry shape. Anything a frame cannot express, which is every case
+ * beyond box, sphere and capsule, resolves to undefined.
  */
 export const frameGeometryFromTransform = (transform: Transform): Frame['geometry'] => {
 	const geometryType = transform.physicalObject?.geometryType

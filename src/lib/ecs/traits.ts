@@ -1,12 +1,17 @@
 import type { GLTF as ThreeGltf } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import { Geometry as ViamGeometry } from '@viamrobotics/sdk'
 import { type Entity, trait } from 'koota'
 import { Matrix4, BufferGeometry as ThreeBufferGeometry } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
-import { createBox, createCapsule, createSphere } from '$lib/geometry'
+import {
+	createBox,
+	createCapsule,
+	createCylinder,
+	createSphere,
+	type Geometry as ViamGeometry,
+} from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
 import { isParsedFrom, parseMesh } from '$lib/mesh'
@@ -175,6 +180,12 @@ export const Capsule = trait({ l: 200, r: 50 })
  */
 export const Sphere = trait({ r: 200 })
 
+/**
+ * A cylinder, in mm, about the Z axis. `l` is the full height, not a half
+ * extent. `capped` false is an open tube, which renders without end caps.
+ */
+export const Cylinder = trait({ r: 50, l: 200, capped: true })
+
 export const BufferGeometry = trait(() => new ThreeBufferGeometry())
 
 export const GLTF = trait(() => ({
@@ -281,6 +292,8 @@ export const Geometry = (geometry: ViamGeometry) => {
 		return Capsule(createCapsule(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'sphere') {
 		return Sphere(createSphere(geometry.geometryType.value))
+	} else if (geometry.geometryType.case === 'cylinder') {
+		return Cylinder(createCylinder(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'mesh') {
 		return BufferGeometry(parseMesh(geometry.geometryType.value))
 	}
@@ -290,7 +303,7 @@ export const Geometry = (geometry: ViamGeometry) => {
 
 export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => {
 	if (!geometry) {
-		entity.remove(Box, Capsule, Sphere, BufferGeometry)
+		entity.remove(Box, Capsule, Cylinder, Sphere, BufferGeometry)
 		return
 	}
 
@@ -300,7 +313,7 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			const cur = entity.get(Box)!
 			if (cur.x !== next.x || cur.y !== next.y || cur.z !== next.z) entity.set(Box, next)
 		} else {
-			entity.remove(Capsule, Sphere, BufferGeometry)
+			entity.remove(Capsule, Cylinder, Sphere, BufferGeometry)
 			entity.add(Box(next))
 		}
 	} else if (geometry.geometryType.case === 'capsule') {
@@ -309,7 +322,7 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			const cur = entity.get(Capsule)!
 			if (cur.r !== next.r || cur.l !== next.l) entity.set(Capsule, next)
 		} else {
-			entity.remove(Box, Sphere, BufferGeometry)
+			entity.remove(Box, Cylinder, Sphere, BufferGeometry)
 			entity.add(Capsule(next))
 		}
 	} else if (geometry.geometryType.case === 'sphere') {
@@ -318,8 +331,19 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			const cur = entity.get(Sphere)!
 			if (cur.r !== next.r) entity.set(Sphere, next)
 		} else {
-			entity.remove(Box, Capsule, BufferGeometry)
+			entity.remove(Box, Capsule, Cylinder, BufferGeometry)
 			entity.add(Sphere(next))
+		}
+	} else if (geometry.geometryType.case === 'cylinder') {
+		const next = createCylinder(geometry.geometryType.value)
+		if (entity.has(Cylinder)) {
+			const cur = entity.get(Cylinder)!
+			if (cur.r !== next.r || cur.l !== next.l || cur.capped !== next.capped) {
+				entity.set(Cylinder, next)
+			}
+		} else {
+			entity.remove(Box, Capsule, Sphere, BufferGeometry)
+			entity.add(Cylinder(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
 		const mesh = geometry.geometryType.value
@@ -331,7 +355,7 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			entity.set(BufferGeometry, parseMesh(mesh))
 			old?.dispose()
 		} else {
-			entity.remove(Box, Sphere, Capsule)
+			entity.remove(Box, Sphere, Capsule, Cylinder)
 			entity.add(BufferGeometry(parseMesh(mesh)))
 		}
 	} else if (geometry.geometryType.case === 'pointcloud') {
@@ -414,7 +438,7 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 				return
 			}
 
-			entity.remove(Box, Capsule, Sphere)
+			entity.remove(Box, Capsule, Cylinder, Sphere)
 			const geometry = createBufferGeometry(
 				parsed.positions,
 				{ colors: parsed.colors, colorFormat: ColorFormat.RGB },

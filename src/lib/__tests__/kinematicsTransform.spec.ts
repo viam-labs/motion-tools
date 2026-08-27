@@ -63,8 +63,21 @@ describe('parseKinematicsGeometry', () => {
 			})
 		})
 
-		it('has no case for shapes the SDK geometry union cannot express', () => {
-			expect(geometry({ type: 'cylinder', r: 2, l: 9 }).geometryType.case).toBeUndefined()
+		it('reads a cylinder, capping it because rdk omits the field for a solid one', () => {
+			expect(geometry({ type: 'cylinder', r: 2, l: 9 }).geometryType).toEqual({
+				case: 'cylinder',
+				value: { radiusMm: 2, lengthMm: 9, capped: true },
+			})
+		})
+
+		it('leaves a cylinder marked capped: false open', () => {
+			expect(geometry({ type: 'cylinder', r: 2, l: 9, capped: false }).geometryType).toEqual({
+				case: 'cylinder',
+				value: { radiusMm: 2, lengthMm: 9, capped: false },
+			})
+		})
+
+		it('has no case for shapes the geometry union cannot express', () => {
 			expect(geometry({ type: 'point' }).geometryType.case).toBeUndefined()
 		})
 	})

@@ -1,4 +1,4 @@
-import type { Transform } from '@viamrobotics/sdk'
+import type { Transform } from '$lib/geometry'
 
 const WORLD = 'world'
 
