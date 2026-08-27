@@ -1,6 +1,6 @@
 ---
 title: Running locally
-description: Run the motion-tools visualizer on your machine, then drive it from Go using the client/api package.
+description: Run the Viam visualizer on your machine, then drive it from Go using the client/api package.
 ---
 
 import { Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components'
@@ -70,7 +70,7 @@ Open [http://localhost:5173](http://localhost:5173). The first invocation also b
 Add the client to your project:
 
 ```bash
-go get github.com/viam-labs/motion-tools/client/api
+go get github.com/viamrobotics/visualization/client/api
 ```
 
 Then draw to the running visualizer:
@@ -82,8 +82,8 @@ import (
     "log"
 
     "github.com/golang/geo/r3"
-    "github.com/viam-labs/motion-tools/client/api"
-    "github.com/viam-labs/motion-tools/draw"
+    "github.com/viamrobotics/visualization/client/api"
+    "github.com/viamrobotics/visualization/draw"
     "go.viam.com/rdk/spatialmath"
 )
 

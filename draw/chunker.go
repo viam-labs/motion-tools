@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"connectrpc.com/connect"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 )
 
 const defaultChunkSize = 500_000

@@ -91,7 +91,7 @@
     {
       "name": "visualization",
       "prefix": "VISUALIZATION",
-      "packageName": "@viamrobotics/motion-tools",
+      "packageName": "@viamrobotics/visualization",
       "pathPrefix": "",
       "sourcePath": "src",
       "label": "Visualization",

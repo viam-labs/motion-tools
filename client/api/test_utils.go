@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/viam-labs/motion-tools/client/server"
+	"github.com/viamrobotics/visualization/client/server"
 )
 
 // startTestServer starts the draw server the api tests post to and stops it on cleanup.

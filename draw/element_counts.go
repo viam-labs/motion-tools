@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 // Bytes per element in each packed buffer, matching the packers in buffer_packer.go.

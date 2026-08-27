@@ -28,7 +28,7 @@ draw-server
 /examples
 docs/public/playground
 docs/src/content/docs/api/*.md
-viamrobotics-motion-tools-*.tgz
+viamrobotics-visualization-*.tgz
 
 # Logs
 *-debug.log*

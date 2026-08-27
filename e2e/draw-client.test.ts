@@ -34,7 +34,7 @@ const takeScreenshot = async (page: Page, testPrefix: string): Promise<string> =
 
 const resetDrawService = () => {
 	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAllHelper github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveAll$/RemoveAllHelper github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -73,7 +73,7 @@ const runChunkedTest = async (browser: Browser, testPrefix: string, goTestPath: 
 	const failedScreenshots: string[] = []
 
 	const goTest = execAsync(
-		`go test -run ${goTestPath} github.com/viam-labs/motion-tools/client/api -count=1 -timeout=300s`
+		`go test -run ${goTestPath} github.com/viamrobotics/visualization/client/api -count=1 -timeout=300s`
 	)
 
 	await expect(page.getByRole('progressbar', { name: /Loading/ })).toBeVisible({
@@ -96,7 +96,7 @@ test('draw service events lifecycle', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestDrawServiceEvents$/AddTransformAndDrawing github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawServiceEvents$/AddTransformAndDrawing github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -105,7 +105,7 @@ test('draw service events lifecycle', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_ADDED'))
 
 	execSync(
-		'go test -run ^TestDrawServiceEvents$/UpdateTransformAndDrawing github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawServiceEvents$/UpdateTransformAndDrawing github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -114,7 +114,7 @@ test('draw service events lifecycle', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, 'DRAW_SERVICE_EVENTS_UPDATED'))
 
 	execSync(
-		'go test -run ^TestDrawServiceEvents$/RemoveAll github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawServiceEvents$/RemoveAll github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -133,7 +133,7 @@ test('invisible entity', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestInvisible$/DrawVisible github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestInvisible$/DrawVisible github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -141,7 +141,7 @@ test('invisible entity', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, 'INVISIBLE_ENTITY_VISIBLE'))
 
 	execSync(
-		'go test -run ^TestInvisible$/DrawInvisible github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestInvisible$/DrawInvisible github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -158,7 +158,7 @@ test('show axes helper', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestShowAxesHelper$/DrawWithAxesHelper github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestShowAxesHelper$/DrawWithAxesHelper github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -166,7 +166,7 @@ test('show axes helper', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, 'SHOW_AXES_HELPER_WITH'))
 
 	execSync(
-		'go test -run ^TestShowAxesHelper$/DrawWithoutAxesHelper github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestShowAxesHelper$/DrawWithoutAxesHelper github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -183,7 +183,7 @@ test('draw frame system', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawFrameSystem$/DrawFrameSystem github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawFrameSystem$/DrawFrameSystem github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -200,7 +200,7 @@ test('draw hierarchy', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestDrawHierarchy$/DrawHierarchy github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawHierarchy$/DrawHierarchy github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -239,7 +239,7 @@ test('draw frames', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawFrames$/DrawFrames github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawFrames$/DrawFrames github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -257,7 +257,7 @@ test('draw geometries', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawGeometries$/DrawGeometries github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawGeometries$/DrawGeometries github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -277,7 +277,7 @@ test('draw geometry', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run "^TestDrawGeometry$/(DrawGeometry_box|DrawGeometry_sphere|DrawGeometry_capsule|DrawGeometry_mesh)" github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run "^TestDrawGeometry$/(DrawGeometry_box|DrawGeometry_sphere|DrawGeometry_capsule|DrawGeometry_mesh)" github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -296,7 +296,7 @@ test('draw geometry updating', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run "^TestDrawGeometry$/DrawGeometry_updating" github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run "^TestDrawGeometry$/DrawGeometry_updating" github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -312,7 +312,7 @@ test('draw point cloud', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -331,7 +331,7 @@ test('draw point cloud updating', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloudUpdating$/DrawPointCloudUpdating github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloudUpdating$/DrawPointCloudUpdating github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -382,7 +382,7 @@ test('chunked point cloud survives a reconnect', async ({ browser }) => {
 	// multi-million point fixtures are too slow to do that inside the timeout.
 	// Several chunks with per-point colors is all the coverage needs.
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSmallChunkedPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawSmallChunkedPointCloud github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -418,7 +418,7 @@ test('draw geometries updating', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawGeometriesUpdating$/DrawGeometriesUpdating github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawGeometriesUpdating$/DrawGeometriesUpdating github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -436,7 +436,7 @@ test('draw world state', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawWorldState$/DrawWorldState github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawWorldState$/DrawWorldState github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -454,7 +454,7 @@ test('draw nurbs', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawNurbs$/DrawNurbs github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawNurbs$/DrawNurbs github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -470,7 +470,7 @@ test('draw lines', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLine$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLine$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -486,7 +486,7 @@ test('draw lines with line color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineColor$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithLineColor$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -502,7 +502,7 @@ test('draw lines with dot color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotColor$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithDotColor$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -518,7 +518,7 @@ test('draw lines with line width', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineWidth$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithLineWidth$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -534,7 +534,7 @@ test('draw lines with dot size', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotSize$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithDotSize$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -550,7 +550,7 @@ test('draw lines with line color palette', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithLineColorPalette$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithLineColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -566,7 +566,7 @@ test('draw lines with per-line colors', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithPerLineColors$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithPerLineColors$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -582,7 +582,7 @@ test('draw lines with dot color palette', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithDotColorPalette$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithDotColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -598,7 +598,7 @@ test('draw lines with per-dot colors', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawLine$/DrawLineWithPerDotColors$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawLine$/DrawLineWithPerDotColors$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -614,7 +614,7 @@ test('draw points', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPoints$/DrawPoints$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPoints$/DrawPoints$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -630,7 +630,7 @@ test('draw points with single color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithSingleColor$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPoints$/DrawPointsWithSingleColor$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -646,7 +646,7 @@ test('draw points with color palette', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithColorPalette$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPoints$/DrawPointsWithColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -662,7 +662,7 @@ test('draw points with per point color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithPerPointColors$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPoints$/DrawPointsWithPerPointColors$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -678,7 +678,7 @@ test('draw points with point size', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPoints$/DrawPointsWithPointSize$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPoints$/DrawPointsWithPointSize$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -698,7 +698,7 @@ test('draw poses as arrows', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrows$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrows$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -712,7 +712,7 @@ test('draw poses as arrows', async ({ browser }) => {
 
 const drawArrowsUpdateStep = (step: 'Start' | 'Move' | 'MoveAgain') => {
 	execSync(
-		`go test -run '^TestDrawPosesAsArrowsUpdating$/^${step}$' github.com/viam-labs/motion-tools/client/api -count=1`,
+		`go test -run '^TestDrawPosesAsArrowsUpdating$/^${step}$' github.com/viamrobotics/visualization/client/api -count=1`,
 		{ encoding: 'utf8' }
 	)
 }
@@ -747,7 +747,7 @@ test('draw poses as arrows with color palette', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithColorPalette$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithColorPalette$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -764,7 +764,7 @@ test('draw poses as arrows with single color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithSingleColor$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithSingleColor$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -781,7 +781,7 @@ test('draw poses as arrows with per point color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithPerPointColors$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPosesAsArrows$/DrawPosesAsArrowsWithPerPointColors$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -798,7 +798,7 @@ test('draw gltf', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawGLTF$/^DrawGLTF$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawGLTF$/^DrawGLTF$ github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -814,7 +814,7 @@ test('draw point clouds', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawPointClouds github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -833,7 +833,7 @@ test('draw point clouds with downscaling', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPointCloudWithDownscaling github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawPointCloudWithDownscaling github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -849,7 +849,7 @@ test('draw point clouds with single color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -865,7 +865,7 @@ test('draw point cloud with opacity', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloudWithOpacity github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawSingleColorPointCloudWithOpacity github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -881,7 +881,7 @@ test('draw point clouds with color palette', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPaletteColorPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawPaletteColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -897,7 +897,7 @@ test('draw point clouds with per point color', async ({ browser }) => {
 	const page = await createPage(browser)
 
 	execSync(
-		'go test -run ^TestDrawPointCloud$/DrawPerPointColorPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestDrawPointCloud$/DrawPerPointColorPointCloud github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -914,7 +914,7 @@ test('set camera pose', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestSetCamera$/SetCameraTopDown github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestSetCamera$/SetCameraTopDown github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -926,7 +926,7 @@ test('set camera pose', async ({ browser }) => {
 	failedScreenshots.push(setCameraScreenshot)
 
 	execSync(
-		'go test -run ^TestSetCamera$/ResetCamera github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestSetCamera$/ResetCamera github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -946,7 +946,7 @@ test('remove all', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAllSetup github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveAll$/RemoveAllSetup github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -956,7 +956,7 @@ test('remove all', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
 
 	execSync(
-		'go test -run ^TestRemoveAll$/RemoveAll github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveAll$/RemoveAll github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -976,7 +976,7 @@ test('remove drawings', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestRemoveDrawings$/RemoveDrawingsSetup github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveDrawings$/RemoveDrawingsSetup github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -986,7 +986,7 @@ test('remove drawings', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
 
 	execSync(
-		'go test -run ^TestRemoveDrawings$/RemoveDrawings github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveDrawings$/RemoveDrawings github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -1006,7 +1006,7 @@ test('remove transforms', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestRemoveTransforms$/RemoveTransformsSetup github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveTransforms$/RemoveTransformsSetup github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -1016,7 +1016,7 @@ test('remove transforms', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
 
 	execSync(
-		'go test -run ^TestRemoveTransforms$/RemoveTransforms github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveTransforms$/RemoveTransforms github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -1036,7 +1036,7 @@ test('replay', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestReplay$/ReplayRecord github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestReplay$/ReplayRecord github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -1050,7 +1050,7 @@ test('replay', async ({ browser }) => {
 	await cleanup(page)
 
 	execSync(
-		'go test -run ^TestReplay$/ReplayPlayback github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestReplay$/ReplayPlayback github.com/viamrobotics/visualization/client/api -count=1',
 		{
 			encoding: 'utf8',
 		}
@@ -1070,7 +1070,7 @@ const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string)
 	const page = await createPage(browser)
 
 	execSync(
-		`go test -run ^TestRedrawLoop$/${step}$ github.com/viam-labs/motion-tools/client/api -count=1`,
+		`go test -run ^TestRedrawLoop$/${step}$ github.com/viamrobotics/visualization/client/api -count=1`,
 		{ encoding: 'utf8' }
 	)
 
@@ -1107,7 +1107,7 @@ test('update entity partial updates', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestUpdateEntity$/Setup$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestUpdateEntity$/Setup$ github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -1121,7 +1121,7 @@ test('update entity partial updates', async ({ browser }) => {
 	// first differing frame can show the box moved with its helper still behind.
 	const applyStep = async (step: string, reference: Uint8Array, description: string) => {
 		execSync(
-			`go test -run ^TestUpdateEntity$/${step}$ github.com/viam-labs/motion-tools/client/api -count=1`,
+			`go test -run ^TestUpdateEntity$/${step}$ github.com/viamrobotics/visualization/client/api -count=1`,
 			{ encoding: 'utf8' }
 		)
 
@@ -1162,7 +1162,7 @@ test('remove entity', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestRemoveEntity$/Setup$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveEntity$/Setup$ github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -1171,7 +1171,7 @@ test('remove entity', async ({ browser }) => {
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_SETUP`))
 
 	execSync(
-		'go test -run ^TestRemoveEntity$/RemoveOne$ github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRemoveEntity$/RemoveOne$ github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -1189,7 +1189,7 @@ test('relationships', async ({ browser }) => {
 	const failedScreenshots: string[] = []
 
 	execSync(
-		'go test -run ^TestRelationships$/Setup github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRelationships$/Setup github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -1197,7 +1197,7 @@ test('relationships', async ({ browser }) => {
 	await expect(page.getByText('rel-target', { exact: true })).toBeVisible({ timeout: 10000 })
 
 	execSync(
-		'go test -run ^TestRelationships$/CreateRelationship github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRelationships$/CreateRelationship github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 
@@ -1210,7 +1210,7 @@ test('relationships', async ({ browser }) => {
 	// is lost on reload. Re-enable once relationships survive a reload.
 
 	execSync(
-		'go test -run ^TestRelationships$/DeleteRelationship github.com/viam-labs/motion-tools/client/api -count=1',
+		'go test -run ^TestRelationships$/DeleteRelationship github.com/viamrobotics/visualization/client/api -count=1',
 		{ encoding: 'utf8' }
 	)
 

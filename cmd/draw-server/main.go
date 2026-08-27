@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/viam-labs/motion-tools/client/server"
+	"github.com/viamrobotics/visualization/client/server"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"
 
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 )
 
 // The boxes form a 6x4 grid so a dropped entity shows up as a hole in the rendered scene.

@@ -1,5 +1,5 @@
 ---
-'@viamrobotics/motion-tools': minor
+'@viamrobotics/visualization': minor
 ---
 
 Share trajectory playback between the plan replayer and the move panel

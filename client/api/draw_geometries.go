@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 
-	"github.com/viam-labs/motion-tools/client/server"
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/client/server"
+	"github.com/viamrobotics/visualization/draw"
 	"go.viam.com/rdk/referenceframe"
 )
 

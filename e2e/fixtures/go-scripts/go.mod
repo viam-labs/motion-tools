@@ -1,4 +1,4 @@
-module motion-tools-e2e-scripts
+module visualization-e2e-scripts
 
 go 1.25.8
 

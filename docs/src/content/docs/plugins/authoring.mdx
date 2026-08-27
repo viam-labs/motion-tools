@@ -1,6 +1,6 @@
 ---
 title: Authoring plugins
-description: Build a custom plugin for the motion-tools visualizer — a Svelte component you mount inside <Visualizer /> — for your own app or to contribute back.
+description: Build a custom plugin for the Viam visualizer — a Svelte component you mount inside <Visualizer /> — for your own app or to contribute back.
 ---
 
 import { Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components'
@@ -14,8 +14,8 @@ This guide shows how, using the built-in plugins as worked examples. Each sectio
 	title="Two audiences, one component"
 >
 	The component you write is identical whether you ship it inside your own app or contribute it back
-	to motion-tools. Only the **import paths** and the **packaging** differ. Where that matters, this
-	guide splits into <b>In your app</b> and <b>In the repo</b> tabs.
+	to Viam Visualization. Only the **import paths** and the **packaging** differ. Where that matters,
+	this guide splits into <b>In your app</b> and <b>In the repo</b> tabs.
 </Aside>
 
 ## How a plugin fits into the scene
@@ -74,7 +74,7 @@ Mount it as a child of `<Visualizer />`:
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Visualizer } from '@viamrobotics/visualization'
 
 	import Waypoint from './Waypoint.svelte'
 </script>
@@ -94,7 +94,7 @@ That's a complete, working plugin. Now give it a control. Because the button liv
 	import { T } from '@threlte/core'
 	import { IconButton } from '@viamrobotics/prime-core'
 
-	import { DashboardPortal } from '@viamrobotics/motion-tools'
+	import { DashboardPortal } from '@viamrobotics/visualization'
 
 	interface Props {
 		position?: [x: number, y: number, z: number]
@@ -148,7 +148,7 @@ To place DOM chrome in the visualizer's overlay, render it into one of the expor
 
 ```svelte
 <script lang="ts">
-	import { DashboardPortal } from '@viamrobotics/motion-tools'
+	import { DashboardPortal } from '@viamrobotics/visualization'
 </script>
 
 <DashboardPortal>
@@ -171,7 +171,7 @@ For a launcher-plus-panel pattern, pair a `WorkspacePortal` button with a `Float
 <script lang="ts">
 	import { IconButton } from '@viamrobotics/prime-core'
 
-	import { FloatingPanel, WorkspacePortal } from '@viamrobotics/motion-tools'
+	import { FloatingPanel, WorkspacePortal } from '@viamrobotics/visualization'
 
 	let open = $state(false)
 </script>
@@ -199,7 +199,7 @@ To add UI to the per-entity **details card** instead, contribute a section with 
 
 ```svelte
 <script lang="ts">
-	import { traits, useDetailsSection } from '@viamrobotics/motion-tools'
+	import { traits, useDetailsSection } from '@viamrobotics/visualization'
 
 	useDetailsSection({
 		snippet: batteryRow,
@@ -225,14 +225,14 @@ import {
 	useTrait, // reactive single-entity trait → { current }
 	traits, // built-in trait namespace
 	relations, // built-in relation namespace
-} from '@viamrobotics/motion-tools'
+} from '@viamrobotics/visualization'
 ```
 
 Read the set of entities carrying a trait, and react to it, with `useQuery`:
 
 ```svelte
 <script lang="ts">
-	import { traits, useQuery } from '@viamrobotics/motion-tools'
+	import { traits, useQuery } from '@viamrobotics/visualization'
 
 	const selected = useQuery(traits.Selected)
 </script>
@@ -243,7 +243,7 @@ Read the set of entities carrying a trait, and react to it, with `useQuery`:
 Read a single entity's trait with `useTrait` — note the target is a **getter function**:
 
 ```ts
-import { traits, useTrait } from '@viamrobotics/motion-tools'
+import { traits, useTrait } from '@viamrobotics/visualization'
 
 const name = useTrait(() => entity, traits.Name)
 // name.current updates whenever the Name trait changes
@@ -263,7 +263,7 @@ export const Label = trait('') // data (string, default '')
 
 ```svelte
 <script lang="ts">
-	import { useWorld } from '@viamrobotics/motion-tools'
+	import { useWorld } from '@viamrobotics/visualization'
 
 	import { Label, Waypoint } from './waypointTraits'
 
@@ -313,7 +313,7 @@ Tool plugins that need the pointer claim it through the shared `useSettings` hoo
 
 ```svelte
 <script lang="ts">
-	import { useSettings } from '@viamrobotics/motion-tools'
+	import { useSettings } from '@viamrobotics/visualization'
 
 	const settings = useSettings()
 	const active = $derived(settings.current.interactionMode === 'measure')
@@ -330,7 +330,7 @@ For picking points and objects in the scene, use Threlte's pointer events — th
 	type="note"
 	title="In the repo: useMouseRaycaster"
 >
-	Plugins contributed to motion-tools have access to the internal `useMouseRaycaster` hook
+	Plugins contributed to Viam Visualization have access to the internal `useMouseRaycaster` hook
 	(`$lib/hooks/useMouseRaycaster.svelte`), which wraps a shared, BVH-accelerated raycaster with
 	`onclick` / `onmove` callbacks gated by an `enabled` flag. The built-in
 	[`MeasureTool`](../measure-tool/) plugin uses it. It is not part of the public package, so plugins
@@ -343,7 +343,7 @@ Keyboard input is a **contribution point**: a plugin declares a binding where th
 
 ```svelte
 <script lang="ts">
-	import { useHotkey } from '@viamrobotics/motion-tools'
+	import { useHotkey } from '@viamrobotics/visualization'
 
 	let visible = $state(true)
 
@@ -374,7 +374,7 @@ Workspace modes follow the same contribution shape. The visualizer has three (`m
 
 ```svelte
 <script lang="ts">
-	import { useEnvironment, useEnvironmentMode } from '@viamrobotics/motion-tools'
+	import { useEnvironment, useEnvironmentMode } from '@viamrobotics/visualization'
 
 	const environment = useEnvironment()
 
@@ -404,11 +404,11 @@ If your plugin needs an extra package, import it normally, declare it a peer dep
 	<TabItem label="In your app">
 		Nothing special — a plugin is a component. Put the `.svelte` file (and any `use*.svelte.ts`
 		hook or trait module) wherever your app keeps components, then import `Visualizer` from
-		`@viamrobotics/motion-tools` and your plugin from its own path, and mount it as a child:
+		`@viamrobotics/visualization` and your plugin from its own path, and mount it as a child:
 
     	```svelte
     	<script lang="ts">
-    		import { Visualizer } from '@viamrobotics/motion-tools'
+    		import { Visualizer } from '@viamrobotics/visualization'
 
     		import Waypoint from '$lib/Waypoint.svelte'
     	</script>
@@ -420,14 +420,14 @@ If your plugin needs an extra package, import it normally, declare it a peer dep
     	</div>
     	```
 
-    	Import scene/ECS/portal helpers from the package root (`@viamrobotics/motion-tools`), Threlte
+    	Import scene/ECS/portal helpers from the package root (`@viamrobotics/visualization`), Threlte
     	primitives from `@threlte/core` / `@threlte/extras`, and `trait` / `relation` from `koota`. To
-    	share a plugin across projects, extract it to your own package with `@viamrobotics/motion-tools`
+    	share a plugin across projects, extract it to your own package with `@viamrobotics/visualization`
     	as a peer dependency — it stays a plain Svelte component.
 
     </TabItem>
     <TabItem label="In the repo">
-    	Contributing a plugin back means it ships in `@viamrobotics/motion-tools/plugins` for everyone.
+    	Contributing a plugin back means it ships in `@viamrobotics/visualization/plugins` for everyone.
     	Plugins in the repo import through the `$lib` alias, so they can use internal hooks
     	(`useCameraControls`, `useMouseRaycaster`, …) and components that aren't publicly exported.
 
@@ -475,4 +475,4 @@ If your plugin needs an extra package, import it normally, declare it a peer dep
 - [ ] Any published API is a `use*` hook backed by a `provide*` context with getters.
 - [ ] Imperative Three.js mutations are followed by `invalidate()`.
 - [ ] Optional dependencies live inside the plugin and are documented with an install line.
-- [ ] External plugins import only from `@viamrobotics/motion-tools`, `/plugins`, `/lib`, and peer packages — internal `$lib/*` paths are for in-repo plugins only.
+- [ ] External plugins import only from `@viamrobotics/visualization`, `/plugins`, `/lib`, and peer packages — internal `$lib/*` paths are for in-repo plugins only.

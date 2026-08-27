@@ -7,9 +7,9 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/golang/geo/r3"
-	"github.com/viam-labs/motion-tools/client/server"
-	"github.com/viam-labs/motion-tools/draw"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	"github.com/viamrobotics/visualization/client/server"
+	"github.com/viamrobotics/visualization/draw"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 // DrawGLTFOptions configures a DrawGLTF call.

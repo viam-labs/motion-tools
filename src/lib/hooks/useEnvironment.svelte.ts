@@ -39,7 +39,10 @@ interface Context {
 	readonly availableModes: EnvironmentMode[]
 }
 
-/** Where the persisted mode lives. Exported so tests can reset it. */
+/**
+ * Where the persisted mode lives. Exported so tests can reset it. Kept as
+ * `motion-tools:` after the rename to visualization so existing users keep their mode.
+ */
 export const ENVIRONMENT_MODE_STORAGE_KEY = 'motion-tools:environment-mode'
 
 const modes = new Set(['monitor', 'build', 'move'])

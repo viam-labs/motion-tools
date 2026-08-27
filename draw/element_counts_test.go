@@ -7,7 +7,7 @@ import (
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"
 
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 func TestShapeElementCount(t *testing.T) {

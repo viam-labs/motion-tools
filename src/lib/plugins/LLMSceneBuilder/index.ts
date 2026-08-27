@@ -1,6 +1,6 @@
 /**
  * Server-safe entry point for `<LLMSceneBuilder />`: the system prompt and wire schemas its
- * `onInfer` callback is built around, published as `@viamrobotics/motion-tools/scene-builder`.
+ * `onInfer` callback is built around, published as `@viamrobotics/visualization/scene-builder`.
  *
  * Separate from the `/plugins` entry point on purpose. That barrel pulls in every plugin's Svelte
  * components, which a Node or edge handler cannot import. Nothing reachable from here touches

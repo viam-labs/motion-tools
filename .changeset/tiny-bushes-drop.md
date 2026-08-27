@@ -1,5 +1,5 @@
 ---
-"@viamrobotics/motion-tools": patch
+"@viamrobotics/visualization": patch
 ---
 
 Don't reset queries on disconnect

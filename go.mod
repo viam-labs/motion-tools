@@ -1,4 +1,4 @@
-module github.com/viam-labs/motion-tools
+module github.com/viamrobotics/visualization
 
 go 1.25.10
 
