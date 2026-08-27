@@ -8,10 +8,7 @@
 
 	import PoseStalenessIndicator from './PoseStalenessIndicator.svelte'
 	import Tree from './Tree.svelte'
-	import { provideExpandedFolders } from './useExpandedFolders.svelte'
 	import { useTree } from './useTree.svelte'
-
-	provideExpandedFolders()
 
 	const world = useWorld()
 

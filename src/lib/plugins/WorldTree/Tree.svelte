@@ -8,8 +8,8 @@
 
 	import type { TreeNode as TreeNodeType } from './buildTree'
 
+	import { isFolderExpanded, mergeExpandedFolders } from './expandedFolders.svelte'
 	import TreeNode from './TreeNode.svelte'
-	import { useExpandedFolders } from './useExpandedFolders.svelte'
 
 	interface Props {
 		rootNode: TreeNodeType
@@ -31,7 +31,6 @@
 
 	const rootChildren = $derived(collection.rootNode.children ?? [])
 
-	const expandedFolders = useExpandedFolders()
 	const folderNameOf = (node: TreeNodeType): string | undefined =>
 		node.folder ? (node.entity.get(traits.Name) ?? undefined) : undefined
 
@@ -69,10 +68,13 @@
 
 			// Only folders are recorded. An item's value is its entity id, which is
 			// handed out fresh each session and would key nothing on the next load.
+			const expandedByName: Record<string, boolean> = {}
 			for (const node of rootChildren) {
 				const name = folderNameOf(node)
-				if (name) expandedFolders.setExpanded(name, expandedValues.has(`${node.entity}`))
+				if (name) expandedByName[name] = expandedValues.has(`${node.entity}`)
 			}
+
+			mergeExpandedFolders(expandedByName)
 		},
 	}))
 
@@ -92,7 +94,7 @@
 			if (seededFolders.has(value)) continue
 
 			seededFolders.add(value)
-			if (expandedFolders.isExpanded(name, node.folder?.collapsed ?? false)) {
+			if (isFolderExpanded(name, node.folder?.collapsed ?? false)) {
 				expandedValues.add(value)
 			}
 		}
