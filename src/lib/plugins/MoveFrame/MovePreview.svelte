@@ -61,11 +61,6 @@
 	{/if}
 
 	{#if ready}
-		<!--
-			`Info` rather than `Warning`: a plan is a validated path and nothing more, so the caveat is
-			true of every plan, always, and nothing has gone wrong when it is. `sm` because the move
-			panel's own rows are this dense and a `base` banner would tower over them.
-		-->
 		<Banner
 			variant={BannerVariant.Info}
 			size="sm"
@@ -80,10 +75,6 @@
 		</Banner>
 
 		<div class="flex flex-col gap-1">
-			<!--
-				`on:input` because `ToggleButtons` dispatches a `CustomEvent` and offers no callback prop.
-				PRIME ships this control, so extending it beats re-deriving a toggle out of two buttons.
-			-->
 			<ToggleButtons
 				options={Object.values(detailLabels)}
 				selected={detailLabels[preview.detail]}

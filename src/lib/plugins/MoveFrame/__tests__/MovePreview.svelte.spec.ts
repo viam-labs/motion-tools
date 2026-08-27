@@ -79,7 +79,7 @@ describe('MovePreview', () => {
 		)
 	})
 
-	it("spells out the caveat under the approximation notice", () => {
+	it('spells out the caveat under the approximation notice', () => {
 		render(MovePreview, {
 			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
 		})
