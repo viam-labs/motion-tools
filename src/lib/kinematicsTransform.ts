@@ -2,6 +2,7 @@ import type { Geometry } from '@viamrobotics/sdk'
 
 import type { Pose } from '$lib/math'
 
+import { cylinderToStlBytes } from '$lib/cylinderStl'
 import {
 	type FramePoseJson,
 	geometryCenterInFrame,
@@ -155,6 +156,17 @@ export const parseKinematicsGeometry = (
 		},
 	})
 
+	// The SDK geometry union has no cylinder case, so a cylinder is handed to the
+	// renderer in mesh form: the conversion rdk itself applies for collision checks.
+	const cylinder = (): Geometry => ({
+		center,
+		label,
+		geometryType: {
+			case: 'mesh',
+			value: { contentType: 'stl', mesh: cylinderToStlBytes(raw.r ?? 0, raw.l ?? 0) },
+		},
+	})
+
 	const none = (): Geometry => ({
 		center,
 		label,
@@ -170,6 +182,9 @@ export const parseKinematicsGeometry = (
 		}
 		case 'capsule': {
 			return capsule()
+		}
+		case 'cylinder': {
+			return cylinder()
 		}
 		case 'mesh': {
 			if (raw.mesh_data === undefined || raw.mesh_data.length === 0) {
@@ -200,7 +215,7 @@ export const parseKinematicsGeometry = (
 			return none()
 		}
 		default: {
-			// `cylinder` and `point` have no equivalent in the SDK geometry union.
+			// `point` has no equivalent in the SDK geometry union.
 			return none()
 		}
 	}

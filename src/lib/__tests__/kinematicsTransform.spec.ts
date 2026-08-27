@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { cylinderToStlBytes } from '../cylinderStl'
 import {
 	isDHModel,
 	parseKinematicsGeometry,
@@ -63,8 +64,14 @@ describe('parseKinematicsGeometry', () => {
 			})
 		})
 
+		it('reads a cylinder as its tessellated stl mesh, since the SDK union has no cylinder case', () => {
+			expect(geometry({ type: 'cylinder', r: 2, l: 9 }).geometryType).toEqual({
+				case: 'mesh',
+				value: { contentType: 'stl', mesh: cylinderToStlBytes(2, 9) },
+			})
+		})
+
 		it('has no case for shapes the SDK geometry union cannot express', () => {
-			expect(geometry({ type: 'cylinder', r: 2, l: 9 }).geometryType.case).toBeUndefined()
 			expect(geometry({ type: 'point' }).geometryType.case).toBeUndefined()
 		})
 	})
