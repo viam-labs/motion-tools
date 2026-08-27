@@ -37,6 +37,3 @@ const LIVE_POLL_GROUPS = new Set<RefreshRateId>(['poses'])
 
 export const refetchRateOptionsFor = (id: RefreshRateId): RefetchRateOption[] =>
 	LIVE_POLL_GROUPS.has(id) ? options : options.filter((option) => !option.isLive)
-
-/** A rate the source is actively polling at, as opposed to manual or off. */
-export const isPollingRate = (rate: number): boolean => rate > RefetchRates.MANUAL

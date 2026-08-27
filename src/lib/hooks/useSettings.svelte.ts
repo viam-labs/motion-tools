@@ -84,8 +84,7 @@ export const RefreshRates = {
 
 export type RefreshRateId = keyof Settings['refreshRates']
 
-/** Also what a group resumes at when the user un-pauses one that has never polled. */
-export const DEFAULT_REFRESH_RATES: Settings['refreshRates'] = {
+const DEFAULT_REFRESH_RATES: Settings['refreshRates'] = {
 	poses: 1000,
 	pointclouds: 5000,
 	vision: 1000,
