@@ -2,19 +2,10 @@
 @component
 
 Renders every entity with `Cylinder` + `WorldMatrix` traits as instanced draw
-calls (toon-shaded faces + edge lines) instead of a mesh per cylinder. Trait
-events are coalesced into a microtask flush, mirroring the `WorldMatrix` system,
-so a burst of changes (one reconcile tick) becomes a single batch of instance
-writes and one `invalidate()`.
+calls (toon-shaded faces + edge lines).
 
 `capped` is a different geometry rather than a different scale, so solid
-cylinders and open tubes get a variant each — four meshes in total. An entity
-whose `capped` flips moves between them.
-
-Both faces meshes are pointer-interaction surfaces: `InstancedMesh2` raycasts
-per instance (skipping invisible ones) and stamps `instanceId` on each hit. A
-single shared handler set is attached to both; the hit object picks which
-variant's id table maps the `instanceId` back to the entity.
+cylinders and open tubes get a variant each.
 -->
 <script lang="ts">
 	import type { Entity } from 'koota'

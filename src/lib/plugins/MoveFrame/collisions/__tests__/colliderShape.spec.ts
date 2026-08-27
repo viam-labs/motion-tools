@@ -1,6 +1,6 @@
 import { createWorld } from 'koota'
 import { Matrix4, Quaternion, Vector3 } from 'three'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { traits } from '$lib/ecs'
 
@@ -10,6 +10,10 @@ let world: ReturnType<typeof createWorld>
 
 beforeEach(() => {
 	world = createWorld()
+})
+
+afterEach(() => {
+	world.destroy()
 })
 
 describe('colliderShapeFor', () => {
