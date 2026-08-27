@@ -7,7 +7,7 @@
 
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
-	import { RefetchRates, refetchRateOptionsFor } from './refetchRates'
+	import { refetchRateOptionsFor, RefetchRates } from './refetchRates'
 
 	interface Props {
 		id: RefreshRateId

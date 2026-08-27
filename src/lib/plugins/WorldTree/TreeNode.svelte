@@ -10,7 +10,7 @@
 
 	import type { TreeNode } from './buildTree'
 
-	import FolderRefreshControls from './FolderRefreshControls.svelte'
+	import FolderControls from './FolderControls.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {
@@ -79,7 +79,7 @@
 
 {#snippet folderActions()}
 	{#if node.folder?.refreshRate}
-		<FolderRefreshControls
+		<FolderControls
 			id={node.folder.refreshRate}
 			label={name.current ?? ''}
 		/>
