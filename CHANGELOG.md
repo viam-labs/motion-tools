@@ -1,5 +1,15 @@
 # visualization
 
+## 2.1.0
+
+### Minor Changes
+
+- cdb140a: Add folder actions
+
+### Patch Changes
+
+- f50b758: Render cylinder geometries as an instanced primitive, alongside boxes, capsules and spheres
+
 ## 2.0.0
 
 ### Major Changes
