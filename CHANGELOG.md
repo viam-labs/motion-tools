@@ -1,5 +1,39 @@
 # visualization
 
+## 2.0.0
+
+### Major Changes
+
+- bccc909: Remove the deprecated `client/client` v1 API and its WebSocket transport, rename `traits.DrawServiceAPI` to `traits.DrawAPI`, replace the `<DrawService />` `websocketPort` prop with a `port` that actually selects the draw server, drop the bundled LLM scene builder backend in favor of the prompt and schemas now exported from `@viamrobotics/visualization/scene-builder`, and retire the Bun dev server now that the Go draw server serves static files
+- 3d89eb8: Move build mode into the opt-in `BuildFrames` plugin, which now also owns the transform-mode and custom-geometry hotkeys, and hide the mode toggle when monitor is the only reachable mode
+- 5a38260: Add `useDetailsSection` so plugins contribute per-entity content to the details cards, and remove the `DetailsPortal` export along with the unused details portal targets, which never had a working landing zone
+- 3fd52f8: Move the file drop target into the opt-in `FileDrop` plugin, and export `OverlayPortal` for plugin chrome that no toolbar or panel portal fits
+- 9ab2c22: Keep build mode live instead of freezing a machine snapshot while editing
+- 4420a06: Move the frame POV panels into the opt-in `FramePov` plugin
+- 365fa3c: Move monitor mode into the opt-in `Monitor` plugin: every mode is now plugin-contributed with mount order as priority, the mode is `none` when no mode plugins are mounted, and each mode plugin owns its own details cards
+- d7a92cb: Rename the package from `@viamrobotics/motion-tools` to `@viamrobotics/visualization` and the Go module from `github.com/viam-labs/motion-tools` to `github.com/viamrobotics/visualization`
+- f6d7f66: Move the settings popover into the opt-in `Settings` plugin, and make `@zag-js/tabs` an optional peer dependency
+- adeb956: Move the world tree panel into the opt-in `WorldTree` plugin, and make `@zag-js/tree-view` and `svelte-virtuallists` optional peer dependencies
+
+### Minor Changes
+
+- 48a6a01: Add frameless components to the world tree
+- b58b4fd: Share trajectory playback between the plan replayer and the move panel
+
+  `MotionPlanReplayerContext.setStep` now pauses playback when called, rather than only applying the step, since a caller scrubbing by hand almost always means "take over from here."
+
+- ce0f501: Publish immersive session state as `useEnvironment().current.isImmersive` so only the XR plugin needs `@threlte/xr`, and make the plugin-only peers `@threlte/xr`, `@threlte/rapier`, and `@dimforge/rapier3d-compat` optional
+
+### Patch Changes
+
+- 85d16c8: Reconstruct RDK's flattened frame system from a robot's frame system config, placing a part's configured geometry on its origin frame even when the part also carries a kinematic model
+- 6928474: Create points BVH in a web worker
+- 9454975: Render cylinders by lowering to mesh; bump rdk to open-cylinder release
+- 0cc741a: Fix incorrect raycasting with individual points and turn on hover details by default
+- 0d248c2: Replace the three-perf render stats overlay with a more expressive custom pane
+- 583feac: Include self in ghost frames
+- 8ea9eab: Don't reset queries on disconnect
+
 ## 1.45.1
 
 ### Patch Changes
