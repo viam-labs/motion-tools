@@ -19,8 +19,8 @@ While build mode is active the live frame and pose queries are paused, so staged
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { BuildFrames } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { BuildFrames } from '@viamrobotics/visualization/plugins'
 </script>
 
 <div class="h-screen w-screen">
@@ -36,7 +36,7 @@ Build mode exists only while this plugin is mounted. It declares itself with `us
 
 ```svelte
 <script lang="ts">
-	import { useEnvironmentMode } from '@viamrobotics/motion-tools'
+	import { useEnvironmentMode } from '@viamrobotics/visualization'
 
 	useEnvironmentMode('build')
 </script>

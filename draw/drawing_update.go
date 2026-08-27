@@ -5,7 +5,7 @@ import (
 
 	"go.viam.com/rdk/spatialmath"
 
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 // DrawingUpdate describes a partial update to a stored drawing.

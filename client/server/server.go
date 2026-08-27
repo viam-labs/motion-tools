@@ -25,14 +25,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/rs/cors"
-	"github.com/viam-labs/motion-tools/draw"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	"github.com/viamrobotics/visualization/draw"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -50,6 +51,21 @@ var ErrAttached = errors.New("draw server is attached to an external server; not
 // `make up`. When callers never invoke Start() explicitly, GetClient lazily
 // attaches to a server listening on this port.
 const DefaultPort = 3030
+
+// DrawServicePortEnv overrides DefaultPort for the lazy attach in GetClient. It
+// is the same variable `make up` uses to move the server, so a producer picks up
+// a relocated visualizer without calling Start().
+const DrawServicePortEnv = "DRAW_SERVICE_PORT"
+
+// defaultPort returns the port GetClient probes, honoring DrawServicePortEnv.
+// An unset or unparseable value falls back to DefaultPort.
+func defaultPort() int {
+	port, err := strconv.Atoi(os.Getenv(DrawServicePortEnv))
+	if err != nil || port <= 0 || port > 65535 {
+		return DefaultPort
+	}
+	return port
+}
 
 var buildDir = "build"
 
@@ -261,12 +277,13 @@ func Stop() error {
 // GetClient returns the singleton Connect-RPC DrawService client.
 //
 // If Start has not been called, GetClient attempts to attach to a draw server
-// listening on localhost:DefaultPort (the port started by `make up`). This
-// lets callers use the client/api package without any server-lifecycle
-// boilerplate when the visualizer is already running locally.
+// listening on localhost:DefaultPort, or on DrawServicePortEnv when that is
+// set (both are what `make up` uses). This lets callers use the client/api
+// package without any server-lifecycle boilerplate when the visualizer is
+// already running locally.
 //
-// Returns nil if Start was not called and no server is listening on the
-// default port; callers should surface that as "visualizer not running".
+// Returns nil if Start was not called and no server is listening on that port;
+// callers should surface that as "visualizer not running".
 func GetClient() drawv1connect.DrawServiceClient {
 	mu.Lock()
 	defer mu.Unlock()
@@ -278,10 +295,10 @@ func GetClient() drawv1connect.DrawServiceClient {
 	return drawClient
 }
 
-// attachDefaultLocked probes DefaultPort and attaches a client to an existing
-// server if one is running. Callers must hold mu.
+// attachDefaultLocked probes the default port and attaches a client to an
+// existing server if one is running. Callers must hold mu.
 func attachDefaultLocked() {
-	addr := fmt.Sprintf("localhost:%d", DefaultPort)
+	addr := fmt.Sprintf("localhost:%d", defaultPort())
 
 	conn, err := net.DialTimeout("tcp", addr, 250*time.Millisecond)
 	if err != nil {

@@ -25,7 +25,7 @@ topic to file. For a changed path, the rules whose globs match it are the source
 3. Quote the source verbatim, and cite file paths with line numbers.
 4. **Downstream ripple:** if the change alters an exported shape from the package entry
    points (`src/lib/index.ts` → `.`, `./lib`, or `./plugins` exports), name the export.
-   This package is published as `@viamrobotics/motion-tools`, so external consumers exist.
+   This package is published as `@viamrobotics/visualization`, so external consumers exist.
    Don't audit them yourself. Surface it so the implementer files a follow-up.
 5. Return one verdict: **OK** | **Conflict** (quote rule + conflicting code) | **Gap**
    (source silent), optionally tagged **Downstream ripple**.

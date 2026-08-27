@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/test"
 )

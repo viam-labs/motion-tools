@@ -67,7 +67,9 @@
 	)
 
 	// Hand-written JSON is expensive to retype, and the panel unmounts with the
-	// selection, so keep each frame's fields across mounts and reloads.
+	// selection, so keep each frame's fields across mounts and reloads. The
+	// `motion-tools:` prefix predates the rename to visualization and is kept so
+	// existing users don't lose saved input.
 	const worldStateJson = $derived(
 		new PersistedState(`motion-tools:move-world-state:${partID.current}:${frameName}`, '')
 	)

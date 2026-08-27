@@ -1,6 +1,6 @@
 ---
 title: Embedding <Visualizer />
-description: Mount the motion-tools visualizer inside your own Svelte app and render snapshots inline.
+description: Mount the Viam visualizer inside your own Svelte app and render snapshots inline.
 ---
 
 import { Tabs, TabItem, Aside } from '@astrojs/starlight/components'
@@ -16,7 +16,7 @@ A Svelte 5 / SvelteKit (or Astro+Svelte, Vite+Svelte, etc.) project. The package
 ### Install
 
 ```bash
-pnpm add @viamrobotics/motion-tools
+pnpm add @viamrobotics/visualization
 ```
 
 The package declares a list of `peerDependencies` (Svelte, Threlte, Three.js, the Viam SDK, prime-core, several Zag.js components, etc.). pnpm will print warnings for any that aren't already in your project — install whatever it asks for.
@@ -77,7 +77,7 @@ export const ssr = false
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Visualizer } from '@viamrobotics/visualization'
 </script>
 
 <div class="h-screen w-screen">
@@ -137,8 +137,8 @@ else is needed — no `partID`, and no network calls of its own.
 
 ```svelte
 <script lang="ts">
-	import { PCD, Visualizer } from '@viamrobotics/motion-tools'
-	import { MeasureTool } from '@viamrobotics/motion-tools/plugins'
+	import { PCD, Visualizer } from '@viamrobotics/visualization'
+	import { MeasureTool } from '@viamrobotics/visualization/plugins'
 
 	interface Props {
 		data: Uint8Array
@@ -173,7 +173,7 @@ one-shot capture.
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
+	import { Visualizer } from '@viamrobotics/visualization'
 </script>
 
 <div class="h-screen w-screen">
@@ -201,8 +201,8 @@ Use the `<Snapshot />` component as a child of `<Visualizer />`:
     ```svelte
     <script lang="ts">
       import { onMount } from 'svelte'
-      import { Visualizer } from '@viamrobotics/motion-tools'
-      import { Snapshot, SnapshotProto } from '@viamrobotics/motion-tools/lib'
+      import { Visualizer } from '@viamrobotics/visualization'
+      import { Snapshot, SnapshotProto } from '@viamrobotics/visualization/lib'
 
       let snapshot = $state<SnapshotProto | undefined>()
 
@@ -229,8 +229,8 @@ Use the `<Snapshot />` component as a child of `<Visualizer />`:
     ```svelte
     <script lang="ts">
       import { onMount } from 'svelte'
-      import { Visualizer } from '@viamrobotics/motion-tools'
-      import { Snapshot, SnapshotProto } from '@viamrobotics/motion-tools/lib'
+      import { Visualizer } from '@viamrobotics/visualization'
+      import { Snapshot, SnapshotProto } from '@viamrobotics/visualization/lib'
 
       let snapshot = $state<SnapshotProto | undefined>()
 
@@ -256,8 +256,8 @@ Use the `<Snapshot />` component as a child of `<Visualizer />`:
 
     ```svelte
     <script lang="ts">
-      import { Visualizer } from '@viamrobotics/motion-tools'
-      import { Snapshot, SnapshotProto } from '@viamrobotics/motion-tools/lib'
+      import { Visualizer } from '@viamrobotics/visualization'
+      import { Snapshot, SnapshotProto } from '@viamrobotics/visualization/lib'
       import sceneJson from './scene.snapshot.json?raw'
 
       const snapshot = SnapshotProto.fromJsonString(sceneJson)
@@ -290,7 +290,7 @@ import (
     "os"
 
     "github.com/golang/geo/r3"
-    "github.com/viam-labs/motion-tools/draw"
+    "github.com/viamrobotics/visualization/draw"
     "go.viam.com/rdk/spatialmath"
 )
 
@@ -329,7 +329,7 @@ A few components are exported via the `/lib` subpath and work without a `<Visual
 ```svelte
 <script lang="ts">
 	import { Canvas } from '@threlte/core'
-	import { AxesHelper } from '@viamrobotics/motion-tools/lib'
+	import { AxesHelper } from '@viamrobotics/visualization/lib'
 </script>
 
 <Canvas>

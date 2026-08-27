@@ -45,7 +45,7 @@ The config ships the distinctive choices. Apply the family for the role:
 
 - `font-space-grotesk` — display / headings.
 - `font-public-sans` — body / UI text.
-- `font-roboto-mono` — numeric & data (poses, coordinates, IDs, tables; cf. `.motion-tools-table` in `app.css`).
+- `font-roboto-mono` — numeric & data (poses, coordinates, IDs, tables; cf. `.visualization-table` in `app.css`).
 
 `app.css` sets `body { font-family: system-ui }` globally. The prime fonts are **not** inherited everywhere, so set the family explicitly where it matters. Build hierarchy with weight/size/color tokens, not invented type scales.
 

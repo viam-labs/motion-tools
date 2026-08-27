@@ -1,5 +1,3 @@
-/** @deprecated MotionTools has been renamed to Visualizer. This export will be removed in v2. */
-export { default as MotionTools } from './components/App.svelte'
 export { default as Visualizer } from './components/App.svelte'
 
 export { useSettings } from './hooks/useSettings.svelte'

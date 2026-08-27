@@ -11,8 +11,8 @@ The values it edits live in the `useSettings` store, which is persisted to Index
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { Settings } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { Settings } from '@viamrobotics/visualization/plugins'
 </script>
 
 <div class="h-screen w-screen">
@@ -29,7 +29,7 @@ Every setting remains readable and writable through `useSettings`, whether or no
 ```svelte
 <script lang="ts">
 	import { useThrelte } from '@threlte/core'
-	import { useSettings } from '@viamrobotics/motion-tools'
+	import { useSettings } from '@viamrobotics/visualization'
 
 	const settings = useSettings()
 	const { invalidate } = useThrelte()

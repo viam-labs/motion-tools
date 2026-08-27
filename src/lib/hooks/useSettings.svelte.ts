@@ -151,6 +151,8 @@ export const provideSettings = () => {
 	let isLoaded = $state(false)
 	let settings = $state<Settings>(defaults())
 
+	// Key kept as `motion-tools-settings` after the rename to visualization; renaming it
+	// would silently discard every existing user's saved settings.
 	get('motion-tools-settings')
 		.then((response: Settings) => {
 			if (response) {

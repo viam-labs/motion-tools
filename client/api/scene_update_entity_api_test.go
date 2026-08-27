@@ -7,7 +7,7 @@ import (
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"
 
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 )
 
 const (

@@ -11,8 +11,8 @@ The panel is a `FloatingPanel` — draggable and resizable, opening at the top-l
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { WorldTree } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { WorldTree } from '@viamrobotics/visualization/plugins'
 </script>
 
 <div class="h-screen w-screen">
@@ -30,7 +30,7 @@ To read the selection yourself, query it like any other trait:
 
 ```svelte
 <script lang="ts">
-	import { traits, useQuery } from '@viamrobotics/motion-tools'
+	import { traits, useQuery } from '@viamrobotics/visualization'
 
 	const selected = useQuery(traits.Selected)
 </script>
