@@ -19,9 +19,17 @@ type Vec3 = readonly [number, number, number]
  * Exists because the SDK `Geometry` union has no cylinder case (rdk's own
  * `Cylinder.ToProtobuf` panics over the same gap), so the render path is handed
  * the mesh form instead, the same answer rdk gives its collision checks.
+ *
+ * `capped` defaults to true to mirror rdk's JSON semantics, where an absent
+ * `capped` field means a solid cylinder; false leaves an open tube with no end
+ * caps, drawn double-sided by the mesh renderer.
  */
-export const cylinderToStlBytes = (radiusMm: number, lengthMm: number): Uint8Array => {
-	const triangleCount = CYLINDER_SEGMENTS * 4
+export const cylinderToStlBytes = (
+	radiusMm: number,
+	lengthMm: number,
+	capped = true
+): Uint8Array => {
+	const triangleCount = CYLINDER_SEGMENTS * (capped ? 4 : 2)
 	const buffer = new ArrayBuffer(
 		STL_HEADER_BYTES + TRIANGLE_COUNT_BYTES + triangleCount * BYTES_PER_TRIANGLE
 	)
@@ -61,8 +69,10 @@ export const cylinderToStlBytes = (radiusMm: number, lengthMm: number): Uint8Arr
 		const wallNormal: Vec3 = [Math.cos((i + 0.5) * step), Math.sin((i + 0.5) * step), 0]
 		writeTriangle(wallNormal, bottom0, bottom1, top1)
 		writeTriangle(wallNormal, bottom0, top1, top0)
-		writeTriangle([0, 0, 1], topCenter, top0, top1)
-		writeTriangle([0, 0, -1], bottomCenter, bottom1, bottom0)
+		if (capped) {
+			writeTriangle([0, 0, 1], topCenter, top0, top1)
+			writeTriangle([0, 0, -1], bottomCenter, bottom1, bottom0)
+		}
 	}
 
 	return new Uint8Array(buffer)

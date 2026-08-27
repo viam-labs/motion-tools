@@ -25,6 +25,8 @@ export interface RawKinematicsGeometry {
 	z?: number
 	r?: number
 	l?: number
+	/** Cylinders only: false is an open tube. rdk omits the field for solid ones. */
+	capped?: boolean
 	type?: string
 	Label?: string
 	translation?: RawKinematicsTranslation
@@ -163,7 +165,10 @@ export const parseKinematicsGeometry = (
 		label,
 		geometryType: {
 			case: 'mesh',
-			value: { contentType: 'stl', mesh: cylinderToStlBytes(raw.r ?? 0, raw.l ?? 0) },
+			value: {
+				contentType: 'stl',
+				mesh: cylinderToStlBytes(raw.r ?? 0, raw.l ?? 0, raw.capped ?? true),
+			},
 		},
 	})
 

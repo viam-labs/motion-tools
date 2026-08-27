@@ -71,6 +71,13 @@ describe('parseKinematicsGeometry', () => {
 			})
 		})
 
+		it('leaves the end caps off a cylinder marked capped: false', () => {
+			expect(geometry({ type: 'cylinder', r: 2, l: 9, capped: false }).geometryType).toEqual({
+				case: 'mesh',
+				value: { contentType: 'stl', mesh: cylinderToStlBytes(2, 9, false) },
+			})
+		})
+
 		it('has no case for shapes the SDK geometry union cannot express', () => {
 			expect(geometry({ type: 'point' }).geometryType.case).toBeUndefined()
 		})
