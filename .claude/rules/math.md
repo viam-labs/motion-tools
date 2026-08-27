@@ -1,11 +1,14 @@
 ---
 paths:
   - 'src/lib/math/**'
+  # `src/lib/motion/` is the same discipline one layer up: joint poses, frame descriptors, and
+  # trajectory interpolation, all hand ports of RDK Go carrying the same unit boundaries.
+  - 'src/lib/motion/**'
 ---
 
 # Spatial Math
 
-`src/lib/math/` holds spatial math primitives. Nothing here imports from `$lib/ecs`, `$lib/components` or a hook — it is pure math that the rest of the app composes.
+`src/lib/math/` holds spatial math primitives. `src/lib/motion/` builds on them: joint poses, frame descriptors, plan frames, and trajectory interpolation. Neither imports from `$lib/ecs`, `$lib/components` or a hook. Both are pure computation that the rest of the app composes.
 
 ## Units
 

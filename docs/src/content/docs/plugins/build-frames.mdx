@@ -9,7 +9,7 @@ import { Aside } from '@astrojs/starlight/components'
 
 - the **Build** button to the workspace mode toggle,
 - the transform toolbar — translate / rotate / scale gizmos, snapping with per-axis increments, and local / world space,
-- an **Add frames** panel for components in the config that have no frame yet,
+- a **Frameless components** folder in the [world tree](../world-tree/), listing the config's components that have no frame yet. Selecting one offers to add its frame, and the new frame inherits the selection.
 - the _Live updates paused_ banner, with undo / redo of staged frame edits and <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>S</kbd> to save,
 - the build-mode keyboard shortcuts, dispatched by the visualizer while build mode is active: <kbd>0</kbd>–<kbd>3</kbd> for the transform mode, and <kbd>=</kbd> / <kbd>-</kbd> to add or remove a custom geometry.
 
@@ -19,8 +19,8 @@ While build mode is active the live frame and pose queries are paused, so staged
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { BuildFrames } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { BuildFrames } from '@viamrobotics/visualization/plugins'
 </script>
 
 <div class="h-screen w-screen">
@@ -36,7 +36,7 @@ Build mode exists only while this plugin is mounted. It declares itself with `us
 
 ```svelte
 <script lang="ts">
-	import { useEnvironmentMode } from '@viamrobotics/motion-tools'
+	import { useEnvironmentMode } from '@viamrobotics/visualization'
 
 	useEnvironmentMode('build')
 </script>

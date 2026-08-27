@@ -11,7 +11,7 @@ import (
 
 	"github.com/golang/geo/r3"
 	"github.com/google/uuid"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/test"

@@ -36,9 +36,7 @@ const withOverlaysHidden = async <T>(page: Page, fn: () => Promise<T>): Promise<
 export const screenshotCanvas = async (page: Page, name: string): Promise<string> => {
 	return withOverlaysHidden(page, async () => {
 		try {
-			await expect(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`, {
-				threshold: 0.1,
-			})
+			await expect(page.locator('canvas').first()).toHaveScreenshot(`${name}.png`)
 			return ''
 		} catch (error) {
 			console.warn(error)

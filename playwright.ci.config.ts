@@ -1,16 +1,13 @@
 import { defineConfig } from '@playwright/test'
-import path from 'node:path'
-import url from 'node:url'
 
-const dirname = path.dirname(url.fileURLToPath(import.meta.url))
+import base from './playwright.config'
 
+/** Runs against the deployed gh-pages playground, so there is no local webServer to start. */
 export default defineConfig({
-	globalSetup: path.resolve(dirname, './e2e/helpers/global-setup.ts'),
+	...base,
+	webServer: undefined,
 	use: {
-		trace: 'on',
+		...base.use,
 		baseURL: 'https://viamrobotics.github.io/visualization/playground/',
 	},
-	testDir: 'e2e',
-	timeout: 120 * 1000,
-	workers: 1,
 })

@@ -189,8 +189,13 @@ export const FramesAPI = trait(() => true)
  * neither rigid with its parent nor drivable by the motion service.
  */
 export const KinematicLink = trait(() => true)
+
+/**
+ * Drawn into the scene through the draw API, rather than sourced from the robot.
+ * The distinction drives grouping in the world tree and which entities may be
+ * related to one another.
+ */
 export const DrawAPI = trait(() => true)
-export const DrawServiceAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
 
@@ -204,6 +209,14 @@ export const PointCloudObjectAPI = trait(() => true)
  * Marker trait for entities created from user-dropped files (PLY, PCD, etc.)
  */
 export const DroppedFile = trait(() => true)
+
+/**
+ * A component that the part config declares with no frame. It carries a `Name`
+ * so the world tree can list it, and nothing else — there is no scene object
+ * behind it. Queries that assume one (labels, orphan resolution, relationship
+ * targets) exclude it with `Not(FramelessComponent)`.
+ */
+export const FramelessComponent = trait()
 
 /**
  * This entity has somewhere for an edit to land: a config entry, or an ad-hoc

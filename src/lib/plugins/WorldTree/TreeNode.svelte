@@ -196,7 +196,9 @@
 			{/if}
 		</span>
 
-		{@render actions()}
+		{#if !node.sceneless}
+			{@render actions()}
+		{/if}
 	</div>
 {/if}
 

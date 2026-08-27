@@ -30,6 +30,10 @@
     {
       "name": "@houserules/plugin-design",
       "alias": "design"
+    },
+    {
+      "name": "@houserules/plugin-accessibility",
+      "alias": "accessibility"
     }
   ],
   "fix": {
@@ -87,7 +91,7 @@
     {
       "name": "visualization",
       "prefix": "VISUALIZATION",
-      "packageName": "@viamrobotics/motion-tools",
+      "packageName": "@viamrobotics/visualization",
       "pathPrefix": "",
       "sourcePath": "src",
       "label": "Visualization",
@@ -114,6 +118,10 @@
       "typescript",
       "svelte",
       "3d"
+    ],
+    "accessibility/accessibility": [
+      "html",
+      "svelte"
     ]
   }
 }

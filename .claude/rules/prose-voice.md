@@ -62,6 +62,24 @@ editing on the user's behalf in their voice.
 over a file before you call it done. It never rules on whether a surviving em dash earns its
 keep, or on filler, asides, or concreteness. Those stay a human read.
 
+## Prose that instructs an agent
+
+Rules, skills, agent prompts, and briefs are prose that shapes behavior, and the form does
+the shaping. Classify the failure you are writing against before choosing a form:
+
+- **The reader knows the rule and skips it under pressure.** Write a prohibition, and pair
+  it with the observed excuses and their answers. Soft guidance reads as optional exactly
+  when it is needed most.
+- **The reader complies, but the output has the wrong shape.** Write a recipe that states
+  what the output IS, its parts in order. A prohibition list invites negotiating with each
+  item, and the negotiation usually wins.
+- **A real exception exists.** Write it as its own conditional on an observable predicate,
+  "if the brief exists, reference it". A nuance clause, "unless it matters", reopens the
+  negotiation the rule was meant to close.
+
+This split comes from external wording tests, not from measurements in this repo. Treat it
+as the default form choice, not a law.
+
 ## Precision outranks brevity
 
 Cutting words is not the goal. Clarity is. If removing a qualifier changes what the

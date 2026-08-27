@@ -138,6 +138,7 @@ Checkboxes mirror it: `[ ]` todo, `[~]` in progress, `[x]` done.
 # Phase N — <name>
 
 **Status:** TODO · **Part of:** [PLAN.md](PLAN.md) · **Roadmap:** [ROADMAP.md](ROADMAP.md)
+**Signals:** <optional: `wide` for a big footprint, `ui` for user-facing surfaces, else omit the line>
 
 ## Objective
 
@@ -157,6 +158,10 @@ Checkboxes mirror it: `[ ]` todo, `[~]` in progress, `[x]` done.
 <Captured as you implement: what you chose, what you ruled out, surprises. This is the durable
 memory that survives the transcript.>
 ```
+
+The optional `**Signals:**` line is read by `/orchestrate` where that skill is installed: `wide`
+turns on its pre-slicing `/blast-radius` map and `ui` its close-of-phase accessibility and design
+reviews. Omit the line when neither applies.
 
 For a control-flow-heavy phase, one where the hard part is which function calls which and in what
 order, add an optional call-stack sketch to that phase file: the call tree in diff syntax, with `+`

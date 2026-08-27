@@ -16,7 +16,6 @@ import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 import { attachPointsBvh } from '$lib/three/pointsBvh'
 
-import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 const key = Symbol('pointcloud-context')
@@ -26,7 +25,6 @@ interface Context {
 }
 
 export const providePointclouds = (partID: () => string) => {
-	const environment = useEnvironment()
 	const world = useWorld()
 	const logs = useLogs()
 	const settings = useSettings()
@@ -87,7 +85,7 @@ export const providePointclouds = (partID: () => string) => {
 	})
 
 	const options = $derived({
-		enabled: environment.isLive && interval !== RefetchRates.OFF,
+		enabled: interval !== RefetchRates.OFF,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -136,10 +134,7 @@ export const providePointclouds = (partID: () => string) => {
 				}
 
 				if (!data || data.length === 0) {
-					// Build mode pauses this query, so losing its data means the cache
-					// dropped it, not that the camera stopped reporting points — and
-					// nothing will refetch to bring the cloud back.
-					if (environment.isLive) destroyEntity()
+					destroyEntity()
 
 					return () => {
 						disposed = true
@@ -202,17 +197,13 @@ export const providePointclouds = (partID: () => string) => {
 			})
 		}
 
-		// Clean up queries that disappeared entirely. Not in build mode: clients drop
-		// out on reconnects and resource changes, and the paused queries can never
-		// respawn what this destroys.
-		if (environment.isLive) {
-			for (const [queryKey, entity] of entities) {
-				if (!activeQueryKeys.has(queryKey)) {
-					if (world.has(entity)) {
-						entity.destroy()
-					}
-					entities.delete(queryKey)
+		// Clean up queries that disappeared entirely.
+		for (const [queryKey, entity] of entities) {
+			if (!activeQueryKeys.has(queryKey)) {
+				if (world.has(entity)) {
+					entity.destroy()
 				}
+				entities.delete(queryKey)
 			}
 		}
 	})

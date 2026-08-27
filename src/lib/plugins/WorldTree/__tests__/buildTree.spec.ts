@@ -34,13 +34,30 @@ describe('buildTree', () => {
 
 	it('folds the draw service and snapshot sources into Drawn', () => {
 		world = createWorld()
-		world.spawn(traits.Name('a'), traits.DrawAPI)
-		world.spawn(traits.Name('b'), traits.DrawServiceAPI)
+		world.spawn(traits.Name('b'), traits.DrawAPI)
 		world.spawn(traits.Name('c'), traits.SnapshotAPI)
 
 		const { nodes } = buildTree(world, spawnFolderEntities())
 
-		expect(namesIn(folderNamed(nodes, 'Drawn'))).toEqual(['a', 'b', 'c'])
+		expect(namesIn(folderNamed(nodes, 'Drawn'))).toEqual(['b', 'c'])
+	})
+
+	it('marks a collapsed folder so the tree starts it closed', () => {
+		world = createWorld()
+		world.spawn(traits.Name('base-1'), traits.FramelessComponent)
+
+		const { nodes } = buildTree(world, spawnFolderEntities())
+
+		expect(folderNamed(nodes, 'Frameless components')?.collapsed).toBe(true)
+	})
+
+	it('marks the rows of a sceneless folder, which drops their visibility toggle', () => {
+		world = createWorld()
+		world.spawn(traits.Name('base-1'), traits.FramelessComponent)
+
+		const { nodes } = buildTree(world, spawnFolderEntities())
+
+		expect(folderNamed(nodes, 'Frameless components')?.children?.[0]?.sceneless).toBe(true)
 	})
 
 	it('omits folders that claim nothing', () => {

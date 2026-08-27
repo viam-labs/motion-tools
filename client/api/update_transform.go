@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 )
 
 // UpdateTransformOptions configures an UpdateTransform call.

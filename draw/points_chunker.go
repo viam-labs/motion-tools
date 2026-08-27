@@ -3,7 +3,7 @@ package draw
 import (
 	"log"
 
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
 )
 
 // PointsChunker is a DrawableChunker that splits a Points value into chunks of

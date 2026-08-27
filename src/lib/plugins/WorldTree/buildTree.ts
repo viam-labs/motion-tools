@@ -11,6 +11,10 @@ export interface TreeNode {
 	children?: TreeNode[]
 	/** Folder row. Backed by a synthetic entity with no scene presence. */
 	isFolder?: boolean
+	/** Folder row that starts closed. See `TreeFolder.collapsed`. */
+	collapsed?: boolean
+	/** Row with no scene object behind it. See `TreeFolder.sceneless`. */
+	sceneless?: boolean
 	/** Entities in the folder at any depth, not just the rows directly under it. */
 	itemCount?: number
 	/** The `ChildOf` parent, set when it sits in another folder. */
@@ -123,14 +127,18 @@ export const buildTree = (world: World, folderEntities: Entity[]): Tree => {
 
 		roots.sort(compareByName)
 
+		const { collapsed, sceneless } = treeFolders[index]
+
 		nodes.push({
 			entity: folder,
 			isFolder: true,
+			collapsed,
 			itemCount: folderCounts[index],
 			children: roots.map((entity) => {
 				parents.set(`${entity}`, `${folder}`)
 
 				const node = walk(entity)
+				node.sceneless = sceneless
 				const parent = entity.targetFor(relations.ChildOf)
 				if (parent?.isAlive() && parent.get(traits.Name)) node.detachedParent = parent
 

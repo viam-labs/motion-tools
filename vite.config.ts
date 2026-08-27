@@ -22,6 +22,8 @@ export default defineConfig({
 		sentrySvelteKit({
 			sourceMapsUploadOptions: {
 				org: 'viam',
+				// Sentry project slug, not the package name. It stays until the project is
+				// renamed in Sentry; a mismatch silently breaks symbolication.
 				project: 'motion-tools',
 				// Must match `release` in hooks.client.ts. The default is the git HEAD SHA, which no
 				// event references, so uploaded maps would never be applied to a stack trace.
@@ -40,7 +42,7 @@ export default defineConfig({
 
 	define: {
 		BACKEND_IP: JSON.stringify('localhost'),
-		WS_PORT: JSON.stringify(process.env.WS_PORT || '3000'),
+		DRAW_SERVICE_PORT: JSON.stringify(process.env.DRAW_SERVICE_PORT || '3030'),
 	},
 	optimizeDeps: {
 		rolldownOptions: {},

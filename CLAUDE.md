@@ -11,14 +11,14 @@
 | RPC             | Connect-RPC (not standard gRPC)                               |
 | Proto tooling   | Buf (`buf.yaml`, `buf.gen.*.yaml`)                            |
 | Package manager | pnpm                                                          |
-| Dev server      | Bun (`server/server.ts`)                                      |
+| Dev server      | Go (`cmd/draw-server`), Vite for HMR                          |
 | Go              | 1.25                                                          |
 | Testing         | Vitest + Playwright (TS); `go.viam.com/test` (Go)             |
 
 ## Commands
 
 ```
-make up            # build if needed, start server (ports 5173 + 3000)
+make up            # build if needed, start the draw server (5173 app, 3030 RPC)
 pnpm proto         # vendor, lint, format, regenerate all protobuf
 pnpm check         # svelte-check + go vet
 pnpm lint          # prettier + eslint + golangci-lint
@@ -57,27 +57,16 @@ Detailed guidance lives in `.claude/rules/`. Path-scoped rules load when Claude 
 
 ### houserules sections
 
-This block is maintained by `npx houserules update`. Content outside the markers around it
-is yours and never touched. For a fuller from-scratch skeleton to compare structure against, see
-`.claude/templates/CLAUDE.md.template`, a gitignored reference that `npx houserules update`
-restores if absent. For decisions the repo keeps re-deriving on one axis (architecture, API
-conventions), instantiate `.claude/templates/rules/GUARDRAIL.md.template` into `.claude/rules/`.
+This block is maintained by `npx houserules update`. Content outside the markers is yours
+and never touched. Templates for a fuller CLAUDE.md skeleton and for guardrail rules live
+in `.claude/templates/`.
 
-### Recording changes (changesets)
+### Skill triggers
 
-After completing a meaningful change to a package, record a changeset **before the commit**,
-via the `/changeset` skill. See that skill for what it does and when to run it.
-
-### Planning large, multi-phase work
-
-For an implementation too big to hold in one plan, run the `/plan-project` skill. It persists
-to `.claude/plans/<name>/`, keeping `ROADMAP.md` current as each phase lands. See the skill
-for the full scaffold and when to use it.
-
-### Executing a planned phase
-
-To implement a phase from `.claude/plans/<slug>/`, run `/orchestrate`. See that skill for how
-it slices work and reviews it.
+- After a meaningful change to a package: record a changeset with `/changeset`, **before
+  the commit**.
+- Too big to hold in one plan: scaffold with `/plan-project`, then execute each phase with
+  `/orchestrate`.
 
 ### Conventions
 
@@ -104,6 +93,13 @@ it slices work and reviews it.
   one of them, since it rewrites files their siblings still have open.
 - **"Done" means every check passed, not that the edits were made.** Report a check that failed
   or never ran, with its output. Never claim success over one you did not see pass.
+  The recorded evasions, and what each one actually means:
+  | Excuse | Reality |
+  | --- | --- |
+  | "The edits are in, so it is done" | Done is the checks passing, with output you read. |
+  | "I know this fact from memory" | State it only after running the command that could falsify it. |
+  | "It passed earlier" | A stale or cached pass is not this change's pass. Re-run on current bytes. |
+  | "The subagent reported success" | The tree is the evidence. Check it before believing the report. |
 - Derive empirical constants by parsing the artifact itself, not screenshot-and-iterate loops.
 - On AskUserQuestion timeout, stop and re-ask later. Never carry tentative selections forward.
 - Read the repo's own docs + targeted greps before fanning out Explore/Plan agents.
