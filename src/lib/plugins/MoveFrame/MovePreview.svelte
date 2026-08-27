@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '@viamrobotics/prime-core'
+	import { Banner, BannerVariant, Button } from '@viamrobotics/prime-core'
 
 	import type { PreviewMove } from './usePreviewMove.svelte'
 
@@ -48,16 +48,22 @@
 
 	{#if ready}
 		<!--
-			Information rather than a warning: a plan is a validated path and nothing more, so the
-			caveat is true of every plan, always, and nothing has gone wrong when it is.
+			`Info` rather than `Warning`: a plan is a validated path and nothing more, so the caveat is
+			true of every plan, always, and nothing has gone wrong when it is. `sm` because the move
+			panel's own rows are this dense and a `base` banner would tower over them.
 		-->
-		<div class="border-info-medium bg-info-light border px-2 py-1.5">
-			<p class="text-info-dark font-medium">This preview is an approximation</p>
-			<p class="text-subtle-1 mt-0.5">
+		<Banner
+			variant={BannerVariant.Info}
+			size="sm"
+		>
+			{#snippet titleContent()}
+				This preview is an approximation
+			{/snippet}
+			{#snippet subtitle()}
 				The arm may deviate from the planned waypoints. How it moves between them is the component's
 				decision, not the planner's.
-			</p>
-		</div>
+			{/snippet}
+		</Banner>
 
 		<p
 			class="text-subtle-1"

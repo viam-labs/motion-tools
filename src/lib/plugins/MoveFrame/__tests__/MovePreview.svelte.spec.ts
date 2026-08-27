@@ -48,6 +48,15 @@ describe('MovePreview', () => {
 		expect(screen.getByRole('status')).toHaveTextContent('Planned 12 waypoints.')
 	})
 
+	it('carries the approximation caveat once a preview is ready', () => {
+		render(MovePreview, { props: { preview: preview({ status: 'ready', plannedSteps: 12 }) } })
+
+		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
+		expect(
+			screen.getByText(/how it moves between them is the component's decision/i)
+		).toBeInTheDocument()
+	})
+
 	it('writes a single waypoint without a plural', () => {
 		render(MovePreview, {
 			props: { preview: preview({ status: 'ready', plannedSteps: 1 }) },
