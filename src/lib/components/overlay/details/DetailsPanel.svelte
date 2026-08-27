@@ -57,6 +57,7 @@
 	const box = useTrait(() => entity, traits.Box)
 	const sphere = useTrait(() => entity, traits.Sphere)
 	const capsule = useTrait(() => entity, traits.Capsule)
+	const cylinder = useTrait(() => entity, traits.Cylinder)
 	const removable = useTrait(() => entity, traits.Removable)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 
@@ -70,6 +71,7 @@
 				box.current !== undefined ||
 				sphere.current !== undefined ||
 				capsule.current !== undefined ||
+				cylinder.current !== undefined ||
 				worldMatrix.current !== undefined)
 	)
 
@@ -100,6 +102,7 @@
 		if (box.current) return 'box'
 		if (sphere.current) return 'sphere'
 		if (capsule.current) return 'capsule'
+		if (cylinder.current) return 'cylinder'
 		return 'none'
 	})
 
@@ -135,7 +138,7 @@
 				},
 				geometry: {
 					type: geometryType,
-					value: box.current ?? capsule.current ?? sphere.current,
+					value: box.current ?? capsule.current ?? cylinder.current ?? sphere.current,
 				},
 				parentFrame: parent.current ?? 'world',
 			},

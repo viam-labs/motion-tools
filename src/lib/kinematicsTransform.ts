@@ -1,7 +1,6 @@
-import type { Geometry } from '@viamrobotics/sdk'
-
 import type { Pose } from '$lib/math'
 
+import { type Geometry } from '$lib/geometry'
 import {
 	type FramePoseJson,
 	geometryCenterInFrame,
@@ -24,6 +23,8 @@ export interface RawKinematicsGeometry {
 	z?: number
 	r?: number
 	l?: number
+	/** Cylinders only: false is an open tube. rdk omits the field for solid ones. */
+	capped?: boolean
 	type?: string
 	Label?: string
 	translation?: RawKinematicsTranslation
@@ -99,13 +100,13 @@ const toMeshBytes = (data?: string | number[]): Uint8Array => {
 }
 
 /**
- * Convert a raw kinematics link geometry JSON blob into the SDK `Geometry`
+ * Convert a raw kinematics link geometry JSON blob into the {@link Geometry}
  * shape expected by the ECS trait system.
  *
  * Raw format (from `kinematics.links[].geometry`):
- *   `{ x, y, z, r, l, type, Label, translation: { X, Y, Z }, orientation }`
+ *   `{ x, y, z, r, l, capped, type, Label, translation: { X, Y, Z }, orientation }`
  *
- * Target format (`Geometry` from `@viamrobotics/sdk`):
+ * Target format:
  *   `{ geometryType: { case, value }, label, center: Pose }`
  *
  * `type` is authoritative; when it is absent rdk infers the shape from whichever
@@ -146,6 +147,17 @@ export const parseKinematicsGeometry = (
 		geometryType: { case: 'capsule', value: { radiusMm: raw.r ?? 0, lengthMm: raw.l ?? 0 } },
 	})
 
+	// `capped` defaults to true because rdk omits the field for a solid cylinder
+	// and writes it only to mark an open tube (`spatialmath/geometry.go`).
+	const cylinder = (): Geometry => ({
+		center,
+		label,
+		geometryType: {
+			case: 'cylinder',
+			value: { radiusMm: raw.r ?? 0, lengthMm: raw.l ?? 0, capped: raw.capped ?? true },
+		},
+	})
+
 	const mesh = (): Geometry => ({
 		center,
 		label,
@@ -170,6 +182,9 @@ export const parseKinematicsGeometry = (
 		}
 		case 'capsule': {
 			return capsule()
+		}
+		case 'cylinder': {
+			return cylinder()
 		}
 		case 'mesh': {
 			if (raw.mesh_data === undefined || raw.mesh_data.length === 0) {
@@ -200,7 +215,7 @@ export const parseKinematicsGeometry = (
 			return none()
 		}
 		default: {
-			// `cylinder` and `point` have no equivalent in the SDK geometry union.
+			// `point` has no equivalent in the geometry union.
 			return none()
 		}
 	}

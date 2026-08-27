@@ -1,4 +1,4 @@
-import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
+import { MachineConnectionEvent } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -8,6 +8,7 @@ import {
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
+import type { Transform } from '$lib/geometry'
 import type { RawKinematicsModel } from '$lib/kinematicsTransform'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'

@@ -9,6 +9,7 @@
 	import AxesHelpers from './AxesHelpers.svelte'
 	import Boxes from './Boxes.svelte'
 	import Capsules from './Capsules.svelte'
+	import Cylinders from './Cylinders.svelte'
 	import GeometryModel from './GeometryModel.svelte'
 	import GLTF from './GLTF.svelte'
 	import Labels from './Labels.svelte'
@@ -66,6 +67,7 @@
 <AxesHelpers />
 
 <Capsules />
+<Cylinders />
 <Spheres />
 <Boxes />
 
