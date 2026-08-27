@@ -1,5 +1,5 @@
 ---
-"@viamrobotics/motion-tools": patch
+"@viamrobotics/visualization": minor
 ---
 
 Add folder actions
