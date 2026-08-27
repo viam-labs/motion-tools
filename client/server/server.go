@@ -32,8 +32,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/rs/cors"
-	"github.com/viam-labs/motion-tools/draw"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	"github.com/viamrobotics/visualization/draw"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

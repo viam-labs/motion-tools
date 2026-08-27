@@ -1,4 +1,4 @@
-// Package mutils contains utilities for motion tools.
+// Package mutils contains utilities for the Viam visualizer.
 package mutils
 
 import (

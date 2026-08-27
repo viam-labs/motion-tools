@@ -25,7 +25,7 @@ const snapshots: Array<{ name: string; file: string; waitFor?: string[] }> = [
 
 test.beforeAll(() => {
 	execSync(
-		'go test -run ^TestGeneratingSnapshots$ github.com/viam-labs/motion-tools/draw -count=1',
+		'go test -run ^TestGeneratingSnapshots$ github.com/viamrobotics/visualization/draw -count=1',
 		{ encoding: 'utf8' }
 	)
 })

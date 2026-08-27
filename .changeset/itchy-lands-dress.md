@@ -1,5 +1,5 @@
 ---
-'@viamrobotics/motion-tools': patch
+'@viamrobotics/visualization': patch
 ---
 
 Fix incorrect raycasting with individual points and turn on hover details by default

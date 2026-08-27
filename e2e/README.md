@@ -1,6 +1,6 @@
 # End-to-End Testing Guide
 
-This guide explains how to run and manage the Playwright end-to-end tests for the motion-tools application.
+This guide explains how to run and manage the Playwright end-to-end tests for the Viam Visualization application.
 
 The tests now provision their own ephemeral Viam machine for each run.
 

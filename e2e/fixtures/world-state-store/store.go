@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/geo/r3"
 	"github.com/google/uuid"
-	"github.com/viam-labs/motion-tools/draw"
+	"github.com/viamrobotics/visualization/draw"
 	commonpb "go.viam.com/api/common/v1"
 	pb "go.viam.com/api/service/worldstatestore/v1"
 	"go.viam.com/rdk/logging"

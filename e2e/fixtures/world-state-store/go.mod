@@ -5,7 +5,7 @@ go 1.25.8
 require (
 	github.com/golang/geo v0.0.0-20230421003525-6adc56603217
 	github.com/google/uuid v1.6.0
-	github.com/viam-labs/motion-tools v1.9.0
+	github.com/viamrobotics/visualization v1.9.0
 	go.viam.com/api v0.1.537
 	go.viam.com/rdk v0.122.0
 	go.viam.com/test v1.2.4
@@ -13,7 +13,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
-replace github.com/viam-labs/motion-tools => ../../../
+replace github.com/viamrobotics/visualization => ../../../
 
 require (
 	cel.dev/expr v0.25.1 // indirect

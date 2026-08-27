@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
-	"github.com/viam-labs/motion-tools/client/server"
-	"github.com/viam-labs/motion-tools/draw"
-	drawv1 "github.com/viam-labs/motion-tools/draw/v1"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	"github.com/viamrobotics/visualization/client/server"
+	"github.com/viamrobotics/visualization/draw"
+	drawv1 "github.com/viamrobotics/visualization/draw/v1"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 	"go.viam.com/rdk/pointcloud"
 )
 

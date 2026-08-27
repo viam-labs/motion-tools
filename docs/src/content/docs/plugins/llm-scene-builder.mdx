@@ -13,9 +13,9 @@ The plugin is model-agnostic: you wire in whatever LLM backend you prefer via th
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { LLMSceneBuilder } from '@viamrobotics/motion-tools/plugins'
-	import type { ComponentFrameInfo, FrameDelta } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { LLMSceneBuilder } from '@viamrobotics/visualization/plugins'
+	import type { ComponentFrameInfo, FrameDelta } from '@viamrobotics/visualization/plugins'
 
 	async function handleInfer(
 		prompt: string,
@@ -120,7 +120,7 @@ import {
 	SceneBuilderRequestSchema,
 	SceneBuilderResponseSchema,
 	sceneBuilderSystemMessage,
-} from '@viamrobotics/motion-tools/scene-builder'
+} from '@viamrobotics/visualization/scene-builder'
 ```
 
 This is a **separate entry point from `/plugins` on purpose**. `/plugins` is a Svelte barrel — importing it from a Node or edge handler pulls in every plugin's components. `/scene-builder` is pure TypeScript with no Svelte, three.js, or DOM dependency, so it is safe to import server-side.
@@ -139,7 +139,7 @@ import {
 	SceneBuilderRequestSchema,
 	SceneBuilderResponseSchema,
 	sceneBuilderSystemMessage,
-} from '@viamrobotics/motion-tools/scene-builder'
+} from '@viamrobotics/visualization/scene-builder'
 
 const client = new Anthropic() // reads ANTHROPIC_API_KEY from the environment
 

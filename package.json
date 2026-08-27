@@ -1,5 +1,5 @@
 {
-	"name": "@viamrobotics/motion-tools",
+	"name": "@viamrobotics/visualization",
 	"version": "1.45.1",
 	"description": "Motion visualization with Viam",
 	"license": "Apache-2.0",

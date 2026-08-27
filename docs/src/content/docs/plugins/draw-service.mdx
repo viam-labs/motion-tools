@@ -1,6 +1,6 @@
 ---
 title: <DrawService />
-description: Stream a running draw server's output into an embedded motion-tools visualizer.
+description: Stream a running draw server's output into an embedded Viam visualizer.
 ---
 
 `<DrawService />` connects an embedded `<Visualizer />` to a running draw server over Connect-RPC so any `client/api` calls made elsewhere render in this instance live. Skip it if you only render snapshots — snapshots are entirely client-side and don't need the server.
@@ -19,8 +19,8 @@ pnpm add @connectrpc/connect @connectrpc/connect-web
 
 ```svelte
 <script lang="ts">
-	import { Visualizer } from '@viamrobotics/motion-tools'
-	import { DrawService } from '@viamrobotics/motion-tools/plugins'
+	import { Visualizer } from '@viamrobotics/visualization'
+	import { DrawService } from '@viamrobotics/visualization/plugins'
 </script>
 
 <div class="h-screen w-screen">
@@ -61,13 +61,13 @@ Because the stream retries on a backoff, a server that stays down logs the "coul
 
 `<DrawService />` is a client — it needs a draw server to talk to. You have three options:
 
-### Use the motion-tools local app
+### Use the local app
 
-The fastest path: run motion-tools locally (`make up` or `pnpm dev`). The local app already hosts a draw server on port `3030`, and `client/api` calls to the same host land in it.
+The fastest path: run the visualizer locally (`make up` or `pnpm dev`). The local app already hosts a draw server on port `3030`, and `client/api` calls to the same host land in it.
 
 ### Host the Go `DrawService` yourself
 
-Motion-tools exports a ready-made `DrawService` from `github.com/viam-labs/motion-tools/draw` — the same Connect-RPC handler the local app uses. Wire it up to your own HTTP server:
+Viam Visualization exports a ready-made `DrawService` from `github.com/viamrobotics/visualization/draw` — the same Connect-RPC handler the local app uses. Wire it up to your own HTTP server:
 
 ```go
 package main
@@ -77,8 +77,8 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	"github.com/viam-labs/motion-tools/draw"
-	"github.com/viam-labs/motion-tools/draw/v1/drawv1connect"
+	"github.com/viamrobotics/visualization/draw"
+	"github.com/viamrobotics/visualization/draw/v1/drawv1connect"
 )
 
 func main() {
@@ -95,7 +95,7 @@ Your `client/api` producer code then points at this server, and `<DrawService co
 
 ### Implement your own server
 
-If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viam-labs/motion-tools/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
+If you need a custom backend (different language, different storage, extra side effects), the proto definitions are published under `github.com/viamrobotics/visualization/draw/v1` (Go) and ship as `.proto` files in the source tree under `protos/draw/v1/`. Implement the `DrawService` RPCs in whichever language you like; `<DrawService />` just needs a Connect-RPC server at the configured host:port.
 
 Start with these, which between them cover everything `client/api` calls:
 

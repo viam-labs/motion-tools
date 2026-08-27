@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Motion Tools Development Environment Setup Script
+# Viam Visualization Development Environment Setup Script
 
 set -euo pipefail
 
