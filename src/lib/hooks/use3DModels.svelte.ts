@@ -89,6 +89,11 @@ export const provide3DModels = (partID: () => string) => {
 
 					gltfModel.scene.traverse((object) => {
 						if (isInstanceOf(object, 'Mesh')) {
+							// Set on the loaded model rather than each clone: `GeometryModel`
+							// clones per frame, and `clone()` carries these flags across.
+							object.castShadow = true
+							object.receiveShadow = true
+
 							const { material } = object
 
 							if (isInstanceOf(material, 'MeshStandardMaterial')) {
