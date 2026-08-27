@@ -31,13 +31,31 @@ import {
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 /**
- * How long a preview takes to play, whatever it is made of. Pacing to a duration rather than a
- * frame rate keeps a two-waypoint plan and a two-hundred-waypoint one comparable.
+ * How long a preview aims to take, once it has frames enough to fill the time. A sparse plan
+ * finishes sooner instead of stretching, because pacing two waypoints to four seconds reads as
+ * nothing happening rather than as a slow move.
  */
 const PREVIEW_DURATION_MS = 4000
 
 /** Faster than this is wasted on a display. Very dense plans run longer than the target instead. */
 const MIN_FRAME_MS = 16
+
+/**
+ * The longest a single frame holds. A waypoint plan is a handful of discrete configurations, and
+ * without a ceiling the duration target parks a two-waypoint plan on one frame for the whole four
+ * seconds.
+ */
+const MAX_FRAME_MS = 250
+
+/**
+ * How long each frame holds, for a plan of `frameCount` frames. Clamped at both ends: below
+ * {@link MIN_FRAME_MS} a dense plan only flickers, and above {@link MAX_FRAME_MS} a sparse one
+ * stops reading as motion at all.
+ *
+ * Playback covers `frameCount - 1` transitions, so that is what the duration divides.
+ */
+export const previewFrameIntervalMs = (frameCount: number): number =>
+	Math.min(MAX_FRAME_MS, Math.max(MIN_FRAME_MS, PREVIEW_DURATION_MS / Math.max(1, frameCount - 1)))
 
 export interface PreviewMoveOptions {
 	frames: FramesContext
@@ -100,10 +118,7 @@ export const usePreviewMove = ({
 	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
 	const ghosts: PreviewGhosts = createPreviewGhosts()
 
-	// Playback covers `trajectory.length - 1` transitions, so that is what the duration divides.
-	const frameIntervalMs = $derived(
-		Math.max(MIN_FRAME_MS, PREVIEW_DURATION_MS / Math.max(1, trajectory.length - 1))
-	)
+	const frameIntervalMs = $derived(previewFrameIntervalMs(trajectory.length))
 
 	/**
 	 * Which request the state on screen belongs to. Bumped by every reset, so a plan that resolves

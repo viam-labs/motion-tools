@@ -12,6 +12,7 @@ import planJson from '../../MotionPlanReplayer/__tests__/__fixtures__/plan.json?
 import { parseMoveOptions } from '../parseMoveOptions'
 import { liveFrameName } from '../previewNames'
 import { PreviewGhost } from '../traits'
+import { previewFrameIntervalMs } from '../usePreviewMove.svelte'
 import {
 	createPreviewMoveHarness,
 	type PreviewMoveHarness,
@@ -435,5 +436,26 @@ describe('scrubbing the preview', () => {
 
 		expect(previewHarness.preview.player.currentStep).toBe(0)
 		expect(previewHarness.preview.player.totalSteps).toBe(0)
+	})
+})
+
+describe('previewFrameIntervalMs', () => {
+	it.each([
+		{ frames: 2, expected: 250 },
+		{ frames: 5, expected: 250 },
+		{ frames: 17, expected: 250 },
+	])(
+		'holds a $frames frame plan at $expected ms rather than stretching it',
+		({ frames, expected }) => {
+			expect(previewFrameIntervalMs(frames)).toBe(expected)
+		}
+	)
+
+	it('divides the duration target once a plan has frames enough to fill it', () => {
+		expect(previewFrameIntervalMs(96)).toBeCloseTo(42.105, 3)
+	})
+
+	it('runs longer than the target rather than flickering on a very dense plan', () => {
+		expect(previewFrameIntervalMs(300)).toBe(16)
 	})
 })
