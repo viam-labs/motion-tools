@@ -6,10 +6,16 @@ Remove the deprecated client/client v1 API and its WebSocket transport
 
 This removes public surface. The Go packages `client/client`, `client/colorutil`, and
 `client/shapes` are gone — use `client/api` and see the v1 to v2 migration guide. On the npm side,
-`traits.DrawAPI` is no longer exported, and `<DrawService />` no longer accepts `websocketPort` in
-its `config` prop.
+`traits.DrawServiceAPI` is renamed to `traits.DrawAPI`, and `<DrawService />` no longer accepts
+`websocketPort` in its `config` prop.
 
-In its place `config` takes an optional `port`, defaulting to `3030`. Unlike `websocketPort`, which
+Read the trait rename carefully if you use it. `traits.DrawAPI` previously marked entities drawn
+through the removed v1 WebSocket, so code referencing it keeps compiling but now matches
+v2-drawn entities instead. That is the intended meaning — the trait marks anything drawn through
+the draw API rather than sourced from the robot — but the change is silent, so audit call sites
+rather than relying on the compiler.
+
+In place of `websocketPort`, `config` takes an optional `port`, defaulting to `3030`. Unlike `websocketPort`, which
 was read only by the removed WebSocket, `port` actually selects the draw server the plugin connects
 to, and is configurable via the new `DRAW_SERVICE_PORT` environment variable on both the browser
 and Go sides.

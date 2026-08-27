@@ -11,7 +11,7 @@
 
 	import { draggable } from '@neodrag/svelte'
 	import { useThrelte } from '@threlte/core'
-	import { Portal, PortalTarget } from '@threlte/extras'
+	import { Portal } from '@threlte/extras'
 	import { Icon } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
@@ -30,9 +30,14 @@
 		entity: Entity
 		/** The mode's details, rendered under the shared header. */
 		children: Snippet
+		/**
+		 * Header actions that read a scene object: zoom to it, view from it, copy
+		 * its pose. Turn off for a row that only exists in the config.
+		 */
+		sceneActions?: boolean
 	}
 
-	const { entity, children, ...rest }: Props = $props()
+	const { entity, children, sceneActions = true, ...rest }: Props = $props()
 
 	const world = useWorld()
 	const { scene } = useThrelte()
@@ -54,19 +59,18 @@
 	const capsule = useTrait(() => entity, traits.Capsule)
 	const removable = useTrait(() => entity, traits.Removable)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
-	const geometriesAPI = useTrait(() => entity, traits.GeometriesAPI)
 
-	// Fit-to-view needs world bounds. `object3d` alone is undefined for instanced
-	// primitives and geometry-less frames, so resolve bounds via the shared
-	// helper (traits / named object / WorldMatrix) and only offer the button when
-	// something is resolvable.
+	// `object3d` is undefined for instanced primitives and geometry-less frames, so
+	// `expandBoxByEntity` resolves bounds from traits instead. Offer the button only
+	// when one of those sources exists.
 	const focusBox = new Box3()
 	const focusable = $derived(
-		object3d !== undefined ||
-			box.current !== undefined ||
-			sphere.current !== undefined ||
-			capsule.current !== undefined ||
-			worldMatrix.current !== undefined
+		sceneActions &&
+			(object3d !== undefined ||
+				box.current !== undefined ||
+				sphere.current !== undefined ||
+				capsule.current !== undefined ||
+				worldMatrix.current !== undefined)
 	)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
@@ -89,9 +93,8 @@
 	})
 
 	const isFrameNode = $derived(!!framesAPI.current)
-	const isGeometry = $derived(!!geometriesAPI.current)
 	const resourceName = $derived(name.current ? resourceByName.current[name.current] : undefined)
-	const displayType = $derived(isFrameNode ? resourceName?.subtype : isGeometry ? 'geometry' : '')
+	const displayType = $derived(isFrameNode ? resourceName?.subtype : '')
 
 	const geometryType = $derived.by(() => {
 		if (box.current) return 'box'
@@ -164,7 +167,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 			bind:this={dragElement}
 		>
 			<div class="flex w-[90%] items-center gap-1">
-				<PortalTarget id="details-header-icon" />
 				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
 				<span class="text-subtle-2">{displayType}</span>
 			</div>
@@ -195,7 +197,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 									paddingRight: padding,
 								})
 
-								// Preserve previous rotation
 								currentControls.rotateAzimuthTo(azimuthAngle, true)
 								currentControls.rotatePolarTo(polarAngle, true)
 							}}
@@ -208,7 +209,7 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				</Tooltip>
 			{/if}
 
-			{#if name.current}
+			{#if name.current && sceneActions}
 				<Tooltip placement="bottom">
 					{#snippet children(tooltipID)}
 						<button
@@ -234,8 +235,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				</Tooltip>
 			{/if}
 
-			<PortalTarget id="details-header-actions" />
-
 			{#if removable.current}
 				<Tooltip placement="bottom">
 					{#snippet children(tooltipID)}
@@ -256,31 +255,33 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				</Tooltip>
 			{/if}
 
-			<Tooltip placement="bottom">
-				{#snippet children(tooltipID)}
-					<button
-						class="text-subtle-2"
-						aria-describedby={tooltipID}
-						onclick={async () => {
-							try {
-								await navigator.clipboard.writeText(getCopyClipboardText())
-							} catch {
-								// clipboard unavailable (non-secure context or permission denied)
-							}
-							copied = true
-							setTimeout(() => (copied = false), 1000)
-						}}
-					>
-						{#if copied}
-							<Check size={14} />
-						{:else}
-							<Copy size={14} />
-						{/if}
-					</button>
-				{/snippet}
+			{#if sceneActions}
+				<Tooltip placement="bottom">
+					{#snippet children(tooltipID)}
+						<button
+							class="text-subtle-2"
+							aria-describedby={tooltipID}
+							onclick={async () => {
+								try {
+									await navigator.clipboard.writeText(getCopyClipboardText())
+								} catch {
+									// clipboard unavailable (non-secure context or permission denied)
+								}
+								copied = true
+								setTimeout(() => (copied = false), 1000)
+							}}
+						>
+							{#if copied}
+								<Check size={14} />
+							{:else}
+								<Copy size={14} />
+							{/if}
+						</button>
+					{/snippet}
 
-				{#snippet content()}Copy details to clipboard{/snippet}
-			</Tooltip>
+					{#snippet content()}Copy details to clipboard{/snippet}
+				</Tooltip>
+			{/if}
 		</div>
 
 		<div class="border-medium -mx-2 w-[100%+0.5rem] border-b"></div>

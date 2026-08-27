@@ -15,11 +15,12 @@ export interface MovedFrameMatrix {
  * The world transform of the frame the motion service actually drives.
  *
  * For an arm, gantry, gripper or base the frame system reports the *mount*
- * under `<name>_origin` and the *end effector* under the bare component name —
- * and the bare name is what `MotionClient.move` takes. The scene renders these
- * components at their origin (see `usePoses`), so no entity carries the end
- * effector's transform; ask the frame system for it directly. Frames without a
- * kinematic model resolve to the transform their entity already has.
+ * under `<name>_origin` and the *end effector* under the bare component
+ * name, and the bare name is what `MotionClient.move` takes. The scene
+ * renders these components at their origin (see `usePoses`), so no entity
+ * carries the end effector's transform. Ask the frame system for it
+ * directly. Frames without a kinematic model resolve to the transform their
+ * entity already has.
  *
  * Resolved against `world` so the gizmo can be dragged and committed in the one
  * space both ends agree on, with no `_origin` ambiguity in between.

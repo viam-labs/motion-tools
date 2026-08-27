@@ -37,7 +37,7 @@ type DrawFrameSystemOptions struct {
 //
 // Returns ErrVisualizerNotRunning if no visualizer is reachable, the
 // underlying error if frame system geometry resolution fails, or a wrapped
-// RPC error if any AddEntity call fails.
+// RPC error if the AddEntities call fails.
 func DrawFrameSystem(options DrawFrameSystemOptions) ([][]byte, error) {
 	client := server.GetClient()
 	if client == nil {

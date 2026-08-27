@@ -1,5 +1,59 @@
 # motion-tools
 
+## 1.45.1
+
+### Patch Changes
+
+- e08b88f: Show details panel for non-movable objects in move mode
+
+## 1.45.0
+
+### Minor Changes
+
+- 7801e62: Add `useHotkey` so features and plugins contribute keyboard shortcuts declaratively
+- 7cfcc26: Add `useEnvironmentMode` so a persisted mode resolves back to monitor when the plugin contributing it is not mounted
+
+### Patch Changes
+
+- f8e10a0: Keep a plan's snapshots with the plan when another one is removed
+- cee7c2b: Cut pointcloud draw range when moving camera to avoid frame stutters
+- 7729bee: Fix `Visualizer` imports pulling `@viamrobotics/test-widgets` through the plugins barrel
+- 59813bb: Read mesh data delivered as a number array, the shape a component's kinematics arrives in over protobuf-JSON, alongside the base64 shape plan dumps use
+
+## 1.44.0
+
+### Minor Changes
+
+- f5bc780: Add folders to treeview
+
+### Patch Changes
+
+- 88dd8c4: Drive plan joints by RDK's schema order, not their declaration order
+- 0780313: Infer an untyped geometry's shape from whichever dimensions it sets, the way RDK's `ParseConfig` dispatches on them
+
+## 1.43.1
+
+### Patch Changes
+
+- c61ce9b: Keep the Viam tweakpane theme applied when a second visualizer mounts, instead of falling back to Tweakpane's dark defaults
+- f7cd229: Do not show stale pose indicator if not connected to a robot
+- 7f76463: Show last pointcloud objects snapshot in build mode
+
+## 1.43.0
+
+### Minor Changes
+
+- 1df9610: Derive frames and geometries from frame system kinematics instead of polling `getGeometries`
+- f4cad4d: Render STL collision meshes alongside PLY, and rotate unoriented link geometry into its own frame
+
+### Patch Changes
+
+- d6e1289: Migrate workspace panels to popovers
+- 55b7a17: Move the shared plan kinematics into `$lib/motion`
+- c6fe538: Read a plan model's output frame from where RDK writes it
+- 2880ef6: Memory leak fix with ply files
+- 9be560c: Drive mimic joints from the joint they mimic when replaying a plan, and keep the joints declared after one on their own columns
+
 ## 1.42.0
 
 ### Minor Changes

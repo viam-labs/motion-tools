@@ -5,9 +5,9 @@
 	import { useThrelte } from '@threlte/core'
 	import { ElementRect } from 'runed'
 
-	import { DashboardPortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
+	import DashboardPortal from '$lib/components/overlay/Portals/DashboardPortal.svelte'
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'

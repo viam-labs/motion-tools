@@ -26,3 +26,22 @@ src/lib/plugins/MotionPlanReplayer/__tests__/__fixtures__/
 
 # IDE
 .cursor
+
+# houserules:prettierignore start
+# Installed by houserules and tracked by content hash. Formatting these rewrites
+# bytes houserules owns, which makes `npx houserules update` skip them as your edits.
+.claude/agents/
+.claude/debug/
+.claude/houserules.config.json
+.claude/houserules.manifest.json
+.claude/mcp/
+.claude/output-styles/
+.claude/plans/
+.claude/reference/
+.claude/rules/
+.claude/scripts/
+.claude/settings.ci.json
+.claude/skills/
+.claude/state/
+.claude/templates/
+# houserules:prettierignore end

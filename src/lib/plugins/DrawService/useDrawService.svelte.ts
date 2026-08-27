@@ -21,7 +21,7 @@ import {
 } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 import {
 	clearsDrawings,
@@ -115,7 +115,7 @@ export function provideDrawService() {
 	}
 
 	const spawnTransform = (transform: Transform, uuid: string) => {
-		const spawned = drawTransform(world, transform, traits.DrawServiceAPI)
+		const spawned = drawTransform(world, transform, traits.DrawAPI)
 		serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 		transformEntities.set(uuid, spawned.entity)
 	}
@@ -236,7 +236,7 @@ export function provideDrawService() {
 	}
 
 	const spawnDrawing = (drawing: Drawing, uuid: string) => {
-		const spawned = drawDrawing(world, drawing, traits.DrawServiceAPI)
+		const spawned = drawDrawing(world, drawing, traits.DrawAPI)
 		serverRelationships.apply(spawned.entity, uuid, spawned.relationships)
 		drawingEntities.set(uuid, spawned.entity)
 
@@ -257,7 +257,7 @@ export function provideDrawService() {
 		}
 	}
 
-	/** ADDED and UPDATED are both upserts; see processTransformEvent. */
+	/** ADDED and UPDATED are both upserts. See `processTransformEvent`. */
 	const processDrawingEvent = (drawing: Drawing, changeType: EntityChangeType, uuid: string) => {
 		if (changeType === EntityChangeType.REMOVED) {
 			serverRelationships.forget(uuid)
@@ -282,7 +282,7 @@ export function provideDrawService() {
 
 			const isModel = drawing.physicalObject?.geometryType?.case === 'model'
 			const result = isModel
-				? updateModel(world, existing, drawing, traits.DrawServiceAPI)
+				? updateModel(world, existing, drawing, traits.DrawAPI)
 				: updateDrawing(world, existing, drawing)
 			serverRelationships.apply(result.entity, uuid, result.relationships)
 			drawingEntities.set(uuid, result.entity)

@@ -69,13 +69,13 @@ export const provide3DModels = (partID: () => string) => {
 		for (const client of clients) {
 			if (!client.current) continue
 			try {
-				const geometries = await client.current.getGeometries()
-				if (geometries.length === 0) {
+				// rdk namespaces a model's frames as `<component>:<id>`, so the prefix
+				// is the component's own name.
+				const prefix = client.current.name
+				const models = await client.current.get3DModels()
+				if (Object.keys(models).length === 0) {
 					continue
 				}
-				const geometryLabel = geometries[0].label
-				const prefix = geometryLabel.split(':')[0]
-				const models = await client.current.get3DModels()
 				if (!(prefix in next)) {
 					next[prefix] = {}
 				}
@@ -118,20 +118,51 @@ export const provide3DModels = (partID: () => string) => {
 	/**
 	 * Colliders are hidden only in the `'model'`-only mode — `'colliders+model'`
 	 * intentionally shows both. Reacts to `current` (models finishing loading)
-	 * and the setting; the `onAdd` listener covers geometry entities that stream
-	 * in while neither has changed.
+	 * and the setting; the `onAdd` listener covers frames that stream in while
+	 * neither has changed.
+	 *
+	 * A collider named `<component>:<id>` is a kinematics link frame — the
+	 * geometry that used to arrive from `getGeometries` now comes from the frame
+	 * system, so `FramesAPI` is the only owner left.
 	 */
 	$effect(() => {
 		const models = current
 		const hideColliders = settings.current.renderArmModels === 'model'
 
-		for (const entity of world.query(traits.GeometriesAPI)) {
+		for (const entity of world.query(traits.FramesAPI)) {
 			syncColliderHidden(entity, models, hideColliders)
 		}
 
-		return world.onAdd(traits.GeometriesAPI, (entity) => {
+		return world.onAdd(traits.FramesAPI, (entity) => {
 			syncColliderHidden(entity, models, hideColliders)
 		})
+	})
+
+	/**
+	 * A model whose key matches no frame renders nothing, and silently: it is the
+	 * same outcome as an arm that ships no models at all. The two are worth
+	 * telling apart, because a mismatch means the model keys and the kinematics
+	 * link ids have drifted — `get3DModels` keys by bare link id, and frames are
+	 * named `<component>:<id>` from the same ids.
+	 */
+	$effect(() => {
+		const loaded = Object.entries(current).flatMap(([component, parts]) =>
+			Object.keys(parts).map((id) => `${component}:${id}`)
+		)
+		if (loaded.length === 0) return
+
+		const frameNames = new Set(
+			world
+				.query(traits.FramesAPI)
+				.map((entity) => entity.get(traits.Name))
+				.filter((name): name is string => name !== undefined)
+		)
+		const unmatched = loaded.filter((name) => !frameNames.has(name))
+		if (unmatched.length === 0) return
+
+		console.warn(
+			`[3d-models] ${unmatched.length} of ${loaded.length} models match no frame: ${unmatched.join(', ')}`
+		)
 	})
 
 	setContext<Context>(key, {

@@ -29,11 +29,13 @@
 		TabPage,
 	} from 'svelte-tweakpane-ui'
 
-	import { traits, useParentName, useTrait } from '$lib/ecs'
+	import { relations, traits, useParentName, useTarget, useTrait } from '$lib/ecs'
 	import { FrameEditor } from '$lib/editing/FrameEditor'
 	import { useParentFrameOptions } from '$lib/hooks/useParentFrameOptions.svelte'
 	import { usePartConfig } from '$lib/hooks/usePartConfig.svelte'
 	import { Pose } from '$lib/math'
+
+	import EntityLink from '../EntityLink.svelte'
 
 	interface Props {
 		entity: Entity
@@ -54,6 +56,9 @@
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
 	const parent = useParentName(() => entity)
+	// Undefined at the world root, and while an `Orphan` waits for its frame to
+	// appear — in both cases there is nothing to select, so no link is offered.
+	const parentEntity = useTarget(() => entity, relations.ChildOf)
 	const parentOptions = useParentFrameOptions(() => name.current)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
@@ -81,13 +86,11 @@
 	})
 
 	/**
-	 * The `<List>`'s bound value must be one of its options, or the underlying
-	 * native <select> has no matching <option>, snaps to selectedIndex -1, and
-	 * renders blank. `useParentFrameOptions` enumerates every frame the app knows
-	 * about, but `parent.current` can still name one it doesn't — an unresolved
-	 * orphan, or simply frames not having loaded yet. Always include the current
-	 * parent so the field shows it rather than going blank. It's cycle-safe: the
-	 * current parent is neither self nor a descendant.
+	 * The `<List>`'s bound value must be one of its options, or the native select
+	 * snaps to selectedIndex -1 and renders blank. `useParentFrameOptions` can lag
+	 * `parent.current`, such as an unresolved orphan or frames that have not loaded
+	 * yet. Always include the current parent so the field shows it. That is
+	 * cycle-safe, since the current parent is neither self nor a descendant.
 	 */
 	const parentFrameOptions = $derived.by(() => {
 		const value = parent.current ?? 'world'
@@ -210,6 +213,11 @@
 <div>
 	<strong class="font-semibold">parent frame</strong>
 	{#if editable}
+		{#if parentEntity.current}
+			<span class="text-subtle-2">
+				— <EntityLink entity={parentEntity.current} />
+			</span>
+		{/if}
 		<!--
 			Remount on entity change. svelte-tweakpane-ui's List runs
 			`listBlade.value = value` on the still-mounted blade before its
@@ -230,10 +238,14 @@
 		{/key}
 	{:else}
 		<div class="mt-0.5 flex gap-3">
-			{@render ImmutableField({
-				ariaLabel: 'parent frame name',
-				value: parent.current ?? 'world',
-			})}
+			{#if parentEntity.current}
+				<EntityLink entity={parentEntity.current} />
+			{:else}
+				{@render ImmutableField({
+					ariaLabel: 'parent frame name',
+					value: parent.current ?? 'world',
+				})}
+			{/if}
 		</div>
 	{/if}
 </div>

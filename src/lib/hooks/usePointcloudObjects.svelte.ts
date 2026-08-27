@@ -12,10 +12,11 @@ import { Matrix4 } from 'three'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
-import { parsePcdInWorker } from '$lib/lib'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
+import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose } from '$lib/math'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -62,7 +63,6 @@ export const providePointcloudObjects = (partID: () => string) => {
 
 		for (const client of clients) {
 			if (
-				environment.isLive &&
 				fetchedPropQueries &&
 				client.current?.name &&
 				interval !== RefetchRates.OFF &&
@@ -98,7 +98,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 	const interval = $derived(refreshRates[RefreshRates.vision])
 
 	const options = $derived({
-		enabled: interval !== RefetchRates.OFF,
+		enabled: environment.isLive && interval !== RefetchRates.OFF,
 		refetchInterval: (interval === RefetchRates.MANUAL ? false : interval) as number | false,
 	})
 
@@ -164,7 +164,10 @@ export const providePointcloudObjects = (partID: () => string) => {
 				}
 
 				if (!data || data.length === 0) {
-					reconcileRemovedKeys()
+					// Build mode pauses this query, so losing its data means the cache
+					// dropped it, not that the service stopped reporting objects — and
+					// nothing will refetch to bring the clouds back.
+					if (environment.isLive) reconcileRemovedKeys()
 
 					return () => {
 						disposed = true
@@ -178,8 +181,8 @@ export const providePointcloudObjects = (partID: () => string) => {
 						const pointcloudLabel = `${name} pointcloud ${index + 1}`
 						nextKeys.add(pointcloudLabel)
 
-						parsePcdInWorker(pointCloud)
-							.then(({ positions, colors }) => {
+						parsePcdInWorker(pointCloud, settings.current.pointBudget)
+							.then(({ boundsTree, positions, colors, bounds, shuffled }) => {
 								if (disposed) {
 									return
 								}
@@ -198,15 +201,24 @@ export const providePointcloudObjects = (partID: () => string) => {
 									const geometry = existing.get(traits.BufferGeometry)
 
 									if (geometry) {
-										updateBufferGeometry(geometry, positions, metadata)
+										updateBufferGeometry(geometry, positions, metadata, bounds)
+										// Replaces the tree built for the points this refresh just overwrote.
+										if (boundsTree) attachPointsBvh(geometry, boundsTree)
+										setOrAddTrait(existing, traits.PointSampling, {
+											total: positions.length / 3,
+											shuffled,
+										})
 									}
 								} else {
-									const geometry = createBufferGeometry(positions, metadata)
+									const geometry = createBufferGeometry(positions, metadata, bounds)
+									if (boundsTree) attachPointsBvh(geometry, boundsTree)
 
 									const entity = world.spawn(
 										traits.Name(pointcloudLabel),
 										traits.BufferGeometry(geometry),
-										traits.Points
+										traits.Points,
+										traits.PointSampling({ total: positions.length / 3, shuffled }),
+										traits.PointCloudObjectAPI
 									)
 
 									entities.set(pointcloudLabel, entity)
@@ -246,10 +258,10 @@ export const providePointcloudObjects = (partID: () => string) => {
 									traits.Name(geometryLabel),
 									...hierarchy.parentTraits(geometriesInFrame.referenceFrame),
 									traits.Matrix(center.toMatrix4()),
-									traits.GeometriesAPI,
 									traits.Geometry(geometry),
 									traits.Opacity(0.2),
 									traits.Color({ r: 0, g: 1, b: 0 }),
+									traits.PointCloudObjectAPI,
 								]
 
 								const entity = world.spawn(...entityTraits)
@@ -272,13 +284,17 @@ export const providePointcloudObjects = (partID: () => string) => {
 			})
 		}
 
-		// cleanup queries that disappeared entirely
-		for (const [queryKey, keys] of queryEntityKeys) {
-			if (!activeQueryKeys.has(queryKey)) {
-				for (const key of keys) {
-					destroyEntity(key)
+		// Clean up queries that disappeared entirely. Not in build mode: clients drop
+		// out on reconnects and resource changes, and the paused queries can never
+		// respawn what this destroys.
+		if (environment.isLive) {
+			for (const [queryKey, keys] of queryEntityKeys) {
+				if (!activeQueryKeys.has(queryKey)) {
+					for (const key of keys) {
+						destroyEntity(key)
+					}
+					queryEntityKeys.delete(queryKey)
 				}
-				queryEntityKeys.delete(queryKey)
 			}
 		}
 	})

@@ -17,12 +17,18 @@ export const createBuildModeSyncHarness = (initialMode: EnvironmentMode = 'monit
 			},
 			isStandalone: true,
 			inputBindingsEnabled: true,
+			isImmersive: false,
 		},
 		get isLive() {
 			return isLive
 		},
 		setLive(value: boolean) {
 			isLive = value
+		},
+		// The harness drives `mode` directly, so availability is a no-op here.
+		registerMode: () => () => undefined,
+		get availableModes() {
+			return ['monitor', 'build', 'move'] satisfies EnvironmentMode[]
 		},
 	} satisfies ReturnType<typeof useEnvironment>
 

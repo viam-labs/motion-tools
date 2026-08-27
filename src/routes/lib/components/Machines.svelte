@@ -64,7 +64,7 @@
 				connectionConfigs.add(config)
 			}
 		} catch {
-			// Do nothing
+			// A paste that does not parse as JSON is not a connection config, so ignore it.
 		}
 	}
 </script>
@@ -81,44 +81,42 @@
 				}}
 			>
 				{#snippet trigger(triggerProps, { isOpen: open })}
+					{@const awaitingRetry = machineConnection.isAwaitingRetry}
 					<div class="flex items-center">
-						{#if machineConnection.isAwaitingRetry}
-							<button
-								{...triggerProps}
-								aria-label="Machine connection configs"
-								class="border-danger-medium bg-danger-light text-danger-dark flex items-center gap-2 rounded-l border border-r-0 px-2.5 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
-							>
-								<Icon name="broadcast-off" />
-								<span class="truncate whitespace-nowrap"
-									>Retry in {machineConnection.secondsUntilRetry}s...</span
-								>
-								<Icon name="chevron-{open ? 'up' : 'down'}" />
-							</button>
+						<!--
+							zag resolves the popper anchor once, when the popover opens. Rendering the
+							trigger from separate branches would detach that anchor on a status change
+							and strand the open panel at the viewport edge, so keep one element.
+						-->
+						<button
+							{...triggerProps}
+							aria-label="Machine connection configs"
+							class={[
+								'flex items-center gap-2 border px-2.5 py-1.5 text-xs',
+								awaitingRetry ? 'rounded-l border-r-0' : 'rounded',
+								{
+									'border-gray-5 bg-white': !awaitingRetry && !connected && !disconnected,
+									'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
+										!awaitingRetry && connected,
+									'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
+										awaitingRetry || disconnected,
+								},
+							]}
+						>
+							<Icon name={awaitingRetry || disconnected ? 'broadcast-off' : 'broadcast'} />
+							<span class={['truncate whitespace-nowrap', !awaitingRetry && 'capitalize']}>
+								{awaitingRetry ? `Retry in ${machineConnection.secondsUntilRetry}s...` : text}
+							</span>
+							<Icon name="chevron-{open ? 'up' : 'down'}" />
+						</button>
+
+						{#if awaitingRetry}
 							<button
 								aria-label="Reconnect now"
 								class="border-danger-medium bg-danger-light text-danger-dark flex items-center rounded-r border px-2 py-1.5 text-xs hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]"
 								onclick={machineConnection.retryNow}
 							>
 								<Icon name="refresh" />
-							</button>
-						{:else}
-							<button
-								{...triggerProps}
-								aria-label="Machine connection configs"
-								class={[
-									'flex items-center gap-2 rounded border px-2.5 py-1.5 text-xs',
-									{
-										'border-gray-5 bg-white': !connected && !disconnected,
-										'border-success-medium bg-success-light text-success-dark hover:bg-[#D6F2D9] focus:bg-[#D6F2D9]':
-											connected,
-										'border-danger-medium bg-danger-light text-danger-dark hover:bg-[#F8E1DF] focus:bg-[#F8E1DF]':
-											disconnected,
-									},
-								]}
-							>
-								<Icon name={disconnected ? 'broadcast-off' : 'broadcast'} />
-								<span class="truncate whitespace-nowrap capitalize">{text}</span>
-								<Icon name="chevron-{open ? 'up' : 'down'}" />
 							</button>
 						{/if}
 					</div>

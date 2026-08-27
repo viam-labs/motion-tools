@@ -11,9 +11,10 @@ import { getContext, setContext, untrack } from 'svelte'
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
-import { hierarchy, traits, useWorld } from '$lib/ecs'
+import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
-import { useLogs } from '$lib/plugins'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+import { attachPointsBvh } from '$lib/three/pointsBvh'
 
 import { useEnvironment } from './useEnvironment.svelte'
 import { RefreshRates, useSettings } from './useSettings.svelte'
@@ -86,7 +87,7 @@ export const providePointclouds = (partID: () => string) => {
 	})
 
 	const options = $derived({
-		enabled: environment.isLive,
+		enabled: environment.isLive && interval !== RefetchRates.OFF,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -135,14 +136,18 @@ export const providePointclouds = (partID: () => string) => {
 				}
 
 				if (!data || data.length === 0) {
-					destroyEntity()
+					// Build mode pauses this query, so losing its data means the cache
+					// dropped it, not that the camera stopped reporting points — and
+					// nothing will refetch to bring the cloud back.
+					if (environment.isLive) destroyEntity()
+
 					return () => {
 						disposed = true
 					}
 				}
 
-				parsePcdInWorker(data)
-					.then(({ positions, colors }) => {
+				parsePcdInWorker(data, settings.current.pointBudget)
+					.then(({ boundsTree, positions, colors, bounds, shuffled }) => {
 						if (disposed) {
 							return
 						}
@@ -158,18 +163,27 @@ export const providePointclouds = (partID: () => string) => {
 							const geometry = existing.get(traits.BufferGeometry)
 
 							if (geometry) {
-								updateBufferGeometry(geometry, positions, metadata)
+								updateBufferGeometry(geometry, positions, metadata, bounds)
+								// Replaces the tree built for the points this refresh just overwrote.
+								if (boundsTree) attachPointsBvh(geometry, boundsTree)
+								setOrAddTrait(existing, traits.PointSampling, {
+									total: positions.length / 3,
+									shuffled,
+								})
 								return
 							}
 						}
 
-						const geometry = createBufferGeometry(positions, metadata)
+						const geometry = createBufferGeometry(positions, metadata, bounds)
+						if (boundsTree) attachPointsBvh(geometry, boundsTree)
 
 						const entity = world.spawn(
 							...hierarchy.parentTraits(name),
 							traits.Name(`${name} pointcloud`),
 							traits.BufferGeometry(geometry),
-							traits.Points
+							traits.Points,
+							traits.PointSampling({ total: positions.length / 3, shuffled }),
+							traits.PointCloudAPI
 						)
 
 						entities.set(queryKey, entity)
@@ -188,13 +202,17 @@ export const providePointclouds = (partID: () => string) => {
 			})
 		}
 
-		// clean up queries that disappeared entirely
-		for (const [queryKey, entity] of entities) {
-			if (!activeQueryKeys.has(queryKey)) {
-				if (world.has(entity)) {
-					entity.destroy()
+		// Clean up queries that disappeared entirely. Not in build mode: clients drop
+		// out on reconnects and resource changes, and the paused queries can never
+		// respawn what this destroys.
+		if (environment.isLive) {
+			for (const [queryKey, entity] of entities) {
+				if (!activeQueryKeys.has(queryKey)) {
+					if (world.has(entity)) {
+						entity.destroy()
+					}
+					entities.delete(queryKey)
 				}
-				entities.delete(queryKey)
 			}
 		}
 	})

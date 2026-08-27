@@ -83,10 +83,9 @@ withRobot('obstacle store: obstacles churn over time', async ({ robotPage }) => 
 	const before = await visibleObs()
 	expect(before.size).toBeGreaterThan(0)
 
-	// Visibility cycle is sin(t * 0.1 + phase) > -0.3, period ~62s. In an 8s
-	// window at least one slot crosses the threshold (e.g. slot 4 goes
-	// non-visible around t≈10s). That's enough to prove ADDED/REMOVED are
-	// flowing through the stream end-to-end.
+	// The visibility cycle is sin(t * 0.1 + phase) > -0.3, period about 62s. In an 8s
+	// window at least one slot crosses the threshold, which is enough to prove
+	// ADDED and REMOVED flow through the stream.
 	await page.waitForTimeout(8000)
 
 	const after = await visibleObs()
@@ -99,20 +98,18 @@ withRobot('obstacle store: obstacles churn over time', async ({ robotPage }) => 
 withRobot('obstacle store: stable UUIDs across polls', async ({ robotPage }) => {
 	const { page } = robotPage
 
-	// Slot 0 (phase=0) stays visible for the entire first half of the cycle (~30s),
-	// so it's the safest to click and hold a selection on for several polls.
-	// Scope to the tree treeitem so we don't also match the obs-0 label that
-	// appears in the details panel after selection.
+	// Slot 0 (phase=0) stays visible for the first half of the cycle, about 30s, so a
+	// selection on it survives several polls. Scope to the tree treeitem to avoid the
+	// obs-0 label the details panel adds after selection.
 	const obs0 = page.getByRole('treeitem', { name: 'obs-0', exact: true })
 	await expect(obs0).toBeVisible({ timeout: 30000 })
 
 	await obs0.click()
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
 
-	// Wait for several poll cycles (poll = 1s). If UUIDs were re-derived on
-	// every poll, the entity would churn ADDED/REMOVED and the selection
-	// would drop. Stable UUIDs ⇒ UPDATED events on the same entity ⇒
-	// selection persists.
+	// Wait several poll cycles (poll = 1s). Re-derived UUIDs would churn the entity
+	// through ADDED and REMOVED and drop the selection. Stable UUIDs mean UPDATED on
+	// the same entity, so the selection persists.
 	await page.waitForTimeout(5000)
 
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()

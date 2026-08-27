@@ -56,10 +56,9 @@ func StopRecord() {
 // match the recording's empty starting state. Each recorded RPC is decoded
 // from its hex payload and dispatched against the live draw service.
 //
-// playbackSpeed scales the inter-RPC sleep durations: 1.0 plays back at
-// real-time, 2.0 plays back at 2× speed, 0.5 plays back at half speed.
-// playbackSpeed must be > 0; values <= 0 cause divisions that produce
-// undefined sleep durations.
+// playbackSpeed scales the inter-RPC sleep durations. 1.0 plays back at
+// real-time, 2.0 at double speed, and 0.5 at half speed. playbackSpeed must
+// be greater than 0. A value of 0 or less produces undefined sleep durations.
 //
 // Returns ErrVisualizerNotRunning if no visualizer is reachable, a wrapped
 // filesystem error if filename cannot be opened, or a wrapped RPC error if

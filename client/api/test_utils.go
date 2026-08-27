@@ -6,9 +6,8 @@ import (
 	"github.com/viam-labs/motion-tools/client/server"
 )
 
-// TestMain ensures the DrawService server is running for tests
+// startTestServer starts the draw server the api tests post to and stops it on cleanup.
 func startTestServer(t *testing.T) {
-	// Start the server
 	_ = server.Start(server.DrawServerConfig{
 		Port:       3030,
 		StaticPort: 5173,

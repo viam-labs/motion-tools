@@ -7,6 +7,7 @@ export { useParentName } from './useParentName.svelte'
 export { provideHierarchy } from './provideHierarchy.svelte'
 export { provideWorldMatrix } from './provideWorldMatrix.svelte'
 export { setOrAddTrait } from './setOrAddTrait'
+export { selectOnly } from './selectOnly'
 
 export * as traits from './traits'
 export * as relations from './relations'

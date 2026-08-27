@@ -9,7 +9,10 @@ import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
 import { createBox, createCapsule, createSphere } from '$lib/geometry'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose, type PosePatch } from '$lib/math'
-import { parseMeshInput } from '$lib/mesh'
+import { isParsedFrom, parseMesh } from '$lib/mesh'
+import { attachPointsBvh } from '$lib/three/pointsBvh'
+
+import { setOrAddTrait } from './setOrAddTrait'
 
 export const Name = trait(() => '')
 export const UUID = trait(() => '')
@@ -120,13 +123,10 @@ export const Opacity = trait(() => 1)
 
 /**
  * The color of an object
- * @default { r: 1, g: 0, b: 0 }
+ * @default { r: 0, g: 0, b: 0 }
  */
 export const Color = trait({ r: 0, g: 0, b: 0 })
 
-/**
- * Material properties
- */
 export const Material = trait({
 	depthTest: false,
 	depthWrite: true,
@@ -150,10 +150,15 @@ export const Arrows = trait({
 	headAtPose: true,
 })
 
-/**
- * Render entity as points
- */
 export const Points = trait(() => true)
+
+/**
+ * A cloud whose buffer was shuffled at parse time. `total` is the live point count, tracked
+ * because draw range alone can't tell a decimated cloud from one that shrank into a reused
+ * buffer. `shuffled` is how many leading points are a uniform spatial subsample — decimating
+ * past it would draw the scan-ordered tail, which is a wedge rather than a sample.
+ */
+export const PointSampling = trait({ total: 0, shuffled: 0 })
 
 /**
  * A box, in mm
@@ -178,10 +183,27 @@ export const GLTF = trait(() => ({
 }))
 
 export const FramesAPI = trait(() => true)
-export const GeometriesAPI = trait(() => true)
-export const DrawServiceAPI = trait(() => true)
+
+/**
+ * A link inside a component's kinematic model. IK re-solves its pose, so it is
+ * neither rigid with its parent nor drivable by the motion service.
+ */
+export const KinematicLink = trait(() => true)
+
+/**
+ * Drawn into the scene through the draw API, rather than sourced from the robot.
+ * The distinction drives grouping in the world tree and which entities may be
+ * related to one another.
+ */
+export const DrawAPI = trait(() => true)
 export const WorldStateStoreAPI = trait(() => true)
 export const SnapshotAPI = trait(() => true)
+
+/** A cloud from a camera's `GetPointCloud`. */
+export const PointCloudAPI = trait(() => true)
+
+/** A cloud or bounding geometry from a vision service's `GetObjectPointClouds`. */
+export const PointCloudObjectAPI = trait(() => true)
 
 /**
  * Marker trait for entities created from user-dropped files (PLY, PCD, etc.)
@@ -189,11 +211,18 @@ export const SnapshotAPI = trait(() => true)
 export const DroppedFile = trait(() => true)
 
 /**
- * Marker trait for entities the dashboard's TransformControls may attach to —
- * editable frames and ad-hoc custom geometries. Other entity kinds (lines,
- * points, batched arrows, etc.) are deliberately excluded.
+ * A component that the part config declares with no frame. It carries a `Name`
+ * so the world tree can list it, and nothing else — there is no scene object
+ * behind it. Queries that assume one (labels, orphan resolution, relationship
+ * targets) exclude it with `Not(FramelessComponent)`.
  */
-export const Transformable = trait(() => true)
+export const FramelessComponent = trait()
+
+/**
+ * This entity has somewhere for an edit to land: a config entry, or an ad-hoc
+ * geometry that stages into `Matrix`. Opt-in, so an unrecognized frame is inert.
+ */
+export const Editable = trait(() => true)
 
 export const ShowAxesHelper = trait(() => true)
 
@@ -235,9 +264,6 @@ export const ReferenceFrame = trait(() => true)
  */
 export const ChunkProgress = trait({ loaded: 0, total: 0 })
 
-/**
- * Interaction layers for entities
- */
 export type InteractionLayerValue = 'selectTool'
 export const SelectToolInteractionLayer = trait(() => true)
 
@@ -249,14 +275,8 @@ export const SelectToolInteractionLayer = trait(() => true)
  */
 export const NonSelectable = trait(() => true)
 
-/**
- * This entity is selected by the user
- */
 export const Selected = trait()
 
-/**
- * This entity can be safely removed from the scene by the user
- */
 export const Removable = trait(() => true)
 
 export const Geometry = (geometry: ViamGeometry) => {
@@ -267,8 +287,7 @@ export const Geometry = (geometry: ViamGeometry) => {
 	} else if (geometry.geometryType.case === 'sphere') {
 		return Sphere(createSphere(geometry.geometryType.value))
 	} else if (geometry.geometryType.case === 'mesh') {
-		const { mesh, contentType } = geometry.geometryType.value
-		return BufferGeometry(parseMeshInput(mesh, contentType))
+		return BufferGeometry(parseMesh(geometry.geometryType.value))
 	}
 
 	return ReferenceFrame
@@ -308,14 +327,17 @@ export const updateGeometryTrait = (entity: Entity, geometry?: ViamGeometry) => 
 			entity.add(Sphere(next))
 		}
 	} else if (geometry.geometryType.case === 'mesh') {
-		const { mesh, contentType } = geometry.geometryType.value
+		const mesh = geometry.geometryType.value
 		if (entity.has(BufferGeometry)) {
 			const old = entity.get(BufferGeometry)
-			entity.set(BufferGeometry, parseMeshInput(mesh, contentType))
+			// Reparsing an STL/PLY, re-uploading it, and rebuilding its EdgesGeometry all cost far
+			// more than the byte compare that rules them out.
+			if (old && isParsedFrom(old, mesh)) return
+			entity.set(BufferGeometry, parseMesh(mesh))
 			old?.dispose()
 		} else {
 			entity.remove(Box, Sphere, Capsule)
-			entity.add(BufferGeometry(parseMeshInput(mesh, contentType)))
+			entity.add(BufferGeometry(parseMesh(mesh)))
 		}
 	} else if (geometry.geometryType.case === 'pointcloud') {
 		updatePointCloud(entity, geometry.geometryType.value.pointCloud)
@@ -344,10 +366,15 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 		.then((parsed) => {
 			if (!entity.isAlive()) return
 
+			setOrAddTrait(entity, PointSampling, {
+				total: parsed.positions.length / 3,
+				shuffled: parsed.shuffled,
+			})
+
 			const buffer = entity.get(BufferGeometry)
 			let colors = parsed.colors
 			if (buffer) {
-				// Reapply single color trait if the point count changed
+				// Rebuild per-point colors from the single Color trait when the parsed cloud has none.
 				if (parsed.colors === undefined) {
 					const color = entity.get(Color)
 					if (color) {
@@ -370,15 +397,21 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 				const oldCount = buffer.getAttribute('position')?.count ?? 0
 				const newCount = parsed.positions.length / 3
 				if (oldCount === newCount) {
-					updateBufferGeometry(buffer, parsed.positions, {
-						colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					updateBufferGeometry(
+						buffer,
+						parsed.positions,
+						{ colors, colorFormat: ColorFormat.RGB },
+						parsed.bounds
+					)
+					// Replaces the tree built for the points this update just overwrote.
+					if (parsed.boundsTree) attachPointsBvh(buffer, parsed.boundsTree)
 				} else {
-					const fresh = createBufferGeometry(parsed.positions, {
-						colors,
-						colorFormat: ColorFormat.RGB,
-					})
+					const fresh = createBufferGeometry(
+						parsed.positions,
+						{ colors, colorFormat: ColorFormat.RGB },
+						parsed.bounds
+					)
+					if (parsed.boundsTree) attachPointsBvh(fresh, parsed.boundsTree)
 					buffer.dispose()
 					entity.set(BufferGeometry, fresh)
 				}
@@ -387,14 +420,13 @@ const updatePointCloud = (entity: Entity, pointCloud: Uint8Array): void => {
 			}
 
 			entity.remove(Box, Capsule, Sphere)
-			entity.add(
-				BufferGeometry(
-					createBufferGeometry(parsed.positions, {
-						colors: parsed.colors,
-						colorFormat: ColorFormat.RGB,
-					})
-				)
+			const geometry = createBufferGeometry(
+				parsed.positions,
+				{ colors: parsed.colors, colorFormat: ColorFormat.RGB },
+				parsed.bounds
 			)
+			if (parsed.boundsTree) attachPointsBvh(geometry, parsed.boundsTree)
+			entity.add(BufferGeometry(geometry))
 			if (!entity.has(Points)) entity.add(Points)
 		})
 		.catch((error) => {

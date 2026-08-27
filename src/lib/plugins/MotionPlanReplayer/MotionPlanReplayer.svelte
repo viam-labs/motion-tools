@@ -13,7 +13,7 @@
 		/** Seed the list on mount (e.g. app DB fetch). */
 		plans?: PlanEntry[]
 		children?: Snippet
-		/** Host hook to resolve uploaded plans server-side; unset keeps client parsing. */
+		/** Host hook to resolve uploaded plans server-side. Unset keeps client parsing. */
 		resolvePlanSnapshots?: ResolvePlanSnapshots
 	}
 
@@ -24,7 +24,8 @@
 	const environment = useEnvironment()
 </script>
 
-{#if environment.current.mode === 'monitor'}
+<!-- Hidden while an editing mode owns the scene, including in bare hosts with no mode plugins. -->
+{#if environment.current.mode !== 'build' && environment.current.mode !== 'move'}
 	<MotionPlanReplayerUI
 		{children}
 		{resolvePlanSnapshots}

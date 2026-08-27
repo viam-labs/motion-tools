@@ -1,24 +1,27 @@
 import { PersistedState } from 'runed'
-import { getContext, setContext } from 'svelte'
+import { getContext, onDestroy, setContext } from 'svelte'
+import { SvelteMap } from 'svelte/reactivity'
 
 export const ENVIRONMENT_CONTEXT_KEY = Symbol('environment')
 
 /**
- * What the app is being used for right now. Each mode owns its own details panel
- * and its own scene affordances:
- *
- *  - `monitor` — read live machine data.
- *  - `build` — author the scene from the part config; live polling is paused so
- *    staged edits aren't overwritten.
- *  - `move` — drive a frame to a goal pose through the motion service. Contributed
- *    by the `MoveFrame` plugin; unreachable when it isn't mounted.
+ * What the app is being used for right now. Every mode is contributed by a
+ * plugin — `monitor` by `Monitor`, `build` by `BuildFrames`, `move` by
+ * `MoveFrame` — and each owns its own details panel and scene affordances.
+ * With no mode plugins mounted the mode is `none`: a bare renderer.
  */
 export type EnvironmentMode = 'monitor' | 'build' | 'move'
 
 interface Environment {
-	mode: EnvironmentMode
+	/** The active mode. `none` when nothing reachable is contributed. */
+	mode: EnvironmentMode | 'none'
 	isStandalone: boolean
 	inputBindingsEnabled: boolean
+	/**
+	 * Whether an immersive XR session owns the canvas. Published by the XR plugin
+	 * so readers don't need `@threlte/xr`, which is an optional peer.
+	 */
+	isImmersive: boolean
 }
 
 interface Context {
@@ -29,28 +32,54 @@ interface Context {
 	/** Updates the live-query gate; used by build-mode synchronization to open and
 	 * close its temporary snapshot window. */
 	setLive: (value: boolean) => void
+	/**
+	 * Declares `mode` reachable for as long as the caller is mounted, and returns
+	 * the matching release function.
+	 */
+	registerMode: (mode: EnvironmentMode) => () => void
+	/**
+	 * Every mode currently reachable, in registration order. Order is priority:
+	 * the first entry is the fallback when the stored mode is unreachable. Empty
+	 * when no mode plugins are mounted.
+	 */
+	readonly availableModes: EnvironmentMode[]
 }
 
 /** Where the persisted mode lives. Exported so tests can reset it. */
 export const ENVIRONMENT_MODE_STORAGE_KEY = 'motion-tools:environment-mode'
 
-const modes = new Set<EnvironmentMode>(['monitor', 'build', 'move'])
+const modes = new Set(['monitor', 'build', 'move'])
+
+const isEnvironmentMode = (value: string): value is EnvironmentMode => modes.has(value)
 
 export const createEnvironment = (): Context => {
-	// The mode is the user's choice of tool, so it outlives the session. The rest
-	// describes the host and is set on mount.
-	const stored = new PersistedState<EnvironmentMode>(ENVIRONMENT_MODE_STORAGE_KEY, 'monitor')
-	let isLive = $state(stored.current !== 'build')
+	const stored = new PersistedState<EnvironmentMode | 'none'>(
+		ENVIRONMENT_MODE_STORAGE_KEY,
+		'monitor'
+	)
+	const availableModes = new SvelteMap<EnvironmentMode, number>()
+
+	const effectiveMode = $derived.by((): EnvironmentMode | 'none' => {
+		const value = stored.current
+		if (isEnvironmentMode(value) && availableModes.has(value)) {
+			return value
+		}
+		return availableModes.keys().next().value ?? 'none'
+	})
+
+	let isLive = $state(effectiveMode !== 'build')
+
 	const environment = $state<Environment>({
 		get mode() {
-			return modes.has(stored.current) ? stored.current : 'monitor'
+			return effectiveMode
 		},
-		set mode(value: EnvironmentMode) {
+		set mode(value) {
 			stored.current = value
-			isLive = value !== 'build'
+			isLive = effectiveMode !== 'build'
 		},
 		isStandalone: true,
 		inputBindingsEnabled: true,
+		isImmersive: false,
 	})
 
 	const context: Context = {
@@ -60,8 +89,27 @@ export const createEnvironment = (): Context => {
 		get isLive() {
 			return isLive
 		},
+		get availableModes() {
+			return [...availableModes.keys()]
+		},
 		setLive(value) {
 			isLive = value
+		},
+		registerMode(mode) {
+			availableModes.set(mode, (availableModes.get(mode) ?? 0) + 1)
+
+			let released = false
+			return () => {
+				if (released) return
+				released = true
+
+				const count = (availableModes.get(mode) ?? 1) - 1
+				if (count > 0) {
+					availableModes.set(mode, count)
+				} else {
+					availableModes.delete(mode)
+				}
+			}
 		},
 	}
 
@@ -76,4 +124,14 @@ export const provideEnvironment = () => {
 
 export const useEnvironment = () => {
 	return getContext<Context>(ENVIRONMENT_CONTEXT_KEY)
+}
+
+/**
+ * Declares `mode` reachable for as long as the calling component is mounted.
+ * Plugins that contribute a mode call this in setup (synchronously), so the first
+ * render already resolves the persisted mode instead of flashing the fallback.
+ */
+export const useEnvironmentMode = (mode: EnvironmentMode) => {
+	const release = useEnvironment().registerMode(mode)
+	onDestroy(release)
 }

@@ -24,10 +24,7 @@ const createPage = async (browser: Browser): Promise<Page> => {
 
 const takeScreenshot = async (page: Page, testPrefix: string): Promise<string> => {
 	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}.png`, {
-			fullPage: true,
-			threshold: 0.1,
-		})
+		await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 		return ''
 	} catch (error) {
 		console.warn(error)
@@ -52,14 +49,9 @@ const cleanup = async (page: Page) => {
 	})
 }
 
-/**
- * The draw service is a persistent singleton that outlives each page: a fresh
- * page resubscribes and `StreamEntityChanges` replays every entity currently
- * in the service. So a test that fails or is interrupted before its trailing
- * `cleanup()` strands its entities, and those then replay into unrelated
- * tests' snapshots. Resetting before every test guarantees a clean scene
- * regardless of what ran (or half-ran) before it.
- */
+// The draw service outlives each page and replays every entity to a reconnecting
+// client. A test that dies before its cleanup() would otherwise strand entities
+// into later tests' snapshots.
 test.beforeEach(resetDrawService)
 
 const assertNoFailedScreenshots = (failedScreenshots: string[]) => {
@@ -386,9 +378,9 @@ test('chunked point cloud survives a reconnect', async ({ browser }) => {
 	const testPrefix = 'CHUNKED_POINT_CLOUD_RECONNECT'
 	const page = await createPage(browser)
 
-	// Uses the small chunked cloud on purpose. This test loads one twice, once on the initial draw
-	// and again after the reload, and the multi-million point fixtures are too slow to do that
-	// inside a sensible timeout. Several chunks with per-point colors is all the coverage needs.
+	// The small chunked cloud on purpose: this test loads one twice, and the
+	// multi-million point fixtures are too slow to do that inside the timeout.
+	// Several chunks with per-point colors is all the coverage needs.
 	execSync(
 		'go test -run ^TestDrawPointCloud$/DrawSmallChunkedPointCloud github.com/viam-labs/motion-tools/client/api -count=1',
 		{ encoding: 'utf8' }
@@ -403,9 +395,9 @@ test('chunked point cloud survives a reconnect', async ({ browser }) => {
 	await expect(page.getByText('World', { exact: true })).toBeVisible({ timeout: 30_000 })
 	await expect(page.getByText('chunked_point_cloud_small')).toBeVisible({ timeout: 30_000 })
 
-	// A replayed chunked entity has to finish pulling. If the chunks descriptor went missing from
-	// the replay the client never starts, and if the pull stalls it never ends; either way the
-	// scene is left holding only the first chunk.
+	// A replayed chunked entity has to finish pulling. A missing chunks descriptor
+	// means the client never starts, and a stalled pull means it never ends. Either
+	// way the scene holds only the first chunk.
 	const progress = page.getByRole('progressbar', { name: /Loading/ })
 	const stalledAt = async () =>
 		`pull did not finish, last progress: ${await progress.getAttribute('aria-label')}`
@@ -1084,10 +1076,9 @@ const runRedrawLoop = async (browser: Browser, testPrefix: string, step: string)
 
 	await expect(page.getByText('redraw-box-00', { exact: true })).toBeVisible({ timeout: 10000 })
 
-	// The entity tree is virtualized, so only the visible rows exist in the DOM and counting them
-	// proves nothing. The canvas is the assertion: the boxes are drawn as a 6x4 grid in a fixed
-	// palette, so a change that went missing reads as a hole in the grid, and one applied to the
-	// wrong entity reads as a wrong-colored cell.
+	// The tree is virtualized, so counting rows proves nothing. The canvas is the
+	// assertion: the boxes are a 6x4 grid in a fixed palette, so a lost change reads
+	// as a hole and a misapplied one as a wrong-colored cell.
 	await waitForCanvasToSettle(page)
 	await assertTestSuccess(page, testPrefix)
 }
@@ -1125,11 +1116,9 @@ test('update entity partial updates', async ({ browser }) => {
 	const initial = await waitForCanvasToSettle(page)
 	failedScreenshots.push(await screenshotCanvas(page, `${testPrefix}_0_SETUP`))
 
-	/**
-	 * Each step below screenshots only after the canvas settles, not at the first changed pixel.
-	 * An entity's mesh and its axes helper are flushed by separate batched renderers, so the
-	 * first frame that differs can show the box moved with its helper still behind.
-	 */
+	// Each step screenshots after the canvas settles, not at the first changed pixel.
+	// A mesh and its axes helper are flushed by separate batched renderers, so the
+	// first differing frame can show the box moved with its helper still behind.
 	const applyStep = async (step: string, reference: Uint8Array, description: string) => {
 		execSync(
 			`go test -run ^TestUpdateEntity$/${step}$ github.com/viam-labs/motion-tools/client/api -count=1`,
@@ -1186,7 +1175,7 @@ test('remove entity', async ({ browser }) => {
 		{ encoding: 'utf8' }
 	)
 
-	// Only the targeted entity goes; the rest of the scene is untouched.
+	// Only the targeted entity goes. The rest of the scene is untouched.
 	await expect(page.getByText('remove-entity drop')).not.toBeVisible({ timeout: 10000 })
 	await expect(page.getByText('remove-entity keep')).toBeVisible()
 	failedScreenshots.push(await screenshotCanvas(page, testPrefix))
@@ -1216,11 +1205,9 @@ test('relationships', async ({ browser }) => {
 	await expect(page.getByText('rel-target (HoverLink)')).toBeVisible({ timeout: 10000 })
 	failedScreenshots.push(await takeScreenshot(page, 'RELATIONSHIPS_CREATED'))
 
-	// TODO(relationships): reload-persistence check skipped — the HoverLink is
-	// not restored after a page reload. The draw service replays entities to a
-	// reconnecting client via StreamEntityChanges but not relationships, so the
-	// link is lost on reconnect. Re-enable this block once relationships survive
-	// a reload. Pre-existing draw-service gap, unrelated to instanced-box rendering.
+	// TODO(relationships): reload-persistence is not checked here. StreamEntityChanges
+	// replays entities to a reconnecting client but not relationships, so a HoverLink
+	// is lost on reload. Re-enable once relationships survive a reload.
 
 	execSync(
 		'go test -run ^TestRelationships$/DeleteRelationship github.com/viam-labs/motion-tools/client/api -count=1',

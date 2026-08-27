@@ -13,9 +13,10 @@ import (
 
 // DrawGeometryOptions configures a DrawGeometry call.
 type DrawGeometryOptions struct {
-	// ID is a stable identifier for the entity. When set, calling DrawGeometry
-	// again with the same ID updates the existing entity in place; when empty,
-	// each call creates a new entity with a freshly generated UUID.
+	// ID is a stable identifier for the entity. When set, calling
+	// DrawGeometry again with the same ID updates the existing entity in
+	// place. When empty, each call creates a new entity with a freshly
+	// generated UUID.
 	ID string
 	// Name labels the entity in the visualizer. When empty, the geometry's own
 	// label is used.
@@ -32,13 +33,14 @@ type DrawGeometryOptions struct {
 	Attrs *Attrs
 }
 
-// DrawGeometry sends a single geometry to the visualizer as a transform. Passing
-// an ID that already exists updates the previously drawn entity in place;
-// otherwise a new entity is created. Returns the UUID assigned by the server.
+// DrawGeometry sends a single geometry to the visualizer as a transform.
+// Passing an ID that already exists updates the previously drawn entity in
+// place. Otherwise a new entity is created. Returns the UUID assigned by the
+// server.
 //
-// Returns ErrVisualizerNotRunning if no visualizer is reachable, the underlying
-// validation error if the geometry cannot be wrapped (see draw.NewDrawnGeometry),
-// or a wrapped RPC error if the AddEntity call fails.
+// Returns ErrVisualizerNotRunning if no visualizer is reachable, the
+// underlying validation error if the geometry cannot be wrapped (see
+// draw.NewDrawnGeometry), or a wrapped RPC error if the AddEntity call fails.
 func DrawGeometry(options DrawGeometryOptions) ([]byte, error) {
 	client := server.GetClient()
 	if client == nil {

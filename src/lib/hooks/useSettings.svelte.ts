@@ -18,7 +18,6 @@ export interface Settings {
 	disabledCameras: Record<string, boolean>
 	disabledVisionServices: Record<string, boolean>
 
-	// Transform controls
 	snapping: boolean
 	snapTranslate: number
 	snapRotate: number
@@ -26,35 +25,32 @@ export interface Settings {
 	transformMode: 'none' | 'translate' | 'rotate' | 'scale'
 	transformSpace: 'local' | 'world'
 
-	// Grid
 	grid: boolean
 	gridCellSize: number
 	gridSectionSize: number
 	gridFadeDistance: number
 
-	// Points
 	pointSize: number
 	pointColor: ColorRepresentation
+	/** Max points drawn across all clouds while the camera moves. 0 draws every point. */
+	pointBudget: number
+	/** Ceiling on a point's on-screen diameter, in CSS pixels. */
+	maxPointSize: number
 
-	// Lines
 	lineWidth: number
 	lineDotSize: number
 
-	// Measurement
 	enableMeasureAxisX: boolean
 	enableMeasureAxisY: boolean
 	enableMeasureAxisZ: boolean
 
 	enableLabels: boolean
 
-	// Frame POV widgets
 	openFramePovWidgets: Record<string, string[]>
 
 	renderStats: boolean
 	renderArmModels: 'colliders' | 'colliders+model' | 'model'
-	renderSubEntityHoverDetail: boolean
 
-	// Webxr
 	enableXR: boolean
 	xrMode: 'frame-configure' | 'arm-teleop'
 	xrCameras: string[]
@@ -113,6 +109,8 @@ const defaults = (): Settings => ({
 
 	pointSize: 0.01,
 	pointColor: '#333333',
+	pointBudget: 800_000,
+	maxPointSize: 32,
 
 	lineWidth: 0.005,
 	lineDotSize: 0.005,
@@ -129,7 +127,6 @@ const defaults = (): Settings => ({
 
 	renderStats: false,
 	renderArmModels: 'colliders+model',
-	renderSubEntityHoverDetail: false,
 
 	enableXR: false,
 	xrMode: 'frame-configure',

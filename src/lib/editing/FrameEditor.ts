@@ -100,6 +100,9 @@ const parentName = (entity: Entity): string => hierarchy.getParentName(entity) ?
  * tool — the desktop gizmo, the details-panel inputs, the XR configurator —
  * builds one of these and calls it per drag/input event. There's no staged
  * gesture to commit or abort; each call stands on its own.
+ *
+ * Every mutator no-ops on an entity without `Editable`, so a tool that forgets
+ * to check cannot write a frame that has no config entry behind it.
  */
 export class FrameEditor {
 	#updateFrame: UpdateFrameFn
@@ -132,6 +135,8 @@ export class FrameEditor {
 
 	/** Merge a partial local pose (position and/or orientation) into the frame. */
 	setPose = (entity: Entity, pose: PosePatch): void => {
+		if (!entity.has(traits.Editable)) return
+
 		const name = entity.get(traits.Name)
 		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
@@ -161,6 +166,8 @@ export class FrameEditor {
 	}
 
 	#writeGeometry = (entity: Entity, geometry: Geometry): void => {
+		if (!entity.has(traits.Editable)) return
+
 		const name = entity.get(traits.Name)
 		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
@@ -171,6 +178,8 @@ export class FrameEditor {
 	}
 
 	setParent = (entity: Entity, parent: string): void => {
+		if (!entity.has(traits.Editable)) return
+
 		const name = entity.get(traits.Name)
 		const matrix = this.#stagedMatrix(entity)
 		if (!name || !matrix) return
@@ -181,6 +190,8 @@ export class FrameEditor {
 	}
 
 	deleteFrame = (entity: Entity): void => {
+		if (!entity.has(traits.Editable)) return
+
 		const name = entity.get(traits.Name)
 		if (name) this.#deleteFrame(name)
 	}

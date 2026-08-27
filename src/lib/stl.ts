@@ -38,7 +38,7 @@ export const parseStlInput = (mesh: string | Uint8Array): BufferGeometry => {
 		return decoded.length < STL_MIN_BYTES ? new BufferGeometry() : parseOrEmpty(decoded)
 	}
 
-	// An absent mesh is not a malformed one; RDK writes geometry with no triangles.
+	// An absent mesh is not a malformed one. RDK writes geometry with no triangles.
 	if (mesh.byteLength < STL_MIN_BYTES) {
 		return new BufferGeometry()
 	}

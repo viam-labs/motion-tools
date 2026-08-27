@@ -10,13 +10,19 @@
 	import { Visualizer } from '$lib'
 	import { backendIP, drawServicePort } from '$lib/defines'
 	import {
+		BuildFrames,
 		ControlWidgets,
 		DrawService,
+		FileDrop,
 		Focus,
+		FramePov,
 		Logs,
 		MeasureTool,
+		Monitor,
 		MotionPlanReplayer,
 		MoveFrame,
+		Settings,
+		WorldTree,
 		XR,
 	} from '$lib/plugins'
 
@@ -61,6 +67,7 @@
 			},
 		},
 	}}
+	options={{ resetQueriesOnDisconnect: false }}
 	{dialConfigs}
 >
 	<ViamAppProvider
@@ -84,6 +91,9 @@
 				<DrawService config={{ backendIP, port: drawServicePort }} />
 				<Focus />
 				<MeasureTool />
+
+				<Monitor />
+				<BuildFrames />
 				<MoveFrame />
 				<MotionPlanReplayer />
 
@@ -92,6 +102,10 @@
 				<Logs />
 				<ControlWidgets />
 				<Machines bind:isOpen={isMachinesPageOpen} />
+				<WorldTree />
+				<Settings />
+				<FileDrop />
+				<FramePov />
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

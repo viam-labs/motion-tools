@@ -1,13 +1,10 @@
-/**
- * Entry point of the client-side plan fallback. The replayer reaches this file only when the host's
- * `resolvePlanSnapshots` returns undefined — the standalone dev tool, or app when server FK failed.
- * Together with `build-frame-descriptors.ts` and `plan-to-snapshots.ts` it reconstructs RDK's frame
- * system from RDK's JSON output rather than sharing code with it, so coverage is partial by
- * construction and falls behind as RDK gains frame, orientation, and geometry types.
- */
-
 import { z } from 'zod'
 
+/**
+ * Duplicates `frameDescriptors.ts`'s `RawFrame` rather than importing it: this file decodes
+ * untrusted JSON, that one reads a trusted shape. Narrow this and `buildFrameDescriptors` stops
+ * compiling.
+ */
 const RawFrameSchema = z.object({
 	frame_type: z.string(),
 	frame: z.unknown(),
@@ -42,7 +39,7 @@ const PlanChunkSchema = z.object({
 
 export type ObstaclesInWorldFrame = z.infer<typeof ObstaclesInWorldFrameSchema>
 
-export type RawFrame = z.infer<typeof RawFrameSchema>
+type RawFrame = z.infer<typeof RawFrameSchema>
 
 export class PlanParseError extends Error {
 	constructor(message: string) {
@@ -158,6 +155,14 @@ const PlanSchema = z
 
 export type ParsedPlan = z.infer<typeof PlanSchema>
 
+/**
+ * Parses RDK's JSON plan output into a `ParsedPlan`, reconstructing the frame system from that
+ * JSON rather than sharing code with RDK. Runs only when the host's `resolvePlanSnapshots`
+ * returns `undefined`, so coverage is partial by construction and falls behind as RDK gains
+ * frame, orientation, and geometry types.
+ *
+ * @throws `PlanParseError` when the content does not match the expected shape.
+ */
 export const parsePlan = (content: string): ParsedPlan => {
 	const result = PlanSchema.safeParse(content)
 	if (result.success) return result.data

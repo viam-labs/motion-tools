@@ -2,9 +2,9 @@
 	import { Badge } from '@viamrobotics/prime-core'
 	import { PersistedState } from 'runed'
 
-	import { WorkspacePortal } from '$lib'
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
+	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
 
 	import { provideLogs } from './useLogs.svelte'
 

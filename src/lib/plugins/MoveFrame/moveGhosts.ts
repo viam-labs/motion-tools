@@ -10,11 +10,11 @@ import { GhostOf } from './relations'
  * Ghosting for a staged move, expressed as scene entities rather than meshes
  * of its own.
  *
- * Everything hanging off the moved frame — a gripper on the wrist, the
- * gripper's own `GetGeometries` shapes, a camera above it — rides one
- * world-space delta: attached frames are rigid with respect to the frame the
- * gizmo drags, so previewing them is a single premultiply rather than a
- * re-solve.
+ * The moved frame and everything hanging off it ride one world-space delta,
+ * whether that is the camera being dragged, a gripper on the wrist, or the
+ * gripper's own link shapes. Attached frames are rigid with respect to the
+ * frame the gizmo drags, so previewing them is a single premultiply rather
+ * than a re-solve.
  *
  * Each ghost is an entity holding a copy of its source's geometry, tinted and
  * marked `NonSelectable`. The renderers the scene already runs draw them:
@@ -56,19 +56,44 @@ const inverseCurrent = new Matrix4()
 export const rigidMoveDelta = (currentWorldMatrix: Matrix4, targetWorldMatrix: Matrix4): Matrix4 =>
 	delta.multiplyMatrices(targetWorldMatrix, inverseCurrent.copy(currentWorldMatrix).invert())
 
+/** Whether the entity draws a shape of its own, rather than only a pose. */
+const hasGeometry = (entity: Entity): boolean =>
+	entity.has(traits.Box) ||
+	entity.has(traits.Sphere) ||
+	entity.has(traits.Capsule) ||
+	entity.has(traits.BufferGeometry)
+
 /**
- * Every descendant a rigid move carries with it, depth-first.
+ * Everything a rigid move carries with it, depth-first: the dragged frame and
+ * every frame below it.
  *
- * The dragged frame's own `GetGeometries` links are the exception, skipped at
- * the top level. Those are the arm's links, and they are not rigid with the
- * end effector: moving it re-solves the chain, so they land wherever IK puts
+ * The dragged frame's own kinematic links are the exception, skipped at the top
+ * level: moving the frame re-solves the chain, so they land wherever IK puts
  * them rather than offset by the drag. Every level below is rigid, links
- * included.
+ * included — an attached gripper's links ride along with the gripper.
+ *
+ * A root with links of its own is skipped for the same reason. rdk reports such
+ * a component's mount under `<name>_origin` and its end effector under the bare
+ * name, and the entity sits at the mount while the gizmo drags the end effector
+ * (see `useMovedFrameMatrix`). The drag delta says nothing about where the mount
+ * lands, so there is no rigid transform to ghost it at.
+ *
+ * A root that draws nothing is skipped too: `MoveTargetGhost` already puts a
+ * triad on the staged pose, and a second one would sit exactly on top of it.
  */
 const collectMoved = (world: World, root: Entity, out: Entity[]): Entity[] => {
+	let hasLinks = false
+
 	for (const child of world.query(relations.ChildOf(root), traits.FramesAPI)) {
+		if (child.has(traits.KinematicLink)) {
+			hasLinks = true
+			continue
+		}
 		collectDescendants(world, child, out)
 	}
+
+	if (!hasLinks && hasGeometry(root)) out.push(root)
+
 	return out
 }
 
@@ -109,9 +134,9 @@ const cloneGeometry = (entity: Entity) => {
 }
 
 /**
- * A display-only copy of `source`'s geometry. A frame with no geometry of its
- * own — a bare reference frame — ghosts as an axes triad, so the pose it
- * carries stays legible.
+ * A display-only copy of `source`'s geometry. A frame with no geometry of
+ * its own, such as a bare reference frame, ghosts as an axes triad, so the
+ * pose it carries stays legible.
  */
 const spawnGhost = (world: World, source: Entity): Entity => {
 	const shape: ConfigurableTrait[] = []
