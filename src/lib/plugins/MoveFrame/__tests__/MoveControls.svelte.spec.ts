@@ -110,7 +110,18 @@ describe('MoveControls', () => {
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
 		expect(screen.getByRole('button', { name: /preview move/i })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: /execute move/i })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Move' })).toBeInTheDocument()
+	})
+
+	it('mounts the plan action disabled rather than hiding it until a plan exists', () => {
+		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
+
+		expect(screen.getByRole('button', { name: 'Execute plan' })).toHaveAttribute(
+			'aria-disabled',
+			'true'
+		)
 	})
 
 	it('holds the actions back until a client is connected, not merely named', async () => {
@@ -128,10 +139,7 @@ describe('MoveControls', () => {
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /reset/i })).not.toHaveAttribute('aria-disabled')
 		})
-		expect(screen.getByRole('button', { name: /execute move/i })).toHaveAttribute(
-			'aria-disabled',
-			'true'
-		)
+		expect(screen.getByRole('button', { name: 'Move' })).toHaveAttribute('aria-disabled', 'true')
 	})
 
 	it('waits for the frame pose before offering the pose inputs', () => {
@@ -175,9 +183,7 @@ describe('MoveControls', () => {
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /reset/i })).not.toHaveAttribute('aria-disabled')
 		})
-		expect(screen.getByRole('button', { name: /execute move/i })).not.toHaveAttribute(
-			'aria-disabled'
-		)
+		expect(screen.getByRole('button', { name: 'Move' })).not.toHaveAttribute('aria-disabled')
 		// 400 mm of travel along x, no rotation.
 		expect(screen.getByText(/400\.0 mm · 0\.0°/)).toBeInTheDocument()
 	})

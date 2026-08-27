@@ -384,32 +384,34 @@
 	/>
 
 	<div class="flex flex-wrap items-center gap-2">
-		{#if preview.status === 'ready'}
-			<!--
-				No `!staged`, unlike its siblings: this button only exists while the preview is `ready`,
-				and dropping the goal clears the preview with it.
-			-->
-			<Button
-				variant="success"
-				disabled={executing || otherPanelMoving || !canCommand}
-				progress={executing ? 'indeterminate' : undefined}
-				title="Run the trajectory shown above, without planning again"
-				onclick={executePreviewedMove}
-			>
-				Execute preview
-			</Button>
-		{/if}
+		<!--
+			Mounted even with no plan, disabled, rather than appearing when one arrives. A button that
+			materialises under the cursor moves its neighbours, and a keyboard user focused on it loses
+			focus to `<body>` when the preview clears.
+		-->
+		<Button
+			variant={preview.status === 'ready' ? 'success' : 'outline-success'}
+			disabled={preview.status !== 'ready' || executing || otherPanelMoving || !canCommand}
+			progress={executing ? 'indeterminate' : undefined}
+			title="Run the trajectory shown above, without planning again"
+			onclick={executePreviewedMove}
+		>
+			Execute plan
+		</Button>
 
+		<!--
+			`Move` rather than a label that changes with the preview: this calls the motion service's
+			`Move`, which plans server-side and never sees the plan on screen. Naming it for replanning
+			implied a second UI plan that does not exist.
+		-->
 		<Button
 			variant={preview.status === 'ready' ? 'outline-success' : 'success'}
 			disabled={!staged || executing || otherPanelMoving || !canCommand}
 			progress={executing ? 'indeterminate' : undefined}
-			title={preview.status === 'ready'
-				? 'Plan again against the current world state, then execute'
-				: undefined}
+			title="Ask the motion service to plan and move, ignoring the plan shown above"
 			onclick={executeMove}
 		>
-			{preview.status === 'ready' ? 'Re-plan & execute' : 'Execute move'}
+			Move
 		</Button>
 		<Button
 			variant="ghost"

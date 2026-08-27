@@ -69,7 +69,9 @@ describe('MovePreview', () => {
 	})
 
 	it('carries the approximation caveat once a preview is ready', () => {
-		render(MovePreview, { props: { preview: preview({ status: 'ready', plannedSteps: 12 }) } })
+		render(MovePreview, {
+			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
+		})
 
 		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
 		expect(
