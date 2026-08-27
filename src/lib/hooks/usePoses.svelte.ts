@@ -10,11 +10,8 @@ import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
-import { missingPoseFrameNames } from './poseSnapshot'
 import { isPoseStale } from './poseStaleness/isPoseStale'
-import { useEnvironment } from './useEnvironment.svelte'
 import { useFrames } from './useFrames.svelte'
-import { useRefetchPoses } from './useRefetchPoses'
 import { RefreshRates, useSettings } from './useSettings.svelte'
 
 /** How often the freshness gap is re-measured. */
@@ -25,12 +22,6 @@ const tempPose = new Pose()
 const key = Symbol('use-poses-context')
 
 export interface Context {
-	/** True once every frame in the selected config has a pose query. */
-	readonly isReady: boolean
-
-	/** Configured frame names whose pose queries have not been registered yet. */
-	readonly missingFrameNames: string[]
-
 	/**
 	 * True while the scene is drawing poses older than the poll rate can
 	 * explain. A frozen frame is indistinguishable from a stationary one, so
@@ -38,6 +29,7 @@ export interface Context {
 	 */
 	readonly isStale: boolean
 
+	/** Refetches the pose of every frame the current part config expects. */
 	refetch: () => Promise<PromiseSettledResult<unknown>[]>
 }
 
@@ -53,19 +45,17 @@ export interface Context {
  * removing one frame never tears down the other frames' queries.
  */
 export const providePoses = (partID: () => string) => {
-	const environment = useEnvironment()
 	const settings = useSettings()
 	const logs = useLogs()
 	const robotClient = useRobotClient(partID)
 	const connectionStatus = useConnectionStatus(partID)
 	const frames = useFrames()
-	const { addQueryToRefetch } = useRefetchPoses()
 
 	const frameEntities = useQuery(traits.FramesAPI)
 
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 	const options = $derived({
-		enabled: partID() !== '' && interval !== RefetchRates.OFF && environment.isLive,
+		enabled: partID() !== '' && interval !== RefetchRates.OFF,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -155,22 +145,9 @@ export const providePoses = (partID: () => string) => {
 		entryByEntity.clear()
 	})
 
-	// Register every query with the manual-refetch registry so the
-	// ConnectionSettings "refetch poses" action reaches each one.
+	// Kick an initial fetch for every frame once connected.
 	$effect(() => {
-		const unsubs = entries.map(({ query }) => addQueryToRefetch(query))
-		return () => {
-			for (const unsub of unsubs) unsub()
-		}
-	})
-
-	// Kick an initial fetch for every frame once connected in a live mode.
-	$effect(() => {
-		if (
-			environment.isLive &&
-			frames.current &&
-			connectionStatus.current === MachineConnectionEvent.CONNECTED
-		) {
+		if (frames.current && connectionStatus.current === MachineConnectionEvent.CONNECTED) {
 			// Read `entries` inside `untrack` so this fires on the connect edge,
 			// not every time a frame is added — new entries auto-fetch on creation.
 			untrack(() => {
@@ -211,8 +188,6 @@ export const providePoses = (partID: () => string) => {
 		for (const { entity, query } of entries) {
 			untrack(() => {
 				$effect(() => {
-					if (!environment.isLive) return
-
 					const pose = query.data?.pose
 					if (!pose || !entity.isAlive()) return
 
@@ -230,10 +205,6 @@ export const providePoses = (partID: () => string) => {
 	})
 
 	const expectedFrameNames = () => frames.current.map(({ referenceFrame }) => referenceFrame)
-	const registeredFrameNames = () =>
-		entries.map(({ name }) => name.current).filter((name): name is string => name !== undefined)
-	const missingFrameNames = () =>
-		missingPoseFrameNames(expectedFrameNames(), registeredFrameNames())
 
 	let now = $state(0)
 	let pollingStartedAt = $state(0)
@@ -263,9 +234,8 @@ export const providePoses = (partID: () => string) => {
 		return latest
 	})
 
-	// A paused or build-mode scene is deliberately showing a snapshot, not a
-	// broken one, and a scene with no pose queries yet has no pose old enough to
-	// warn about.
+	// A paused scene is deliberately showing a snapshot, not a broken one, and a
+	// scene with no pose queries yet has no pose old enough to warn about.
 	const isStale = $derived(
 		options.enabled &&
 			entries.length > 0 &&
@@ -273,12 +243,6 @@ export const providePoses = (partID: () => string) => {
 	)
 
 	setContext<Context>(key, {
-		get isReady() {
-			return frames.isReady && missingFrameNames().length === 0
-		},
-		get missingFrameNames() {
-			return missingFrameNames()
-		},
 		get isStale() {
 			return isStale
 		},

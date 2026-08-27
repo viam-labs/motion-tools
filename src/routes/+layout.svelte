@@ -57,6 +57,8 @@
 	const dialConfig = $derived(partID ? dialConfigs[partID] : undefined)
 
 	let isMachinesPageOpen = $state(false)
+
+	let pluginsEnabled = true
 </script>
 
 <ViamProvider
@@ -88,24 +90,26 @@
 			>
 				{@render children()}
 
-				<DrawService config={{ backendIP, port: drawServicePort }} />
-				<Focus />
-				<MeasureTool />
+				{#if pluginsEnabled}
+					<DrawService config={{ backendIP, port: drawServicePort }} />
+					<Focus />
+					<MeasureTool />
 
-				<Monitor />
-				<BuildFrames />
-				<MoveFrame />
-				<MotionPlanReplayer />
+					<Monitor />
+					<BuildFrames />
+					<MoveFrame />
+					<MotionPlanReplayer />
 
-				<XR />
+					<XR />
 
-				<Logs />
-				<ControlWidgets />
-				<Machines bind:isOpen={isMachinesPageOpen} />
-				<WorldTree />
-				<Settings />
-				<FileDrop />
-				<FramePov />
+					<Logs />
+					<ControlWidgets />
+					<Machines bind:isOpen={isMachinesPageOpen} />
+					<WorldTree />
+					<Settings />
+					<FileDrop />
+					<FramePov />
+				{/if}
 			</Visualizer>
 		</MachineConnectionProvider>
 	</ViamAppProvider>

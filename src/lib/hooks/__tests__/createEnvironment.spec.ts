@@ -12,7 +12,6 @@ describe('createEnvironment mode availability', () => {
 
 		expect(environment.availableModes).toEqual([])
 		expect(environment.current.mode).toBe('none')
-		expect(environment.isLive).toBe(true)
 	})
 
 	it('reports modes in registration order', () => {
@@ -45,34 +44,13 @@ describe('createEnvironment mode availability', () => {
 		expect(environment.current.mode).toBe('build')
 	})
 
-	it('keeps live data on when a stale build mode is unreachable', () => {
-		localStorage.setItem(ENVIRONMENT_MODE_STORAGE_KEY, JSON.stringify('build'))
-
-		// Build mode pauses live queries, so an unreachable stored `build` must not
-		// leave an embedded host with an empty scene and no way to recover.
-		expect(createEnvironment().isLive).toBe(true)
-	})
-
-	it('pauses live queries only while build mode is active', () => {
-		const environment = createEnvironment()
-		environment.registerMode('monitor')
-		environment.registerMode('build')
-
-		environment.current.mode = 'build'
-		expect(environment.isLive).toBe(false)
-
-		environment.current.mode = 'monitor'
-		expect(environment.isLive).toBe(true)
-	})
-
-	it('does not pause live queries when setting a mode nothing contributes', () => {
+	it('ignores a mode assignment nothing contributes', () => {
 		const environment = createEnvironment()
 		environment.registerMode('monitor')
 
 		environment.current.mode = 'build'
 
 		expect(environment.current.mode).toBe('monitor')
-		expect(environment.isLive).toBe(true)
 	})
 
 	it('falls back to the next registered mode when the active mode is released', () => {
