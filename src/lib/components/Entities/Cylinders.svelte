@@ -16,10 +16,13 @@ cylinders and open tubes get a variant each.
 	import {
 		Color,
 		CylinderGeometry,
+		DoubleSide,
 		EdgesGeometry,
+		FrontSide,
 		LineBasicMaterial,
 		Matrix4,
 		MeshToonMaterial,
+		type Side,
 		Sphere,
 		Vector3,
 	} from 'three'
@@ -56,9 +59,12 @@ cylinders and open tubes get a variant each.
 	 * same reason as `Boxes.svelte`: the library culls and raycasts per instance,
 	 * and its once-computed object sphere would otherwise gate an
 	 * always-animating scene shut.
+	 *
+	 * An open tube has no cap to hide its far wall, so back-face culling would
+	 * leave it looking like a half pipe. `side` is `DoubleSide` for that variant.
 	 */
-	const createFaces = (geometry: BufferGeometry) => {
-		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true }), {
+	const createFaces = (geometry: BufferGeometry, side: Side) => {
+		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true, side }), {
 			renderer,
 		})
 		mesh.sortObjects = true
@@ -100,7 +106,7 @@ cylinders and open tubes get a variant each.
 	const createVariant = (capped: boolean): Variant => {
 		const geometry = unitCylinder(capped)
 		return {
-			faces: createFaces(geometry),
+			faces: createFaces(geometry, capped ? FrontSide : DoubleSide),
 			edges: createEdges(new EdgesGeometry(geometry, 0)),
 			entityByFaceId: new Map(),
 		}
