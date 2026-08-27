@@ -41,20 +41,27 @@ export const createChunkLoader = ({
 	fetchChunk,
 	colorFormat = ColorFormat.RGB,
 }: ChunkLoaderOptions) => {
-	const active = new Set<string>()
+	// The pull that owns each uuid. A pull is superseded rather than rejected: an entity that
+	// respawns mid-upload needs its replacement to take over, and the loop below cannot notice
+	// its own entity was destroyed until the fetch it is parked on resolves.
+	const active = new Map<string, number>()
+	let lastToken = 0
+
 	const controller = new AbortController()
 
 	const pull = async (uuid: string, entity: Entity, total: number, firstChunkEnd: number) => {
-		if (active.has(uuid)) return
-		active.add(uuid)
+		const token = ++lastToken
+		active.set(uuid, token)
 
 		const { signal } = controller
+		const owns = () => !signal.aborted && active.get(uuid) === token
+
 		let nextStart = firstChunkEnd
 
 		try {
-			while (!signal.aborted) {
+			while (owns()) {
 				const chunk = await fetchChunk(uuid, nextStart, signal)
-				if (signal.aborted || !chunk) break
+				if (!owns() || !chunk) break
 
 				const buffer = entity.get(traits.BufferGeometry)
 				if (!buffer) break
@@ -73,24 +80,36 @@ export const createChunkLoader = ({
 				if (chunk.done) break
 			}
 		} catch (error) {
-			if (!signal.aborted) {
+			if (owns()) {
 				console.error(`Chunk pull failed for entity ${uuid}:`, error)
 			}
 		} finally {
-			active.delete(uuid)
-			if (world.has(entity)) {
-				entity.remove(traits.ChunkProgress)
+			// A superseded pull cleans up nothing: both the map entry and the ChunkProgress trait
+			// now belong to the pull that replaced it.
+			if (active.get(uuid) === token) {
+				active.delete(uuid)
+				if (world.has(entity)) {
+					entity.remove(traits.ChunkProgress)
+				}
 			}
 		}
 	}
 
 	return {
-		start(uuid: string, entity: Entity, metadata: Metadata) {
+		/**
+		 * Begins pulling the rest of a chunked entity.
+		 *
+		 * `firstChunkEnd` is how many elements really arrived: a producer still filling its buffer
+		 * sends fewer than `chunk_size`, so the nominal size would leave a hole.
+		 */
+		start(uuid: string, entity: Entity, metadata: Metadata, firstChunkEnd?: number) {
 			const chunks = metadata.chunks
 			if (!chunks || chunks.total <= 0) return
 
-			entity.add(traits.ChunkProgress({ loaded: chunks.chunkSize, total: chunks.total }))
-			void pull(uuid, entity, chunks.total, chunks.chunkSize)
+			const loaded = firstChunkEnd ?? chunks.chunkSize
+
+			entity.add(traits.ChunkProgress({ loaded, total: chunks.total }))
+			void pull(uuid, entity, chunks.total, loaded)
 		},
 
 		dispose() {

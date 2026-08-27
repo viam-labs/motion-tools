@@ -128,6 +128,39 @@ func TestDrawService_AddEntity(t *testing.T) {
 		test.That(t, resp.Msg.GetUuid(), test.ShouldHaveLength, 16)
 	})
 
+	t.Run("ServerAssignedUUIDReachesTheStream", func(t *testing.T) {
+		svc := NewDrawService(t.TempDir())
+		client := newTestServer(t, svc)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		type streamResult struct {
+			stream *connect.ServerStreamForClient[drawv1.StreamEntityChangesResponse]
+			err    error
+		}
+		sCh := make(chan streamResult, 1)
+		go func() {
+			s, err := client.StreamEntityChanges(ctx, connect.NewRequest(&drawv1.StreamEntityChangesRequest{}))
+			sCh <- streamResult{s, err}
+		}()
+
+		waitForEntitySubs(t, svc, 1)
+
+		// No UUID supplied, so the service mints one. A consumer keying off the stream can only
+		// track the entity if that UUID is stamped onto the broadcast entity too.
+		resp, err := client.AddEntity(context.Background(), connect.NewRequest(&drawv1.AddEntityRequest{
+			Entity: &drawv1.AddEntityRequest_Drawing{Drawing: sampleDrawing("drawing-1")},
+		}))
+		test.That(t, err, test.ShouldBeNil)
+
+		sr := <-sCh
+		test.That(t, sr.err, test.ShouldBeNil)
+
+		test.That(t, sr.stream.Receive(), test.ShouldBeTrue)
+		test.That(t, sr.stream.Msg().GetDrawing().GetUuid(), test.ShouldResemble, resp.Msg.GetUuid())
+	})
+
 	t.Run("AddMultipleEntitiesReturnsUniqueUUIDs", func(t *testing.T) {
 		svc := NewDrawService(t.TempDir())
 		client := newTestServer(t, svc)

@@ -58,6 +58,20 @@ fi
 
 echo ""
 
+echo "--- Building visualization module ---"
+VIZ_MODULE_DIR=$SCRIPT_DIR/../modules/visualization
+VIZ_MODULE_BIN=$BIN_DIR/visualization
+
+if [ -d "$VIZ_MODULE_DIR" ]; then
+  (cd "$VIZ_MODULE_DIR" && go build -o "$VIZ_MODULE_BIN" .)
+  echo "Built visualization module to $VIZ_MODULE_BIN"
+else
+  echo "visualization module directory not found at $VIZ_MODULE_DIR."
+  exit 1
+fi
+
+echo ""
+
 echo "--- Building docs obstacle-store example ---"
 OBS_MODULE_DIR=$SCRIPT_DIR/../docs/examples/worldstatestore
 OBS_MODULE_BIN=$BIN_DIR/obstacle-store

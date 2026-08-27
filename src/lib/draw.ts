@@ -1,4 +1,5 @@
-import type { TransformWithUUID } from '@viamrobotics/sdk'
+import type { JsonValue } from '@bufbuild/protobuf'
+import type { PlainMessage, Struct, TransformWithUUID } from '@viamrobotics/sdk'
 import type { ConfigurableTrait, Entity, Trait, World } from 'koota'
 
 import { Matrix4, Vector3, Vector4 } from 'three'
@@ -6,7 +7,7 @@ import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
 import { UuidTool } from 'uuid-tool'
 
 import type { Transform as TransformProto } from '$lib/buf/common/v1/common_pb'
-import type { Drawing, Model, Shape } from '$lib/buf/draw/v1/drawing_pb'
+import type { Model, Shape } from '$lib/buf/draw/v1/drawing_pb'
 import type { Relationship } from '$lib/metadata'
 
 import {
@@ -16,6 +17,7 @@ import {
 	updateBufferGeometryColors,
 	writeBufferGeometryRange,
 } from '$lib/attribute'
+import { DrawingProjection } from '$lib/buf/draw/v1/worldstate_pb'
 import {
 	asFloat32Array,
 	asOpacity,
@@ -27,8 +29,9 @@ import {
 } from '$lib/buffer'
 import { hierarchy, relations, setOrAddTrait, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
-import { Pose } from '$lib/math'
+import { Pose, type PosePatch } from '$lib/math'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
+import { unwrapValue } from '$lib/struct'
 
 import { ColorFormat } from './buf/draw/v1/metadata_pb'
 import { isPointCloud } from './geometry'
@@ -53,6 +56,46 @@ const DEFAULT_OPACITY = 1
 
 export type Transform = TransformWithUUID | TransformProto
 
+/**
+ * The parts of a `Drawing` the renderers actually read. A `Drawing` is structurally assignable
+ * to this, so a world state store `Transform` can render through the same code.
+ */
+export interface DrawingLike {
+	referenceFrame: string
+	poseInObserverFrame?: { referenceFrame?: string; pose?: PosePatch }
+	physicalObject?: Shape
+	uuid?: Uint8Array
+	metadata?: Metadata
+}
+
+/** The metadata Struct key that carries a projected Shape. */
+const SHAPE_KEY = 'shape'
+
+/**
+ * Reads the `Shape` a world state store carries for a projected `Drawing`, or `undefined` when
+ * the transform is a real one.
+ *
+ * `Transform.physical_object` is a closed `Geometry` oneof with no case for a drawing shape, so
+ * the shape travels in the metadata `Struct` as a `DrawingProjection` instead.
+ */
+export const shapeFromStruct = (fields: PlainMessage<Struct>['fields'] = {}): Shape | undefined => {
+	const value = fields[SHAPE_KEY]
+	if (!value) return undefined
+
+	try {
+		// A producer built against a newer drawing.proto would otherwise fail the whole entity
+		// rather than the one field the reader does not know about yet.
+		const projection = DrawingProjection.fromJson(
+			{ [SHAPE_KEY]: unwrapValue(value) as JsonValue },
+			{ ignoreUnknownFields: true }
+		)
+		return projection.shape
+	} catch (error) {
+		console.error('Could not decode a projected drawing shape:', error)
+		return undefined
+	}
+}
+
 export const uuidBytesToString = (bytes: Uint8Array | undefined): string | undefined => {
 	if (!bytes || bytes.length === 0) return undefined
 	return UuidTool.toString([...bytes])
@@ -68,13 +111,13 @@ interface DrawOptions {
 	removable?: boolean
 }
 
-type ModelDrawing = Drawing & {
+type ModelDrawing = DrawingLike & {
 	physicalObject: Shape & {
 		geometryType: { case: 'model'; value: Model }
 	}
 }
 
-const isModel = (drawing: Drawing): drawing is ModelDrawing => {
+const isModel = (drawing: DrawingLike): drawing is ModelDrawing => {
 	return drawing.physicalObject?.geometryType?.case === 'model'
 }
 
@@ -138,7 +181,7 @@ export interface DrawingResult {
 
 export const drawDrawing = (
 	world: World,
-	drawing: Drawing,
+	drawing: DrawingLike,
 	api: Trait,
 	{ removable = true }: DrawOptions = {}
 ): DrawingResult => {
@@ -240,7 +283,7 @@ export const updateMetadata = (
 export const updateDrawing = (
 	world: World,
 	entity: Entity,
-	drawing: Drawing,
+	drawing: DrawingLike,
 	{ removable = true }: DrawOptions = {}
 ): DrawingResult => {
 	const { poseInObserverFrame, metadata } = drawing
@@ -274,7 +317,7 @@ export const updateDrawing = (
 export const updateModel = (
 	world: World,
 	entity: Entity,
-	drawing: Drawing,
+	drawing: DrawingLike,
 	api: Trait,
 	{ removable = true }: DrawOptions = {}
 ): DrawingResult => {
@@ -283,7 +326,7 @@ export const updateModel = (
 	return drawDrawing(world, drawing, api, { removable })
 }
 
-const applyShape = (entity: Entity, { physicalObject, metadata }: Drawing): void => {
+const applyShape = (entity: Entity, { physicalObject, metadata }: DrawingLike): void => {
 	const colors = metadata?.colors
 	const opacities = metadata?.opacities
 	const geometryType = physicalObject?.geometryType
@@ -534,7 +577,7 @@ const parseColors = (from: Uint8Array | undefined, count: number): Uint8Array =>
 	return expanded
 }
 
-const updateShape = (entity: Entity, { physicalObject, metadata }: Drawing): void => {
+const updateShape = (entity: Entity, { physicalObject, metadata }: DrawingLike): void => {
 	const geometryType = physicalObject?.geometryType
 
 	entity.set(traits.Opacity, asOpacity(metadata?.opacities, DEFAULT_OPACITY))

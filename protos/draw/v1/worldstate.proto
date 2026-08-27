@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package draw.v1;
+
+import "draw/v1/drawing.proto";
+
+option go_package = "github.com/viam-labs/motion-tools/draw/v1;drawv1";
+
+// DrawingProjection is merged into a viam.common.v1.Transform's metadata when a Drawing
+// travels over the world_state_store API.
+//
+// That API carries only common.v1.Geometry, so a Shape has no native home and rides in the
+// metadata Struct instead, next to draw.v1.Metadata's fields.
+//
+// Both halves are encoded with protojson using proto field names and numeric enums.
+message DrawingProjection {
+  // The shape this transform really is. Present only on projected Drawings; a Transform
+  // that carries no shape is a true Transform and renders from its physical_object.
+  Shape shape = 1;
+}

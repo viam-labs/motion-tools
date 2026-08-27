@@ -1,3 +1,6 @@
+import type { JsonObject } from '@bufbuild/protobuf'
+
+import { Struct } from '@viamrobotics/sdk'
 import { createWorld, type World } from 'koota'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,12 +24,20 @@ import {
 	Shape,
 } from '$lib/buf/draw/v1/drawing_pb'
 import { ColorFormat, Metadata, Relationship } from '$lib/buf/draw/v1/metadata_pb'
+import { DrawingProjection } from '$lib/buf/draw/v1/worldstate_pb'
 import { STRIDE } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { traits } from '$lib/ecs'
 import { Pose } from '$lib/math'
 
-import { drawDrawing, drawTransform, updateDrawing, updateMetadata, updateTransform } from '../draw'
+import {
+	drawDrawing,
+	drawTransform,
+	shapeFromStruct,
+	updateDrawing,
+	updateMetadata,
+	updateTransform,
+} from '../draw'
 
 /** Packs a flat list of float32 pose components into the proto's little-endian byte layout. */
 const packPoses = (...values: number[]): Uint8Array<ArrayBuffer> => {
@@ -754,6 +765,61 @@ describe('createChunkLoader', () => {
 		expect(geometry.drawRange.count).toBe(total)
 	})
 
+	// A chunked entity that respawns mid-upload calls start again while the previous pull is
+	// still parked on a fetch. The replacement has to take over, not be dropped as a duplicate.
+	it('a restart supersedes an in-flight pull', async () => {
+		world = createWorld()
+		const total = 6
+		const firstChunkEnd = 3
+
+		const newGeometry = () =>
+			preAllocateBufferGeometry(total, STRIDE.POSITIONS, { colorFormat: ColorFormat.UNSPECIFIED })
+
+		const chunk: EntityChunk = {
+			start: firstChunkEnd,
+			positions: new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]),
+			done: true,
+		}
+
+		let calls = 0
+		let releaseStale: ((chunk: EntityChunk) => void) | undefined
+		const fetchChunk = vi.fn(async () => {
+			calls += 1
+			if (calls > 1) return chunk
+			return await new Promise<EntityChunk | null>((resolve) => {
+				releaseStale = resolve
+			})
+		})
+
+		const loader = createChunkLoader({ world, invalidate: () => {}, fetchChunk })
+
+		const metadata: MetadataType = {
+			colorFormat: ColorFormat.UNSPECIFIED,
+			chunks: { chunkSize: firstChunkEnd, total, stride: STRIDE.POSITIONS },
+		}
+
+		const stale = world.spawn(traits.BufferGeometry(newGeometry()))
+		loader.start('uuid', stale, metadata)
+		await vi.waitFor(() => expect(fetchChunk).toHaveBeenCalledTimes(1))
+
+		stale.destroy()
+
+		const geometry = newGeometry()
+		const fresh = world.spawn(traits.BufferGeometry(geometry))
+		loader.start('uuid', fresh, metadata)
+
+		await vi.waitFor(() => {
+			expect(fresh.has(traits.ChunkProgress)).toBe(false)
+		})
+		expect(fetchChunk).toHaveBeenCalledTimes(2)
+		expect(geometry.drawRange.count).toBe(total)
+
+		// The superseded pull resolving afterwards owns nothing, so it must not undo any of that.
+		releaseStale?.(chunk)
+		await vi.waitFor(() => expect(fetchChunk).toHaveBeenCalledTimes(2))
+		expect(geometry.drawRange.count).toBe(total)
+	})
+
 	it('dispose aborts in-flight fetches and stops the loop', async () => {
 		world = createWorld()
 		const total = 12
@@ -790,5 +856,126 @@ describe('createChunkLoader', () => {
 			expect(seenSignal?.aborted).toBe(true)
 			expect(entity.has(traits.ChunkProgress)).toBe(false)
 		})
+	})
+})
+
+/**
+ * Mirrors the module's projection: a Shape encoded as protojson under the `shape` key of a
+ * Transform's metadata Struct, alongside the metadata's own fields.
+ */
+const projectedMetadata = (shape: Shape, extra: JsonObject = {}) =>
+	Struct.fromJson({
+		...extra,
+		...(new DrawingProjection({ shape }).toJson() as JsonObject),
+	})
+
+describe('shapeFromStruct', () => {
+	it.each([
+		[
+			'line',
+			new Shape({
+				label: 'a line',
+				geometryType: {
+					case: 'line',
+					value: { positions: new Uint8Array([1, 2, 3, 4]), lineWidth: 7 },
+				},
+			}),
+		],
+		[
+			'points',
+			new Shape({
+				geometryType: {
+					case: 'points',
+					value: { positions: new Uint8Array([5, 6, 7, 8]), pointSize: 11 },
+				},
+			}),
+		],
+		[
+			'arrows',
+			new Shape({ geometryType: { case: 'arrows', value: { poses: new Uint8Array([9, 8]) } } }),
+		],
+		[
+			'nurbs',
+			new Shape({
+				geometryType: {
+					case: 'nurbs',
+					value: { controlPoints: new Uint8Array([1]), knots: new Uint8Array([2]), degree: 3 },
+				},
+			}),
+		],
+		[
+			'model',
+			new Shape({
+				geometryType: {
+					case: 'model',
+					value: {
+						assets: [
+							{
+								mimeType: 'model/gltf-binary',
+								content: { case: 'url', value: 'https://example.com/a.glb' },
+							},
+						],
+						scale: { x: 1, y: 2, z: 3 },
+					},
+				},
+			}),
+		],
+	])('round-trips a %s shape', (_name, shape) => {
+		const decoded = shapeFromStruct(projectedMetadata(shape).fields)
+
+		expect(decoded).toBeDefined()
+		expect(decoded!.equals(shape)).toBe(true)
+	})
+
+	it('reads a shape carried alongside metadata fields', () => {
+		const shape = new Shape({
+			geometryType: { case: 'line', value: { positions: new Uint8Array([1, 2, 3, 4]) } },
+		})
+
+		const decoded = shapeFromStruct(
+			projectedMetadata(shape, {
+				colors: 'AQID',
+				color_format: 1,
+				show_axes_helper: true,
+			}).fields
+		)
+
+		expect(decoded?.geometryType.case).toBe('line')
+	})
+
+	it('returns undefined for a real transform', () => {
+		const metadata = Struct.fromJson({ colors: 'AQID', invisible: false })
+
+		expect(shapeFromStruct(metadata.fields)).toBeUndefined()
+		expect(shapeFromStruct()).toBeUndefined()
+	})
+
+	it('ignores fields a newer producer added', () => {
+		const metadata = Struct.fromJson({
+			shape: { line: { positions: 'AQIDBA==' }, somethingNewer: 42 },
+		})
+
+		expect(shapeFromStruct(metadata.fields)?.geometryType.case).toBe('line')
+	})
+
+	it('drops a malformed shape rather than failing the entity', () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+		const metadata = Struct.fromJson({ shape: 'not-a-shape' })
+
+		expect(shapeFromStruct(metadata.fields)).toBeUndefined()
+		expect(error).toHaveBeenCalled()
+	})
+
+	it('accepts what a Drawing projects, so both paths render the same shape', () => {
+		const drawing = new Drawing({
+			referenceFrame: 'my-line',
+			physicalObject: new Shape({
+				geometryType: { case: 'line', value: { positions: new Uint8Array([1, 2, 3, 4]) } },
+			}),
+		})
+
+		const decoded = shapeFromStruct(projectedMetadata(drawing.physicalObject!).fields)
+
+		expect(decoded!.equals(drawing.physicalObject!)).toBe(true)
 	})
 })

@@ -14,9 +14,20 @@ import {
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
 
-import { asFloat32Array, inMeters } from '$lib/buffer'
+import type { Shape } from '$lib/buf/draw/v1/drawing_pb'
+import type { Metadata } from '$lib/metadata'
+
+import { asFloat32Array, inMeters, STRIDE } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
-import { drawTransform, updateMetadata } from '$lib/draw'
+import {
+	drawDrawing,
+	type DrawingLike,
+	drawTransform,
+	shapeFromStruct,
+	updateDrawing,
+	updateMetadata,
+	updateModel,
+} from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
 import { Pose } from '$lib/math'
@@ -62,6 +73,9 @@ export const provideWorldStates = () => {
 // to camelCase so matching against the message's accessors is casing-agnostic.
 const snakeToCamel = (path: string): string =>
 	path.replaceAll(/_([a-z])/g, (_, char: string) => char.toUpperCase())
+
+/** Stands in for an empty FieldMask, which means every field changed. */
+const ALL_TRANSFORM_PATHS = ['pose_in_observer_frame', 'physical_object', 'metadata']
 
 const decodeBase64 = (encoded: string): Uint8Array => {
 	const binary = atob(encoded)
@@ -132,6 +146,9 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	const relationships = useRelationships()
 
 	const entities = new Map<string, Entity>()
+	// UUIDs of projected model drawings, which spawn a root plus one sub-entity per asset and
+	// so cannot be torn down with a plain destroy.
+	const modelRoots = new Set<string>()
 	// UUIDs the stream has removed; guards against a stale initial snapshot or a
 	// self-heal fetch re-creating an entity the server has already deleted.
 	const removedUUIDs = new Set<string>()
@@ -159,20 +176,57 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		},
 	})
 
+	/**
+	 * Builds the drawing a projected transform stands for. Frame, pose and UUID ride natively;
+	 * only the shape had to travel in the metadata Struct.
+	 */
+	const toDrawing = (
+		transform: TransformWithUUID,
+		shape: Shape,
+		metadata: Metadata
+	): DrawingLike => ({
+		referenceFrame: transform.referenceFrame,
+		poseInObserverFrame: transform.poseInObserverFrame,
+		physicalObject: shape,
+		uuid: transform.uuid,
+		metadata,
+	})
+
+	/**
+	 * Element count of the first chunk that actually arrived, which is fewer than `chunk_size`
+	 * when the producer was still filling its buffer.
+	 */
+	const firstChunkEnd = (shape: Shape | undefined): number | undefined => {
+		if (shape?.geometryType.case !== 'points') return undefined
+		return (
+			shape.geometryType.value.positions.length /
+			(STRIDE.POSITIONS * Float32Array.BYTES_PER_ELEMENT)
+		)
+	}
+
 	const spawnEntity = (transform: TransformWithUUID) => {
-		if (entities.has(transform.uuidString) || removedUUIDs.has(transform.uuidString)) {
+		const uuid = transform.uuidString
+		if (entities.has(uuid) || removedUUIDs.has(uuid)) {
 			return
 		}
 
-		const spawned = drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
-		entities.set(transform.uuidString, spawned.entity)
+		const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
+		const shape = shapeFromStruct(transform.metadata?.fields)
+
+		const spawned = shape
+			? drawDrawing(world, toDrawing(transform, shape, parsedMetadata), traits.WorldStateStoreAPI, {
+					removable: false,
+				})
+			: drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
+
+		entities.set(uuid, spawned.entity)
+		if (shape?.geometryType.case === 'model') modelRoots.add(uuid)
 		relationships.apply(spawned.entity, spawned.relationships)
 
-		const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
-		chunkLoader.start(transform.uuidString, spawned.entity, parsedMetadata)
-		relationships.flush(transform.uuidString)
+		chunkLoader.start(uuid, spawned.entity, parsedMetadata, firstChunkEnd(shape))
+		relationships.flush(uuid)
 
-		if (isPointCloud(transform.physicalObject?.geometryType)) invalidate()
+		if (shape || isPointCloud(transform.physicalObject?.geometryType)) invalidate()
 	}
 
 	const destroyEntity = (uuid: string) => {
@@ -183,8 +237,17 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		if (!entity) return
 
 		if (world.has(entity)) {
-			entity.destroy()
+			// A model is a root plus one sub-entity per asset; destroying only the root would leave
+			// its meshes at the world origin. Everything else keeps the plain destroy, so frames
+			// parented to it survive as orphans.
+			if (modelRoots.has(uuid)) {
+				hierarchy.destroyEntityTree(world, entity)
+			} else {
+				entity.destroy()
+			}
 		}
+
+		modelRoots.delete(uuid)
 		entities.delete(uuid)
 	}
 
@@ -208,6 +271,41 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		}
 	}
 
+	/**
+	 * Re-applies a projected drawing wholesale.
+	 *
+	 * Its shape, colors and visibility all live in one metadata Struct, so any change to them
+	 * arrives as a single `metadata` path. There is nothing finer to act on.
+	 */
+	const updateProjectedDrawing = (
+		transform: TransformWithUUID,
+		entity: Entity,
+		shape: Shape,
+		metadata: Metadata
+	) => {
+		const uuid = transform.uuidString
+
+		// A chunked drawing restarts its pull from scratch, so the half-filled buffer the previous
+		// pull was writing into has to go with it.
+		if ((metadata.chunks?.total ?? 0) > 0) {
+			destroyEntity(uuid)
+			removedUUIDs.delete(uuid)
+			spawnEntity(transform)
+			return
+		}
+
+		const drawing = toDrawing(transform, shape, metadata)
+		const isModel = shape.geometryType.case === 'model'
+
+		const result = isModel
+			? updateModel(world, entity, drawing, traits.WorldStateStoreAPI, { removable: false })
+			: updateDrawing(world, entity, drawing, { removable: false })
+
+		entities.set(uuid, result.entity)
+		if (isModel) modelRoots.add(uuid)
+		relationships.apply(result.entity, result.relationships)
+	}
+
 	const updateEntity = (transform: TransformWithUUID, changes: (string | number)[]) => {
 		const entity = entities.get(transform.uuidString)
 
@@ -216,9 +314,24 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			return
 		}
 
+		const shape = shapeFromStruct(transform.metadata?.fields)
+		if (shape) {
+			updateProjectedDrawing(
+				transform,
+				entity,
+				shape,
+				metadataFromStruct(transform.metadata?.fields)
+			)
+			return
+		}
+
 		let metadataDirty = false
 
-		for (const rawPath of changes) {
+		// An empty mask means every field changed, per the FieldMask convention — re-adding an
+		// existing UUID reports exactly that. Acting path by path would drop the whole redraw.
+		const paths = changes.length > 0 ? changes : ALL_TRANSFORM_PATHS
+
+		for (const rawPath of paths) {
 			if (typeof rawPath !== 'string') continue
 
 			const path = snakeToCamel(rawPath)
@@ -354,10 +467,16 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		if (rafId) cancelAnimationFrame(rafId)
 		pendingEvents = []
 		chunkLoader.dispose()
-		for (const [, entity] of entities) {
-			if (world.has(entity)) {
+		for (const [uuid, entity] of entities) {
+			if (!world.has(entity)) continue
+
+			if (modelRoots.has(uuid)) {
+				hierarchy.destroyEntityTree(world, entity)
+			} else {
 				entity.destroy()
 			}
 		}
+		entities.clear()
+		modelRoots.clear()
 	}
 }

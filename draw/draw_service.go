@@ -318,6 +318,9 @@ func (svc *DrawService) addEntityLocked(msg *drawv1.AddEntityRequest) (uuid.UUID
 			return id, connect.NewError(connect.CodeInvalidArgument, errors.New("transform is required"))
 		}
 		id = resolveEntityUUID(e.Transform.GetUuid())
+		// Stamped before storing: a server-assigned UUID is only returned to the caller, so
+		// without this the stored entity and every stream event carry an empty one.
+		e.Transform.Uuid = id[:]
 		_, exists := svc.entities[id]
 		changeType := addedOrUpdated(exists)
 		svc.entities[id] = storedEntity{kind: entityKindTransform, transform: e.Transform}
@@ -330,6 +333,7 @@ func (svc *DrawService) addEntityLocked(msg *drawv1.AddEntityRequest) (uuid.UUID
 			return id, connect.NewError(connect.CodeInvalidArgument, errors.New("drawing is required"))
 		}
 		id = resolveEntityUUID(e.Drawing.GetUuid())
+		e.Drawing.Uuid = id[:]
 		_, exists := svc.entities[id]
 		changeType := addedOrUpdated(exists)
 		svc.entities[id] = storedEntity{kind: entityKindDrawing, drawing: e.Drawing}
@@ -1204,71 +1208,26 @@ func (svc *DrawService) StreamEntityChanges(
 	_ *connect.Request[drawv1.StreamEntityChangesRequest],
 	stream *connect.ServerStream[drawv1.StreamEntityChangesResponse],
 ) error {
-	svc.mu.Lock()
-	subID, sub := svc.addEntitySub()
-
-	replay := make([]*drawv1.StreamEntityChangesResponse, 0, len(svc.entities))
-	for id, entity := range svc.entities {
-		switch entity.kind {
-		case entityKindTransform:
-			replay = append(replay, &drawv1.StreamEntityChangesResponse{
-				ChangeType: drawv1.EntityChangeType_ENTITY_CHANGE_TYPE_ADDED,
-				Entity:     &drawv1.StreamEntityChangesResponse_Transform{Transform: entity.transform},
-			})
-		case entityKindDrawing:
-			if chunked, ok := svc.chunked[id]; ok {
-				if msg := svc.buildChunkedReplayMsg(chunked); msg != nil {
-					replay = append(replay, msg)
-				}
-			} else {
-				replay = append(replay, &drawv1.StreamEntityChangesResponse{
-					ChangeType: drawv1.EntityChangeType_ENTITY_CHANGE_TYPE_ADDED,
-					Entity:     &drawv1.StreamEntityChangesResponse_Drawing{Drawing: entity.drawing},
-				})
-			}
-		}
-	}
-	svc.mu.Unlock()
-
-	// Registered before the replay loop: a client that disconnects mid-replay
-	// would otherwise leave its channel in svc.entitySubs with nobody draining
-	// it, filling up and logging a drop on every subsequent mutation forever.
-	defer func() {
-		svc.mu.Lock()
-		svc.removeEntitySub(subID)
-		svc.mu.Unlock()
-	}()
-
-	for _, msg := range replay {
-		if err := stream.Send(msg); err != nil {
-			return err
-		}
-	}
+	// Registered before the replay is sent: a client that disconnects mid-replay would
+	// otherwise leave its channel in svc.entitySubs with nobody draining it, filling up and
+	// logging a drop on every subsequent mutation forever.
+	subscription := svc.SubscribeEntities()
+	defer subscription.Close()
 
 	for {
-		msgs, overflow, closed := sub.take()
-		if overflow {
-			log.Printf("draw: subscriber %d fell more than %d changes behind; closing stream for resync", subID, maxPendingEntityChanges)
-			return connect.NewError(
-				connect.CodeResourceExhausted,
-				errors.New("entity change queue overflow; reconnect for a fresh snapshot"),
-			)
+		msgs, err := subscription.Next(ctx)
+		switch {
+		case errors.Is(err, ErrSubscriberOverflow):
+			log.Printf("draw: subscriber %d fell more than %d changes behind; closing stream for resync", subscription.id, maxPendingEntityChanges)
+			return connect.NewError(connect.CodeResourceExhausted, ErrSubscriberOverflow)
+		case err != nil:
+			return nil
 		}
+
 		for _, msg := range msgs {
 			if err := stream.Send(msg); err != nil {
 				return err
 			}
-		}
-		if len(msgs) > 0 {
-			continue
-		}
-		if closed {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-sub.notify:
 		}
 	}
 }
