@@ -7,9 +7,9 @@
 	import { useEnvironment, useEnvironmentMode } from '$lib/hooks/useEnvironment.svelte'
 	import { useFullscreen } from '$lib/plugins/Fullscreen/useFullscreen.svelte'
 
+	import BuildActionsBar from './BuildActionsBar.svelte'
 	import BuildDetails from './BuildDetails.svelte'
 	import FramelessComponentDetails from './FramelessComponentDetails.svelte'
-	import LiveUpdatesBanner from './LiveUpdatesBanner.svelte'
 	import StaticGeometries from './StaticGeometries.svelte'
 	import TransformDashboard from './TransformDashboard.svelte'
 	import { useFramelessComponentEntities } from './useFramelessComponentEntities.svelte'
@@ -36,7 +36,7 @@
 
 <!-- Each of these gates itself on build mode being active. -->
 <TransformDashboard />
-<LiveUpdatesBanner />
+<BuildActionsBar />
 <StaticGeometries />
 
 {#if environment.current.mode === 'build'}

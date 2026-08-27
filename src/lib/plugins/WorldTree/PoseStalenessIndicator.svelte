@@ -5,19 +5,14 @@
 	import Tooltip from '$lib/components/overlay/Tooltip.svelte'
 	import { poseStalenessSummary } from '$lib/hooks/poseStaleness/poseStalenessSummary'
 	import { unhealthyResources } from '$lib/hooks/poseStaleness/unhealthyResources'
-	import { useEnvironment } from '$lib/hooks/useEnvironment.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePoses } from '$lib/hooks/usePoses.svelte'
 
-	const environment = useEnvironment()
 	const partID = usePartID()
 	const poses = usePoses()
 	const machineStatus = useMachineStatus(() => partID.current)
 
-	// Build mode pauses live polling to protect staged edits, so its scene is a
-	// deliberate snapshot. Warning that poses aren't updating there would report
-	// the mode back to the user as a fault.
-	const visible = $derived(environment.current.mode !== 'build' && poses.isStale)
+	const visible = $derived(poses.isStale)
 
 	const unhealthy = $derived(unhealthyResources(machineStatus.current?.resources))
 	const summary = $derived(poseStalenessSummary(unhealthy))

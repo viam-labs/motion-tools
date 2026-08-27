@@ -2,12 +2,12 @@
 	import RefreshRate from '$lib/components/overlay/RefreshRate.svelte'
 	import { usePointcloudObjects } from '$lib/hooks/usePointcloudObjects.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
-	import { useRefetchPoses } from '$lib/hooks/useRefetchPoses'
+	import { usePoses } from '$lib/hooks/usePoses.svelte'
 	import { RefreshRates } from '$lib/hooks/useSettings.svelte'
 
 	const pointclouds = usePointClouds()
 	const pointcloudObjects = usePointcloudObjects()
-	const { refetchPoses } = useRefetchPoses()
+	const poses = usePoses()
 </script>
 
 <div class="flex flex-col gap-2.5 text-xs">
@@ -17,7 +17,7 @@
 		id={RefreshRates.poses}
 		label="Poses"
 		onManualRefetch={() => {
-			refetchPoses()
+			poses.refetch()
 		}}
 	/>
 	<RefreshRate

@@ -8,7 +8,6 @@ import { createEntityFixture } from '$lib/__tests__/__fixtures__/entity'
 import { resource } from '$lib/__tests__/__fixtures__/resource'
 import { traits } from '$lib/ecs'
 import { WORLD_CONTEXT_KEY } from '$lib/ecs/useWorld'
-import { BUILD_MODE_SYNC_CONTEXT_KEY } from '$lib/hooks/useBuildModeSync.svelte'
 import * as useConfigFrames from '$lib/hooks/useConfigFrames.svelte'
 import { createEnvironment, ENVIRONMENT_CONTEXT_KEY } from '$lib/hooks/useEnvironment.svelte'
 import * as useFragmentInfo from '$lib/hooks/useFragmentInfo.svelte'
@@ -76,7 +75,6 @@ describe('BuildDetails', () => {
 			context: new Map<symbol, unknown>([
 				[WEBLABS_CONTEXT_KEY, weblabContext],
 				[ENVIRONMENT_CONTEXT_KEY, environmentContext],
-				[BUILD_MODE_SYNC_CONTEXT_KEY, { syncing: false }],
 				[WORLD_CONTEXT_KEY, world],
 			]),
 		})
