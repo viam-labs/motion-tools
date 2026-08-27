@@ -3,12 +3,15 @@
 	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { Color } from 'three'
 
+	import RefreshRate from '$lib/components/overlay/RefreshRate.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
-	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
+	import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
 
 	const partID = usePartID()
 	const cameras = useResourceNames(() => partID.current, 'camera')
 	const settings = useSettings()
+	const pointclouds = usePointClouds()
 
 	const { disabledCameras } = $derived(settings.current)
 
@@ -16,6 +19,14 @@
 </script>
 
 <div class="flex flex-col gap-1 text-xs">
+	<RefreshRate
+		id={RefreshRates.pointclouds}
+		label="Refresh rate"
+		onManualRefetch={() => {
+			pointclouds.refetch()
+		}}
+	/>
+
 	<label class="flex items-center justify-between gap-2">
 		Default point size
 

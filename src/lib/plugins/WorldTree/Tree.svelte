@@ -8,6 +8,7 @@
 
 	import type { TreeNode as TreeNodeType } from './buildTree'
 
+	import { isFolderExpanded, mergeExpandedFolders } from './expandedFolders.svelte'
 	import TreeNode from './TreeNode.svelte'
 
 	interface Props {
@@ -27,6 +28,11 @@
 			rootNode,
 		})
 	)
+
+	const rootChildren = $derived(collection.rootNode.children ?? [])
+
+	const folderNameOf = (node: TreeNodeType): string | undefined =>
+		node.folder ? (node.entity.get(traits.Name) ?? undefined) : undefined
 
 	const selected = useQuery(traits.Selected)
 
@@ -59,26 +65,38 @@
 			for (const value of details.expandedValue) {
 				expandedValues.add(value)
 			}
+
+			// Only folders are recorded. An item's value is its entity id, which is
+			// handed out fresh each session and would key nothing on the next load.
+			const expandedByName: Record<string, boolean> = {}
+			for (const node of rootChildren) {
+				const name = folderNameOf(node)
+				if (name) expandedByName[name] = expandedValues.has(`${node.entity}`)
+			}
+
+			mergeExpandedFolders(expandedByName)
 		},
 	}))
 
 	const api = $derived(tree.connect(service, normalizeProps))
-	const rootChildren = $derived(collection.rootNode.children ?? [])
 
-	const openedFolders = new Set<string>()
+	const seededFolders = new Set<string>()
 
-	// Seeded once per folder, so a folder the user collapsed stays collapsed.
-	// `.pre` lands the value before the first commit, otherwise every folder
-	// renders collapsed for a frame and then pops open.
+	// Seeded once per folder, from what the user left open last session and the
+	// folder's own default before that. `.pre` lands the value before the first
+	// commit, otherwise every folder renders collapsed for a frame and then pops open.
 	$effect.pre(() => {
 		for (const node of rootChildren) {
-			if (!node.isFolder) continue
+			const name = folderNameOf(node)
+			if (name === undefined) continue
 
 			const value = `${node.entity}`
-			if (openedFolders.has(value)) continue
+			if (seededFolders.has(value)) continue
 
-			openedFolders.add(value)
-			if (!node.collapsed) expandedValues.add(value)
+			seededFolders.add(value)
+			if (isFolderExpanded(name, node.folder?.collapsed ?? false)) {
+				expandedValues.add(value)
+			}
 		}
 	})
 

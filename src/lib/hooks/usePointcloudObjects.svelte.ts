@@ -11,7 +11,7 @@ import { Matrix4 } from 'three'
 
 import { createBufferGeometry, updateBufferGeometry } from '$lib/attribute'
 import { ColorFormat } from '$lib/buf/draw/v1/metadata_pb'
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { RefetchRates } from '$lib/components/overlay/refetchRates'
 import { hierarchy, setOrAddTrait, traits, useWorld } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose } from '$lib/math'
