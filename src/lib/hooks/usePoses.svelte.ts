@@ -158,23 +158,26 @@ export const providePoses = (partID: () => string) => {
 		}
 	})
 
-	// Per-frame fetch/error logging. A single message at high refresh rates
-	// avoids one log line per frame per tick.
+	// Only the per-frame "Fetching..." notices collapse to one summary at a live
+	// rate. Errors are always reported per frame: they are what marks the frame's
+	// row in the world tree, and repeats collapse into a single counted line.
+	const isLiveRate = $derived(interval === RefetchRates.FPS_30 || interval === RefetchRates.FPS_60)
+
 	$effect(() => {
-		if (interval === RefetchRates.FPS_30 || interval === RefetchRates.FPS_60) {
-			return logs.add(`Fetching poses every ${interval}ms...`, 'info', { folder: 'frames' })
+		if (isLiveRate) {
+			logs.add(`Fetching poses every ${interval}ms...`, 'info', { folder: 'frames' })
 		}
 
 		for (const { name, query } of entries) {
 			untrack(() => {
 				$effect(() => {
-					if (query.isFetching) {
-						logs.add(`Fetching pose for ${name.current}...`, 'info', {
+					if (query.error) {
+						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error', {
 							resource: name.current,
 							folder: 'frames',
 						})
-					} else if (query.error) {
-						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error', {
+					} else if (query.isFetching && !isLiveRate) {
+						logs.add(`Fetching pose for ${name.current}...`, 'info', {
 							resource: name.current,
 							folder: 'frames',
 						})
