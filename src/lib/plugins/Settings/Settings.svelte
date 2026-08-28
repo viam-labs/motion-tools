@@ -8,6 +8,7 @@
 	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
+	import ControlsSettings from './ControlsSettings.svelte'
 	import DebugSettings from './DebugSettings.svelte'
 	import FramesSettings from './FramesSettings.svelte'
 	import PointcloudSettings from './PointcloudSettings.svelte'
@@ -18,6 +19,7 @@
 
 	const BUILT_IN_TABS = [
 		{ label: 'Scene', component: SceneSettings },
+		{ label: 'Controls', component: ControlsSettings },
 		{ label: 'Frames', component: FramesSettings },
 		{ label: 'Pointclouds', component: PointcloudSettings },
 		{ label: 'Vision', component: VisionSettings },
