@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test'
-import { JsonValue, Struct, type ViamClient } from '@viamrobotics/sdk'
+import { type JsonValue, Struct, type ViamClient } from '@viamrobotics/sdk'
 
 import {
 	activateConnectionConfigByHost,
@@ -94,7 +94,6 @@ withRobot.beforeAll(async () => {
 withRobot('basic edit frame', async ({ robotPage }) => {
 	const testPrefix = 'BASIC_EDIT_FRAME'
 	await applyMachineConfig(viamClient, config.partId, config.machineName, basicEditFrameConfig)
-	const failedScreenshots = [] as string[]
 	const { page } = robotPage
 
 	page.on('console', (message) => {
@@ -123,21 +122,11 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await fillFrameInputs(page, 'mutable geometry', ['400', '500', '600'])
 
 	await expectHasEdits(page)
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-0-edited.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-0-edited.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-0-edited.png`, { fullPage: true })
 
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-1-saved.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
 
 	page.on('console', (message) => {
 		console.log(`[${message.type()}] ${message.text()}`)
@@ -151,34 +140,19 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expect(page.getByText('base-1', { exact: true })).toBeVisible()
 	await page.getByText('base-1', { exact: true }).click()
 	await expect(page.getByRole('region', { name: 'Details panel' })).toBeVisible()
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-2-reloaded.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-2-reloaded.png`, { fullPage: true })
 
 	// Reload reset the workspace toggle to Monitor, so re-enter Build first.
 	await enterBuildMode(page)
 	await expect(page.getByLabel('mutable parent frame')).toBeAttached()
 	await page.getByLabel('mutable parent frame').locator('select').selectOption('parent')
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-3-parented.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-3-parented.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-3-parented.png`, { fullPage: true })
 
 	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
 	await expectNoEdits(page)
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-4-discarded.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-4-discarded.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-4-discarded.png`, { fullPage: true })
 
 	await expect(page.getByText('None', { exact: true }).first()).toBeVisible()
 	await page.getByText('None', { exact: true }).first().click()
@@ -189,17 +163,7 @@ withRobot('basic edit frame', async ({ robotPage }) => {
 	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-5-restored.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-5-restored.png`)
-	}
-
-	if (failedScreenshots.length > 0) {
-		console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-		throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-5-restored.png`, { fullPage: true })
 })
 
 const createDeleteFrameConfig = {
@@ -230,7 +194,6 @@ const createDeleteFrameConfig = {
 withRobot('create and delete frame', async ({ browser }) => {
 	const testPrefix = 'CREATE_DELETE'
 	await applyMachineConfig(viamClient, config.partId, config.machineName, createDeleteFrameConfig)
-	const failedScreenshots = [] as string[]
 	const context = await browser.newContext()
 	const page = await context.newPage()
 
@@ -251,21 +214,13 @@ withRobot('create and delete frame', async ({ browser }) => {
 	})
 
 	await enterBuildMode(page)
-
-	// The folder is collapsed on first render, so its rows need it opened first.
-	await expect(page.getByText('Frameless components')).toBeVisible()
-	await page.getByText('Frameless components').click()
-	await page.getByText('no-frame', { exact: true }).click()
+	await expect(page.getByLabel('Add frames', { exact: true })).toBeVisible()
+	page.getByLabel('Add frames', { exact: true }).click()
 
 	await expect(page.getByRole('button', { name: 'Add frame', exact: true })).toBeVisible()
 	page.getByRole('button', { name: 'Add frame', exact: true }).click()
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-0-added.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-0-added.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-0-added.png`, { fullPage: true })
 
 	await expectHasEdits(page)
 	await page.getByLabel('Save').click()
@@ -276,27 +231,12 @@ withRobot('create and delete frame', async ({ browser }) => {
 	await expect(page.getByText('Delete frame', { exact: true })).toBeVisible()
 	page.getByText('Delete frame', { exact: true }).click()
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-deleted.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-1-deleted.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-1-deleted.png`, { fullPage: true })
 
 	await expectHasEdits(page)
 	await page.getByText('Discard', { exact: true }).click()
 	await expectNoEdits(page)
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-2-discarded.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-2-discarded.png`)
-	}
-
-	if (failedScreenshots.length > 0) {
-		console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-		throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-2-discarded.png`, { fullPage: true })
 })
 
 const fragmentConfig = {
@@ -360,7 +300,6 @@ const fragmentUsingConfig = (fragmentId: string) => {
 
 withRobot('fragment edit frame', async ({ browser }) => {
 	const testPrefix = 'FRAGMENT_EDIT_FRAME'
-	const failedScreenshots = [] as string[]
 	const resp = await orgViamClient.appClient.createFragment(
 		config.orgId,
 		'TEMP_FRAGMENT',
@@ -398,12 +337,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 
 	await expect(page.getByText('frag-base-1', { exact: true })).toBeVisible({ timeout: 15_000 })
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-0-setup.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-0-setup.png`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-0-setup.png`, { fullPage: true })
 
 	await enterBuildMode(page)
 	await page.getByText('frag-base-1', { exact: true }).click()
@@ -423,17 +357,7 @@ withRobot('fragment edit frame', async ({ browser }) => {
 	await page.getByLabel('Save').click()
 	await expectNoEdits(page)
 
-	try {
-		await expect(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
-	} catch (error) {
-		console.warn(error)
-		failedScreenshots.push(`${testPrefix}-1-saved.png`)
-	}
-
-	if (failedScreenshots.length > 0) {
-		console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-		throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-	}
+	await expect.soft(page).toHaveScreenshot(`${testPrefix}-1-saved.png`, { fullPage: true })
 })
 
 withRobot.afterAll(async () => {
