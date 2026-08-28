@@ -9,12 +9,8 @@
 	let { value = $bindable() }: Props = $props()
 </script>
 
-<!--
-	A native input rather than prime's `Input`, whose border is set by classes this
-	flush, borderless strip cannot override from the outside.
--->
 <div
-	class="group bg-light focus-within:bg-medium relative flex shrink-0 items-center gap-1.5 pr-1 pl-2 transition-colors"
+	class="group bg-light focus-within:bg-medium flex shrink-0 items-center gap-1.5 pr-1 pl-2 transition-colors"
 >
 	<Icon
 		name="magnify"

@@ -32,11 +32,19 @@
 
 	const isFiltering = $derived(filter.trim() !== '')
 
+	const selected = useQuery(traits.Selected)
+
+	const selectedValue = $derived(selected.current.map((entity) => `${entity}`))
+	const selectedEntities = $derived(new Set(selected.current))
+
 	const collection = $derived(
 		tree.collection<TreeNodeType>({
 			nodeToValue: (node) => `${node.entity}`,
 			nodeToString: (node) => node.entity.get(traits.Name) ?? '',
-			rootNode: { ...rootNode, children: filterTree(rootNode.children ?? [], filter) },
+			rootNode: {
+				...rootNode,
+				children: filterTree(rootNode.children ?? [], filter, selectedEntities),
+			},
 		})
 	)
 
@@ -45,9 +53,6 @@
 	const folderNameOf = (node: TreeNodeType): string | undefined =>
 		node.folder ? (node.entity.get(traits.Name) ?? undefined) : undefined
 
-	const selected = useQuery(traits.Selected)
-
-	const selectedValue = $derived(selected.current.map((entity) => `${entity}`))
 	const expandedValues = new SvelteSet<string>()
 
 	// A filter is useless behind a collapsed folder, so every branch it leaves
