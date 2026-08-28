@@ -22,6 +22,13 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  E2E_ORG: Viam Viz E2E
+  E2E_LOCATION: e2e-tests
+  # Any e2e machine older than this is from a run that died before teardown.
+  # Longer than the job timeout, so it can never delete a live machine.
+  STALE_MACHINE_AGE_MINUTES: 120
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -106,6 +113,31 @@ jobs:
           path: playwright-report/
           retention-days: 14
           if-no-files-found: warn
+
+      # Same leak as the nightly: a run killed between provisioning and teardown
+      # leaves a cloud machine up indefinitely. Machines are named
+      # `e2e-<user>-<epoch millis>` by robot.setup.ts, so the age is readable
+      # from the name and needs no extra API call. `always()` because the leak
+      # this cleans up comes from the runs that did not finish.
+      - name: Sweep leaked machines
+        if: always() && (inputs.projects == 'robot' || inputs.projects == 'both')
+        run: |
+          # A run killed before the install step has no CLI to sweep with.
+          command -v viam >/dev/null || exit 0
+
+          CUTOFF=$(( $(date +%s) - STALE_MACHINE_AGE_MINUTES * 60 ))
+
+          viam machines list --organization "$E2E_ORG" --location "$E2E_LOCATION" \
+            | grep -oE 'e2e-[a-zA-Z0-9_.-]+-[0-9]{13}' \
+            | sort -u \
+            | while read -r machine; do
+                created_ms=${machine##*-}
+                if [ "$(( created_ms / 1000 ))" -lt "$CUTOFF" ]; then
+                  echo "Deleting leaked machine $machine"
+                  viam machines delete --machine "$machine" \
+                    --organization "$E2E_ORG" --location "$E2E_LOCATION" || true
+                fi
+              done
 
       - name: Notify Slack
         if: steps.baseline-pr.outputs.pr_url != ''

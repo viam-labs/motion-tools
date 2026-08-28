@@ -93,11 +93,31 @@ jobs:
       - name: Smoke the deploy
         run: pnpm playwright test --config playwright.playground.config.ts --project=playground
 
+      # Named apart from the `e2e` job's artifacts because both jobs upload into
+      # the same workflow run and matching names collide.
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-playground
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload traces and diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results-playground
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Notify Slack on a new failure
         if: failure()
         uses: ./.github/actions/notify-e2e-failure
         with:
           scope: playground
-          message: 'The deployed playground failed its smoke test after main@${{ github.event.workflow_run.head_sha || github.sha }}.'
+          message: 'The deployed playground failed its smoke test after main@${{ github.event.workflow_run.head_sha || github.sha }}. Report and traces are attached to the run.'
           slack-token: ${{ secrets.VIZ_E2E_SLACK_BOT_TOKEN }}
           channel: C05D8LPC2TA
