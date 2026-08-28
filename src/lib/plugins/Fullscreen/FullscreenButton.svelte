@@ -27,7 +27,7 @@
 	})
 </script>
 
-<Tooltip placement="left">
+<Tooltip placement="bottom">
 	{#snippet children(tooltipID)}
 		<button
 			class="border-gray-5 text-gray-8 hover:bg-light active:bg-medium block rounded-md border bg-white p-1.5"
