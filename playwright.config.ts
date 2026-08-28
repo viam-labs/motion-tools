@@ -8,6 +8,8 @@ const DRAWING_SPECS = [
 
 const MATRIX_SPECS = [/matrix\/.*\.test\.ts$/] as const
 
+const PLAYGROUND_SPECS = [/playground-smoke\.test\.ts$/] as const
+
 const ROBOT_SPECS = [
 	/arm\.test\.ts$/,
 	/edit-frame\.test\.ts$/,
@@ -15,12 +17,21 @@ const ROBOT_SPECS = [
 	/world-state-store\.test\.ts$/,
 ] as const
 
-const DEV_SERVER_PORT = 5173
+const APP_PORT = 5173
+
+// CI verifies the artifact it would ship, so it serves the static build through
+// the same bun server `make up` uses rather than Vite. Baselines are recorded
+// against `pnpm dev` and hold either way: the two were measured pixel for pixel
+// identical across the drawing and matrix projects. The build itself is a
+// separate CI step, so its cost shows up on its own line.
+const APP_SERVER = process.env.CI
+	? `WS_PORT=3000 STATIC_PORT=${APP_PORT} bun run server/server.ts --production`
+	: 'pnpm dev'
 
 export default defineConfig({
 	webServer: {
-		command: 'pnpm dev',
-		port: DEV_SERVER_PORT,
+		command: APP_SERVER,
+		port: APP_PORT,
 		reuseExistingServer: !process.env.CI,
 		env: {
 			VITE_CONFIGS: '{}',
@@ -30,7 +41,7 @@ export default defineConfig({
 		// Stated rather than left to `webServer.port`, which Playwright only
 		// resolves into the context it creates per test. The matrix project builds
 		// its own worker-scoped context and reads the base URL off the project.
-		baseURL: `http://localhost:${DEV_SERVER_PORT}`,
+		baseURL: `http://localhost:${APP_PORT}`,
 		trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
 	},
 	testDir: 'e2e',
@@ -43,7 +54,14 @@ export default defineConfig({
 	workers: process.env.CI ? 4 : 2,
 	retries: process.env.CI ? 2 : 0,
 	reporter: process.env.CI
-		? [['list'], ['html', { open: 'never' }], ['github']]
+		? [
+				['list'],
+				['html', { open: 'never' }],
+				['github'],
+				// Read by .github/scripts/e2e-failure-fingerprint.js, which decides
+				// whether a failure is new enough to be worth a Slack message.
+				['json', { outputFile: 'test-results/report.json' }],
+			]
 		: [['list'], ['html', { open: 'never' }]],
 	// Pinned because the built-in template injects {-projectName} into every
 	// filename, so naming projects would orphan all committed baselines.
@@ -77,6 +95,13 @@ export default defineConfig({
 			name: 'matrix',
 			testMatch: [...MATRIX_SPECS],
 			fullyParallel: true,
+		},
+		{
+			// Runs against the deployed playground rather than a local build, so it
+			// is selected through playwright.playground.config.ts, which supplies the
+			// deploy's base URL and no webServer.
+			name: 'playground',
+			testMatch: [...PLAYGROUND_SPECS],
 		},
 		{
 			// Provisioning is its own project so a drawing-only run never pays for a

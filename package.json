@@ -104,6 +104,9 @@
 				},
 				"STATIC_PORT": {
 					"external": true
+				},
+				"VITE_CONFIGS": {
+					"external": true
 				}
 			}
 		},
@@ -204,7 +207,7 @@
 			"files": [
 				"e2e/**/*.ts",
 				"playwright.config.ts",
-				"playwright.ci.config.ts",
+				"playwright.playground.config.ts",
 				"tsconfig.e2e.json",
 				"tsconfig.json",
 				"src/lib/buf/**"
