@@ -1,5 +1,15 @@
 # visualization
 
+## 2.2.0
+
+### Minor Changes
+
+- 7ff2d47: Add wireframe and realistic shading modes to the scene settings panel
+
+### Patch Changes
+
+- 9b9175f: Adding a frame to a frameless component now creates a frame with no geometry
+
 ## 2.1.0
 
 ### Minor Changes
