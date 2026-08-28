@@ -10,6 +10,9 @@ const key = Symbol('dashboard-context')
 export interface Settings {
 	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
+	cameraSmoothTime: number
+	cameraDraggingSmoothTime: number
+	enableDollyToCursor: boolean
 	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo' | 'move'
 	refreshRates: {
 		poses: number
@@ -97,6 +100,9 @@ const DEFAULT_REFRESH_RATES: Settings['refreshRates'] = {
 const defaults = (): Settings => ({
 	anthropicKey: '',
 	cameraMode: 'perspective',
+	cameraSmoothTime: 0.05,
+	cameraDraggingSmoothTime: 0.05,
+	enableDollyToCursor: true,
 
 	refreshRates: { ...DEFAULT_REFRESH_RATES },
 
