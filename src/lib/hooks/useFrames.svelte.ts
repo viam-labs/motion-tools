@@ -44,18 +44,23 @@ export const provideFrames = (partID: () => string) => {
 	// In build mode the user authors the scene from the part config, so config
 	// frames win the merge below.
 	const isBuildMode = $derived(environment.current.mode === 'build')
+
+	const isConnected = $derived(connectionStatus.current === MachineConnectionEvent.CONNECTED)
+
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
-		enabled: partID() !== '',
+		// The call needs a live robot client. Naming a part is not enough, and firing
+		// on the name alone answers `not connected yet` for every machine on load.
+		enabled: partID() !== '' && isConnected,
 	}))
 
 	const revision = $derived(machineStatus.current?.config?.revision)
 
 	$effect(() => {
 		if (query.isFetching) {
-			logs.add('Fetching frames...')
+			logs.add('Fetching frames...', 'info', { folder: 'frames' })
 		} else if (query.error) {
-			logs.add(`Frames: ${query.error.message}`, 'error')
+			logs.add(`Frames: ${query.error.message}`, 'error', { folder: 'frames' })
 		}
 	})
 
@@ -114,7 +119,7 @@ export const provideFrames = (partID: () => string) => {
 		// embedder never provided a dial config (e.g. the Viam app's
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
-		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
+		if (isBuildMode || !isConnected) {
 			const mergedFrames = { ...frames }
 
 			for (const [name, frame] of Object.entries(configFrames.current)) {

@@ -115,9 +115,15 @@ export const providePointcloudObjects = (partID: () => string) => {
 			untrack(() => {
 				$effect(() => {
 					if (query.isFetching) {
-						logs.add(`Fetching pointcloud for ${name}...`)
+						logs.add(`Fetching pointcloud for ${name}...`, 'info', {
+							resource: name,
+							folder: 'pointcloud-objects',
+						})
 					} else if (query.error) {
-						logs.add(`Error fetching pointcloud from ${name}: ${query.error.message}`, 'error')
+						logs.add(`Error fetching pointcloud from ${name}: ${query.error.message}`, 'error', {
+							resource: name,
+							folder: 'pointcloud-objects',
+						})
 					}
 				})
 			})
@@ -224,7 +230,10 @@ export const providePointcloudObjects = (partID: () => string) => {
 									return
 								}
 
-								logs.add(error?.reason ?? error?.message ?? 'Failed to parse pointcloud', 'error')
+								logs.add(error?.reason ?? error?.message ?? 'Failed to parse pointcloud', 'error', {
+									resource: name,
+									folder: 'pointcloud-objects',
+								})
 							})
 					}
 

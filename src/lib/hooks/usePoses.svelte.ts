@@ -53,9 +53,11 @@ export const providePoses = (partID: () => string) => {
 
 	const frameEntities = useQuery(traits.FramesAPI)
 
+	const isConnected = $derived(connectionStatus.current === MachineConnectionEvent.CONNECTED)
+
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 	const options = $derived({
-		enabled: partID() !== '' && interval !== RefetchRates.OFF,
+		enabled: partID() !== '' && interval !== RefetchRates.OFF && isConnected,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -147,7 +149,7 @@ export const providePoses = (partID: () => string) => {
 
 	// Kick an initial fetch for every frame once connected.
 	$effect(() => {
-		if (frames.current && connectionStatus.current === MachineConnectionEvent.CONNECTED) {
+		if (frames.current && isConnected) {
 			// Read `entries` inside `untrack` so this fires on the connect edge,
 			// not every time a frame is added — new entries auto-fetch on creation.
 			untrack(() => {
@@ -160,16 +162,22 @@ export const providePoses = (partID: () => string) => {
 	// avoids one log line per frame per tick.
 	$effect(() => {
 		if (interval === RefetchRates.FPS_30 || interval === RefetchRates.FPS_60) {
-			return logs.add(`Fetching poses every ${interval}ms...`)
+			return logs.add(`Fetching poses every ${interval}ms...`, 'info', { folder: 'frames' })
 		}
 
 		for (const { name, query } of entries) {
 			untrack(() => {
 				$effect(() => {
 					if (query.isFetching) {
-						logs.add(`Fetching pose for ${name.current}...`)
+						logs.add(`Fetching pose for ${name.current}...`, 'info', {
+							resource: name.current,
+							folder: 'frames',
+						})
 					} else if (query.error) {
-						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error')
+						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error', {
+							resource: name.current,
+							folder: 'frames',
+						})
 					}
 				})
 			})

@@ -6,9 +6,13 @@ import type { RefreshRateId } from '$lib/hooks/useSettings.svelte'
 
 import { relations, traits } from '$lib/ecs'
 
+import type { TreeFolderId } from './treeFolders'
+
 import { treeFolders } from './treeFolders'
 
 export interface TreeFolderRow {
+	/** See `TreeFolder.id`. What a log line names when it is about this folder. */
+	id: TreeFolderId
 	/** Starts closed. See `TreeFolder.collapsed`. */
 	collapsed?: boolean
 	/** Poll that fills the folder. See `TreeFolder.refreshRate`. */
@@ -137,11 +141,11 @@ export const buildTree = (world: World, folderEntities: Entity[]): Tree => {
 
 		roots.sort(compareByName)
 
-		const { collapsed, refreshRate, sceneless } = treeFolders[index]
+		const { id, collapsed, refreshRate, sceneless } = treeFolders[index]
 
 		nodes.push({
 			entity: folder,
-			folder: { collapsed, refreshRate, itemCount: folderCounts[index] },
+			folder: { id, collapsed, refreshRate, itemCount: folderCounts[index] },
 			children: roots.map((entity) => {
 				parents.set(`${entity}`, `${folder}`)
 
