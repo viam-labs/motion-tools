@@ -26,7 +26,8 @@ pnpm lint:client   # golangci-lint for client/
 pnpm test          # vitest unit tests
 pnpm test:draw     # Go tests for draw/
 pnpm test:client   # Go tests for client/
-pnpm test:e2e      # Playwright E2E
+pnpm e2e           # Playwright drawing suite
+pnpm e2e:robot     # Playwright robot suite (provisions a cloud machine)
 ```
 
 ## Generated code — never hand-edit

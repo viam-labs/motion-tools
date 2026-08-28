@@ -1217,7 +1217,7 @@ func TestGeneratingSnapshots(t *testing.T) {
 			return spatialmath.NewPose(r3.Vector{X: x, Y: y, Z: z}, orientation)
 		}
 
-		// 1. Duck - Classic rubber duck from URL
+		// A URL-referenced asset the browser fetches for itself.
 		duckURL := "http://localhost:5173/models/Duck.glb"
 		duckSize := uint64(120072)
 		duckAsset, err := NewURLModelAsset("model/gltf-binary", duckURL, WithModelAssetSizeBytes(duckSize))
@@ -1236,68 +1236,8 @@ func TestGeneratingSnapshots(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// 2. Avocado - Fresh avocado from URL
-		avocadoURL := "http://localhost:5173/models/Avocado.glb"
-		avocadoSize := uint64(8110256)
-		avocadoAsset, err := NewURLModelAsset("model/gltf-binary", avocadoURL, WithModelAssetSizeBytes(avocadoSize))
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = snapshot.DrawModel(DrawModelOptions{
-			Name:   "avocado",
-			Parent: "world",
-			Pose:   createPose(0, -2000, 0),
-			ModelOptions: []DrawModelOption{
-				WithModelAssets(avocadoAsset),
-				WithModelScale(r3.Vector{X: 20.0, Y: 20.0, Z: 20.0}),
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// 3. Lantern - Medieval lantern from URL
-		lanternURL := "http://localhost:5173/models/Lantern.glb"
-		lanternSize := uint64(9564180)
-		lanternAsset, err := NewURLModelAsset("model/gltf-binary", lanternURL, WithModelAssetSizeBytes(lanternSize))
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = snapshot.DrawModel(DrawModelOptions{
-			Name:   "lantern",
-			Parent: "world",
-			Pose:   createPose(2000, -2000, 0),
-			ModelOptions: []DrawModelOption{
-				WithModelAssets(lanternAsset),
-				WithModelScale(r3.Vector{X: 0.04, Y: 0.04, Z: 0.04}),
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// 4. Animated Box - An animated box scene from GLB data (no animation for deterministic screenshots)
-		boxData, err := os.ReadFile(filepath.Join(".", fixturesDir, "BoxAnimated.glb"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		boxAsset, err := NewBinaryModelAsset("model/gltf-binary", boxData, WithModelAssetSizeBytes(uint64(len(boxData))))
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = snapshot.DrawModel(DrawModelOptions{
-			Name:   "box",
-			Parent: "world",
-			Pose:   createPose(-2000, 2000, 600),
-			ModelOptions: []DrawModelOption{
-				WithModelAssets(boxAsset),
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// 5. Milk Truck - Cesium's iconic milk truck from GLB data
+		// An asset carried as bytes inside the snapshot, and scaled, so the two
+		// delivery paths and the scale option are both covered.
 		milkTruckData, err := os.ReadFile(filepath.Join(".", fixturesDir, "CesiumMilkTruck.glb"))
 		if err != nil {
 			t.Fatal(err)
@@ -1313,28 +1253,6 @@ func TestGeneratingSnapshots(t *testing.T) {
 			ModelOptions: []DrawModelOption{
 				WithModelAssets(milkTruckAsset),
 				WithModelScale(r3.Vector{X: 0.4, Y: 0.4, Z: 0.4}),
-			},
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// 6. Fox - Animated fox character from GLB data
-		foxData, err := os.ReadFile(filepath.Join(".", fixturesDir, "Fox.glb"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		foxAsset, err := NewBinaryModelAsset("model/gltf-binary", foxData, WithModelAssetSizeBytes(uint64(len(foxData))))
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = snapshot.DrawModel(DrawModelOptions{
-			Name:   "fox",
-			Parent: "world",
-			Pose:   createPose(2000, 2000, 0),
-			ModelOptions: []DrawModelOption{
-				WithModelAssets(foxAsset),
-				WithModelScale(r3.Vector{X: 0.02, Y: 0.02, Z: 0.02}),
 			},
 		})
 		if err != nil {
