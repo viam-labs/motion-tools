@@ -21,7 +21,6 @@ cylinders and open tubes get a variant each.
 		FrontSide,
 		LineBasicMaterial,
 		Matrix4,
-		MeshToonMaterial,
 		type Side,
 		Sphere,
 		Vector3,
@@ -30,12 +29,16 @@ cylinders and open tubes get a variant each.
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { createSurfaceMaterial } from '$lib/three/surfaceShading'
 
 	import { composeCylinderMatrix } from './composeCylinderMatrix'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { useSurfaceMaterials } from './hooks/useSurfaceMaterials.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
+	const settings = useSettings()
 
 	/** Matches the radial resolution `Capsules.svelte` gives its cylindrical body. */
 	const RADIAL_SEGMENTS = 16
@@ -63,14 +66,20 @@ cylinders and open tubes get a variant each.
 	 * An open tube has no cap to hide its far wall, so back-face culling would
 	 * leave it looking like a half pipe. `side` is `DoubleSide` for that variant.
 	 */
+	const faceParameters = (side: Side) => ({ side, transparent: true })
+
 	const createFaces = (geometry: BufferGeometry, side: Side) => {
-		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true, side }), {
-			renderer,
-		})
+		const mesh = new InstancedMesh2(
+			geometry,
+			createSurfaceMaterial(settings.current.renderMode, faceParameters(side)),
+			{ renderer }
+		)
 		mesh.sortObjects = true
 		mesh.customSort = createRadixSort(mesh)
 		mesh.frustumCulled = false
 		mesh.boundingSphere = new Sphere(new Vector3(), Infinity)
+		mesh.castShadow = true
+		mesh.receiveShadow = true
 		return mesh
 	}
 
@@ -98,8 +107,8 @@ cylinders and open tubes get a variant each.
 	 * `raycast={() => null}`), so a hit's `instanceId` is always a faces id.
 	 */
 	interface Variant {
-		faces: InstancedMesh2
-		edges: InstancedMesh2
+		faces: ReturnType<typeof createFaces>
+		edges: ReturnType<typeof createEdges>
 		entityByFaceId: Map<number, Entity>
 	}
 
@@ -116,6 +125,11 @@ cylinders and open tubes get a variant each.
 	const openVariant = createVariant(false)
 
 	const variantFor = (capped: boolean): Variant => (capped ? cappedVariant : openVariant)
+
+	useSurfaceMaterials([
+		{ mesh: cappedVariant.faces, parameters: faceParameters(FrontSide) },
+		{ mesh: openVariant.faces, parameters: faceParameters(DoubleSide) },
+	])
 
 	/** `capped` is stored alongside the ids because it names which variant holds them. */
 	interface InstanceIds {

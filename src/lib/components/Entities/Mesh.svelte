@@ -3,12 +3,14 @@
 
 	import { T, useThrelte } from '@threlte/core'
 	import { type Snippet } from 'svelte'
-	import { Color, DoubleSide, FrontSide, Group, Mesh, MeshToonMaterial } from 'three'
+	import { Color, DoubleSide, FrontSide, Group, Mesh } from 'three'
 
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useTag, useTrait } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { Pose } from '$lib/math'
+	import { createSurfaceMaterial } from '$lib/three/surfaceShading'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
 
@@ -20,6 +22,7 @@
 	const { entity, children }: Props = $props()
 
 	const { invalidate } = useThrelte()
+	const settings = useSettings()
 
 	const worldMatrix = useTrait(() => entity, traits.WorldMatrix)
 	const center = useTrait(() => entity, traits.Center)
@@ -71,7 +74,9 @@
 		invalidate()
 	})
 
-	const material = new MeshToonMaterial()
+	// Threlte swaps the attached material when `is` changes and disposes every one
+	// it held once this component unmounts, so a mode change needs no cleanup here.
+	const material = $derived(createSurfaceMaterial(settings.current.renderMode, {}))
 
 	$effect(() => {
 		const isTransparent = currentOpacity < 1
@@ -104,6 +109,8 @@
 		name={entity}
 		userData.name={name}
 		renderOrder={renderOrder.current}
+		castShadow
+		receiveShadow
 		{...events}
 	>
 		{#if bufferGeometry.current}

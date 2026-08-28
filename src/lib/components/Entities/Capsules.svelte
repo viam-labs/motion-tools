@@ -30,7 +30,6 @@ pick the body or head id table and map the `instanceId` back to the entity.
 		EdgesGeometry,
 		LineBasicMaterial,
 		Matrix4,
-		MeshToonMaterial,
 		Sphere,
 		SphereGeometry,
 		Vector3,
@@ -39,12 +38,16 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { createSurfaceMaterial } from '$lib/three/surfaceShading'
 
 	import { composeCapsuleMatrices } from './composeCapsuleMatrices'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { useSurfaceMaterials } from './hooks/useSurfaceMaterials.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
+	const settings = useSettings()
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
@@ -68,14 +71,20 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	 * instance, and its once-computed object sphere would otherwise gate an
 	 * always-animating scene shut.
 	 */
+	const faceParameters = { transparent: true }
+
 	const createFaces = (geometry: BufferGeometry) => {
-		const mesh = new InstancedMesh2(geometry, new MeshToonMaterial({ transparent: true }), {
-			renderer,
-		})
+		const mesh = new InstancedMesh2(
+			geometry,
+			createSurfaceMaterial(settings.current.renderMode, faceParameters),
+			{ renderer }
+		)
 		mesh.sortObjects = true
 		mesh.customSort = createRadixSort(mesh)
 		mesh.frustumCulled = false
 		mesh.boundingSphere = new Sphere(new Vector3(), Infinity)
+		mesh.castShadow = true
+		mesh.receiveShadow = true
 		return mesh
 	}
 
@@ -100,6 +109,11 @@ pick the body or head id table and map the `instanceId` back to the entity.
 	const instancedCapsuleBodyEdges = createEdges(unitCylinderEdges)
 	const instancedCapsuleHeads = createFaces(unitHemisphere)
 	const instancedCapsuleHeadEdges = createEdges(unitHemisphereEdges)
+
+	useSurfaceMaterials([
+		{ mesh: instancedCapsuleBodies, parameters: faceParameters },
+		{ mesh: instancedCapsuleHeads, parameters: faceParameters },
+	])
 
 	/**
 	 * Faces and edges are separate meshes with independent free lists, and the

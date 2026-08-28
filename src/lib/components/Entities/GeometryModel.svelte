@@ -15,6 +15,7 @@ Renders a Viam Geometry object
 	import { Pose } from '$lib/math'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { setModelWireframe } from './setModelWireframe'
 
 	interface Props {
 		entity: Entity
@@ -57,6 +58,12 @@ Renders a Viam Geometry object
 			tempPose.copy(center.current).toObject3D(model)
 			invalidate()
 		}
+	})
+
+	$effect(() => {
+		if (!model) return
+		setModelWireframe(model, settings.current.renderMode === 'wireframe')
+		invalidate()
 	})
 
 	const events = useEntityEvents(() => entity)
