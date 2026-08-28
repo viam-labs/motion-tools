@@ -1,28 +1,29 @@
 import { test as base, expect, type Page } from '@playwright/test'
-import {
-	createViamClient,
-	type JsonValue,
-	Struct,
-	type ViamClient,
-	type ViamClientOptions,
-} from '@viamrobotics/sdk'
+import { type JsonValue, Struct, type ViamClient } from '@viamrobotics/sdk'
 
+import { APP_ADDRESS, connectAppClient } from '../helpers/appClient'
+import { loadE2EConfig } from '../helpers/e2e-config'
+import { machineStatePath, readMachineState } from '../helpers/machineState'
 import { screenshotCanvas } from '../helpers/screenshot'
 
 const getE2EConfig = () => {
-	const host = process.env.VIAM_E2E_HOST
-	const partId = process.env.VIAM_E2E_PART_ID
-	const machineName = process.env.VIAM_E2E_MACHINE_NAME
-	const robotId = process.env.VIAM_E2E_ROBOT_ID
-	const apiKeyId = process.env.VIAM_E2E_API_KEY_ID
-	const apiKey = process.env.VIAM_E2E_API_KEY
-	const orgId = process.env.VIAM_E2E_ORG_ID
-	const signalingAddress = process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443'
+	const state = readMachineState()
+	const {
+		host,
+		partId,
+		machineName,
+		robotId,
+		apiKeyId,
+		apiKey,
+		orgId,
+		signalingAddress = APP_ADDRESS,
+	} = state ?? {}
 
 	if (!host || !partId || !machineName || !robotId || !apiKeyId || !apiKey || !orgId) {
 		throw new Error(
-			'Missing E2E environment variables. The global setup may not have run.\n' +
-				'Make sure playwright.config.ts has globalSetup configured.'
+			`Incomplete machine state at ${machineStatePath}.\n` +
+				'The robot-setup project writes it. Run the robot specs through the robot\n' +
+				'project (pnpm e2e:robot) so that dependency fires.'
 		)
 	}
 
@@ -44,10 +45,8 @@ export interface RobotTestPage {
 	page: Page
 	config: E2ETestConfig
 	viamClient: ViamClient
-	failedScreenshots: string[]
 	takeScreenshot: (testPrefix: string) => Promise<void>
 	screenshotCanvas: (testPrefix: string) => Promise<void>
-	assertScreenshots: () => void
 }
 
 export const injectMachineConfig = async (page: Page, config: E2ETestConfig) => {
@@ -117,15 +116,7 @@ export const activateConnectionConfigByHost = async (page: Page, host: string) =
 
 export const connectViamClient = async (): Promise<ViamClient> => {
 	const config = getE2EConfig()
-	const opts: ViamClientOptions = {
-		serviceHost: config.signalingAddress,
-		credentials: {
-			type: 'api-key',
-			authEntity: config.apiKeyId,
-			payload: config.apiKey,
-		},
-	}
-	return createViamClient(opts)
+	return connectAppClient(config.apiKeyId, config.apiKey, config.signalingAddress)
 }
 
 interface ApplyMachineConfigOptions {
@@ -150,27 +141,10 @@ export const applyMachineConfig = async (
 	await new Promise((resolve) => setTimeout(resolve, settleMs))
 }
 
+/** Org-scoped credentials from `.env.e2e`, for operations a machine key cannot do (e.g. fragment management). */
 export const connectOrgViamClient = async (): Promise<ViamClient> => {
-	const orgApiKeyId = process.env.VIAM_E2E_ORG_API_KEY_ID
-	const orgApiKey = process.env.VIAM_E2E_ORG_API_KEY
-	const signalingAddress = process.env.VIAM_E2E_SIGNALING_ADDRESS ?? 'https://app.viam.com:443'
-
-	if (!orgApiKeyId || !orgApiKey) {
-		throw new Error(
-			'Missing VIAM_E2E_ORG_API_KEY_ID / VIAM_E2E_ORG_API_KEY env vars.\n' +
-				'These are required for org-level operations like fragment management.'
-		)
-	}
-
-	const opts: ViamClientOptions = {
-		serviceHost: signalingAddress,
-		credentials: {
-			type: 'api-key',
-			authEntity: orgApiKeyId,
-			payload: orgApiKey,
-		},
-	}
-	return createViamClient(opts)
+	const config = loadE2EConfig()
+	return connectAppClient(config.apiKeyId, config.apiKey)
 }
 
 export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
@@ -178,7 +152,6 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 		const config = getE2EConfig()
 		const context = await browser.newContext()
 		const page = await context.newPage()
-		const failedScreenshots: string[] = []
 
 		page.on('console', (message) => {
 			console.log(`[${message.type()}] ${message.text()}`)
@@ -220,37 +193,17 @@ export const withRobot = base.extend<{ robotPage: RobotTestPage }>({
 
 		const client = await connectViamClient()
 
-		const takeScreenshot = async (testPrefix: string) => {
-			try {
-				await expect(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
-			} catch (error) {
-				console.warn(error)
-				failedScreenshots.push(`${testPrefix}.png`)
-			}
-		}
+		const takeScreenshot = (testPrefix: string) =>
+			expect.soft(page).toHaveScreenshot(`${testPrefix}.png`, { fullPage: true })
 
-		const takeCanvasScreenshot = async (testPrefix: string) => {
-			const failure = await screenshotCanvas(page, testPrefix)
-			if (failure) {
-				failedScreenshots.push(failure)
-			}
-		}
-
-		const assertScreenshots = () => {
-			if (failedScreenshots.length > 0) {
-				console.log(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-				throw new Error(`Failed screenshots: ${failedScreenshots.join(', ')}`)
-			}
-		}
+		const takeCanvasScreenshot = (testPrefix: string) => screenshotCanvas(page, testPrefix)
 
 		await use({
 			page,
 			config,
 			viamClient: client,
-			failedScreenshots,
 			takeScreenshot,
 			screenshotCanvas: takeCanvasScreenshot,
-			assertScreenshots,
 		})
 
 		await context.close()

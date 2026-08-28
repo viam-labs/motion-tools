@@ -18,6 +18,7 @@
 		"prepack": "wireit",
 		"preview": "vite preview",
 		"check": "wireit",
+		"check:e2e": "wireit",
 		"check:watch": "svelte-kit sync && pnpm build:workers && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write . && ./etc/eslint-progress.sh . --fix --concurrency auto",
 		"lint": "wireit",
@@ -32,9 +33,10 @@
 		"test:coverage": "wireit",
 		"test:client": "wireit",
 		"test:draw": "wireit",
-		"test:e2e": "./e2e/setup.sh && playwright test",
-		"test:e2e-ui": "./e2e/setup.sh && playwright test --ui",
-		"test:e2e-ci": "./e2e/setup.sh && playwright test e2e/edit-frame.test.ts e2e/file-drop.test.ts --config playwright.ci.config.ts",
+		"e2e": "pnpm go-build && playwright test --project=drawing",
+		"e2e:ui": "pnpm go-build && playwright test --project=drawing --ui",
+		"e2e:robot": "./e2e/setup.sh && playwright test --project=robot",
+		"e2e:all": "pnpm e2e && pnpm e2e:robot",
 		"vet": "wireit",
 		"vet:draw": "wireit",
 		"vet:client": "wireit",
@@ -185,7 +187,27 @@
 				"proto:gen-ts",
 				"svelte-sync",
 				"build:workers",
-				"vet"
+				"vet",
+				"check:e2e"
+			],
+			"packageLocks": [
+				"pnpm-lock.yaml"
+			]
+		},
+		"check:e2e": {
+			"command": "tsc -p tsconfig.e2e.json",
+			"files": [
+				"e2e/**/*.ts",
+				"playwright.config.ts",
+				"playwright.ci.config.ts",
+				"tsconfig.e2e.json",
+				"tsconfig.json",
+				"src/lib/buf/**"
+			],
+			"output": [],
+			"dependencies": [
+				"proto:gen-ts",
+				"svelte-sync"
 			],
 			"packageLocks": [
 				"pnpm-lock.yaml"
