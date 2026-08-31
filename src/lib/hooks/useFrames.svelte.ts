@@ -1,4 +1,4 @@
-import { MachineConnectionEvent } from '@viamrobotics/sdk'
+import { MachineConnectionEvent, type robotApi } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -22,8 +22,13 @@ import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
-interface FramesContext {
+export interface FramesContext {
 	current: Transform[]
+	/**
+	 * The raw `frameSystemConfig` reply, the only place `kinematics` survives. A disabled query keeps
+	 * its data, so non-empty does not mean live: `current` may have fallen back to config frames.
+	 */
+	parts: robotApi.FrameSystemConfig[]
 	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
 	readonly kinematicsComponents: ReadonlySet<string>
 }
@@ -290,11 +295,15 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const parts = $derived(query.data ?? [])
 	const kinematicsComponents = $derived(new Set(Object.keys(kinematicsByComponent)))
 
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get parts() {
+			return parts
 		},
 		get kinematicsComponents() {
 			return kinematicsComponents

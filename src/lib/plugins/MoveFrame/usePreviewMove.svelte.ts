@@ -2,12 +2,24 @@ import type { MotionClient } from '@viamrobotics/sdk'
 
 import { untrack } from 'svelte'
 
+import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
+import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+
+import { useWorld } from '$lib/ecs'
+import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
+import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
 
 import type { MoveOptions } from './parseMoveOptions'
 import type { TrajectoryStep } from './planDoCommand'
 
 import { isAlreadyAtGoal, parsePlanResult, planCommand } from './planDoCommand'
+import {
+	clearPreviewGhosts,
+	createPreviewGhosts,
+	type PreviewGhosts,
+	spawnPreviewGhosts,
+} from './previewGhosts'
 
 /**
  * `already-at-goal` is not `error`: RDK answered, and the trajectory it returned is the start
@@ -16,6 +28,7 @@ import { isAlreadyAtGoal, parsePlanResult, planCommand } from './planDoCommand'
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
 
 export interface PreviewMoveOptions {
+	frames: FramesContext
 	client: () => MotionClient | undefined
 	/** The motion service's resource name; the request names it, and only builtin answers. */
 	service: () => string | undefined
@@ -55,6 +68,7 @@ export interface PreviewMove {
  * panel.
  */
 export const usePreviewMove = ({
+	frames,
 	client,
 	service,
 	frameName,
@@ -62,10 +76,16 @@ export const usePreviewMove = ({
 	moveOptions,
 	invalidateOn,
 }: PreviewMoveOptions): PreviewMove => {
+	const world = useWorld()
+
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
 	// Raw: replaced wholesale rather than mutated, so the deep proxy would go unused.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
+
+	// Outside `$state`: koota entities and Three.js matrices want no deep proxy. `const` because
+	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
+	const ghosts: PreviewGhosts = createPreviewGhosts()
 
 	/**
 	 * Which request the state on screen belongs to. Bumped by every reset, so a plan that resolves
@@ -85,6 +105,7 @@ export const usePreviewMove = ({
 		inFlight?.abort()
 		inFlight = undefined
 
+		clearPreviewGhosts(ghosts)
 		trajectory = []
 	}
 
@@ -123,6 +144,9 @@ export const usePreviewMove = ({
 
 		try {
 			const { worldState, constraints } = moveOptions()
+			// Read with the rest of the inputs, not after the await: `useFrames` refetches on every
+			// config revision, and kinematics the plan was not computed against misplace every twin.
+			const parts = frames.parts
 			const response = await motion.doCommand(
 				planCommand({
 					service: serviceName,
@@ -141,6 +165,26 @@ export const usePreviewMove = ({
 			const result = parsePlanResult(response)
 			if (isAlreadyAtGoal(result.trajectory)) {
 				settle('already-at-goal', `"${frameName()}" is already at the target.`)
+				return
+			}
+
+			// Built from `frameSystemConfig` rather than a plan dump: the `plan` reply carries joint
+			// values only, and this is the only path a browser has to the kinematics behind them.
+			const descriptors: FrameDescriptor[] = buildFrameDescriptors(frameSystemToPlanFrames(parts))
+			if (descriptors.length === 0) {
+				fail('No frame system available to draw the plan against.')
+				return
+			}
+
+			// The trajectory decides which frames earn a twin, not just where they go: RDK returns a
+			// column for every component, so the ones it holds still have to be told apart from the ones
+			// it moves.
+			spawnPreviewGhosts(world, descriptors, result.trajectory, ghosts)
+
+			// Joints and geometry-less mounts make up most of a chain, so counting entities here would
+			// arm the panel over a preview with nothing on screen.
+			if (ghosts.drawn === 0) {
+				fail('No geometry in the frame system to draw this plan with.')
 				return
 			}
 
@@ -168,6 +212,7 @@ export const usePreviewMove = ({
 	$effect(() => () => {
 		generation += 1
 		inFlight?.abort()
+		clearPreviewGhosts(ghosts)
 	})
 
 	return {
