@@ -3,15 +3,33 @@ import { render, screen } from '@testing-library/svelte'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
+
 import type { PreviewMove, PreviewStatus } from '../usePreviewMove.svelte'
 
 import MovePreview from '../MovePreview.svelte'
+
+const player = (overrides: Partial<TrajectoryPlayer> = {}): TrajectoryPlayer => ({
+	currentStep: 0,
+	totalSteps: 0,
+	lastStep: 0,
+	isPlaying: false,
+	atEnd: true,
+	play: vi.fn(),
+	pause: vi.fn(),
+	toggle: vi.fn(),
+	seek: vi.fn(),
+	stepBy: vi.fn(),
+	reset: vi.fn(),
+	...overrides,
+})
 
 const preview = (overrides: Partial<PreviewMove> = {}): PreviewMove => ({
 	status: 'idle',
 	message: undefined,
 	trajectory: [],
 	plannedSteps: 0,
+	player: player(),
 	requestPreview: vi.fn(),
 	clear: vi.fn(),
 	...overrides,
@@ -19,11 +37,12 @@ const preview = (overrides: Partial<PreviewMove> = {}): PreviewMove => ({
 
 describe('MovePreview', () => {
 	it('offers to plan a preview before one exists, with neither live region on screen', () => {
-		render(MovePreview, { props: { preview: preview() } })
+		render(MovePreview, { props: { preview: preview(), frameName: 'arm' } })
 
 		expect(screen.getByRole('button', { name: /preview move/i })).toBeInTheDocument()
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 		expect(screen.queryByRole('status')).not.toBeInTheDocument()
+		expect(screen.queryByRole('slider')).not.toBeInTheDocument()
 	})
 
 	it.each([
@@ -33,7 +52,7 @@ describe('MovePreview', () => {
 	] satisfies [PreviewStatus, string, 'alert' | 'status'][])(
 		'reports a %s message through role=%s',
 		(status, message, role) => {
-			render(MovePreview, { props: { preview: preview({ status, message }) } })
+			render(MovePreview, { props: { preview: preview({ status, message }), frameName: 'arm' } })
 
 			expect(screen.getByRole(role)).toHaveTextContent(message)
 		}
@@ -41,15 +60,18 @@ describe('MovePreview', () => {
 
 	it('offers to re-plan once a preview is ready, and says how long the plan is', () => {
 		render(MovePreview, {
-			props: { preview: preview({ status: 'ready', plannedSteps: 12 }) },
+			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
 		})
 
 		expect(screen.getByRole('button', { name: /re-plan preview/i })).toBeInTheDocument()
 		expect(screen.getByRole('status')).toHaveTextContent('Planned 12 waypoints.')
+		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
 	})
 
 	it('carries the approximation caveat once a preview is ready', () => {
-		render(MovePreview, { props: { preview: preview({ status: 'ready', plannedSteps: 12 }) } })
+		render(MovePreview, {
+			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
+		})
 
 		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
 		expect(
@@ -59,7 +81,7 @@ describe('MovePreview', () => {
 
 	it('writes a single waypoint without a plural', () => {
 		render(MovePreview, {
-			props: { preview: preview({ status: 'ready', plannedSteps: 1 }) },
+			props: { preview: preview({ status: 'ready', plannedSteps: 1 }), frameName: 'arm' },
 		})
 
 		expect(screen.getByRole('status')).toHaveTextContent('Planned 1 waypoint.')
@@ -67,7 +89,7 @@ describe('MovePreview', () => {
 
 	it('plans when the panel has a goal staged', async () => {
 		const requestPreview = vi.fn()
-		render(MovePreview, { props: { preview: preview({ requestPreview }) } })
+		render(MovePreview, { props: { preview: preview({ requestPreview }), frameName: 'arm' } })
 
 		await userEvent.click(screen.getByRole('button', { name: /preview move/i }))
 
@@ -76,7 +98,9 @@ describe('MovePreview', () => {
 
 	it('does not plan again while a request is already open', async () => {
 		const requestPreview = vi.fn()
-		render(MovePreview, { props: { preview: preview({ status: 'planning', requestPreview }) } })
+		render(MovePreview, {
+			props: { preview: preview({ status: 'planning', requestPreview }), frameName: 'arm' },
+		})
 
 		await userEvent.click(screen.getByRole('button', { name: /preview move/i }))
 
@@ -85,10 +109,23 @@ describe('MovePreview', () => {
 
 	it('does not plan when the panel has nothing to plan', async () => {
 		const requestPreview = vi.fn()
-		render(MovePreview, { props: { preview: preview({ requestPreview }), disabled: true } })
+		render(MovePreview, {
+			props: { preview: preview({ requestPreview }), frameName: 'arm', disabled: true },
+		})
 
 		await userEvent.click(screen.getByRole('button', { name: /preview move/i }))
 
 		expect(requestPreview).not.toHaveBeenCalled()
+	})
+
+	it('offers a scrubber labelled for the frame it previews', () => {
+		render(MovePreview, {
+			props: {
+				preview: preview({ status: 'ready', player: player({ totalSteps: 2, lastStep: 1 }) }),
+				frameName: 'arm',
+			},
+		})
+
+		expect(screen.getByRole('slider', { name: 'arm preview step' })).toBeInTheDocument()
 	})
 })

@@ -3,7 +3,7 @@ import type { Entity } from 'koota'
 
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
-import { useResourceNames } from '@viamrobotics/svelte-sdk'
+import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -75,6 +75,11 @@ describe('MoveControls', () => {
 		moved.matrix = undefined
 
 		vi.mocked(usePartID).mockReturnValue({ current: partID } as never)
+		// A service name comes from cache, but commanding needs a connected client. The panel gates on
+		// the client, so the default here is connected and the disconnected case is its own test.
+		vi.mocked(createResourceClient).mockReturnValue({
+			current: { doCommand: vi.fn() },
+		} as never)
 	})
 
 	it('selects the built-in motion service by default', () => {
@@ -105,7 +110,36 @@ describe('MoveControls', () => {
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
 		expect(screen.getByRole('button', { name: /preview move/i })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: /execute move/i })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: 'Move' })).toBeInTheDocument()
+	})
+
+	it('mounts the plan action disabled rather than hiding it until a plan exists', () => {
+		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
+
+		expect(screen.getByRole('button', { name: 'Execute plan' })).toHaveAttribute(
+			'aria-disabled',
+			'true'
+		)
+	})
+
+	it('holds the actions back until a client is connected, not merely named', async () => {
+		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(createResourceClient).mockReturnValue({ current: undefined } as never)
+		moved.matrix = new Pose(100, -250, 40).toMatrix4()
+
+		render(MoveControls, { props: { entity, frameName: 'arm' } })
+
+		const position = await screen.findByLabelText('move target position')
+		const x = position.querySelector('input')
+		if (!x) throw new Error('expected a position field')
+		await fireEvent.change(x, { target: { value: '500' } })
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /reset/i })).not.toHaveAttribute('aria-disabled')
+		})
+		expect(screen.getByRole('button', { name: 'Move' })).toHaveAttribute('aria-disabled', 'true')
 	})
 
 	it('waits for the frame pose before offering the pose inputs', () => {
@@ -149,9 +183,7 @@ describe('MoveControls', () => {
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /reset/i })).not.toHaveAttribute('aria-disabled')
 		})
-		expect(screen.getByRole('button', { name: /execute move/i })).not.toHaveAttribute(
-			'aria-disabled'
-		)
+		expect(screen.getByRole('button', { name: 'Move' })).not.toHaveAttribute('aria-disabled')
 		// 400 mm of travel along x, no rotation.
 		expect(screen.getByText(/400\.0 mm · 0\.0°/)).toBeInTheDocument()
 	})

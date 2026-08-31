@@ -30,6 +30,7 @@
 
 	import Collisions from './collisions/Collisions.svelte'
 	import { defaultMotionService, motionServiceNames } from './moveControls'
+	import { moveExecutionOwner } from './moveExecutionOwner.svelte'
 	import MoveGizmo from './MoveGizmo.svelte'
 	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
@@ -38,6 +39,7 @@
 	import MoveTargetGhost from './MoveTargetGhost.svelte'
 	import { fromDestinationPose, moveDelta, toDestinationPose } from './moveTargetPose'
 	import { parseMoveOptions } from './parseMoveOptions'
+	import { executeCommand } from './planDoCommand'
 	import { useMovedFrameMatrix } from './useMovedFrameMatrix.svelte'
 	import { useMoveGhosts } from './useMoveGhosts.svelte'
 	import { usePreviewMove } from './usePreviewMove.svelte'
@@ -81,7 +83,19 @@
 		new PersistedState(`motion-tools:move-constraints:${partID.current}:${frameName}`, '')
 	)
 
-	let executing = $state(false)
+	/** This panel's own move is running, so it shows progress rather than disabling outright. */
+	const executing = $derived(moveExecutionOwner.movingFrame === frameName)
+
+	/** Another panel is already driving the machine; see `moveExecutionOwner` for why that matters. */
+	const otherPanelMoving = $derived(
+		moveExecutionOwner.movingFrame !== undefined && moveExecutionOwner.movingFrame !== frameName
+	)
+
+	/**
+	 * A resource *name* is not a client: names come from cache, while `createResourceClient` yields
+	 * `undefined` until the connection is `CONNECTED`, so `service` can be set when `motion` is not.
+	 */
+	const canCommand = $derived(motion.current !== undefined && service !== undefined)
 
 	/**
 	 * The staged goal in world space, or `undefined` while the gizmo still tracks
@@ -211,15 +225,46 @@
 		selectedService = event.detail.value as string
 	}
 
+	/**
+	 * Runs the trajectory the preview drew, exactly as drawn. `execute` does not replan, which is
+	 * the point: the preview is what is being approved.
+	 */
+	const executePreviewedMove = async () => {
+		const client = motion.current
+		if (!client || preview.status !== 'ready') return
+		if (!moveExecutionOwner.claim(frameName)) return
+
+		try {
+			// `execute` answers `{execute: true}` or errors; there is no partial-success reply to read.
+			await client.doCommand(executeCommand(preview.trajectory))
+			toast({
+				message: `Moved "${frameName}" along the previewed plan.`,
+				variant: ToastVariant.Success,
+			})
+			resetTarget()
+		} catch (error) {
+			toast({
+				message:
+					error instanceof Error ? error.message : `Failed to execute the plan for "${frameName}".`,
+				variant: ToastVariant.Danger,
+			})
+			// A failed `execute` is not a move that never happened: RDK batches the waypoints to the
+			// component, which can stop anywhere along them, so the plan no longer starts where the
+			// machine is.
+			preview.clear()
+		} finally {
+			moveExecutionOwner.release(frameName)
+		}
+	}
+
 	const executeMove = async () => {
 		const client = motion.current
 		if (!client || !targetPose || !service || !staged) return
+		if (!moveExecutionOwner.claim(frameName)) return
 
 		// Clearing before rather than after also cancels a plan still in flight, which would otherwise
 		// land and describe a configuration the machine has already left.
 		preview.clear()
-
-		executing = true
 		try {
 			const { worldState, constraints } = parseMoveOptions(
 				worldStateJson.current,
@@ -244,7 +289,7 @@
 				variant: ToastVariant.Danger,
 			})
 		} finally {
-			executing = false
+			moveExecutionOwner.release(frameName)
 		}
 	}
 </script>
@@ -334,17 +379,39 @@
 
 	<MovePreview
 		{preview}
-		disabled={!staged || executing || !service}
+		{frameName}
+		disabled={!staged || executing || otherPanelMoving || !canCommand}
 	/>
 
-	<div class="flex items-center gap-2">
+	<div class="flex flex-wrap items-center gap-2">
+		<!--
+			Mounted even with no plan, disabled, rather than appearing when one arrives. A button that
+			materialises under the cursor moves its neighbours, and a keyboard user focused on it loses
+			focus to `<body>` when the preview clears.
+		-->
 		<Button
-			variant="success"
-			disabled={!staged || executing || !service}
+			variant={preview.status === 'ready' ? 'success' : 'outline-success'}
+			disabled={preview.status !== 'ready' || executing || otherPanelMoving || !canCommand}
 			progress={executing ? 'indeterminate' : undefined}
+			title="Run the trajectory shown above, without planning again"
+			onclick={executePreviewedMove}
+		>
+			Execute plan
+		</Button>
+
+		<!--
+			`Move` rather than a label that changes with the preview: this calls the motion service's
+			`Move`, which plans server-side and never sees the plan on screen. Naming it for replanning
+			implied a second UI plan that does not exist.
+		-->
+		<Button
+			variant={preview.status === 'ready' ? 'outline-success' : 'success'}
+			disabled={!staged || executing || otherPanelMoving || !canCommand}
+			progress={executing ? 'indeterminate' : undefined}
+			title="Ask the motion service to plan and move, ignoring the plan shown above"
 			onclick={executeMove}
 		>
-			Execute move
+			Move
 		</Button>
 		<Button
 			variant="ghost"

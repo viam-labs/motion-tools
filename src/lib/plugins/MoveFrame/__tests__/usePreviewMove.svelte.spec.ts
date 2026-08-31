@@ -12,6 +12,7 @@ import planJson from '../../MotionPlanReplayer/__tests__/__fixtures__/plan.json?
 import { parseMoveOptions } from '../parseMoveOptions'
 import { liveFrameName } from '../previewNames'
 import { PreviewGhost } from '../traits'
+import { previewFrameIntervalMs } from '../usePreviewMove.svelte'
 import {
 	createPreviewMoveHarness,
 	type PreviewMoveHarness,
@@ -84,6 +85,9 @@ const twinNames = (previewHarness: PreviewMoveHarness) =>
 	twins(previewHarness)
 		.map((entity) => entity.get(traits.Name) ?? '')
 		.toSorted()
+
+const twinNamed = (previewHarness: PreviewMoveHarness, name: string) =>
+	twins(previewHarness).find((entity) => entity.get(traits.Name) === name)
 
 const planned = async (previewHarness: PreviewMoveHarness, reply: JsonValue = PLAN_REPLY) => {
 	const done = previewHarness.preview.requestPreview()
@@ -385,5 +389,73 @@ describe('a frame system with nothing to draw', () => {
 		expect(previewHarness.preview.status).toBe('error')
 		expect(previewHarness.preview.message).toMatch(message)
 		expect(twins(previewHarness)).toHaveLength(0)
+	})
+})
+
+describe('scrubbing the preview', () => {
+	it('walks one frame per configuration the planner returned', async () => {
+		const previewHarness = setup()
+
+		await planned(previewHarness)
+
+		expect(previewHarness.preview.player.totalSteps).toBe(2)
+	})
+
+	it('moves the joints and leaves the static frames where they were', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+		const waist = twinNamed(previewHarness, 'preview:left-arm:waist')!
+		const link = twinNamed(previewHarness, 'preview:left-arm:base_top')!
+		const waistBefore = waist.get(traits.Matrix)!.clone()
+		const linkBefore = link.get(traits.Matrix)!.clone()
+
+		previewHarness.preview.player.seek(1)
+
+		expect(waist.get(traits.Matrix)!.equals(waistBefore)).toBe(false)
+		expect(link.get(traits.Matrix)!.equals(linkBefore)).toBe(true)
+	})
+
+	it('returns to the pose it drew first when scrubbed back to the start', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+		const waist = twinNamed(previewHarness, 'preview:left-arm:waist')!
+		const atStart = waist.get(traits.Matrix)!.clone()
+
+		previewHarness.preview.player.seek(1)
+		previewHarness.preview.player.seek(0)
+
+		expect(waist.get(traits.Matrix)!.equals(atStart)).toBe(true)
+	})
+
+	it('parks playback when the preview is cleared', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+		previewHarness.preview.player.seek(1)
+
+		previewHarness.preview.clear()
+
+		expect(previewHarness.preview.player.currentStep).toBe(0)
+		expect(previewHarness.preview.player.totalSteps).toBe(0)
+	})
+})
+
+describe('previewFrameIntervalMs', () => {
+	it.each([
+		{ frames: 2, expected: 250 },
+		{ frames: 5, expected: 250 },
+		{ frames: 17, expected: 250 },
+	])(
+		'holds a $frames frame plan at $expected ms rather than stretching it',
+		({ frames, expected }) => {
+			expect(previewFrameIntervalMs(frames)).toBe(expected)
+		}
+	)
+
+	it('divides the duration target once a plan has frames enough to fill it', () => {
+		expect(previewFrameIntervalMs(96)).toBeCloseTo(42.105, 3)
+	})
+
+	it('runs longer than the target rather than flickering on a very dense plan', () => {
+		expect(previewFrameIntervalMs(300)).toBe(16)
 	})
 })
