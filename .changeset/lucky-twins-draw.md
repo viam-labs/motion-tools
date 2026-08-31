@@ -1,5 +1,5 @@
 ---
-'@viamrobotics/motion-tools': patch
+'@viamrobotics/visualization': patch
 ---
 
 Draw a previewed plan as ghost frames the collision panel reports on
