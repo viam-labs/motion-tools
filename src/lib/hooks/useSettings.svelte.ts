@@ -102,7 +102,7 @@ const defaults = (): Settings => ({
 	cameraMode: 'perspective',
 	cameraSmoothTime: 0.05,
 	cameraDraggingSmoothTime: 0.05,
-	enableDollyToCursor: true,
+	enableDollyToCursor: false,
 
 	refreshRates: { ...DEFAULT_REFRESH_RATES },
 
