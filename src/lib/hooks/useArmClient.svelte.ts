@@ -25,8 +25,7 @@ export const provideArmClient = (partID: () => string) => {
 
 	const jointPositionsQueries = $derived(
 		clients.map(
-			(client) =>
-				[client.current?.name, createResourceQuery(client, 'getJointPositions', options)] as const
+			(client) => [client.name, createResourceQuery(client, 'getJointPositions', options)] as const
 		)
 	)
 

@@ -11,8 +11,10 @@ import {
 import {
 	createResourceClient,
 	createResourceQuery,
+	type ResourceClientContext,
 	useResourceNames,
 } from '@viamrobotics/svelte-sdk'
+import { untrack } from 'svelte'
 
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
@@ -44,11 +46,12 @@ export const provideWorldStates = () => {
 	)
 
 	$effect(() => {
-		const cleanups: (() => void)[] = []
+		const activeClients = clients
 
-		for (const client of clients) {
-			cleanups.push(createWorldState(client))
-		}
+		// Untracked: `createResourceQuery` reads `client.current` while it builds its
+		// observer, so tracking the setup would re-run this effect on every
+		// connection change and the cleanup below would destroy every entity.
+		const cleanups = untrack(() => activeClients.map((client) => createWorldState(client)))
 
 		return () => {
 			for (const cleanup of cleanups) {
@@ -127,7 +130,7 @@ const decodeWorldStateChunk = (response: unknown, fallbackStart: number): Entity
 	return { start, positions, colors, opacities, done }
 }
 
-const createWorldState = (client: { current: WorldStateStoreClient | undefined }) => {
+const createWorldState = (client: ResourceClientContext<WorldStateStoreClient>) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
 	const relationships = useRelationships()
@@ -351,6 +354,10 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 		if (!client.current) return
 
 		const controller = new AbortController()
+
+		// The entities survived the disconnect, so any pull that ran out of client
+		// mid-stream still owes its point cloud the rest of its chunks.
+		chunkLoader.resume()
 		void consumeChanges(controller.signal)
 
 		return () => {

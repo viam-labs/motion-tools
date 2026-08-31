@@ -33,7 +33,7 @@ export const provideArmKinematics = (partID: () => string) => {
 	const kinematicsQueries = $derived(
 		clients.map(
 			(client) =>
-				[client.current?.name, createResourceQuery(client, 'getKinematics', () => options)] as const
+				[client.name, createResourceQuery(client, 'getKinematics', () => options)] as const
 		)
 	)
 

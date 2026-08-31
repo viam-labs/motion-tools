@@ -39,7 +39,7 @@ export const providePointclouds = (partID: () => string) => {
 		clients.map(
 			(client) =>
 				[
-					client.current?.name,
+					client.name,
 					createResourceQuery(client, 'getProperties', {
 						staleTime: Infinity,
 						refetchOnMount: false,
@@ -52,22 +52,12 @@ export const providePointclouds = (partID: () => string) => {
 	const fetchedPropQueries = $derived(propQueries.every(([, query]) => query.isPending === false))
 
 	const interval = $derived(refreshRates[RefreshRates.pointclouds])
-	const enabledClients = $derived.by(() => {
-		const results = []
-
-		for (const client of clients) {
-			if (
-				fetchedPropQueries &&
-				client.current?.name &&
-				interval !== RefetchRates.OFF &&
-				disabledCameras[client.current?.name] !== true
-			) {
-				results.push(client as { current: CameraClient })
-			}
-		}
-
-		return results
-	})
+	const enabledClients = $derived(
+		clients.filter(
+			(client) =>
+				fetchedPropQueries && interval !== RefetchRates.OFF && disabledCameras[client.name] !== true
+		)
+	)
 
 	/**
 	 * Some machines have a lot of cameras, so before enabling all of them
@@ -92,7 +82,7 @@ export const providePointclouds = (partID: () => string) => {
 	const queries = $derived(
 		enabledClients.map(
 			(client) =>
-				[client.current.name, createResourceQuery(client, 'getPointCloud', () => options)] as const
+				[client.name, createResourceQuery(client, 'getPointCloud', () => options)] as const
 		)
 	)
 
@@ -139,7 +129,15 @@ export const providePointclouds = (partID: () => string) => {
 					}
 				}
 
-				if (!data || data.length === 0) {
+				// No answer yet, which is not the same as a camera answering with no
+				// points. A pending or re-keyed query must leave the drawn cloud alone.
+				if (data === undefined) {
+					return () => {
+						disposed = true
+					}
+				}
+
+				if (data.length === 0) {
 					destroyEntity()
 
 					return () => {
