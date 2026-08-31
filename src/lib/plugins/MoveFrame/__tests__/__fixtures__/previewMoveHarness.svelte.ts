@@ -74,14 +74,12 @@ export const createPreviewMoveHarness = (
 
 	const client = { doCommand } as unknown as MotionClient
 
-	// `isReady` is fixed because the preview never asks: it reads `parts`, not the world. A getter,
-	// so swapping the frame system is visible to the hook the way a refetch would be.
+	// A getter, so swapping the frame system is visible to the hook the way a refetch would be.
 	const frames: FramesContext = {
 		current: [],
 		get parts() {
 			return parts
 		},
-		isReady: true,
 		kinematicsComponents: new Set<string>(),
 	}
 
