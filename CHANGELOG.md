@@ -1,5 +1,26 @@
 # visualization
 
+## 2.3.0
+
+### Minor Changes
+
+- e50042d: Add world tree filter
+- 5e80ef4: Update camera smoothing to match common cad apps
+- 9aff0ee: Replace the Focus plugin with Isolate, add an F focus hotkey, and move dolly to Q and E
+- 3f36a76: Mark world tree rows and folders that are logging warnings or errors
+
+### Patch Changes
+
+- cd6489e: Add a Preview move action that asks the motion service to plan without executing
+- 3f36a76: Report pose errors that were dropped at live refresh rates and during frame moves
+- 7f7ac1f: Fix frame axes helpers leaving a dot behind after they are hidden or removed
+- 3f36a76: Stop requesting frames and poses before the machine connects
+- 2c1c148: Fix an arrows entity becoming unremovable when its colors buffer is longer than its pose buffer
+- e92cc15: Draw a previewed plan as ghost frames the collision panel reports on
+- 2f56955: Reject a malformed joint axis instead of drawing a meaningless rotation
+- ca38d7e: Scrub a previewed plan and execute it without planning again
+- 2450fb7: Keep the scene drawn when a machine disconnects instead of wiping it. World state entities, arm 3D models, pointclouds, and pointcloud objects now survive a drop and a redial, and a point cloud interrupted mid-stream resumes its remaining chunks on reconnect rather than staying half-written. Requires @viamrobotics/svelte-sdk 1.3.0, which keys queries on the addressed part and resource so a torn-down client no longer empties their data.
+
 ## 2.2.0
 
 ### Minor Changes
