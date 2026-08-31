@@ -17,8 +17,24 @@ const vec3 = new Vector3()
 
 /** RDK reads the step value as radians for a revolute joint and millimeters for a prismatic one. */
 export const computeJointPose = (descriptor: JointFrameDescriptor, value: number): Pose => {
-	// RDK normalizes on unmarshal; the JSON itself does not guarantee a unit axis.
-	vec3.set(descriptor.axis.X, descriptor.axis.Y, descriptor.axis.Z).normalize()
+	const { axis } = descriptor
+	// `axis` comes off an unchecked cast in `frameDescriptors.ts`, so the type's guarantee of a
+	// well-formed vector does not hold at runtime.
+	if (!axis || !Number.isFinite(axis.X) || !Number.isFinite(axis.Y) || !Number.isFinite(axis.Z)) {
+		throw new Error(`joint "${descriptor.name}" has a missing or non-numeric axis`)
+	}
+
+	// The JSON does not guarantee a unit axis. RDK normalizes a translational frame on unmarshal and a
+	// rotational one at use, inside `R4AA.ToQuat`; normalizing once here covers both.
+	vec3.set(axis.X, axis.Y, axis.Z)
+	// Three's `normalize()` guards `length() || 1`, so a zero axis would pass through it unchanged and
+	// yield a meaningless quaternion in silence.
+	// RDK's `R4AA.Normalize` panics here too. `translationalFrame` instead keeps `r3.Vector.Normalize`'s
+	// zero vector and draws a motionless frame. We reject both rather than draw a joint that never moves.
+	if (vec3.lengthSq() === 0) {
+		throw new Error(`joint "${descriptor.name}" has a zero-length axis`)
+	}
+	vec3.normalize()
 
 	if (descriptor.motion === 'translational') {
 		return new Pose(vec3.x * value, vec3.y * value, vec3.z * value)
@@ -31,9 +47,6 @@ export const computeJointPose = (descriptor: JointFrameDescriptor, value: number
 /**
  * A step addresses joints positionally per component; a missing column reads as zero, where RDK's
  * `FrameSystem.Transform` errors instead.
- *
- * The `offset` is in the column's unit, radians or millimetres, not degrees like the sibling `min`
- * and `max`.
  */
 export const jointValueAt = (
 	descriptor: JointFrameDescriptor,
@@ -41,5 +54,25 @@ export const jointValueAt = (
 ): number => {
 	const column = stepInputs[descriptor.componentName]?.[descriptor.jointIndex] ?? 0
 	const { mimic } = descriptor
+	// A mimic joint has no column of its own, so `jointIndex` addresses its source. `offset` is in
+	// position units, not degrees: RDK's `MimicConfig.ValueOffset` never passes through `DegToRad`.
 	return mimic ? mimic.multiplier * column + mimic.offset : column
 }
+
+/**
+ * The frame's pose relative to its parent at `stepInputs`, whichever kind of frame it is.
+ *
+ * The static branch stands in for `referenceframe/frame.go`'s `staticFrame.Transform`, which
+ * returns its stored pose directly and errors when it is handed inputs at all.
+ *
+ * @returns A fresh `Pose` the caller owns. A static frame's is cloned rather than handed out,
+ * because the descriptor keeps its copy for every later step and a caller that wrote into a
+ * borrowed one would move the frame for all of them.
+ */
+export const descriptorLocalPose = (
+	descriptor: { kind: 'static'; localPose: Pose } | JointFrameDescriptor,
+	stepInputs: TrajectoryStep
+): Pose =>
+	descriptor.kind === 'static'
+		? descriptor.localPose.clone()
+		: computeJointPose(descriptor, jointValueAt(descriptor, stepInputs))

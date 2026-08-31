@@ -33,11 +33,13 @@
 	import { moveGizmoOptions } from './moveGizmoOptions.svelte'
 	import { moveGizmoOwner } from './moveGizmoOwner.svelte'
 	import MoveJsonField from './MoveJsonField.svelte'
+	import MovePreview from './MovePreview.svelte'
 	import MoveTargetGhost from './MoveTargetGhost.svelte'
 	import { fromDestinationPose, moveDelta, toDestinationPose } from './moveTargetPose'
 	import { parseMoveOptions } from './parseMoveOptions'
 	import { useMovedFrameMatrix } from './useMovedFrameMatrix.svelte'
 	import { useMoveGhosts } from './useMoveGhosts.svelte'
+	import { usePreviewMove } from './usePreviewMove.svelte'
 
 	interface Props extends HTMLAttributes<HTMLDivElement> {
 		/** The selected frame this panel is the details for. */
@@ -178,8 +180,25 @@
 		stagePose(pose)
 	}
 
+	const preview = usePreviewMove({
+		client: () => motion.current,
+		service: () => service,
+		frameName: () => frameName,
+		destination: () => (targetPose ? { referenceFrame: WORLD_FRAME, pose: targetPose } : undefined),
+		moveOptions: () => parseMoveOptions(worldStateJson.current, constraintsJson.current),
+		invalidateOn: () => [
+			targetWorldMatrix,
+			worldStateJson.current,
+			constraintsJson.current,
+			service,
+		],
+	})
+
 	/** Drop the staged goal so the gizmo snaps back to wherever the frame is now. */
-	const resetTarget = () => (targetWorldMatrix = undefined)
+	const resetTarget = () => {
+		targetWorldMatrix = undefined
+		preview.clear()
+	}
 
 	const handleServiceChange = (event: ListChangeEvent) => {
 		if (event.detail.origin !== 'internal') return
@@ -189,6 +208,10 @@
 	const executeMove = async () => {
 		const client = motion.current
 		if (!client || !targetPose || !service || !staged) return
+
+		// Clearing before rather than after also cancels a plan still in flight, which would otherwise
+		// land and describe a configuration the machine has already left.
+		preview.clear()
 
 		executing = true
 		try {
@@ -302,6 +325,11 @@
 	</div>
 
 	<Collisions />
+
+	<MovePreview
+		{preview}
+		disabled={!staged || executing || !service}
+	/>
 
 	<div class="flex items-center gap-2">
 		<Button
