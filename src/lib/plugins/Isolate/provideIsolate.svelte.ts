@@ -3,22 +3,22 @@ import { untrack } from 'svelte'
 
 import { relations, traits, useQuery, useWorld } from '$lib/ecs'
 
-const HiddenByFocus = trait()
+const HiddenByIsolate = trait()
 
-export const provideFocus = (focusing: () => boolean) => {
+export const provideIsolate = (isolating: () => boolean) => {
 	const world = useWorld()
 	const selected = useQuery(traits.Selected)
 
 	$effect(() => {
-		if (!focusing()) {
-			for (const entity of world.query(HiddenByFocus)) {
-				entity.remove(HiddenByFocus, traits.Invisible)
+		if (!isolating()) {
+			for (const entity of world.query(HiddenByIsolate)) {
+				entity.remove(HiddenByIsolate, traits.Invisible)
 			}
 
 			return
 		}
 
-		// Snapshot the selection untracked so `focusing()` is this effect's only dependency. Selecting or deselecting while focused must not change what is hidden.
+		// Snapshot the selection untracked so `isolating()` is this effect's only dependency. Selecting or deselecting while isolated must not change what is hidden.
 		const selectedEntities = untrack(() => selected.current)
 
 		// Entities render only while `InheritedInvisible` is unset, and that trait cascades down `ChildOf` (see `useInheritedInvisible`). Keep each selection's ancestors and descendants visible.
@@ -41,11 +41,11 @@ export const provideFocus = (focusing: () => boolean) => {
 			keepSubtree(entity)
 		}
 
-		// Hide the rest. Skip already-invisible entities so focus does not take ownership of user-hidden ones and reveal them on exit.
+		// Hide the rest. Skip already-invisible entities so isolating does not take ownership of user-hidden ones and reveal them on exit.
 		for (const entity of world.query(traits.Name, traits.WorldMatrix)) {
 			if (keep.has(entity)) continue
 			if (!entity.has(traits.Invisible)) {
-				entity.add(HiddenByFocus, traits.Invisible)
+				entity.add(HiddenByIsolate, traits.Invisible)
 			}
 		}
 	})

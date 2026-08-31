@@ -11,11 +11,11 @@ export { default as DrawService } from './DrawService/DrawService.svelte'
 
 export { default as FileDrop } from './FileDrop/FileDrop.svelte'
 
-export { default as Focus } from './Focus/Focus.svelte'
-
 export { default as FramePov } from './FramePov/FramePov.svelte'
 
 export { default as Fullscreen } from './Fullscreen/Fullscreen.svelte'
+
+export { default as Isolate } from './Isolate/Isolate.svelte'
 
 export { default as LLMSceneBuilder } from './LLMSceneBuilder/LLMSceneBuilder.svelte'
 export type { InferCallback, ComponentFrameInfo } from './LLMSceneBuilder/useSceneBuilder.svelte'

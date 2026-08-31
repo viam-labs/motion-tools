@@ -15,8 +15,8 @@
 		ControlWidgets,
 		DrawService,
 		FileDrop,
-		Focus,
 		FramePov,
+		Isolate,
 		Logs,
 		MeasureTool,
 		Monitor,
@@ -96,7 +96,7 @@
 
 				{#if pluginsEnabled}
 					<DrawService config={{ backendIP, port: portOverride ?? drawServicePort }} />
-					<Focus />
+					<Isolate />
 					<MeasureTool />
 
 					<Monitor />
