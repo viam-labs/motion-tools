@@ -1,0 +1,425 @@
+{
+	"source": "go.viam.com/rdk spatialmath.GeometryConfig.ParseConfig",
+	"cases": [
+		{
+			"name": "declared box",
+			"geometry": {
+				"type": "box",
+				"x": 1,
+				"y": 1,
+				"z": 1,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 1,
+					"Y": 1,
+					"Z": 1
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "declared box with a zero side",
+			"geometry": {
+				"type": "box",
+				"x": 1,
+				"y": 0,
+				"z": 1,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "declared box with a negative side",
+			"geometry": {
+				"type": "box",
+				"x": 1,
+				"y": 0,
+				"z": -1,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "declared sphere",
+			"geometry": {
+				"type": "sphere",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 0,
+				"translation": {
+					"X": 1,
+					"Y": 1,
+					"Z": 1
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "sphere"
+		},
+		{
+			"name": "declared sphere with a negative radius",
+			"geometry": {
+				"type": "sphere",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": -1,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "declared capsule",
+			"geometry": {
+				"type": "capsule",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 4,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "capsule"
+		},
+		{
+			"name": "declared cylinder",
+			"geometry": {
+				"type": "cylinder",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 4,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "cylinder"
+		},
+		{
+			"name": "declared point",
+			"geometry": {
+				"type": "point",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 1,
+					"Y": 1,
+					"Z": 1
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "point"
+		},
+		{
+			"name": "unrecognized declared type",
+			"geometry": {
+				"type": "bad",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "infer box from all three dimensions",
+			"geometry": {
+				"type": "",
+				"x": 1,
+				"y": 1,
+				"z": 1,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "infer box from a single dimension",
+			"geometry": {
+				"type": "",
+				"x": 1,
+				"y": 0,
+				"z": 0,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "infer box before capsule",
+			"geometry": {
+				"type": "",
+				"x": 1,
+				"y": 1,
+				"z": 1,
+				"r": 1,
+				"l": 4,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "infer box before sphere",
+			"geometry": {
+				"type": "",
+				"x": 1,
+				"y": 1,
+				"z": 1,
+				"r": 1,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "box"
+		},
+		{
+			"name": "infer capsule from length and radius",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 4,
+				"translation": {
+					"X": 1,
+					"Y": 1,
+					"Z": 1
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "capsule"
+		},
+		{
+			"name": "infer capsule with no radius",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 0,
+				"l": 4,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "infer capsule shorter than its diameter",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 1,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "infer capsule whose length equals its diameter",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 2,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "sphere"
+		},
+		{
+			"name": "infer sphere from radius",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 1,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": "sphere"
+		},
+		{
+			"name": "infer sphere from a negative radius",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": -1,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		},
+		{
+			"name": "infer nothing from an empty config",
+			"geometry": {
+				"type": "",
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"r": 0,
+				"l": 0,
+				"translation": {
+					"X": 0,
+					"Y": 0,
+					"Z": 0
+				},
+				"orientation": {
+					"type": ""
+				},
+				"Label": ""
+			},
+			"resolvedType": ""
+		}
+	]
+}
