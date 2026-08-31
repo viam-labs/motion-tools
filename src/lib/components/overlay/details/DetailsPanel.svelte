@@ -2,7 +2,7 @@
 	module
 	lang="ts"
 >
-	import { Box3, MathUtils } from 'three'
+	import { MathUtils } from 'three'
 </script>
 
 <script lang="ts">
@@ -16,7 +16,7 @@
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 
-	import { expandBoxByEntity } from '$lib/components/Entities/expandBoxByEntity'
+	import { focusCameraOnEntities } from '$lib/components/Entities/focusCameraOnEntities'
 	import { traits, useParentName, useTrait, useWorld } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -62,9 +62,8 @@
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
 
 	// `object3d` is undefined for instanced primitives and geometry-less frames, so
-	// `expandBoxByEntity` resolves bounds from traits instead. Offer the button only
-	// when one of those sources exists.
-	const focusBox = new Box3()
+	// `focusCameraOnEntities` resolves bounds from traits instead. Offer the button
+	// only when one of those sources exists.
 	const focusable = $derived(
 		sceneActions &&
 			(object3d !== undefined ||
@@ -181,27 +180,7 @@ just the inputs) raises it via `focus-within:z-5`. -->
 							class="text-subtle-2"
 							aria-describedby={tooltipID}
 							onclick={() => {
-								const padding = 0.4
-
-								const currentControls = controls.current
-
-								if (!currentControls || !('fitToBox' in currentControls)) return
-
-								focusBox.makeEmpty()
-								expandBoxByEntity(focusBox, entity, scene)
-								if (focusBox.isEmpty()) return
-
-								const { azimuthAngle, polarAngle } = currentControls
-
-								currentControls.fitToBox(focusBox, true, {
-									paddingTop: padding,
-									paddingBottom: padding,
-									paddingLeft: padding,
-									paddingRight: padding,
-								})
-
-								currentControls.rotateAzimuthTo(azimuthAngle, true)
-								currentControls.rotatePolarTo(polarAngle, true)
+								focusCameraOnEntities(controls.current, scene, [entity])
 							}}
 						>
 							<Icon name="image-filter-center-focus" />
