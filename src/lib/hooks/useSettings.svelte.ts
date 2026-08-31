@@ -3,11 +3,16 @@ import type { ColorRepresentation } from 'three'
 import { get, set } from 'idb-keyval'
 import { getContext, setContext } from 'svelte'
 
+import type { RenderMode } from '$lib/three/surfaceShading'
+
 const key = Symbol('dashboard-context')
 
 export interface Settings {
 	anthropicKey: string
 	cameraMode: 'orthographic' | 'perspective'
+	cameraSmoothTime: number
+	cameraDraggingSmoothTime: number
+	enableDollyToCursor: boolean
 	interactionMode: 'navigate' | 'measure' | 'select' | 'gizmo' | 'move'
 	refreshRates: {
 		poses: number
@@ -50,6 +55,8 @@ export interface Settings {
 
 	renderStats: boolean
 	renderArmModels: 'colliders' | 'colliders+model' | 'model'
+	/** How entity surfaces are shaded. `realistic` is the only mode that casts shadows. */
+	renderMode: RenderMode
 
 	enableXR: boolean
 	xrMode: 'frame-configure' | 'arm-teleop'
@@ -82,15 +89,22 @@ export const RefreshRates = {
 	vision: 'vision',
 } as const
 
+export type RefreshRateId = keyof Settings['refreshRates']
+
+const DEFAULT_REFRESH_RATES: Settings['refreshRates'] = {
+	poses: 1000,
+	pointclouds: 5000,
+	vision: 1000,
+}
+
 const defaults = (): Settings => ({
 	anthropicKey: '',
 	cameraMode: 'perspective',
+	cameraSmoothTime: 0.05,
+	cameraDraggingSmoothTime: 0.05,
+	enableDollyToCursor: false,
 
-	refreshRates: {
-		poses: 1000,
-		pointclouds: 5000,
-		vision: 1000,
-	},
+	refreshRates: { ...DEFAULT_REFRESH_RATES },
 
 	disabledCameras: {},
 	disabledVisionServices: {},
@@ -127,6 +141,7 @@ const defaults = (): Settings => ({
 
 	renderStats: false,
 	renderArmModels: 'colliders+model',
+	renderMode: 'toon',
 
 	enableXR: false,
 	xrMode: 'frame-configure',

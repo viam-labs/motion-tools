@@ -2,21 +2,35 @@ import type { Entity, World } from 'koota'
 
 import { Not } from 'koota'
 
+import type { RefreshRateId } from '$lib/hooks/useSettings.svelte'
+
 import { relations, traits } from '$lib/ecs'
 
+import type { TreeFolderId } from './treeFolders'
+
 import { treeFolders } from './treeFolders'
+
+export interface TreeFolderRow {
+	/** See `TreeFolder.id`. What a log line names when it is about this folder. */
+	id: TreeFolderId
+	/** Starts closed. See `TreeFolder.collapsed`. */
+	collapsed?: boolean
+	/** Poll that fills the folder. See `TreeFolder.refreshRate`. */
+	refreshRate?: RefreshRateId
+	/** Entities in the folder at any depth, not just the rows directly under it. */
+	itemCount: number
+}
 
 export interface TreeNode {
 	entity: Entity
 	children?: TreeNode[]
-	/** Folder row. Backed by a synthetic entity with no scene presence. */
-	isFolder?: boolean
-	/** Folder row that starts closed. See `TreeFolder.collapsed`. */
-	collapsed?: boolean
+	/**
+	 * Set only on a folder row, which is backed by a synthetic entity with no scene
+	 * presence. Its truthiness is what marks the row as a folder.
+	 */
+	folder?: TreeFolderRow
 	/** Row with no scene object behind it. See `TreeFolder.sceneless`. */
 	sceneless?: boolean
-	/** Entities in the folder at any depth, not just the rows directly under it. */
-	itemCount?: number
 	/** The `ChildOf` parent, set when it sits in another folder. */
 	detachedParent?: Entity
 }
@@ -127,13 +141,11 @@ export const buildTree = (world: World, folderEntities: Entity[]): Tree => {
 
 		roots.sort(compareByName)
 
-		const { collapsed, sceneless } = treeFolders[index]
+		const { id, collapsed, refreshRate, sceneless } = treeFolders[index]
 
 		nodes.push({
 			entity: folder,
-			isFolder: true,
-			collapsed,
-			itemCount: folderCounts[index],
+			folder: { id, collapsed, refreshRate, itemCount: folderCounts[index] },
 			children: roots.map((entity) => {
 				parents.set(`${entity}`, `${folder}`)
 

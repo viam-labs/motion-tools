@@ -4,7 +4,7 @@ import { commonApi, MachineConnectionEvent } from '@viamrobotics/sdk'
 import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext, untrack } from 'svelte'
 
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { RefetchRates } from '$lib/components/overlay/refetchRates'
 import { traits, useParentName, useQuery, useTrait } from '$lib/ecs'
 import { originFrameName } from '$lib/kinematicsFrames'
 import { Pose } from '$lib/math'
@@ -53,9 +53,11 @@ export const providePoses = (partID: () => string) => {
 
 	const frameEntities = useQuery(traits.FramesAPI)
 
+	const isConnected = $derived(connectionStatus.current === MachineConnectionEvent.CONNECTED)
+
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 	const options = $derived({
-		enabled: partID() !== '' && interval !== RefetchRates.OFF,
+		enabled: partID() !== '' && interval !== RefetchRates.OFF && isConnected,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	})
 
@@ -147,7 +149,7 @@ export const providePoses = (partID: () => string) => {
 
 	// Kick an initial fetch for every frame once connected.
 	$effect(() => {
-		if (frames.current && connectionStatus.current === MachineConnectionEvent.CONNECTED) {
+		if (frames.current && isConnected) {
 			// Read `entries` inside `untrack` so this fires on the connect edge,
 			// not every time a frame is added — new entries auto-fetch on creation.
 			untrack(() => {
@@ -156,20 +158,29 @@ export const providePoses = (partID: () => string) => {
 		}
 	})
 
-	// Per-frame fetch/error logging. A single message at high refresh rates
-	// avoids one log line per frame per tick.
+	// Only the per-frame "Fetching..." notices collapse to one summary at a live
+	// rate. Errors are always reported per frame: they are what marks the frame's
+	// row in the world tree, and repeats collapse into a single counted line.
+	const isLiveRate = $derived(interval === RefetchRates.FPS_30 || interval === RefetchRates.FPS_60)
+
 	$effect(() => {
-		if (interval === RefetchRates.FPS_30 || interval === RefetchRates.FPS_60) {
-			return logs.add(`Fetching poses every ${interval}ms...`)
+		if (isLiveRate) {
+			logs.add(`Fetching poses every ${interval}ms...`, 'info', { folder: 'frames' })
 		}
 
 		for (const { name, query } of entries) {
 			untrack(() => {
 				$effect(() => {
-					if (query.isFetching) {
-						logs.add(`Fetching pose for ${name.current}...`)
-					} else if (query.error) {
-						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error')
+					if (query.error) {
+						logs.add(`Error fetching pose for ${name.current}: ${query.error.message}`, 'error', {
+							resource: name.current,
+							folder: 'frames',
+						})
+					} else if (query.isFetching && !isLiveRate) {
+						logs.add(`Fetching pose for ${name.current}...`, 'info', {
+							resource: name.current,
+							folder: 'frames',
+						})
 					}
 				})
 			})

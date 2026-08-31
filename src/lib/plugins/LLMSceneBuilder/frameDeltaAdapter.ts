@@ -1,6 +1,5 @@
-import type { Transform } from '@viamrobotics/sdk'
-
 import type { Frame, FrameGeometry } from '$lib/frame'
+import type { Transform } from '$lib/geometry'
 import type { FragmentInfo } from '$lib/hooks/useFragmentInfo.svelte'
 import type { PartConfig } from '$lib/hooks/usePartConfig.svelte'
 

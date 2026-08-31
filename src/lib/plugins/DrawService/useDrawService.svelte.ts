@@ -63,10 +63,12 @@ export function provideDrawService() {
 	const drawConnectionConfig = useDrawConnectionConfig()
 	const serverRelationships = createServerRelationships()
 
-	// `<Logs />` may mount after this plugin, and useLogs hands back a throwaway no-op when the
-	// provider is not installed yet, so resolve the sink per call rather than once at setup.
+	const logs = useLogs()
+
+	// Everything this service reports lands in the world tree's Drawn folder, which
+	// is the only row standing for the draw server's connection.
 	const log = (message: string, level?: 'info' | 'warn' | 'error') => {
-		useLogs().add(message, level)
+		logs.add(message, level, { folder: 'drawn' })
 	}
 
 	let connectionStatus = $state<ConnectionStatusType>(ConnectionStatus.DISCONNECTED)

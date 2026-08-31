@@ -5,7 +5,7 @@ description: Move existing Viam visualizations from the removed client/client pa
 
 import { Aside } from '@astrojs/starlight/components'
 
-The [client/api](../../api/client-api/) package is the public API for drawing to the Viam visualizer. It replaces the legacy [client/client](https://github.com/viamrobotics/visualization/tree/v1.42.0/client/client) package, which has been removed. `v1.42.0` was the last release to ship it — pin to that tag if you need more time, then use this guide to move to v2 without changing what your visualizations render.
+The [client/api](../../api/client-api/) package is the public API for drawing to the Viam visualizer. It replaces the legacy [client/client](https://github.com/viamrobotics/visualization/tree/v1.45.1/client/client) package, which v2 removes. `v1.45.1` was the last release to ship it — pin to that tag if you need more time, then use this guide to move to v2 without changing what your visualizations render.
 
 ## Prerequisites
 
@@ -44,22 +44,20 @@ Both v1 and v2 assume you run the visualizer locally with `make up`. No extra se
 
 ## Import path
 
+The Go module was renamed in v2, so the module path changes along with the package:
+
 ```go
 // v1
-import "github.com/viamrobotics/visualization/client/client"
+import "github.com/viam-labs/motion-tools/client/client"
 
 // v2
 import "github.com/viamrobotics/visualization/client/api"
 ```
 
-<Aside
-	type="caution"
-	title="Module path will change when v2 ships"
->
-	The Go module is moving from `github.com/viamrobotics/visualization` to
-	`github.com/viamrobotics/visualization` when v2 is released. Both the `client/api` and `draw`
-	packages will live under the new path, so plan on a one-time find-and-replace of your imports as
-	part of the upgrade.
+<Aside type="caution">
+	The Go module moved from `github.com/viam-labs/motion-tools` to
+	`github.com/viamrobotics/visualization` in v2. Both the `client/api` and `draw` packages live
+	under the new path, so the upgrade includes a one-time find-and-replace of your imports.
 </Aside>
 
 ## Cross-cutting changes

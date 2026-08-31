@@ -8,30 +8,67 @@
 
 	import type { TreeNode as TreeNodeType } from './buildTree'
 
+	import { isFolderExpanded, mergeExpandedFolders } from './expandedFolders.svelte'
+	import { filterTree } from './filterTree'
 	import TreeNode from './TreeNode.svelte'
 
 	interface Props {
 		rootNode: TreeNodeType
 		/** Child value to parent value, following drawn edges rather than `ChildOf`. */
 		parents: Map<string, string>
+		/** Name query. Empty shows everything. See `filterTree`. */
+		filter?: string
 		dragElement?: HTMLElement
 		onSelectionChange?: (event: tree.SelectionChangeDetails) => void
 	}
 
-	let { rootNode, parents, onSelectionChange, dragElement = $bindable() }: Props = $props()
+	let {
+		rootNode,
+		parents,
+		filter = '',
+		onSelectionChange,
+		dragElement = $bindable(),
+	}: Props = $props()
+
+	const isFiltering = $derived(filter.trim() !== '')
+
+	const selected = useQuery(traits.Selected)
+
+	const selectedValue = $derived(selected.current.map((entity) => `${entity}`))
+	const selectedEntities = $derived(new Set(selected.current))
 
 	const collection = $derived(
 		tree.collection<TreeNodeType>({
 			nodeToValue: (node) => `${node.entity}`,
 			nodeToString: (node) => node.entity.get(traits.Name) ?? '',
-			rootNode,
+			rootNode: {
+				...rootNode,
+				children: filterTree(rootNode.children ?? [], filter, selectedEntities),
+			},
 		})
 	)
 
-	const selected = useQuery(traits.Selected)
+	const rootChildren = $derived(collection.rootNode.children ?? [])
 
-	const selectedValue = $derived(selected.current.map((entity) => `${entity}`))
+	const folderNameOf = (node: TreeNodeType): string | undefined =>
+		node.folder ? (node.entity.get(traits.Name) ?? undefined) : undefined
+
 	const expandedValues = new SvelteSet<string>()
+
+	// A filter is useless behind a collapsed folder, so every branch it leaves
+	// standing is forced open. Only a collapse the user made against that forced
+	// state is remembered, and only for as long as the filter is up.
+	const collapsedWhileFiltering = new SvelteSet<string>()
+
+	const expandedValue = $derived(
+		isFiltering
+			? collection.getBranchValues().filter((value) => !collapsedWhileFiltering.has(value))
+			: [...expandedValues]
+	)
+
+	$effect(() => {
+		if (!isFiltering && collapsedWhileFiltering.size > 0) collapsedWhileFiltering.clear()
+	})
 
 	$effect(() => {
 		for (const entity of selected.current) {
@@ -50,35 +87,59 @@
 		selectionMode: 'multiple' as const,
 		expandOnClick: false,
 		selectedValue,
-		expandedValue: [...expandedValues],
+		expandedValue,
 		onSelectionChange(details) {
 			onSelectionChange?.(details)
 		},
 		onExpandedChange(details) {
+			// The persisted folder state belongs to the unfiltered tree. Writing to it
+			// here would store whatever the filter forced open.
+			if (isFiltering) {
+				const stillExpanded = new Set(details.expandedValue)
+				for (const value of collection.getBranchValues()) {
+					if (stillExpanded.has(value)) collapsedWhileFiltering.delete(value)
+					else collapsedWhileFiltering.add(value)
+				}
+
+				return
+			}
+
 			expandedValues.clear()
 			for (const value of details.expandedValue) {
 				expandedValues.add(value)
 			}
+
+			// Only folders are recorded. An item's value is its entity id, which is
+			// handed out fresh each session and would key nothing on the next load.
+			const expandedByName: Record<string, boolean> = {}
+			for (const node of rootChildren) {
+				const name = folderNameOf(node)
+				if (name) expandedByName[name] = expandedValues.has(`${node.entity}`)
+			}
+
+			mergeExpandedFolders(expandedByName)
 		},
 	}))
 
 	const api = $derived(tree.connect(service, normalizeProps))
-	const rootChildren = $derived(collection.rootNode.children ?? [])
 
-	const openedFolders = new Set<string>()
+	const seededFolders = new Set<string>()
 
-	// Seeded once per folder, so a folder the user collapsed stays collapsed.
-	// `.pre` lands the value before the first commit, otherwise every folder
-	// renders collapsed for a frame and then pops open.
+	// Seeded once per folder, from what the user left open last session and the
+	// folder's own default before that. `.pre` lands the value before the first
+	// commit, otherwise every folder renders collapsed for a frame and then pops open.
 	$effect.pre(() => {
 		for (const node of rootChildren) {
-			if (!node.isFolder) continue
+			const name = folderNameOf(node)
+			if (name === undefined) continue
 
 			const value = `${node.entity}`
-			if (openedFolders.has(value)) continue
+			if (seededFolders.has(value)) continue
 
-			openedFolders.add(value)
-			if (!node.collapsed) expandedValues.add(value)
+			seededFolders.add(value)
+			if (isFolderExpanded(name, node.folder?.collapsed ?? false)) {
+				expandedValues.add(value)
+			}
 		}
 	})
 
@@ -132,7 +193,9 @@
 		class="w-max min-w-full"
 	>
 		{#if rootChildren.length === 0}
-			<p class="text-subtle-2 px-2 py-4">No objects displayed</p>
+			<p class="text-subtle-2 px-2 py-4">
+				{isFiltering ? 'No matching objects' : 'No objects displayed'}
+			</p>
 		{:else if rootChildren.length > 200}
 			<VirtualList items={rootChildren}>
 				{#snippet vl_slot({ index, item: node })}

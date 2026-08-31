@@ -3,9 +3,10 @@ import type { Matrix4 } from 'three'
 
 import { createRobotQuery, useRobotClient } from '@viamrobotics/svelte-sdk'
 
-import { RefetchRates } from '$lib/components/overlay/RefreshRate.svelte'
+import { RefetchRates } from '$lib/components/overlay/refetchRates'
 import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
 import { Pose } from '$lib/math'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 export interface MovedFrameMatrix {
 	readonly current: Matrix4 | undefined
@@ -32,6 +33,7 @@ export const useMovedFrameMatrix = (
 ): MovedFrameMatrix => {
 	const settings = useSettings()
 	const client = useRobotClient(partID)
+	const logs = useLogs()
 
 	// Per call, not per module: two open panels each get their own, so neither
 	// depends on the other's decode finishing first.
@@ -51,6 +53,17 @@ export const useMovedFrameMatrix = (
 					: interval,
 		})
 	)
+
+	// The gizmo just renders nothing when this fails, which reads as the frame
+	// having no transform rather than as an error.
+	$effect(() => {
+		if (!query.error) return
+
+		logs.add(`Error fetching pose for ${frameName()}: ${query.error.message}`, 'error', {
+			resource: frameName(),
+			folder: 'frames',
+		})
+	})
 
 	const current = $derived.by(() => {
 		const worldPose = query.data?.pose

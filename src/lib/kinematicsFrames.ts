@@ -18,8 +18,7 @@
  * for the pose query; see `usePoses`.
  */
 
-import type { Transform } from '@viamrobotics/sdk'
-
+import type { Transform } from '$lib/geometry'
 import type { Pose } from '$lib/math'
 
 import {

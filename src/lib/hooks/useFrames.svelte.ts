@@ -1,4 +1,4 @@
-import { MachineConnectionEvent, Transform } from '@viamrobotics/sdk'
+import { MachineConnectionEvent, type robotApi } from '@viamrobotics/sdk'
 import {
 	createRobotQuery,
 	useConnectionStatus,
@@ -8,6 +8,7 @@ import {
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
+import type { Transform } from '$lib/geometry'
 import type { RawKinematicsModel } from '$lib/kinematicsTransform'
 
 import { resourceNameToColor, subtypeToColor } from '$lib/color'
@@ -21,8 +22,13 @@ import { useEnvironment } from './useEnvironment.svelte'
 import { usePartConfig } from './usePartConfig.svelte'
 import { useResourceByName } from './useResourceByName.svelte'
 
-interface FramesContext {
+export interface FramesContext {
 	current: Transform[]
+	/**
+	 * The raw `frameSystemConfig` reply, the only place `kinematics` survives. A disabled query keeps
+	 * its data, so non-empty does not mean live: `current` may have fallen back to config frames.
+	 */
+	parts: robotApi.FrameSystemConfig[]
 	/** Components whose frame is a model's mount — the set `usePoses` redirects. */
 	readonly kinematicsComponents: ReadonlySet<string>
 }
@@ -43,18 +49,23 @@ export const provideFrames = (partID: () => string) => {
 	// In build mode the user authors the scene from the part config, so config
 	// frames win the merge below.
 	const isBuildMode = $derived(environment.current.mode === 'build')
+
+	const isConnected = $derived(connectionStatus.current === MachineConnectionEvent.CONNECTED)
+
 	const query = createRobotQuery(client, 'frameSystemConfig', () => ({
 		refetchOnWindowFocus: false,
-		enabled: partID() !== '',
+		// The call needs a live robot client. Naming a part is not enough, and firing
+		// on the name alone answers `not connected yet` for every machine on load.
+		enabled: partID() !== '' && isConnected,
 	}))
 
 	const revision = $derived(machineStatus.current?.config?.revision)
 
 	$effect(() => {
 		if (query.isFetching) {
-			logs.add('Fetching frames...')
+			logs.add('Fetching frames...', 'info', { folder: 'frames' })
 		} else if (query.error) {
-			logs.add(`Frames: ${query.error.message}`, 'error')
+			logs.add(`Frames: ${query.error.message}`, 'error', { folder: 'frames' })
 		}
 	})
 
@@ -113,7 +124,7 @@ export const provideFrames = (partID: () => string) => {
 		// embedder never provided a dial config (e.g. the Viam app's
 		// dialConfigsForParts filters to live parts only, so offline parts
 		// never transition through DISCONNECTED).
-		if (isBuildMode || connectionStatus.current !== MachineConnectionEvent.CONNECTED) {
+		if (isBuildMode || !isConnected) {
 			const mergedFrames = { ...frames }
 
 			for (const [name, frame] of Object.entries(configFrames.current)) {
@@ -289,11 +300,15 @@ export const provideFrames = (partID: () => string) => {
 		}
 	})
 
+	const parts = $derived(query.data ?? [])
 	const kinematicsComponents = $derived(new Set(Object.keys(kinematicsByComponent)))
 
 	setContext<FramesContext>(key, {
 		get current() {
 			return current
+		},
+		get parts() {
+			return parts
 		},
 		get kinematicsComponents() {
 			return kinematicsComponents

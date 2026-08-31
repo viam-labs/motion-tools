@@ -7,6 +7,7 @@
 
 	import Camera from '$lib/components/Camera.svelte'
 	import Entities from '$lib/components/Entities/Entities.svelte'
+	import RealisticLighting from '$lib/components/RealisticLighting.svelte'
 	import Selected from '$lib/components/Selected.svelte'
 	import SelectedTransformControls from '$lib/components/SelectedTransformControls.svelte'
 	import { traits, useQuery } from '$lib/ecs'
@@ -69,6 +70,8 @@
 			}
 		},
 	})
+
+	const isRealistic = $derived(settings.current.renderMode === 'realistic')
 </script>
 
 <KeyboardBindings />
@@ -110,5 +113,9 @@
 
 {@render children?.()}
 
-<T.DirectionalLight position={[3, 3, 3]} />
-<T.AmbientLight />
+{#if isRealistic}
+	<RealisticLighting />
+{:else}
+	<T.DirectionalLight position={[3, 3, 3]} />
+	<T.AmbientLight />
+{/if}

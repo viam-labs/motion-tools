@@ -15,13 +15,15 @@
 	import type { Entity } from 'koota'
 	import type { Snippet } from 'svelte'
 
-	import { T, type Props as ThrelteProps } from '@threlte/core'
+	import { T, type Props as ThrelteProps, useThrelte } from '@threlte/core'
 	import { type ThrelteGltf, useGltfAnimations } from '@threlte/extras'
 	import { Group, type Object3D } from 'three'
 
 	import { traits, useTrait } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
 
 	import { useEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { setModelWireframe } from './setModelWireframe'
 
 	interface Props extends ThrelteProps<Object3D> {
 		entity: Entity
@@ -29,6 +31,9 @@
 	}
 
 	let { entity, children, ...rest }: Props = $props()
+
+	const { invalidate } = useThrelte()
+	const settings = useSettings()
 
 	const { gltf, actions } = useGltfAnimations()
 
@@ -77,6 +82,21 @@
 		if (animationName) {
 			$actions[animationName]?.play()
 		}
+	})
+
+	// `castShadow` is not inherited, so setting it on the group the scene mounts
+	// under would do nothing. Realistic mode is the only mode that renders shadows.
+	$effect.pre(() => {
+		$gltf?.scene.traverse((object) => {
+			object.castShadow = true
+			object.receiveShadow = true
+		})
+	})
+
+	$effect.pre(() => {
+		if (!$gltf) return
+		setModelWireframe($gltf.scene, settings.current.renderMode === 'wireframe')
+		invalidate()
 	})
 </script>
 

@@ -22,7 +22,6 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		EdgesGeometry,
 		LineBasicMaterial,
 		Matrix4,
-		MeshToonMaterial,
 		Sphere,
 		Vector3,
 	} from 'three'
@@ -30,12 +29,16 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { createSurfaceMaterial } from '$lib/three/surfaceShading'
 
 	import { composeBoxMatrix } from './composeBoxMatrix'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { useSurfaceMaterials } from './hooks/useSurfaceMaterials.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
+	const settings = useSettings()
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
@@ -52,12 +55,17 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * disabled because the library culls per instance against a bounding sphere
 	 * it derives from each instance matrix.
 	 */
-	const instancedBoxes = new InstancedMesh2(unitBox, new MeshToonMaterial({ transparent: true }), {
-		renderer,
-	})
+	const faceParameters = { transparent: true }
+	const instancedBoxes = new InstancedMesh2(
+		unitBox,
+		createSurfaceMaterial(settings.current.renderMode, faceParameters),
+		{ renderer }
+	)
 	instancedBoxes.sortObjects = true
 	instancedBoxes.customSort = createRadixSort(instancedBoxes)
 	instancedBoxes.frustumCulled = false
+	instancedBoxes.castShadow = true
+	instancedBoxes.receiveShadow = true
 
 	/**
 	 * Keep raycasts on the library's linear (non-BVH) path, but neutralize
@@ -69,6 +77,8 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * box into the tree on every kinematics tick.
 	 */
 	instancedBoxes.boundingSphere = new Sphere(new Vector3(), Infinity)
+
+	useSurfaceMaterials([{ mesh: instancedBoxes, parameters: faceParameters }])
 
 	const instancedBoxEdges = new InstancedMesh2(unitBoxEdges, new LineBasicMaterial(), {
 		renderer,

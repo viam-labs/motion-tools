@@ -3,11 +3,35 @@
 
 	import ToggleGroup from '$lib/components/overlay/ToggleGroup.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { RENDER_MODES, type RenderMode } from '$lib/three/surfaceShading'
 
 	const settings = useSettings()
+
+	const renderModeOptions = $derived(
+		RENDER_MODES.map((mode) => ({
+			label: mode,
+			value: mode,
+			selected: settings.current.renderMode === mode,
+		}))
+	)
 </script>
 
 <div class="text-gray-9 flex flex-col gap-1 text-xs">
+	<label class="flex items-center justify-between gap-2 py-1">
+		Shading
+
+		<ToggleGroup
+			options={renderModeOptions}
+			onSelect={([mode]) => {
+				// Pressing the active button clears the group's value. A scene always has
+				// a shading mode, so an empty selection keeps the current one.
+				if (mode) {
+					settings.current.renderMode = mode as RenderMode
+				}
+			}}
+		/>
+	</label>
+
 	<label class="flex items-center justify-between gap-2 py-1">
 		Arm Models
 

@@ -21,7 +21,6 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 		EdgesGeometry,
 		LineBasicMaterial,
 		Matrix4,
-		MeshToonMaterial,
 		Sphere,
 		SphereGeometry,
 		Vector3,
@@ -30,12 +29,16 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	import { asColor } from '$lib/buffer'
 	import { colors, darkenColor } from '$lib/color'
 	import { traits, useWorld } from '$lib/ecs'
+	import { useSettings } from '$lib/hooks/useSettings.svelte'
+	import { createSurfaceMaterial } from '$lib/three/surfaceShading'
 
 	import { composeSphereMatrix } from './composeSphereMatrix'
 	import { useInstancedEntityEvents } from './hooks/useEntityEvents.svelte'
+	import { useSurfaceMaterials } from './hooks/useSurfaceMaterials.svelte'
 
 	const { invalidate, renderer } = useThrelte()
 	const world = useWorld()
+	const settings = useSettings()
 
 	/**
 	 * Shared unit geometries — every instance references these and sets its
@@ -53,14 +56,17 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * disabled because the library culls per instance against a bounding sphere
 	 * it derives from each instance matrix.
 	 */
+	const faceParameters = { transparent: true }
 	const instancedSpheres = new InstancedMesh2(
 		unitSphere,
-		new MeshToonMaterial({ transparent: true }),
+		createSurfaceMaterial(settings.current.renderMode, faceParameters),
 		{ renderer }
 	)
 	instancedSpheres.sortObjects = true
 	instancedSpheres.customSort = createRadixSort(instancedSpheres)
 	instancedSpheres.frustumCulled = false
+	instancedSpheres.castShadow = true
+	instancedSpheres.receiveShadow = true
 
 	/**
 	 * Keep raycasts on the library's linear (non-BVH) path, but neutralize
@@ -72,6 +78,8 @@ on each hit, which `useInstancedEntityEvents` maps back to the entity.
 	 * sphere into the tree on every kinematics tick.
 	 */
 	instancedSpheres.boundingSphere = new Sphere(new Vector3(), Infinity)
+
+	useSurfaceMaterials([{ mesh: instancedSpheres, parameters: faceParameters }])
 
 	const instancedSphereEdges = new InstancedMesh2(unitSphereEdges, new LineBasicMaterial(), {
 		renderer,

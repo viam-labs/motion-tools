@@ -7,6 +7,7 @@
 
 	import { ViamAppProvider, ViamProvider } from '@viamrobotics/svelte-sdk'
 
+	import { page } from '$app/state'
 	import { Visualizer } from '$lib'
 	import { backendIP, drawServicePort } from '$lib/defines'
 	import {
@@ -14,8 +15,8 @@
 		ControlWidgets,
 		DrawService,
 		FileDrop,
-		Focus,
 		FramePov,
+		Isolate,
 		Logs,
 		MeasureTool,
 		Monitor,
@@ -32,6 +33,7 @@
 		provideConnectionConfigs,
 		useActiveConnectionConfig,
 	} from './lib/hooks/useConnectionConfigs.svelte'
+	import { readDrawServicePortOverride } from './lib/readDrawServicePortOverride'
 	import { getDialConfs } from './lib/robots'
 
 	provideConnectionConfigs()
@@ -59,6 +61,8 @@
 	let isMachinesPageOpen = $state(false)
 
 	let pluginsEnabled = true
+
+	const portOverride = $derived(readDrawServicePortOverride(page.url.search))
 </script>
 
 <ViamProvider
@@ -91,8 +95,8 @@
 				{@render children()}
 
 				{#if pluginsEnabled}
-					<DrawService config={{ backendIP, port: drawServicePort }} />
-					<Focus />
+					<DrawService config={{ backendIP, port: portOverride ?? drawServicePort }} />
+					<Isolate />
 					<MeasureTool />
 
 					<Monitor />

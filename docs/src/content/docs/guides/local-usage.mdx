@@ -151,10 +151,9 @@ Both apps render the same draw stream, so you'll see your `client/api` calls ref
 	type="note"
 	title="Moving the other ports"
 >
-	`make up` also accepts `DRAW_SERVICE_PORT` (default `3030`, the Connect-RPC draw server) and
-	`SCENE_BUILDER_PORT` (default `3000`, the LLM scene builder). Both move the server and the browser
-	together. The Go `client/api` package still targets `:3030`, so if you move the draw server, point
-	your producer code at the same port.
+	`make up` also accepts `DRAW_SERVICE_PORT` (default `3030`, the Connect-RPC draw server), which
+	moves the server and the browser together. The Go `client/api` package targets `:3030`, so if you
+	move the draw server, point your producer code at the same port.
 </Aside>
 
 ## Troubleshooting
@@ -163,13 +162,12 @@ Both apps render the same draw stream, so you'll see your `client/api` calls ref
 
 You need to apply the shell-config snippet that `make setup` printed at the end and restart your terminal. The new binaries live under `~/.local/share/fnm` and similar paths that aren't on `PATH` until your shell config sources them.
 
-### Port `5173`, `3030`, or `3000` is already in use
+### Port `5173` or `3030` is already in use
 
-`make up` binds three: `:5173` for the app, `:3030` for the draw server, and `:3000` for the scene
-builder. Each has its own override:
+`make up` binds two: `:5173` for the app and `:3030` for the draw server. Each has its own override:
 
 ```bash
-make up STATIC_PORT=5180 DRAW_SERVICE_PORT=3031 SCENE_BUILDER_PORT=3001
+make up STATIC_PORT=5180 DRAW_SERVICE_PORT=3031
 ```
 
 ### `pnpm proto` fails with "buf: command not found"

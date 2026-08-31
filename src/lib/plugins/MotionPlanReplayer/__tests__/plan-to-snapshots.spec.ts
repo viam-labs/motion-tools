@@ -5,7 +5,7 @@ import type { PoseInFrame, Transform } from '$lib/buf/common/v1/common_pb'
 
 import { OrientationVector } from '$lib/math/OrientationVector'
 
-import { parsePlan } from '../parse-plan'
+import { parsePlan, PlanParseError } from '../parse-plan'
 import { parsedPlanToSnapshots } from '../plan-to-snapshots'
 import gantryPlan from './__fixtures__/gantry-plan.json?raw'
 import pirouettePlan from './__fixtures__/pirouette-plan.json?raw'
@@ -309,6 +309,50 @@ describe('parsedPlanToSnapshots with a model whose joints mimic', () => {
 			expect(tip.x).toBeCloseTo(100, 6)
 			expect(tip.y).toBeCloseTo(0, 6)
 			expect(tip.z).toBeCloseTo(200, 6)
+		})
+	})
+})
+
+describe('parsedPlanToSnapshots given a frame it cannot draw', () => {
+	const content =
+		JSON.stringify({
+			frame_system: {
+				frames: {
+					arm: {
+						frame_type: 'model',
+						frame: { name: 'arm', model: { joints: [{ id: 'waist' }] } },
+					},
+					'arm:waist': {
+						frame_type: 'named',
+						frame: {
+							inner_frame: { frame_type: 'rotational', frame: { axis: { X: 0, Y: 0, Z: 0 } } },
+						},
+					},
+				},
+				parents: { 'arm:waist': 'world' },
+			},
+			goals: [],
+			start_state: {},
+		}) + JSON.stringify(RESULT)
+
+	it('raises a PlanParseError, the one type both callers present to the user', () => {
+		expect(() => snapshotsFromContent(content)).toThrow(PlanParseError)
+	})
+
+	it('names the offending joint rather than reporting a generic failure', () => {
+		expect(() => snapshotsFromContent(content)).toThrow(/arm:waist/)
+	})
+
+	it('keeps the underlying error as the cause', () => {
+		let caught: unknown
+		try {
+			snapshotsFromContent(content)
+		} catch (error) {
+			caught = error
+		}
+
+		expect((caught as PlanParseError).cause).toMatchObject({
+			message: 'joint "arm:waist" has a zero-length axis',
 		})
 	})
 })
