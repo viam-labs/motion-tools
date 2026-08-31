@@ -21,6 +21,7 @@ import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { isPointCloud } from '$lib/geometry'
 import { Pose } from '$lib/math'
 import { metadataFromStruct } from '$lib/metadata'
+import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
@@ -130,6 +131,7 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 	const { invalidate } = useThrelte()
 	const world = useWorld()
 	const relationships = useRelationships()
+	const logs = useLogs()
 
 	const entities = new Map<string, Entity>()
 	// UUIDs the stream has removed; guards against a stale initial snapshot or a
@@ -202,6 +204,9 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 				invalidate()
 			}
 		} catch (error) {
+			logs.add(`World state store: could not fetch transform ${uuid}`, 'error', {
+				folder: 'world-state-store',
+			})
 			console.error('World state self-heal failed for', uuid, error)
 		} finally {
 			pendingSpawns.delete(uuid)
@@ -334,6 +339,9 @@ const createWorldState = (client: { current: WorldStateStoreClient | undefined }
 			}
 		} catch (error) {
 			if (!signal.aborted) {
+				logs.add('World state store: transform stream failed', 'error', {
+					folder: 'world-state-store',
+				})
 				console.error('World state transform stream error:', error)
 			}
 		}

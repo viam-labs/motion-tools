@@ -15,6 +15,31 @@
 		warn: true,
 		error: true,
 	})
+
+	const visible = $derived(logs.current.filter((log) => levels.current[log.level]))
+
+	/**
+	 * One badge, not two stacked in the same corner. Errors outrank warnings, so
+	 * that count is what the button carries when both are present.
+	 */
+	const alert = $derived.by(() => {
+		const { errorCount, warnCount } = logs
+		if (errorCount > 0) {
+			return {
+				count: errorCount,
+				class: 'bg-danger-dark',
+				label: `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} logged`,
+			}
+		}
+		if (warnCount > 0) {
+			return {
+				count: warnCount,
+				class: 'bg-warning-dark',
+				label: `${warnCount} ${warnCount === 1 ? 'warning' : 'warnings'} logged`,
+			}
+		}
+		return undefined
+	})
 </script>
 
 <WorkspacePortal>
@@ -32,7 +57,7 @@
 			<div
 				class="font-public-sans flex max-h-[420px] w-80 flex-col overflow-y-auto overscroll-contain"
 			>
-				<div class="sticky top-0 z-1 flex gap-1 bg-white px-3 py-2">
+				<div class="border-light sticky top-0 z-1 flex gap-1 border-b bg-white px-3 py-2">
 					<button
 						type="button"
 						class="group cursor-pointer rounded-full"
@@ -79,53 +104,70 @@
 					</button>
 				</div>
 
-				<div class="flex flex-col gap-2 px-3 pb-3 text-xs">
-					{#each logs.current as log (log.uuid)}
-						{#if levels.current[log.level]}
-							<div>
-								<div class="flex flex-wrap items-center gap-1.5">
-									<div
-										class={[
-											'h-2 w-2 rounded-full',
-											{
-												'bg-danger-dark': log.level === 'error',
-												'bg-amber-300': log.level === 'warn',
-												'bg-blue-400': log.level === 'info',
-											},
-										]}
-									></div>
-									<div class="text-subtle-2">{log.timestamp}</div>
-								</div>
-								<div>
-									{#if log.count > 1}
-										<span class="mr-1 rounded bg-green-700 px-1 py-0.5 text-xs text-white">
-											{log.count}
-										</span>
-									{/if}
-									{log.message}
-								</div>
-							</div>
+				{#if visible.length === 0}
+					<p class="text-subtle-2 px-3 py-6 text-center text-xs">
+						{#if logs.current.length === 0}
+							No logs yet.
+						{:else}
+							No logs at the selected levels.
 						{/if}
-					{:else}
-						No logs
-					{/each}
-				</div>
+					</p>
+				{:else}
+					<ul class="divide-gray-3 divide-y text-xs">
+						{#each visible as log (log.uuid)}
+							<li class="flex gap-2 px-3 py-2">
+								<span
+									class={[
+										'mt-1 size-2 shrink-0 rounded-full',
+										{
+											'bg-danger-dark': log.level === 'error',
+											'bg-warning-dark': log.level === 'warn',
+											'bg-info-dark': log.level === 'info',
+										},
+									]}
+									aria-hidden="true"
+								></span>
+
+								<div class="flex min-w-0 flex-col gap-0.5">
+									<div class="text-subtle-2 flex flex-wrap items-center gap-1.5">
+										<span>{log.timestamp}</span>
+
+										{#if log.resource}
+											<span class="font-roboto-mono text-subtle-1">{log.resource}</span>
+										{/if}
+
+										{#if log.count > 1}
+											<!--
+												The repeat count, so a message that fires every refresh tick
+												occupies one row instead of scrolling the rest out of reach.
+											-->
+											<span
+												class="bg-medium text-subtle-1 rounded-full px-1.5 leading-4 tabular-nums"
+											>
+												×{log.count}
+											</span>
+										{/if}
+									</div>
+
+									<span class="text-default wrap-break-word">{log.message}</span>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		</Popover>
 
-		{#if logs.warnings.length > 0}
+		{#if alert}
 			<span
-				class="absolute z-4 -mt-1.5 -ml-1.5 h-4 w-4 rounded-full bg-yellow-700 text-center text-[10px] text-white"
+				role="status"
+				aria-label={alert.label}
+				class={[
+					'absolute z-4 -mt-1.5 -ml-1.5 h-4 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 text-white tabular-nums',
+					alert.class,
+				]}
 			>
-				{logs.warnings.length}
-			</span>
-		{/if}
-
-		{#if logs.errors.length > 0}
-			<span
-				class="absolute z-4 -mt-1.5 -ml-1.5 h-4 rounded-full bg-red-700 px-1.25 text-center text-[10px] text-white"
-			>
-				{logs.errors.length}
+				{alert.count}
 			</span>
 		{/if}
 	</fieldset>

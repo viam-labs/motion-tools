@@ -5,12 +5,16 @@
 	import { ChevronRight, Eye, EyeOff, Folder, FolderOpen } from 'lucide-svelte'
 	import { VirtualList } from 'svelte-virtuallists'
 
+	import type { LogTarget } from '$lib/plugins/Logs/useLogs.svelte'
+
 	import EntityLink from '$lib/components/overlay/EntityLink.svelte'
 	import { traits, useTrait } from '$lib/ecs'
+	import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
 	import type { TreeNode } from './buildTree'
 
 	import FolderSettingsButton from './FolderSettingsButton.svelte'
+	import LogStatusIndicator from './LogStatusIndicator.svelte'
 	import Self from './TreeNode.svelte'
 
 	interface Props {
@@ -31,6 +35,19 @@
 			? chunkProgress.current.loaded / chunkProgress.current.total
 			: 0
 	)
+
+	/**
+	 * A folder stands for the API that fills it, so it is marked by its own id
+	 * rather than by its display name, which a resource could collide with.
+	 */
+	const logTarget = $derived<LogTarget>(
+		node.folder ? { folder: node.folder.id } : { resource: name.current }
+	)
+
+	// A map lookup per row, waking only when a row's worst level changes, so a
+	// repeating message costs the tree nothing. Healthy rows mount no indicator.
+	const logs = useLogs()
+	const logStatus = $derived(logs.statusFor(logTarget))
 
 	const nodeProps = $derived({ indexPath, node })
 	const nodeState = $derived(api.getNodeState(nodeProps))
@@ -77,7 +94,19 @@
 	</div>
 {/snippet}
 
+{#snippet logIndicator()}
+	{#if logStatus}
+		<LogStatusIndicator
+			target={logTarget}
+			label={name.current ?? ''}
+			status={logStatus}
+		/>
+	{/if}
+{/snippet}
+
 {#snippet folderActions()}
+	{@render logIndicator()}
+
 	{#if node.folder?.refreshRate}
 		<FolderSettingsButton
 			id={node.folder.refreshRate}
@@ -87,6 +116,8 @@
 {/snippet}
 
 {#snippet itemActions()}
+	{@render logIndicator()}
+
 	{#if loading}
 		<span
 			role="progressbar"
@@ -165,7 +196,7 @@
 
 			{#if !node.folder}
 				{@render actionColumn(itemActions)}
-			{:else if node.folder.refreshRate}
+			{:else if node.folder.refreshRate || logStatus}
 				{@render actionColumn(folderActions)}
 			{/if}
 		</div>
@@ -215,6 +246,9 @@
 
 		{#if !node.sceneless}
 			{@render actionColumn(itemActions)}
+		{:else if logStatus}
+			<!-- No visibility toggle here, but a row reporting a problem still says so. -->
+			{@render actionColumn(logIndicator)}
 		{/if}
 	</div>
 {/if}
