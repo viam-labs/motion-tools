@@ -10,15 +10,12 @@
 	import type { HTMLAttributes } from 'svelte/elements'
 
 	import { draggable } from '@neodrag/svelte'
-	import { useThrelte } from '@threlte/core'
 	import { Portal } from '@threlte/extras'
 	import { Icon } from '@viamrobotics/prime-core'
 	import { type Entity } from 'koota'
 	import { Check, Copy } from 'lucide-svelte'
 
-	import { focusCameraOnEntities } from '$lib/components/Entities/focusCameraOnEntities'
 	import { traits, useParentName, useTrait, useWorld } from '$lib/ecs'
-	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { useResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
@@ -31,8 +28,8 @@
 		/** The mode's details, rendered under the shared header. */
 		children: Snippet
 		/**
-		 * Header actions that read a scene object: zoom to it, view from it, copy
-		 * its pose. Turn off for a row that only exists in the config.
+		 * Header actions that read a scene object: view from it, copy its pose.
+		 * Turn off for a row that only exists in the config.
 		 */
 		sceneActions?: boolean
 	}
@@ -40,13 +37,9 @@
 	const { entity, children, sceneActions = true, ...rest }: Props = $props()
 
 	const world = useWorld()
-	const { scene } = useThrelte()
-	const controls = useCameraControls()
 	const resourceByName = useResourceByName()
 	const partID = usePartID()
 	const settings = useSettings()
-
-	const object3d = $derived(scene.getObjectByName(entity as unknown as string))
 
 	const name = useTrait(() => entity, traits.Name)
 	const parent = useParentName(() => entity)
@@ -60,19 +53,6 @@
 	const cylinder = useTrait(() => entity, traits.Cylinder)
 	const removable = useTrait(() => entity, traits.Removable)
 	const framesAPI = useTrait(() => entity, traits.FramesAPI)
-
-	// `object3d` is undefined for instanced primitives and geometry-less frames, so
-	// `focusCameraOnEntities` resolves bounds from traits instead. Offer the button
-	// only when one of those sources exists.
-	const focusable = $derived(
-		sceneActions &&
-			(object3d !== undefined ||
-				box.current !== undefined ||
-				sphere.current !== undefined ||
-				capsule.current !== undefined ||
-				cylinder.current !== undefined ||
-				worldMatrix.current !== undefined)
-	)
 
 	const localPose = $derived.by<Pose | undefined>(() => {
 		const source = editedMatrix.current ?? matrix.current
@@ -172,24 +152,6 @@ just the inputs) raises it via `focus-within:z-5`. -->
 				<strong class="overflow-hidden text-nowrap text-ellipsis">{name.current}</strong>
 				<span class="text-subtle-2">{displayType}</span>
 			</div>
-
-			{#if focusable}
-				<Tooltip placement="bottom">
-					{#snippet children(tooltipID)}
-						<button
-							class="text-subtle-2"
-							aria-describedby={tooltipID}
-							onclick={() => {
-								focusCameraOnEntities(controls.current, scene, [entity])
-							}}
-						>
-							<Icon name="image-filter-center-focus" />
-						</button>
-					{/snippet}
-
-					{#snippet content()}Zoom to object{/snippet}
-				</Tooltip>
-			{/if}
 
 			{#if name.current && sceneActions}
 				<Tooltip placement="bottom">
