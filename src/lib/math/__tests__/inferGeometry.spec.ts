@@ -42,7 +42,7 @@ const divergentCases = Object.entries(RDK_VALIDATION_DIVERGENCES).map(([name, po
 
 describe('inferGeometryType, against the types RDK resolved in geometry_infer_golden.json', () => {
 	it('loads all 20 cases the Go generator wrote', () => {
-        // TODO: needed check? motivation is in case the number of cases fails, this breaks and forces to take a look
+		// TODO: needed check? motivation is in case the number of cases fails, this breaks and forces to take a
 		expect(goldenCases.length).toBe(20)
 	})
 
@@ -51,6 +51,7 @@ describe('inferGeometryType, against the types RDK resolved in geometry_infer_go
 	})
 })
 
+// TODO: add explanation for divergent cases
 describe('inferGeometryType, on the configs RDK builds no geometry from', () => {
 	it.each(divergentCases)(
 		'answers $portResult for $name, where RDK yields nothing',

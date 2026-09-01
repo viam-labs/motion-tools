@@ -2,8 +2,6 @@ package rdkmath
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/golang/geo/r3"
@@ -11,26 +9,25 @@ import (
 	"go.viam.com/test"
 )
 
-// goldenPath is read by src/lib/math/__tests__/inferGeometry.spec.ts, which asserts that the
-// TypeScript port of this inference agrees with what RDK resolved here. Regenerate it with
-// `pnpm test:rdk-golden` and commit the result; a change to the file is a change to the contract.
-const goldenPath = "testdata/geometry_infer_golden.json"
+// geometryGoldenName is read by src/lib/math/__tests__/inferGeometry.spec.ts, which asserts that
+// the TypeScript port of this inference agrees with what RDK resolved here.
+const geometryGoldenName = "geometry_infer_golden.json"
 
-// goldenCase pairs the wire JSON a config serializes to with the geometry type RDK resolved it to.
-// An empty resolvedType means ParseConfig yielded no geometry at all.
-type goldenCase struct {
+// geometryGoldenCase pairs the wire JSON a config serializes to with the geometry type RDK
+// resolved it to. An empty resolvedType means ParseConfig yielded no geometry at all.
+type geometryGoldenCase struct {
 	Name         string          `json:"name"`
 	Geometry     json.RawMessage `json:"geometry"`
 	ResolvedType string          `json:"resolvedType"`
 }
 
-type goldenFile struct {
-	Source string       `json:"source"`
-	Cases  []goldenCase `json:"cases"`
+type geometryGoldenFile struct {
+	Source string               `json:"source"`
+	Cases  []geometryGoldenCase `json:"cases"`
 }
 
 // TestGeometryInferGolden pins how spatialmath.GeometryConfig.ParseConfig resolves a geometry type,
-// and writes those verdicts to goldenPath for the TypeScript port to check itself against.
+// and writes those verdicts to the golden file for the TypeScript port to check itself against.
 func TestGeometryInferGolden(t *testing.T) {
 	translation := r3.Vector{X: 1, Y: 1, Z: 1}
 
@@ -62,9 +59,9 @@ func TestGeometryInferGolden(t *testing.T) {
 		{"infer nothing from an empty config", sm.GeometryConfig{}, ""},
 	}
 
-	golden := goldenFile{
+	golden := geometryGoldenFile{
 		Source: "go.viam.com/rdk spatialmath.GeometryConfig.ParseConfig",
-		Cases:  make([]goldenCase, 0, len(testCases)),
+		Cases:  make([]geometryGoldenCase, 0, len(testCases)),
 	}
 
 	for _, testCase := range testCases {
@@ -74,7 +71,7 @@ func TestGeometryInferGolden(t *testing.T) {
 
 			test.That(t, resolveGeometryType(t, testCase.config), test.ShouldEqual, testCase.want)
 
-			golden.Cases = append(golden.Cases, goldenCase{
+			golden.Cases = append(golden.Cases, geometryGoldenCase{
 				Name:         testCase.name,
 				Geometry:     wire,
 				ResolvedType: testCase.want,
@@ -82,7 +79,7 @@ func TestGeometryInferGolden(t *testing.T) {
 		})
 	}
 
-	writeGolden(t, golden)
+	writeGolden(t, geometryGoldenName, golden)
 }
 
 // resolveGeometryType reports the type RDK settles a config on, or "" when it builds no geometry.
@@ -99,17 +96,4 @@ func resolveGeometryType(t *testing.T, config sm.GeometryConfig) string {
 	resolved, err := sm.NewGeometryConfig(geometry)
 	test.That(t, err, test.ShouldBeNil)
 	return string(resolved.Type)
-}
-
-func writeGolden(t *testing.T, golden goldenFile) {
-	t.Helper()
-
-	err := os.MkdirAll(filepath.Dir(goldenPath), 0o755)
-	test.That(t, err, test.ShouldBeNil)
-
-	encoded, err := json.MarshalIndent(golden, "", "\t")
-	test.That(t, err, test.ShouldBeNil)
-
-	err = os.WriteFile(goldenPath, append(encoded, '\n'), 0o644)
-	test.That(t, err, test.ShouldBeNil)
 }
