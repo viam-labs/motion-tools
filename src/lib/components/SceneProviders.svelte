@@ -19,6 +19,10 @@
 	import { provideResourceByName } from '$lib/hooks/useResourceByName.svelte'
 	import { provideWorldStates } from '$lib/hooks/useWorldState.svelte'
 
+	import ArmModels from './Machine/ArmModels.svelte'
+	import PointCloudObjects from './Machine/PointCloudObjects.svelte'
+	import PointClouds from './Machine/PointClouds.svelte'
+
 	interface Props {
 		children: Snippet
 	}
@@ -49,5 +53,9 @@
 
 	provideLinkedEntities()
 </script>
+
+<PointClouds />
+<PointCloudObjects />
+<ArmModels />
 
 {@render children()}
