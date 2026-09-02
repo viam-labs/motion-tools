@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Badge } from '@viamrobotics/prime-core'
+	import { Badge, Icon } from '@viamrobotics/prime-core'
 	import { PersistedState } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
@@ -76,7 +76,9 @@
 			<div
 				class="font-public-sans flex max-h-[420px] w-80 flex-col overflow-y-auto overscroll-contain"
 			>
-				<div class="border-light sticky top-0 z-1 flex gap-1 border-b bg-white px-3 py-2">
+				<div
+					class="border-light sticky top-0 z-1 flex items-center gap-1 border-b bg-white px-3 py-2"
+				>
 					<button
 						type="button"
 						class="group cursor-pointer rounded-full"
@@ -119,6 +121,21 @@
 							label="info"
 							variant={levels.current.info ? 'neutral' : 'inactive'}
 							cx="transition group-hover:brightness-95"
+						/>
+					</button>
+
+					<button
+						type="button"
+						aria-label="Clear all logs"
+						disabled={logs.current.length === 0}
+						class="text-subtle-2 hover:text-default hover:bg-ghost-light focus-visible:outline-gray-6 disabled:text-disabled ml-auto shrink-0 cursor-pointer rounded-xs p-1 transition-colors focus-visible:outline focus-visible:-outline-offset-1 disabled:cursor-default disabled:bg-transparent"
+						onclick={() => {
+							logs.clear()
+						}}
+					>
+						<Icon
+							name="trash-can-outline"
+							size="sm"
 						/>
 					</button>
 				</div>
