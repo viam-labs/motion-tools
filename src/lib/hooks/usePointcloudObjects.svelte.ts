@@ -1,20 +1,24 @@
-import type { ResourceName } from '@viamrobotics/sdk'
-
-import { useResourceNames } from '@viamrobotics/svelte-sdk'
+import { useResourceStatuses } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 
 const key = Symbol('pointcloud-object-context')
 
 interface Context {
 	refetch: () => void
-	readonly services: ResourceName[]
-	/** Each mounted vision service registers its own refetch here, keyed by name. */
+	readonly services: string[]
+	/** Each mounted vision service registers its own refetch here, keyed by partID:name. */
 	readonly refetchers: Map<string, () => void>
 }
 
 export const providePointcloudObjects = (partID: () => string) => {
-	const services = useResourceNames(partID, 'vision')
+	const statuses = useResourceStatuses(partID, 'vision')
 	const refetchers = new Map<string, () => void>()
+
+	const services = $derived(
+		statuses.current
+			.map((status) => status.name?.name)
+			.filter((name): name is string => name !== undefined)
+	)
 
 	setContext<Context>(key, {
 		refetch() {
@@ -23,7 +27,7 @@ export const providePointcloudObjects = (partID: () => string) => {
 			}
 		},
 		get services() {
-			return services.current
+			return services
 		},
 		refetchers,
 	})

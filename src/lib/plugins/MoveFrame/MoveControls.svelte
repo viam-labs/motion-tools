@@ -5,7 +5,7 @@
 
 	import { Button, ToastVariant, useToast } from '@viamrobotics/prime-core'
 	import { MotionClient } from '@viamrobotics/sdk'
-	import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { createResourceClient, useResourceStatuses } from '@viamrobotics/svelte-sdk'
 	import { PersistedState } from 'runed'
 	import {
 		List,
@@ -58,9 +58,13 @@
 	const frames = useFrames()
 	const partID = usePartID()
 	const toast = useToast()
-	const motionResources = useResourceNames(() => partID.current, 'motion')
+	const motionResources = useResourceStatuses(() => partID.current, 'motion')
 
-	const motionServices = $derived(motionServiceNames(motionResources.current))
+	const motionServices = $derived(
+		motionServiceNames(
+			motionResources.current.map((resource) => resource.name).filter((name) => name !== undefined)
+		)
+	)
 	const defaultService = $derived(defaultMotionService(motionServices))
 
 	let selectedService = $state<string>()

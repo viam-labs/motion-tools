@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Select, Switch } from '@viamrobotics/prime-core'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { useResourceStatuses } from '@viamrobotics/svelte-sdk'
 
 	import { useArmClient } from '$lib/hooks/useArmClient.svelte'
 	import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -9,19 +9,21 @@
 	const settings = useSettings()
 	const armClient = useArmClient()
 	const partID = usePartID()
-	const resources = useResourceNames(() => partID.current, 'gripper')
-	const cameraResources = useResourceNames(() => partID.current, 'camera')
+	const resources = useResourceStatuses(() => partID.current, 'gripper')
+	const cameraResources = useResourceStatuses(() => partID.current, 'camera')
 
 	const armNames = $derived(armClient.names || [])
 	const gripperNames = $derived(
 		resources.current
-			.filter((r) => r.subtype === 'gripper' && r.type === 'component')
-			.map((r) => r.name)
+			.filter((r) => r.name?.subtype === 'gripper' && r.name.type === 'component')
+			.map((r) => r.name?.name)
+			.filter((name): name is string => name !== undefined)
 	)
 	const cameraNames = $derived(
 		cameraResources.current
-			.filter((r) => r.subtype === 'camera' && r.type === 'component')
-			.map((r) => r.name)
+			.filter((r) => r.name?.subtype === 'camera' && r.name.type === 'component')
+			.map((r) => r.name?.name)
+			.filter((name): name is string => name !== undefined)
 	)
 
 	const config = $derived(settings.current.xrController)

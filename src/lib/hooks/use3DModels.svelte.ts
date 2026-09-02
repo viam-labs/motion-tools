@@ -2,8 +2,8 @@ import type { Entity } from 'koota'
 import type { Group, Object3D } from 'three'
 
 import { isInstanceOf } from '@threlte/core'
-import { type ArmClient, MachineConnectionEvent, type ResourceName } from '@viamrobotics/sdk'
-import { useConnectionStatus, useResourceNames } from '@viamrobotics/svelte-sdk'
+import { type ArmClient, MachineConnectionEvent } from '@viamrobotics/sdk'
+import { useConnectionStatus, useResourceStatuses } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -26,7 +26,7 @@ type ArmMeshes = Awaited<ReturnType<ArmClient['get3DModels']>>
 
 interface Context {
 	current: Models
-	readonly arms: ResourceName[]
+	readonly arms: string[]
 	/** Whether an arm's models are worth fetching at all. */
 	readonly shouldRender: boolean
 	/** Hands one arm's fetched meshes to the shared parse queue. */
@@ -90,7 +90,13 @@ export const provide3DModels = (partID: () => string) => {
 		settings.isLoaded && settings.current.renderArmModels.includes('model')
 	)
 
-	const arms = useResourceNames(partID, 'arm')
+	const armStatuses = useResourceStatuses(partID, 'arm')
+
+	const arms = $derived(
+		armStatuses.current
+			.map((status) => status.name?.name)
+			.filter((name): name is string => name !== undefined)
+	)
 
 	/**
 	 * Parsed models are owned here rather than derived from the queries. A
@@ -180,7 +186,7 @@ export const provide3DModels = (partID: () => string) => {
 	$effect(() => {
 		if (!isConnected) return
 
-		const configured = new Set(arms.current.map((arm) => arm.name))
+		const configured = new Set(arms)
 		const stale = Object.keys(parsedModels).filter((armName) => !configured.has(armName))
 
 		if (stale.length === 0) return
@@ -247,7 +253,7 @@ export const provide3DModels = (partID: () => string) => {
 			return current
 		},
 		get arms() {
-			return arms.current
+			return arms
 		},
 		get shouldRender() {
 			return shouldRenderModels

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { T, useTask } from '@threlte/core'
 	import { useController, type XRController } from '@threlte/xr'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
+	import { useResourceStatuses } from '@viamrobotics/svelte-sdk'
 	import { CanvasTexture, Mesh, PlaneGeometry, Raycaster } from 'three'
 
 	import { useArmClient } from '$lib/hooks/useArmClient.svelte'
@@ -18,13 +18,14 @@
 	const settings = useSettings()
 	const armClient = useArmClient()
 	const partID = usePartID()
-	let resources = useResourceNames(() => partID.current)
+	let resources = useResourceStatuses(() => partID.current)
 
 	const armNames = $derived(armClient.names || [])
 	const gripperNames = $derived(
 		resources?.current
-			?.filter((r) => r.subtype === 'gripper' && r.type === 'component')
-			.map((r) => r.name) || []
+			?.filter((r) => r.name?.subtype === 'gripper' && r.name.type === 'component')
+			.map((r) => r.name?.name)
+			.filter((name): name is string => name !== undefined) || []
 	)
 
 	type Hand = 'left' | 'right'

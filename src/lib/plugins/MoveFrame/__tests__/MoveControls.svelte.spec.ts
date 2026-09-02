@@ -3,7 +3,7 @@ import type { Entity } from 'koota'
 
 import '@testing-library/jest-dom/vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
-import { createResourceClient, useResourceNames } from '@viamrobotics/svelte-sdk'
+import { createResourceClient, useResourceStatuses } from '@viamrobotics/svelte-sdk'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePartID } from '$lib/hooks/usePartID.svelte'
@@ -54,15 +54,17 @@ vi.mock('@viamrobotics/prime-core', async (importOriginal) => ({
 }))
 
 vi.mock('@viamrobotics/svelte-sdk', () => ({
-	useResourceNames: vi.fn(),
+	useResourceStatuses: vi.fn(),
 	createResourceClient: vi.fn(() => ({ current: undefined })),
 	useRobotClient: vi.fn(() => ({ current: undefined })),
 	createRobotQuery: vi.fn(() => ({ data: undefined })),
 }))
 vi.mock('$lib/hooks/usePartID.svelte', () => ({ usePartID: vi.fn() }))
 
-const service = (name: string): ResourceName =>
-	({ namespace: 'rdk', type: 'service', subtype: 'motion', name }) as ResourceName
+const service = (name: string) =>
+	({
+		name: { namespace: 'rdk', type: 'service', subtype: 'motion', name },
+	}) as unknown as ResourceName
 
 /** The panel only hands the entity to the shell and the ghosts, both stubbed here. */
 const entity = 1 as unknown as Entity
@@ -83,7 +85,7 @@ describe('MoveControls', () => {
 	})
 
 	it('selects the built-in motion service by default', () => {
-		vi.mocked(useResourceNames).mockReturnValue({
+		vi.mocked(useResourceStatuses).mockReturnValue({
 			current: [service('planner'), service('builtin')],
 		} as never)
 
@@ -94,7 +96,7 @@ describe('MoveControls', () => {
 	})
 
 	it('falls back to the first motion service when there is no built-in', () => {
-		vi.mocked(useResourceNames).mockReturnValue({
+		vi.mocked(useResourceStatuses).mockReturnValue({
 			current: [service('planner'), service('secondary')],
 		} as never)
 
@@ -105,7 +107,7 @@ describe('MoveControls', () => {
 	})
 
 	it('offers the preview action alongside the move it previews', () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
@@ -114,7 +116,7 @@ describe('MoveControls', () => {
 	})
 
 	it('mounts the plan action disabled rather than hiding it until a plan exists', () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
@@ -125,7 +127,7 @@ describe('MoveControls', () => {
 	})
 
 	it('holds the actions back until a client is connected, not merely named', async () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 		vi.mocked(createResourceClient).mockReturnValue({ current: undefined } as never)
 		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
@@ -143,7 +145,7 @@ describe('MoveControls', () => {
 	})
 
 	it('waits for the frame pose before offering the pose inputs', () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
 
@@ -152,7 +154,7 @@ describe('MoveControls', () => {
 	})
 
 	it('seeds editable position and orientation inputs from the frame pose', async () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
@@ -167,7 +169,7 @@ describe('MoveControls', () => {
 	})
 
 	it('stages a target when a pose field is edited', async () => {
-		vi.mocked(useResourceNames).mockReturnValue({ current: [service('builtin')] } as never)
+		vi.mocked(useResourceStatuses).mockReturnValue({ current: [service('builtin')] } as never)
 		moved.matrix = new Pose(100, -250, 40).toMatrix4()
 
 		render(MoveControls, { props: { entity, frameName: 'arm' } })
