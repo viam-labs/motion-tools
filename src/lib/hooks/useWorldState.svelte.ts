@@ -25,8 +25,13 @@ import { Pose } from '$lib/math'
 import { metadataFromStruct } from '$lib/metadata'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 
+import { createStreamStats } from './createStreamStats'
 import { usePartID } from './usePartID.svelte'
 import { useRelationships } from './useRelationships.svelte'
+import {
+	provideWorldStateStreamStats,
+	type WorldStateStreamStatsRegistry,
+} from './worldStateStreamStats'
 
 type TransformEvent = TransformChangeEvent & {
 	transform: TransformWithUUID
@@ -34,15 +39,17 @@ type TransformEvent = TransformChangeEvent & {
 
 export const provideWorldStates = () => {
 	const partID = usePartID()
+	const streamStats = provideWorldStateStreamStats()
 	const resourceNames = useResourceNames(() => partID.current, 'world_state_store')
 	const clients = $derived(
-		resourceNames.current.map(({ name }) =>
-			createResourceClient(
+		resourceNames.current.map(({ name }) => ({
+			name,
+			client: createResourceClient(
 				WorldStateStoreClient,
 				() => partID.current,
 				() => name
-			)
-		)
+			),
+		}))
 	)
 
 	$effect(() => {
@@ -51,7 +58,9 @@ export const provideWorldStates = () => {
 		// Untracked: `createResourceQuery` reads `client.current` while it builds its
 		// observer, so tracking the setup would re-run this effect on every
 		// connection change and the cleanup below would destroy every entity.
-		const cleanups = untrack(() => activeClients.map((client) => createWorldState(client)))
+		const cleanups = untrack(() =>
+			activeClients.map(({ client, name }) => createWorldState(client, name, streamStats))
+		)
 
 		return () => {
 			for (const cleanup of cleanups) {
@@ -130,11 +139,18 @@ const decodeWorldStateChunk = (response: unknown, fallbackStart: number): Entity
 	return { start, positions, colors, opacities, done }
 }
 
-const createWorldState = (client: ResourceClientContext<WorldStateStoreClient>) => {
+const createWorldState = (
+	client: ResourceClientContext<WorldStateStoreClient>,
+	name: string,
+	streamStats: WorldStateStreamStatsRegistry
+) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
 	const relationships = useRelationships()
 	const logs = useLogs()
+
+	const stats = createStreamStats()
+	const unregister = streamStats.register(name, stats)
 
 	const entities = new Map<string, Entity>()
 	// UUIDs the stream has removed; guards against a stale initial snapshot or a
@@ -301,7 +317,10 @@ const createWorldState = (client: ResourceClientContext<WorldStateStoreClient>) 
 			flushScheduled = false
 			const toApply = pendingEvents
 			pendingEvents = []
+			const start = performance.now()
 			applyEvents(toApply)
+			const end = performance.now()
+			stats.recordFlush({ start, end, applied: toApply.length, backlog: pendingEvents.length })
 		})
 	}
 
@@ -338,6 +357,7 @@ const createWorldState = (client: ResourceClientContext<WorldStateStoreClient>) 
 				if (!event.transform) continue
 
 				pendingEvents.push(event as TransformEvent)
+				stats.recordIngest(1)
 				scheduleFlush()
 			}
 		} catch (error) {
@@ -374,5 +394,6 @@ const createWorldState = (client: ResourceClientContext<WorldStateStoreClient>) 
 				entity.destroy()
 			}
 		}
+		unregister()
 	}
 }
