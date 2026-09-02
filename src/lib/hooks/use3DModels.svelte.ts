@@ -2,13 +2,8 @@ import type { Entity } from 'koota'
 import type { Group, Object3D } from 'three'
 
 import { isInstanceOf } from '@threlte/core'
-import { ArmClient, MachineConnectionEvent } from '@viamrobotics/sdk'
-import {
-	createResourceClient,
-	createResourceQuery,
-	useConnectionStatus,
-	useResourceNames,
-} from '@viamrobotics/svelte-sdk'
+import { type ArmClient, MachineConnectionEvent, type ResourceName } from '@viamrobotics/sdk'
+import { useConnectionStatus, useResourceNames } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
@@ -31,10 +26,15 @@ type ArmMeshes = Awaited<ReturnType<ArmClient['get3DModels']>>
 
 interface Context {
 	current: Models
+	readonly arms: ResourceName[]
+	/** Whether an arm's models are worth fetching at all. */
+	readonly shouldRender: boolean
+	/** Hands one arm's fetched meshes to the shared parse queue. */
+	parseArm: (armName: string, meshes: ArmMeshes) => void
 }
 
 // A model is static config data, so fetch it once per arm and keep it.
-const MODEL_QUERY_OPTIONS = {
+export const MODEL_QUERY_OPTIONS = {
 	staleTime: Infinity,
 	refetchOnMount: false,
 	refetchInterval: false as const,
@@ -91,17 +91,6 @@ export const provide3DModels = (partID: () => string) => {
 	)
 
 	const arms = useResourceNames(partID, 'arm')
-	const queryOptions = $derived({ ...MODEL_QUERY_OPTIONS, enabled: shouldRenderModels })
-
-	const armQueries = $derived(
-		arms.current.map((arm) => {
-			const client = createResourceClient(ArmClient, partID, () => arm.name)
-			return {
-				name: client.name,
-				query: createResourceQuery(client, 'get3DModels', () => queryOptions),
-			}
-		})
-	)
 
 	/**
 	 * Parsed models are owned here rather than derived from the queries. A
@@ -158,18 +147,16 @@ export const provide3DModels = (partID: () => string) => {
 		return didParse
 	}
 
-	const parseFetchedMeshes = async (fetched: { name: string; meshes: ArmMeshes }[]) => {
-		let didParse = false
+	// Sequential: parsing a GLB is CPU-bound, and racing every arm at once stalls
+	// the frame loop. Each arm queues onto the chain rather than parsing directly.
+	let parseQueue = Promise.resolve()
 
-		for (const { name, meshes } of fetched) {
-			// Sequential: parsing a GLB is CPU-bound, and racing every arm at once
-			// stalls the frame loop.
-			if (await parseArmMeshes(name, meshes)) {
-				didParse = true
+	const parseArm = (armName: string, meshes: ArmMeshes) => {
+		parseQueue = parseQueue.then(async () => {
+			if (await parseArmMeshes(armName, meshes)) {
+				publish()
 			}
-		}
-
-		if (didParse) publish()
+		})
 	}
 
 	// Declared before the effects that fill the cache so a part switch clears it
@@ -183,16 +170,6 @@ export const provide3DModels = (partID: () => string) => {
 			}
 			current = {}
 		}
-	})
-
-	$effect(() => {
-		const fetched = armQueries.flatMap(({ name, query }) =>
-			query.data ? [{ name, meshes: query.data }] : []
-		)
-
-		if (fetched.length === 0) return
-
-		void parseFetchedMeshes(fetched)
 	})
 
 	/**
@@ -269,6 +246,13 @@ export const provide3DModels = (partID: () => string) => {
 		get current() {
 			return current
 		},
+		get arms() {
+			return arms.current
+		},
+		get shouldRender() {
+			return shouldRenderModels
+		},
+		parseArm,
 	})
 }
 
