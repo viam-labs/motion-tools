@@ -8,9 +8,9 @@
 	const models = use3DModels()
 </script>
 
-{#each models.arms as arm (arm.name)}
+{#each models.arms as name (name)}
 	<ArmModel
 		partID={partID.current}
-		name={arm.name}
+		{name}
 	/>
 {/each}

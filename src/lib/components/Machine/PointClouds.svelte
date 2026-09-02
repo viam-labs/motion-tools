@@ -8,9 +8,9 @@
 	const pointclouds = usePointClouds()
 </script>
 
-{#each pointclouds.cameras as camera (camera.name)}
+{#each pointclouds.cameras as name (name)}
 	<PointCloud
 		partID={partID.current}
-		name={camera.name}
+		{name}
 	/>
 {/each}

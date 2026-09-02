@@ -8,9 +8,9 @@
 	const pointcloudObjects = usePointcloudObjects()
 </script>
 
-{#each pointcloudObjects.services as service (service.name)}
+{#each pointcloudObjects.services as name (name)}
 	<PointCloudObject
 		partID={partID.current}
-		name={service.name}
+		{name}
 	/>
 {/each}

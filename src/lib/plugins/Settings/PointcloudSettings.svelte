@@ -1,15 +1,11 @@
 <script lang="ts">
 	import { Input, Switch } from '@viamrobotics/prime-core'
-	import { useResourceNames } from '@viamrobotics/svelte-sdk'
 	import { Color } from 'three'
 
 	import RefreshRate from '$lib/components/overlay/RefreshRate.svelte'
-	import { usePartID } from '$lib/hooks/usePartID.svelte'
 	import { usePointClouds } from '$lib/hooks/usePointclouds.svelte'
 	import { RefreshRates, useSettings } from '$lib/hooks/useSettings.svelte'
 
-	const partID = usePartID()
-	const cameras = useResourceNames(() => partID.current, 'camera')
 	const settings = useSettings()
 	const pointclouds = usePointClouds()
 
@@ -83,13 +79,13 @@
 
 	<h3 class="border-gray-3 border-b py-1 text-sm"><strong>Enabled cameras</strong></h3>
 
-	{#each cameras.current as camera (camera)}
+	{#each pointclouds.cameras as camera (camera)}
 		<div class="flex items-center justify-between py-0.5 text-xs">
-			{camera.name}
+			{camera}
 			<Switch
-				on={disabledCameras[camera.name] !== true}
+				on={disabledCameras[camera] !== true}
 				on:change={(event) => {
-					disabledCameras[camera.name] = !event.detail
+					disabledCameras[camera] = !event.detail
 				}}
 			/>
 		</div>
