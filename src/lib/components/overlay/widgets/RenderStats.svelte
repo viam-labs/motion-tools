@@ -48,6 +48,7 @@
 	const formatMs = (value: number): string => `${value.toFixed(2)} ms`
 	const formatMb = (value: number): string => `${value.toFixed(0)} MB`
 	const formatCount = (value: number): string => Math.round(value).toLocaleString()
+	const formatKb = (value: number): string => `${(value / 1024).toFixed(1)} KB`
 
 	const { autoRenderTask, mainStage, renderer, renderStage } = useThrelte()
 	const world = useWorld()
@@ -85,6 +86,7 @@
 	let streamLive = $state.raw({
 		appliedLastFlush: 0,
 		backlog: 0,
+		bytesPerSecond: 0,
 		eventsPerSecond: 0,
 		flushFrameMs: 0,
 		flushMsLast: 0,
@@ -188,6 +190,7 @@
 	 */
 	const summarizeStreamStats = (now: number): typeof streamLive => {
 		let eventsPerSecond = 0
+		let bytesPerSecond = 0
 		let flushesPerSecond = 0
 		let appliedLastFlush = 0
 		let backlog = 0
@@ -199,6 +202,7 @@
 		for (const [, stats] of streamStats?.entries() ?? []) {
 			const snapshot = stats.snapshot(now)
 			eventsPerSecond += snapshot.eventsPerSecond
+			bytesPerSecond += snapshot.bytesPerSecond
 			flushesPerSecond += snapshot.flushesPerSecond
 			appliedLastFlush += snapshot.appliedLastFlush
 			backlog += snapshot.backlog
@@ -221,6 +225,7 @@
 		return {
 			appliedLastFlush,
 			backlog,
+			bytesPerSecond,
 			eventsPerSecond,
 			flushFrameMs,
 			flushMsLast,
@@ -411,6 +416,11 @@
 				value={streamLive.eventsPerSecond}
 				label="Events/s"
 				format={formatCount}
+			/>
+			<Monitor
+				value={streamLive.bytesPerSecond}
+				label="KB/s"
+				format={formatKb}
 			/>
 			<Monitor
 				value={streamLive.appliedLastFlush}

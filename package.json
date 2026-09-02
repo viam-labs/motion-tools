@@ -430,7 +430,7 @@
 			]
 		},
 		"proto:gen-ts": {
-			"command": "buf generate --template buf.gen.typescript.yaml",
+			"command": "buf generate --template buf.gen.typescript.yaml && buf generate \"buf.build/viamrobotics/api:$(awk '/viamrobotics.api/{getline; print $2; exit}' buf.lock)\" --path service/worldstatestore/v1/world_state_store.proto --template buf.gen.typescript.yaml",
 			"files": [
 				"protos/draw/**",
 				"protos/vendor/**",

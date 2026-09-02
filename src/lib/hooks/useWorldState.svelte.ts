@@ -1,21 +1,20 @@
+import type { RobotClient } from '@viamrobotics/sdk'
 import type { Entity } from 'koota'
 
 import { useThrelte } from '@threlte/core'
-import {
-	Struct,
-	type TransformChangeEvent,
-	TransformChangeType,
-	type TransformWithUUID,
-	WorldStateStoreClient,
-} from '@viamrobotics/sdk'
+import { Struct, WorldStateStoreClient } from '@viamrobotics/sdk'
 import {
 	createResourceClient,
 	createResourceQuery,
 	type ResourceClientContext,
 	useResourceNames,
+	useRobotClient,
 } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
 
+import type { Transform } from '$lib/buf/common/v1/common_pb'
+
+import { TransformChangeType } from '$lib/buf/service/worldstatestore/v1/world_state_store_pb'
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
 import { drawTransform, updateMetadata } from '$lib/draw'
@@ -24,6 +23,21 @@ import { isPointCloud } from '$lib/geometry'
 import { Pose } from '$lib/math'
 import { metadataFromStruct } from '$lib/metadata'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+import { drainWithBudget } from '$lib/worldstate/budgetedFlush'
+import { mergeChange } from '$lib/worldstate/coalesceTransformChanges'
+import { decodeRawChanges } from '$lib/worldstate/decodeRawChanges'
+import { createFlushScheduler } from '$lib/worldstate/flushScheduler'
+import {
+	type ApplyOutcome,
+	FLUSH_BUDGET_MS,
+	FLUSH_MAX_SPAWNS,
+	HIDDEN_FLUSH_INTERVAL_MS,
+	type IncomingChange,
+	type PendingChange,
+	type PendingTransformChanges,
+	type TransformField,
+} from '$lib/worldstate/pendingTransformChanges'
+import { openRawTransformStream } from '$lib/worldstate/rawTransformStream'
 
 import { createStreamStats } from './createStreamStats'
 import { usePartID } from './usePartID.svelte'
@@ -33,14 +47,11 @@ import {
 	type WorldStateStreamStatsRegistry,
 } from './worldStateStreamStats'
 
-type TransformEvent = TransformChangeEvent & {
-	transform: TransformWithUUID
-}
-
 export const provideWorldStates = () => {
 	const partID = usePartID()
 	const streamStats = provideWorldStateStreamStats()
 	const resourceNames = useResourceNames(() => partID.current, 'world_state_store')
+	const robotClient = useRobotClient(() => partID.current)
 	const clients = $derived(
 		resourceNames.current.map(({ name }) => ({
 			name,
@@ -59,7 +70,9 @@ export const provideWorldStates = () => {
 		// observer, so tracking the setup would re-run this effect on every
 		// connection change and the cleanup below would destroy every entity.
 		const cleanups = untrack(() =>
-			activeClients.map(({ client, name }) => createWorldState(client, name, streamStats))
+			activeClients.map(({ client, name }) =>
+				createWorldState(client, name, streamStats, () => robotClient.current)
+			)
 		)
 
 		return () => {
@@ -69,12 +82,6 @@ export const provideWorldStates = () => {
 		}
 	})
 }
-
-// FieldMask paths are proto field names; spec-compliant backends emit
-// snake_case (`pose_in_observer_frame`) while some emit camelCase. Normalize
-// to camelCase so matching against the message's accessors is casing-agnostic.
-const snakeToCamel = (path: string): string =>
-	path.replaceAll(/_([a-z])/g, (_, char: string) => char.toUpperCase())
 
 const decodeBase64 = (encoded: string): Uint8Array => {
 	const binary = atob(encoded)
@@ -142,7 +149,8 @@ const decodeWorldStateChunk = (response: unknown, fallbackStart: number): Entity
 const createWorldState = (
 	client: ResourceClientContext<WorldStateStoreClient>,
 	name: string,
-	streamStats: WorldStateStreamStatsRegistry
+	streamStats: WorldStateStreamStatsRegistry,
+	getRobotClient: () => RobotClient | undefined
 ) => {
 	const { invalidate } = useThrelte()
 	const world = useWorld()
@@ -180,18 +188,18 @@ const createWorldState = (
 		},
 	})
 
-	const spawnEntity = (transform: TransformWithUUID) => {
-		if (entities.has(transform.uuidString) || removedUUIDs.has(transform.uuidString)) {
+	const spawnEntity = (uuid: string, transform: Transform) => {
+		if (entities.has(uuid) || removedUUIDs.has(uuid)) {
 			return
 		}
 
 		const spawned = drawTransform(world, transform, traits.WorldStateStoreAPI, { removable: false })
-		entities.set(transform.uuidString, spawned.entity)
+		entities.set(uuid, spawned.entity)
 		relationships.apply(spawned.entity, spawned.relationships)
 
 		const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
-		chunkLoader.start(transform.uuidString, spawned.entity, parsedMetadata)
-		relationships.flush(transform.uuidString)
+		chunkLoader.start(uuid, spawned.entity, parsedMetadata)
+		relationships.flush(uuid)
 
 		if (isPointCloud(transform.physicalObject?.geometryType)) invalidate()
 	}
@@ -219,7 +227,8 @@ const createWorldState = (
 		try {
 			const transform = await client.current?.getTransform(uuid)
 			if (transform && !removedUUIDs.has(uuid)) {
-				spawnEntity(transform)
+				// The SDK's `TransformWithUUID` is the same generated message shape as our `Transform`.
+				spawnEntity(uuid, transform as unknown as Transform)
 				invalidate()
 			}
 		} catch (error) {
@@ -232,40 +241,36 @@ const createWorldState = (
 		}
 	}
 
-	const updateEntity = (transform: TransformWithUUID, changes: (string | number)[]) => {
-		const entity = entities.get(transform.uuidString)
+	// `fields` is `undefined` for full state (an ADDED, a REMOVED-as-update, or an
+	// UPDATED whose mask was empty); a set updates only the groups it names.
+	const updateEntity = (
+		uuid: string,
+		transform: Transform,
+		fields: Set<TransformField> | undefined
+	) => {
+		const entity = entities.get(uuid)
 
 		if (!entity) {
-			void spawnFromServer(transform.uuidString)
+			void spawnFromServer(uuid)
 			return
 		}
 
-		let metadataDirty = false
-
-		for (const rawPath of changes) {
-			if (typeof rawPath !== 'string') continue
-
-			const path = snakeToCamel(rawPath)
-
-			if (path.startsWith('poseInObserverFrame')) {
-				const matrix = entity.get(traits.Matrix)
-				if (matrix) {
-					new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4(matrix)
-					entity.changed(traits.Matrix)
-				} else {
-					entity.add(
-						traits.Matrix(new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4())
-					)
-				}
-				hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
-			} else if (path.startsWith('physicalObject') && transform.physicalObject) {
-				traits.updateGeometryTrait(entity, transform.physicalObject)
-			} else if (path.startsWith('metadata')) {
-				metadataDirty = true
+		if (fields === undefined || fields.has('poseInObserverFrame')) {
+			const matrix = entity.get(traits.Matrix)
+			if (matrix) {
+				new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4(matrix)
+				entity.changed(traits.Matrix)
+			} else {
+				entity.add(traits.Matrix(new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4()))
 			}
+			hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
 		}
 
-		if (metadataDirty) {
+		if ((fields === undefined || fields.has('physicalObject')) && transform.physicalObject) {
+			traits.updateGeometryTrait(entity, transform.physicalObject)
+		}
+
+		if (fields === undefined || fields.has('metadata')) {
 			const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
 			updateMetadata(entity, parsedMetadata, {
 				pointCloud: isPointCloud(transform.physicalObject?.geometryType),
@@ -275,9 +280,8 @@ const createWorldState = (
 	}
 
 	let initialized = false
-	let flushScheduled = false
-	let rafId = 0
-	let pendingEvents: TransformEvent[] = []
+	const pending: PendingTransformChanges = new Map()
+	const pendingRaw: Uint8Array[] = []
 
 	const listUUIDs = createResourceQuery(client, 'listUUIDs')
 	const getTransformQueries = $derived(
@@ -291,38 +295,74 @@ const createWorldState = (
 		})
 	)
 
-	const applyEvents = (events: TransformEvent[]) => {
-		for (const event of events) {
-			if (event.changeType === TransformChangeType.ADDED) {
-				removedUUIDs.delete(event.transform.uuidString)
-				spawnEntity(event.transform)
-			} else if (event.changeType === TransformChangeType.REMOVED) {
-				destroyEntity(event.transform.uuidString)
-			} else if (event.changeType === TransformChangeType.UPDATED) {
-				updateEntity(event.transform, event.updatedFields?.paths ?? [])
-			} else {
-				console.error('Unspecified change type.', event)
+	/**
+	 * A server republish of an already-spawned UUID arrives as REMOVED-then-ADDED, but the
+	 * store's stable UUID means the same reference frame reappearing is a respawn, not a new
+	 * entity: update the existing entity in place instead of paying for a destroy and a spawn.
+	 */
+	const applyChange = (uuid: string, change: PendingChange): ApplyOutcome => {
+		switch (change.changeType) {
+			case TransformChangeType.ADDED: {
+				removedUUIDs.delete(uuid)
+				const existing = entities.get(uuid)
+				if (existing && existing.get(traits.Name) === change.transform.referenceFrame) {
+					updateEntity(uuid, change.transform, undefined)
+					return { spawned: false }
+				}
+				if (existing) destroyEntity(uuid)
+				spawnEntity(uuid, change.transform)
+				return { spawned: true }
+			}
+			case TransformChangeType.REMOVED: {
+				const existed = entities.has(uuid)
+				destroyEntity(uuid)
+				return { spawned: existed }
+			}
+			case TransformChangeType.UPDATED: {
+				updateEntity(uuid, change.transform, change.fields)
+				return { spawned: false }
+			}
+			default: {
+				console.error('Unspecified change type.', change)
+				return { spawned: false }
 			}
 		}
-
-		invalidate()
 	}
 
-	const scheduleFlush = () => {
-		if (flushScheduled) return
-		flushScheduled = true
+	const flush = () => {
+		const start = performance.now()
 
-		rafId = requestAnimationFrame(() => {
-			rafId = 0
-			flushScheduled = false
-			const toApply = pendingEvents
-			pendingEvents = []
-			const start = performance.now()
-			applyEvents(toApply)
-			const end = performance.now()
-			stats.recordFlush({ start, end, applied: toApply.length, backlog: pendingEvents.length })
+		decodeRawChanges(pendingRaw, pending, {
+			now: () => performance.now(),
+			budgetMs: FLUSH_BUDGET_MS,
 		})
+
+		const result = drainWithBudget(pending, applyChange, {
+			now: () => performance.now(),
+			budgetMs: Math.max(0, FLUSH_BUDGET_MS - (performance.now() - start)),
+			maxSpawns: FLUSH_MAX_SPAWNS,
+		})
+		const end = performance.now()
+
+		if (result.applied > 0) invalidate()
+		stats.recordFlush({
+			start,
+			end,
+			applied: result.applied,
+			backlog: result.remaining + pendingRaw.length,
+		})
+		if (pendingRaw.length > 0 || result.remaining > 0) scheduler.request()
 	}
+
+	const scheduler = createFlushScheduler({
+		flush,
+		isVisible: () => document.visibilityState === 'visible',
+		requestFrame: (callback) => requestAnimationFrame(callback),
+		cancelFrame: (handle) => cancelAnimationFrame(handle),
+		setTimer: (callback, ms) => window.setTimeout(callback, ms),
+		clearTimer: (handle) => window.clearTimeout(handle),
+		hiddenIntervalMs: HIDDEN_FLUSH_INTERVAL_MS,
+	})
 
 	$effect(() => {
 		if (!getTransformQueries) return
@@ -334,7 +374,8 @@ const createWorldState = (
 			.filter((transform) => transform !== undefined)
 
 		for (const transform of transforms) {
-			spawnEntity(transform)
+			// The SDK's `TransformWithUUID` is the same generated message shape as our `Transform`.
+			spawnEntity(transform.uuidString, transform as unknown as Transform)
 		}
 
 		invalidate()
@@ -342,23 +383,19 @@ const createWorldState = (
 	})
 
 	/**
-	 * Consumes the `streamTransformChanges` server stream directly.
-	 * Transform changes are write-once into the ECS world, so we drain
-	 * each event into `pendingEvents` (cleared every flush) and never
-	 * retain history. Mirrors `useDrawService`'s stream consumption.
+	 * Consumes the `StreamTransformChanges` RPC as raw response bytes: the receive loop never
+	 * decodes, it only queues the buffer the transport hands back untouched (the service
+	 * descriptor's output type is a pass-through) and wakes the flush, which decodes under
+	 * its own budget.
 	 */
-	const consumeChanges = async (signal: AbortSignal) => {
-		const activeClient = client.current
-		if (!activeClient) return
-
+	const consumeRawChanges = async (robotClient: RobotClient, signal: AbortSignal) => {
 		try {
-			for await (const event of activeClient.streamTransformChanges(undefined, { signal })) {
+			for await (const bytes of openRawTransformStream(robotClient, name, signal)) {
 				if (signal.aborted) break
-				if (!event.transform) continue
 
-				pendingEvents.push(event as TransformEvent)
-				stats.recordIngest(1)
-				scheduleFlush()
+				pendingRaw.push(bytes)
+				stats.recordIngest(1, bytes.byteLength)
+				scheduler.request()
 			}
 		} catch (error) {
 			if (!signal.aborted) {
@@ -368,6 +405,51 @@ const createWorldState = (
 				console.error('World state transform stream error:', error)
 			}
 		}
+	}
+
+	/**
+	 * Consumes the `streamTransformChanges` server stream through the parsed SDK client.
+	 * Transform changes are write-once into the ECS world, so each event coalesces into
+	 * `pending`, keyed by UUID, and a budgeted flush drains it on the next scheduled frame.
+	 */
+	const consumeSdkChanges = async (activeClient: WorldStateStoreClient, signal: AbortSignal) => {
+		try {
+			for await (const event of activeClient.streamTransformChanges(undefined, { signal })) {
+				if (signal.aborted) break
+				if (!event.transform) continue
+
+				const change: IncomingChange = {
+					uuid: event.transform.uuidString,
+					changeType: event.changeType as unknown as TransformChangeType,
+					transform: event.transform as unknown as Transform,
+					updatedFields: event.updatedFields,
+				}
+				mergeChange(pending, change)
+				stats.recordIngest(1)
+				scheduler.request()
+			}
+		} catch (error) {
+			if (!signal.aborted) {
+				logs.add('World state store: transform stream failed', 'error', {
+					folder: 'world-state-store',
+				})
+				console.error('World state transform stream error:', error)
+			}
+		}
+	}
+
+	// The raw path decodes inside the budgeted flush instead of the receive loop; the SDK
+	// fallback is slated for removal once every backend serves the raw stream (phase 4).
+	const consumeChanges = async (signal: AbortSignal) => {
+		const robotClient = getRobotClient()
+		if (robotClient) {
+			await consumeRawChanges(robotClient, signal)
+			return
+		}
+
+		const activeClient = client.current
+		if (!activeClient) return
+		await consumeSdkChanges(activeClient, signal)
 	}
 
 	$effect(() => {
@@ -386,8 +468,9 @@ const createWorldState = (
 	})
 
 	return () => {
-		if (rafId) cancelAnimationFrame(rafId)
-		pendingEvents = []
+		scheduler.cancel()
+		pending.clear()
+		pendingRaw.length = 0
 		chunkLoader.dispose()
 		for (const [, entity] of entities) {
 			if (world.has(entity)) {
