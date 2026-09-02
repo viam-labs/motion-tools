@@ -1,5 +1,15 @@
 # visualization
 
+## 2.3.1
+
+### Patch Changes
+
+- 8f64dc4: Fetch each arm's 3D models from its own component, so an arm appearing or disappearing no longer rebuilds every other arm's model query.
+- 8f64dc4: Render each vision service's pointcloud objects from its own component, so one service that is slow, unhealthy, or being rebuilt no longer blocks every other service's objects from rendering.
+- 8f64dc4: Render each camera's pointcloud from its own component, so one camera that is slow, unhealthy, or being rebuilt no longer blocks every other camera's pointcloud from rendering.
+- 59c8592: Source the pointcloud, pointcloud object, and arm model resource lists from machine status, so a resource going unhealthy no longer drops out of the list and remounts everything derived from it.
+- 59c8592: Source every resource list from machine status, so a resource going unhealthy no longer drops out of the list and remounts everything derived from it.
+
 ## 2.3.0
 
 ### Minor Changes
