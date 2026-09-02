@@ -5,10 +5,29 @@
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import { provideLogs } from './useLogs.svelte'
 
 	const logs = provideLogs()
+	const partID = usePartID()
+
+	// The sink lives as long as the app, so nothing else evicts the previous
+	// machine's lines. Seeded at setup rather than left unset so the first flush
+	// keeps what plugins mounting alongside us have already logged.
+	let loggedPartID = partID.current
+
+	$effect(() => {
+		const next = partID.current
+		const previous = loggedPartID
+		loggedPartID = next
+
+		// Leaving no machine at all is not a machine change. Lines filed before an
+		// id resolved, by the draw service or a failed connection, are still current.
+		if (previous === '' || previous === next) return
+
+		logs.clear()
+	})
 
 	let levels = new PersistedState('logs-selected-levels', {
 		info: true,

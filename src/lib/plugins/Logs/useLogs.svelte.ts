@@ -33,6 +33,12 @@ interface Context {
 	errorCount: number
 	warnCount: number
 	add(message: string, level?: Level, target?: LogTarget): void
+	/**
+	 * Drops every line and the row alerts they raised. Lines are about one machine,
+	 * so switching parts has to evict them rather than report the old part's
+	 * failures against the new part's resources.
+	 */
+	clear(): void
 	/** Worst level currently logged against a row, or `undefined` when it is clean. */
 	statusFor(target: LogTarget): LogStatus | undefined
 	/** That row's lines, newest first. */
@@ -146,6 +152,18 @@ export const provideLogs = () => {
 		get warnCount() {
 			return warnCount
 		},
+		clear() {
+			untrack(() => {
+				// Tallies are derived from `entries`, so an empty log has no alerts left
+				// to retract and waking every tree row here would buy nothing.
+				if (entries.size === 0) return
+
+				entries.clear()
+				tallies.clear()
+				version++
+				statusVersion++
+			})
+		},
 		statusFor(target) {
 			void statusVersion
 
@@ -224,6 +242,9 @@ const facade: Context = {
 	},
 	add(message, level, target) {
 		context?.add(message, level, target)
+	},
+	clear() {
+		context?.clear()
 	},
 	statusFor(target) {
 		return context?.statusFor(target)
