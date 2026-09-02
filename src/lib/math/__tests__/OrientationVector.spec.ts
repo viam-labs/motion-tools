@@ -6,6 +6,9 @@ import { EPSILON, OrientationVector } from '../OrientationVector'
 const vecA = new Vector3()
 const vecB = new Vector3()
 
+// NOTE: this is not super accurate because negating one part of the quat will present
+// a different rotation, but will still pass the check. Same with the OV below in the theta
+// comparison
 const quatAppxEqual = (q1: Quaternion, q2: Quaternion) => {
 	return (
 		Math.abs(q1.x) - Math.abs(q2.x) < EPSILON &&

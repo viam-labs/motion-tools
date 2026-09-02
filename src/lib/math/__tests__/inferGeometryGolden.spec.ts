@@ -13,13 +13,10 @@ const goldenCases = goldenFile.cases as GoldenCase[]
 const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, goldenCase]))
 
 /**
- * The cases where the port answers differently from RDK on purpose, and what it answers instead.
- * RDK resolves a type by constructing the shape, so a config it refuses yields no geometry at all,
- * while the port reads the dimensions and stops. Every one of these needs a config RDK already
- * rejected upstream, so the divergence is unreachable in practice. See `inferGeometryType`.
- *
- * Listing them here is what keeps that claim falsifiable. A golden case absent from this table has
- * to match RDK exactly, so a new case added on the Go side is checked without being registered.
+ * The explanation for divergent cases are written down above `inferGeometryType` - in short,
+ * the RDK uses config validation to make sure constructors for shapes get real values.
+ * They are included here for the sake of completion, since these are inputs that can't
+ * naturally arrive to this function.
  */
 const RDK_VALIDATION_DIVERGENCES: Record<string, string> = {
 	'declared box with a negative side': 'box',
@@ -42,7 +39,8 @@ const divergentCases = Object.entries(RDK_VALIDATION_DIVERGENCES).map(([name, po
 
 describe('inferGeometryType, against the types RDK resolved in geometry_infer_golden.json', () => {
 	it('loads all 20 cases the Go generator wrote', () => {
-		// TODO: needed check? motivation is in case the number of cases fails, this breaks and forces to take a
+		// Note: motivation is being brittle on purpose, such that when the number of cases changes
+		// we are forced to take a look.
 		expect(goldenCases.length).toBe(20)
 	})
 
@@ -51,7 +49,6 @@ describe('inferGeometryType, against the types RDK resolved in geometry_infer_go
 	})
 })
 
-// TODO: add explanation for divergent cases
 describe('inferGeometryType, on the configs RDK builds no geometry from', () => {
 	it.each(divergentCases)(
 		'answers $portResult for $name, where RDK yields nothing',

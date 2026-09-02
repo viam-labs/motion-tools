@@ -24,13 +24,9 @@ const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, g
 const QUATERNION_PLACES = 8
 
 
-// TODO: Check this
 /**
- * 
- * A quaternion and its negation are the same rotation, and nothing downstream of `quatFromJson`
- * distinguishes them, so the port is held to the rotation rather than to one of its two encodings.
- * Aligning on the dot product rather than on the sign of `w` is what keeps that well defined at the
- * poles, where RDK lands on `w = 0` and either sign is as canonical as the other.
+ * A quaternion and its negation are the same rotation, so to compare two quats we compute
+ * the dot product as a measure of similarity and flip the sign, if needed.
  */
 const alignedToGolden = (actual: Quaternion, expected: GoldenQuaternion): GoldenQuaternion => {
 	const dot =
@@ -68,7 +64,7 @@ const NORM_OVERFLOW_CASE = 'quaternion long enough to overflow its own norm, fro
 
 describe('quatFromJson, against the rotations RDK derived in orientation_json_golden.json', () => {
 	it('loads all 49 cases the Go generator wrote', () => {
-		// TODO: brittle, decide
+		// Note: brittle, need input
 		expect(goldenCases.length).toBe(49)
 	})
 

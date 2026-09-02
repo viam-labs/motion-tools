@@ -26,8 +26,6 @@ type geometryGoldenFile struct {
 	Cases  []geometryGoldenCase `json:"cases"`
 }
 
-// TestGeometryInferGolden pins how spatialmath.GeometryConfig.ParseConfig resolves a geometry type,
-// and writes those verdicts to the golden file for the TypeScript port to check itself against.
 func TestGeometryInferGolden(t *testing.T) {
 	translation := r3.Vector{X: 1, Y: 1, Z: 1}
 
@@ -83,8 +81,6 @@ func TestGeometryInferGolden(t *testing.T) {
 }
 
 // resolveGeometryType reports the type RDK settles a config on, or "" when it builds no geometry.
-// ParseConfig returns the shape rather than its name, so the round trip through NewGeometryConfig
-// is what recovers the name — including the case where NewCapsule quietly hands back a sphere.
 func resolveGeometryType(t *testing.T, config sm.GeometryConfig) string {
 	t.Helper()
 
