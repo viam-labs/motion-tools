@@ -19,7 +19,7 @@ const node = (name: string, children?: TreeNode[]): TreeNode => ({
 
 const folder = (name: string, children: TreeNode[], itemCount: number): TreeNode => ({
 	...node(name, children),
-	folder: { itemCount },
+	folder: { id: 'frames', itemCount },
 })
 
 const namesIn = (nodes: TreeNode[]): string[] =>
