@@ -1,0 +1,390 @@
+{
+	"source": "go.viam.com/rdk spatialmath.PoseBetween",
+	"cases": [
+		{
+			"name": "both poses left entirely unset",
+			"center": {
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": 0
+			}
+		},
+		{
+			"name": "a geometry coincident with its frame, both rotated the same way",
+			"geometryTranslation": {
+				"X": 7,
+				"Y": -2,
+				"Z": 11
+			},
+			"geometryOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 35,
+					"x": 0,
+					"y": 1,
+					"z": 0
+				}
+			},
+			"frameTranslation": {
+				"X": 7,
+				"Y": -2,
+				"Z": 11
+			},
+			"frameOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 35,
+					"x": 0,
+					"y": 1,
+					"z": 0
+				}
+			},
+			"center": {
+				"x": -3.8212429357219174e-16,
+				"y": 3.830905252921558e-16,
+				"z": 2.0998399609418418e-16,
+				"oX": 3.451992236427257e-17,
+				"oY": -3.5079309591052827e-17,
+				"oZ": 1,
+				"theta": -2.0341130566742126e-15
+			}
+		},
+		{
+			"name": "a frame turned half a circle about +Z, from TestSimpleFrameTranslationWithRotation",
+			"geometryTranslation": {
+				"X": 1,
+				"Y": 3,
+				"Z": 0
+			},
+			"frameTranslation": {
+				"X": 0,
+				"Y": 3,
+				"Z": 0
+			},
+			"frameOrientation": {
+				"type": "axis_angles",
+				"value": {
+					"th": 3.141592653589793,
+					"x": 0,
+					"y": 0,
+					"z": 1
+				}
+			},
+			"center": {
+				"x": -1,
+				"y": -6.123233995736757e-17,
+				"z": 0,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": -180
+			}
+		},
+		{
+			"name": "a static frame offset along +Y, from TestGeometries",
+			"frameTranslation": {
+				"X": 0,
+				"Y": 10,
+				"Z": 0
+			},
+			"center": {
+				"x": 0,
+				"y": -10,
+				"z": 0,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": 0
+			}
+		},
+		{
+			"name": "a frame parked far away to prove its pose is undone, from TestGeomtriesTransform",
+			"geometryTranslation": {
+				"X": 5,
+				"Y": 0,
+				"Z": 0
+			},
+			"frameTranslation": {
+				"X": 1000,
+				"Y": 1000,
+				"Z": 1000
+			},
+			"center": {
+				"x": -995,
+				"y": -1000,
+				"z": -1000,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": 0
+			}
+		},
+		{
+			"name": "a frame turned a quarter circle about +Z, from TestFrameTransform",
+			"geometryTranslation": {
+				"X": 5,
+				"Y": 7,
+				"Z": 0
+			},
+			"frameTranslation": {
+				"X": 5,
+				"Y": 1,
+				"Z": 0
+			},
+			"frameOrientation": {
+				"type": "axis_angles",
+				"value": {
+					"th": 1.5707963267948966,
+					"x": 0,
+					"y": 0,
+					"z": 1
+				}
+			},
+			"center": {
+				"x": 5.999999999999999,
+				"y": 1.7517292719762014e-15,
+				"z": 0,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": -89.99999999999999
+			}
+		},
+		{
+			"name": "a frame pointing along +Y, from TestBasicPoseConstruction",
+			"geometryTranslation": {
+				"X": 2,
+				"Y": 3,
+				"Z": 4
+			},
+			"frameTranslation": {
+				"X": 1,
+				"Y": 2,
+				"Z": 3
+			},
+			"frameOrientation": {
+				"type": "ov_radians",
+				"value": {
+					"th": 1.5707963267948966,
+					"x": 0,
+					"y": 1,
+					"z": 0
+				}
+			},
+			"center": {
+				"x": -0.9999999999999999,
+				"y": 0.9999999999999998,
+				"z": 1,
+				"oX": -1.2449156634005058e-16,
+				"oY": 1,
+				"oZ": 1.9967346175427393e-16,
+				"theta": 90.00000000000001
+			}
+		},
+		{
+			"name": "both halves rotated, so neither the offset nor the rotation cancels",
+			"geometryTranslation": {
+				"X": 4,
+				"Y": 5,
+				"Z": 6
+			},
+			"geometryOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 45,
+					"x": 1,
+					"y": 0,
+					"z": 0
+				}
+			},
+			"frameTranslation": {
+				"X": 1,
+				"Y": 2,
+				"Z": 3
+			},
+			"frameOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 30,
+					"x": 0,
+					"y": 0,
+					"z": 1
+				}
+			},
+			"center": {
+				"x": 4.098076211353316,
+				"y": 1.0980762113533156,
+				"z": 2.9999999999999996,
+				"oX": 0.8660254037844386,
+				"oY": -0.4999999999999999,
+				"oZ": 1.4431117214752078e-16,
+				"theta": 45.00000000000001
+			}
+		},
+		{
+			"name": "a rotation with no offset at all, isolating the orientation half",
+			"geometryOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 25,
+					"x": 0,
+					"y": -1,
+					"z": 0
+				}
+			},
+			"frameOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": -60,
+					"x": 1,
+					"y": 2,
+					"z": 3
+				}
+			},
+			"center": {
+				"x": 0,
+				"y": 0,
+				"z": 0,
+				"oX": 0.02872975182042368,
+				"oY": -0.844665801158098,
+				"oZ": -0.5345224838248485,
+				"theta": 43.43494882292202
+			}
+		},
+		{
+			"name": "an offset with no rotation at all, isolating the translation half",
+			"geometryTranslation": {
+				"X": 1,
+				"Y": -1,
+				"Z": 2
+			},
+			"frameTranslation": {
+				"X": -4,
+				"Y": 8,
+				"Z": 16
+			},
+			"center": {
+				"x": 5,
+				"y": -9,
+				"z": -14,
+				"oX": 0,
+				"oY": 0,
+				"oZ": 1,
+				"theta": 0
+			}
+		},
+		{
+			"name": "a frame given euler angles, which the port reads through a different arm",
+			"geometryTranslation": {
+				"X": 5,
+				"Y": 5,
+				"Z": 5
+			},
+			"geometryOrientation": {
+				"type": "euler_angles",
+				"value": {
+					"roll": 0,
+					"pitch": 0,
+					"yaw": 0.5
+				}
+			},
+			"frameTranslation": {
+				"X": 2,
+				"Y": 0,
+				"Z": -3
+			},
+			"frameOrientation": {
+				"type": "euler_angles",
+				"value": {
+					"roll": 0.3,
+					"pitch": -0.2,
+					"yaw": 1.1
+				}
+			},
+			"center": {
+				"x": 7.29023057931506,
+				"y": 1.5880012515651192,
+				"z": 6.506211656981909,
+				"oX": 0.19866933079506124,
+				"oY": 0.28962947762551555,
+				"oZ": 0.9362933635841995,
+				"theta": -91.66710860682863
+			}
+		},
+		{
+			"name": "a frame given a quaternion, which the port reads through a different arm",
+			"geometryTranslation": {
+				"X": 0,
+				"Y": 2,
+				"Z": 0
+			},
+			"geometryOrientation": {
+				"type": "quaternion",
+				"value": {
+					"w": 0.7071067811865476,
+					"x": 0.7071067811865476,
+					"y": 0,
+					"z": 0
+				}
+			},
+			"frameTranslation": {
+				"X": 0,
+				"Y": 1,
+				"Z": 0
+			},
+			"frameOrientation": {
+				"type": "quaternion",
+				"value": {
+					"w": 0.4,
+					"x": 0.1,
+					"y": 0.2,
+					"z": 0.3
+				}
+			},
+			"center": {
+				"x": 0.9333333333333333,
+				"y": 0.33333333333333326,
+				"z": 0.13333333333333325,
+				"oX": -0.9333333333333332,
+				"oY": -0.3333333333333333,
+				"oZ": -0.13333333333333328,
+				"theta": 137.72631099390628
+			}
+		},
+		{
+			"name": "a geometry whose orientation is absent while its frame carries one",
+			"geometryTranslation": {
+				"X": 6,
+				"Y": 0,
+				"Z": 0
+			},
+			"frameTranslation": {
+				"X": 3,
+				"Y": 3,
+				"Z": 3
+			},
+			"frameOrientation": {
+				"type": "ov_degrees",
+				"value": {
+					"th": 90,
+					"x": 0,
+					"y": 0,
+					"z": -1
+				}
+			},
+			"center": {
+				"x": -3,
+				"y": 2.999999999999999,
+				"z": 3.0000000000000004,
+				"oX": -1.7849983108897483e-32,
+				"oY": 1.2246467991473515e-16,
+				"oZ": -1,
+				"theta": 89.99999999999999
+			}
+		}
+	]
+}
