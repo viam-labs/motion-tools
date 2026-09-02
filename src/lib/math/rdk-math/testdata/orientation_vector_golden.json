@@ -1,0 +1,664 @@
+{
+	"source": "go.viam.com/rdk spatialmath OrientationVector.Quaternion, QuatToOV and OrientationVector.Normalize",
+	"fromVector": [
+		{
+			"name": "45 degrees about x, from testCompatibility",
+			"orientationVector": {
+				"th": 1.5707963267948966,
+				"x": 0,
+				"y": -0.7071067811865476,
+				"z": 0.7071067811865476
+			},
+			"quaternion": {
+				"w": 0.9238795325112867,
+				"x": 0.3826834323650898,
+				"y": 7.916173364662557e-17,
+				"z": -1.5187797984739997e-17
+			},
+			"eulerAngles": {
+				"roll": 0.7853981633974484,
+				"pitch": 1.5789604827419066e-16,
+				"yaw": 0
+			}
+		},
+		{
+			"name": "inside the pole radius with a longitude, from TestOrientationVectorPoleRadius",
+			"orientationVector": {
+				"th": 1.5743387247206226,
+				"x": 0.0050164674,
+				"y": 0.0079070413,
+				"z": 0.9999561559
+			},
+			"quaternion": {
+				"w": 0.70584550898089,
+				"x": 0.003316602089147981,
+				"y": 0.003304874125080605,
+				"z": 0.7083503338102608
+			},
+			"eulerAngles": {
+				"roll": 0.009364171617153033,
+				"pitch": -0.00003317127606305826,
+				"yaw": 1.5743385694087264
+			}
+		},
+		{
+			"name": "about +X, from TestQuatConversion",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": 1,
+				"y": 0,
+				"z": 0
+			},
+			"quaternion": {
+				"w": 0.23231217785607852,
+				"x": 0.6678555622436378,
+				"y": 0.23231217785607847,
+				"z": 0.667855562243638
+			},
+			"eulerAngles": {
+				"roll": 1.5707963267948961,
+				"pitch": -0.9012836732051033,
+				"yaw": 1.5707963267948966
+			}
+		},
+		{
+			"name": "about -X, from TestQuatConversion",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": -1,
+				"y": 0,
+				"z": 0
+			},
+			"quaternion": {
+				"w": -0.667855562243638,
+				"x": -0.23231217785607844,
+				"y": 0.667855562243638,
+				"z": 0.23231217785607855
+			},
+			"eulerAngles": {
+				"roll": 1.5707963267948966,
+				"pitch": -0.9012836732051034,
+				"yaw": -1.5707963267948966
+			}
+		},
+		{
+			"name": "about +Y, from TestQuatConversion",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": 0,
+				"y": 1,
+				"z": 0
+			},
+			"quaternion": {
+				"w": -0.30797568060138236,
+				"x": 0.3079756806013824,
+				"y": 0.6365147132298791,
+				"z": 0.6365147132298793
+			},
+			"eulerAngles": {
+				"roll": 1.5707963267948961,
+				"pitch": -0.9012836732051037,
+				"yaw": 3.141592653589793
+			}
+		},
+		{
+			"name": "about -Y, from TestQuatConversion",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": 0,
+				"y": -1,
+				"z": 0
+			},
+			"quaternion": {
+				"w": 0.6365147132298792,
+				"x": 0.6365147132298792,
+				"y": -0.30797568060138225,
+				"z": 0.3079756806013825
+			},
+			"eulerAngles": {
+				"roll": 1.5707963267948963,
+				"pitch": -0.9012836732051034,
+				"yaw": 0
+			}
+		},
+		{
+			"name": "at a small angle that once tripped the pole epsilon, from TestQuatConversion",
+			"orientationVector": {
+				"th": 0.02,
+				"x": 0.5048437942940054,
+				"y": 0.5889844266763397,
+				"z": 0.631054742867507
+			},
+			"quaternion": {
+				"w": 0.8166322122704431,
+				"x": -0.1755596602541314,
+				"y": 0.3919839719397981,
+				"z": 0.38553754851640015
+			},
+			"eulerAngles": {
+				"roll": 0.024578862161217196,
+				"pitch": 0.8876383934765243,
+				"yaw": 0.8938566434762582
+			}
+		},
+		{
+			"name": "that once gave trouble, at theta zero, from TestQuatConversion",
+			"orientationVector": {
+				"th": 0,
+				"x": -0.32439089809469324,
+				"y": -0.9441256803955101,
+				"z": -0.05828588895294498
+			},
+			"quaternion": {
+				"w": 0.3986572455869837,
+				"x": 0.5920660484957303,
+				"y": 0.42261180614734833,
+				"z": -0.5585064512291035
+			},
+			"eulerAngles": {
+				"roll": 3.141592653589793,
+				"pitch": 1.5124773853816689,
+				"yaw": 1.2398445277366923
+			}
+		},
+		{
+			"name": "that once gave trouble, rotated, from TestQuatConversion",
+			"orientationVector": {
+				"th": -0.5732162806942777,
+				"x": -0.32439089809469324,
+				"y": -0.9441256803955101,
+				"z": -0.05828588895294498
+			},
+			"quaternion": {
+				"w": 0.22450535384545364,
+				"x": 0.44844214211454825,
+				"y": 0.5727500237033498,
+				"z": -0.6484245535282075
+			},
+			"eulerAngles": {
+				"roll": -1.678038034932634,
+				"pitch": 0.9949517355145595,
+				"yaw": 2.720591506214572
+			}
+		},
+		{
+			"name": "at the north pole, rotated, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			},
+			"quaternion": {
+				"w": 0.3285390326284968,
+				"x": 0,
+				"y": 0,
+				"z": 0.9444903938312615
+			},
+			"eulerAngles": {
+				"roll": 0,
+				"pitch": 0,
+				"yaw": 2.47208
+			}
+		},
+		{
+			"name": "at the north pole, unrotated, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			},
+			"quaternion": {
+				"w": 1,
+				"x": 0,
+				"y": 0,
+				"z": 0
+			},
+			"eulerAngles": {
+				"roll": 0,
+				"pitch": 0,
+				"yaw": 0
+			}
+		},
+		{
+			"name": "at the north pole, rotated the other way, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": -2.47208,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			},
+			"quaternion": {
+				"w": 0.3285390326284968,
+				"x": -0,
+				"y": 0,
+				"z": -0.9444903938312615
+			},
+			"eulerAngles": {
+				"roll": -0,
+				"pitch": 0,
+				"yaw": -2.47208
+			}
+		},
+		{
+			"name": "at the north pole, rotated under a radian, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": -0.78,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			},
+			"quaternion": {
+				"w": 0.9249090598573131,
+				"x": -0,
+				"y": 0,
+				"z": -0.3801884151231614
+			},
+			"eulerAngles": {
+				"roll": -0,
+				"pitch": 0,
+				"yaw": -0.78
+			}
+		},
+		{
+			"name": "at the south pole, rotated, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": 2.47208,
+				"x": 0,
+				"y": 0,
+				"z": -1
+			},
+			"quaternion": {
+				"w": 2.0117213735172796e-17,
+				"x": 0.9444903938312615,
+				"y": 0.3285390326284968,
+				"z": 5.783335688154379e-17
+			},
+			"eulerAngles": {
+				"roll": 3.141592653589793,
+				"pitch": -9.602752015579763e-17,
+				"yaw": 0.6695126535897932
+			}
+		},
+		{
+			"name": "at the south pole, unrotated, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": -1
+			},
+			"quaternion": {
+				"w": 6.123233995736757e-17,
+				"x": 0,
+				"y": 1,
+				"z": 0
+			},
+			"eulerAngles": {
+				"roll": 3.141592653589793,
+				"pitch": 1.2246467991473515e-16,
+				"yaw": 3.141592653589793
+			}
+		},
+		{
+			"name": "at the south pole, rotated the other way, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": -2.47208,
+				"x": 0,
+				"y": 0,
+				"z": -1
+			},
+			"quaternion": {
+				"w": 2.0117213735172796e-17,
+				"x": -0.9444903938312615,
+				"y": 0.3285390326284968,
+				"z": -5.783335688154379e-17
+			},
+			"eulerAngles": {
+				"roll": -3.141592653589793,
+				"pitch": -9.602752015579763e-17,
+				"yaw": -0.6695126535897932
+			}
+		},
+		{
+			"name": "at the south pole, rotated under a radian, from TestOVConversionPoles",
+			"orientationVector": {
+				"th": -0.78,
+				"x": 0,
+				"y": 0,
+				"z": -1
+			},
+			"quaternion": {
+				"w": 5.663434598283223e-17,
+				"x": -0.3801884151231614,
+				"y": 0.9249090598573131,
+				"z": -2.327982628267421e-17
+			},
+			"eulerAngles": {
+				"roll": -3.141592653589793,
+				"pitch": 8.706179887972545e-17,
+				"yaw": -2.3615926535897933
+			}
+		},
+		{
+			"name": "with a vector 999 long, from TestOVNormalize",
+			"orientationVector": {
+				"th": 0,
+				"x": 999,
+				"y": 0,
+				"z": 0
+			},
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": 0,
+				"y": 0.7071067811865475,
+				"z": 0
+			},
+			"eulerAngles": {
+				"roll": 0,
+				"pitch": 1.5707963267948966,
+				"yaw": 0
+			}
+		},
+		{
+			"name": "with a vector half a unit long, from TestOVNormalize",
+			"orientationVector": {
+				"th": 0,
+				"x": 0.5,
+				"y": 0,
+				"z": 0
+			},
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": 0,
+				"y": 0.7071067811865475,
+				"z": 0
+			},
+			"eulerAngles": {
+				"roll": 0,
+				"pitch": 1.5707963267948966,
+				"yaw": 0
+			}
+		},
+		{
+			"name": "left entirely unset, from TestQuatDefault",
+			"orientationVector": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": 0
+			},
+			"quaternion": {
+				"w": 1,
+				"x": 0,
+				"y": 0,
+				"z": 0
+			},
+			"eulerAngles": {
+				"roll": 0,
+				"pitch": 0,
+				"yaw": 0
+			}
+		}
+	],
+	"fromQuaternion": [
+		{
+			"name": "a 45 degree turn about x, from testCompatibility",
+			"quaternion": {
+				"w": 0.9238795325112867,
+				"x": 0.3826834323650898,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": 1.5707963267948966,
+				"x": 0,
+				"y": -0.7071067811865476,
+				"z": 0.7071067811865475
+			}
+		},
+		{
+			"name": "identity, from rmQuatSamples",
+			"quaternion": {
+				"w": 1,
+				"x": 0,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			}
+		},
+		{
+			"name": "x90, from rmQuatSamples",
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": 0.7071067811865476,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": 1.5707963267948966,
+				"x": 0,
+				"y": -1.0000000000000002,
+				"z": -4.266421588589642e-17
+			}
+		},
+		{
+			"name": "y90, from rmQuatSamples",
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": 0,
+				"y": 0.7071067811865476,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": 0,
+				"x": 1.0000000000000002,
+				"y": 0,
+				"z": -4.266421588589642e-17
+			}
+		},
+		{
+			"name": "z90, from rmQuatSamples",
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": 0,
+				"y": 0,
+				"z": 0.7071067811865476
+			},
+			"orientationVector": {
+				"th": 1.5707963267948966,
+				"x": 0,
+				"y": 0,
+				"z": 1.0000000000000002
+			}
+		},
+		{
+			"name": "z180, from rmQuatSamples",
+			"quaternion": {
+				"w": 0,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			},
+			"orientationVector": {
+				"th": -3.141592653589793,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			}
+		},
+		{
+			"name": "zyx_30_45_60, from rmQuatSamples",
+			"quaternion": {
+				"w": 0.8223631719059993,
+				"x": 0.022260026714733816,
+				"y": 0.43967973954090955,
+				"z": 0.36042340565035597
+			},
+			"orientationVector": {
+				"th": 0.46364760900080615,
+				"x": 0.7391989197401165,
+				"y": 0.2803300858899107,
+				"z": 0.6123724356957945
+			}
+		},
+		{
+			"name": "a quarter turn about -X, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.7071067811865476,
+				"x": -0.7071067811865476,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": -1.5707963267948966,
+				"x": 0,
+				"y": 1.0000000000000002,
+				"z": -4.266421588589642e-17
+			}
+		},
+		{
+			"name": "about -Y, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.96,
+				"x": 0,
+				"y": -0.28,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": -3.141592653589793,
+				"x": -0.5376000000000001,
+				"y": 0,
+				"z": 0.8432
+			}
+		},
+		{
+			"name": "about -Z, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.96,
+				"x": 0,
+				"y": 0,
+				"z": -0.28
+			},
+			"orientationVector": {
+				"th": -0.5675882184166557,
+				"x": 0,
+				"y": 0,
+				"z": 0.9999999999999999
+			}
+		},
+		{
+			"name": "at a negative theta, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.96,
+				"x": -0.28,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": -1.5707963267948966,
+				"x": 0,
+				"y": 0.5376000000000001,
+				"z": 0.8432
+			}
+		},
+		{
+			"name": "at the complementary angle, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.96,
+				"x": 0.28,
+				"y": 0,
+				"z": 0
+			},
+			"orientationVector": {
+				"th": 1.5707963267948966,
+				"x": 0,
+				"y": -0.5376000000000001,
+				"z": 0.8432
+			}
+		},
+		{
+			"name": "at an odd angle, from TestQuatConversion",
+			"quaternion": {
+				"w": 0.5,
+				"x": -0.5,
+				"y": -0.5,
+				"z": -0.5
+			},
+			"orientationVector": {
+				"th": -3.141592653589793,
+				"x": 0,
+				"y": 1,
+				"z": 0
+			}
+		}
+	],
+	"normalize": [
+		{
+			"name": "a vector 999 long, from TestOVNormalize",
+			"input": {
+				"th": 0,
+				"x": 999,
+				"y": 0,
+				"z": 0
+			},
+			"normalized": {
+				"th": 0,
+				"x": 1,
+				"y": 0,
+				"z": 0
+			}
+		},
+		{
+			"name": "a vector half a unit long, from TestOVNormalize",
+			"input": {
+				"th": 0,
+				"x": 0.5,
+				"y": 0,
+				"z": 0
+			},
+			"normalized": {
+				"th": 0,
+				"x": 1,
+				"y": 0,
+				"z": 0
+			}
+		},
+		{
+			"name": "a vector left entirely unset, from TestQuatDefault",
+			"input": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": 0
+			},
+			"normalized": {
+				"th": 0,
+				"x": 0,
+				"y": 0,
+				"z": 1
+			}
+		},
+		{
+			"name": "a vector already very nearly a unit, from TestOrientationVectorPoleRadius",
+			"input": {
+				"th": 1.5743387247206226,
+				"x": 0.0050164674,
+				"y": 0.0079070413,
+				"z": 0.9999561559
+			},
+			"normalized": {
+				"th": 1.5743387247206226,
+				"x": 0.00501646740007625,
+				"y": 0.007907041300120187,
+				"z": 0.9999561559151993
+			}
+		}
+	]
+}
