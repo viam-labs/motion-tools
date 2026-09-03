@@ -11,12 +11,6 @@
 	} from '@viamrobotics/sdk'
 	import { createResourceClient } from '@viamrobotics/svelte-sdk'
 
-	import type {
-		PendingChange,
-		PendingTransformChanges,
-		TransformField,
-	} from '$lib/worldstate/pendingTransformChanges'
-
 	import { createChunkLoader } from '$lib/chunking'
 	import { drawTransform, updateMetadata } from '$lib/draw'
 	import { hierarchy, traits, useWorld } from '$lib/ecs'
@@ -27,7 +21,18 @@
 	import { Pose } from '$lib/math'
 	import { metadataFromStruct } from '$lib/metadata'
 	import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+	import { drainWithBudget } from '$lib/worldstate/budgetedFlush'
 	import { mergeChange } from '$lib/worldstate/coalesceTransformChanges'
+	import { createFlushScheduler } from '$lib/worldstate/flushScheduler'
+	import {
+		type ApplyOutcome,
+		FLUSH_BUDGET_MS,
+		FLUSH_MAX_SPAWNS,
+		HIDDEN_FLUSH_INTERVAL_MS,
+		type PendingChange,
+		type PendingTransformChanges,
+		type TransformField,
+	} from '$lib/worldstate/pendingTransformChanges'
 
 	import { decodeWorldStateChunk } from './decodeWorldStateChunk'
 
@@ -173,8 +178,6 @@
 	}
 
 	let seeded = false
-	let flushScheduled = false
-	let rafId = 0
 	const pending: PendingTransformChanges = new Map()
 
 	/**
@@ -231,55 +234,64 @@
 	 * store's stable UUID means the same reference frame reappearing is a respawn, not a new
 	 * entity: update the existing entity in place instead of paying for a destroy and a spawn.
 	 */
-	const applyChange = (uuid: string, change: PendingChange) => {
+	const applyChange = (uuid: string, change: PendingChange): ApplyOutcome => {
 		switch (change.changeType) {
 			case TransformChangeType.ADDED: {
 				removedUUIDs.delete(uuid)
 				const existing = entities.get(uuid)
 				if (existing && existing.get(traits.Name) === change.transform.referenceFrame) {
 					updateEntity(change.transform, undefined)
-					return
+					return { spawned: false }
 				}
 				if (existing) destroyEntity(uuid)
 				spawnEntity(change.transform)
-				return
+				return { spawned: true }
 			}
 			case TransformChangeType.REMOVED: {
+				const existed = entities.has(uuid)
 				destroyEntity(uuid)
-				return
+				return { spawned: existed }
 			}
 			case TransformChangeType.UPDATED: {
 				updateEntity(change.transform, change.fields)
-				return
+				return { spawned: false }
 			}
 			default: {
 				console.error('Unspecified change type.', change)
+				return { spawned: false }
 			}
 		}
 	}
 
+	// Applies what fits in one frame's budget and carries the rest, so work per frame is
+	// bounded by entities changed and the budget, not by how many events arrived.
 	const flush = () => {
 		const start = performance.now()
-		const applied = pending.size
-		for (const [uuid, change] of pending) {
-			applyChange(uuid, change)
-		}
-		pending.clear()
-
-		if (applied > 0) invalidate()
-		stats.recordFlush({ start, end: performance.now(), applied, backlog: 0 })
-	}
-
-	const scheduleFlush = () => {
-		if (flushScheduled) return
-		flushScheduled = true
-
-		rafId = requestAnimationFrame(() => {
-			rafId = 0
-			flushScheduled = false
-			flush()
+		const result = drainWithBudget(pending, applyChange, {
+			now: () => performance.now(),
+			budgetMs: FLUSH_BUDGET_MS,
+			maxSpawns: FLUSH_MAX_SPAWNS,
 		})
+
+		if (result.applied > 0) invalidate()
+		stats.recordFlush({
+			start,
+			end: performance.now(),
+			applied: result.applied,
+			backlog: result.remaining,
+		})
+		if (result.remaining > 0) scheduler.request()
 	}
+
+	const scheduler = createFlushScheduler({
+		flush,
+		isVisible: () => document.visibilityState === 'visible',
+		requestFrame: (callback) => requestAnimationFrame(callback),
+		cancelFrame: (handle) => cancelAnimationFrame(handle),
+		setTimer: (callback, ms) => window.setTimeout(callback, ms),
+		clearTimer: (handle) => window.clearTimeout(handle),
+		hiddenIntervalMs: HIDDEN_FLUSH_INTERVAL_MS,
+	})
 
 	/**
 	 * Consumes the `streamTransformChanges` server stream directly. Each event coalesces
@@ -297,7 +309,7 @@
 
 				mergeChange(pending, event as TransformEvent)
 				stats.recordIngest(1)
-				scheduleFlush()
+				scheduler.request()
 			}
 		} catch (error) {
 			if (!signal.aborted) {
@@ -327,7 +339,7 @@
 
 	$effect(() => {
 		return () => {
-			if (rafId) cancelAnimationFrame(rafId)
+			scheduler.cancel()
 			pending.clear()
 			chunkLoader.dispose()
 			for (const [, entity] of entities) {

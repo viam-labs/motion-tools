@@ -49,6 +49,57 @@ export interface PendingChange {
 export type PendingTransformChanges = Map<string, PendingChange>
 
 /**
+ * Wall-clock budget for one flush callback. Sized under a third of a 60 Hz frame so
+ * the render and the Svelte flush that follow the callback still fit the frame.
+ */
+export const FLUSH_BUDGET_MS = 6
+
+/**
+ * Spawns plus destroys allowed per flush. Each one queues Threlte mount or teardown
+ * work that runs after the callback returns, where the ms budget cannot see it.
+ */
+export const FLUSH_MAX_SPAWNS = 16
+
+/** Drain cadence while the tab is hidden and `requestAnimationFrame` is paused. */
+export const HIDDEN_FLUSH_INTERVAL_MS = 250
+
+/** What applying one pending change did; a destroy counts as a spawn for budgeting. */
+export interface ApplyOutcome {
+	spawned: boolean
+}
+
+export interface FlushBudget {
+	now: () => number
+	budgetMs: number
+	maxSpawns: number
+}
+
+export interface DrainResult {
+	applied: number
+	spawns: number
+	remaining: number
+	/** Which limit ended the flush early, or `undefined` when the map drained. */
+	exhausted: 'budget' | 'spawns' | undefined
+}
+
+export interface FlushScheduler {
+	/** Idempotent: a flush already scheduled is not scheduled twice. */
+	request(): void
+	cancel(): void
+}
+
+/** The environment a scheduler runs in, injectable so tests can drive it. */
+export interface FlushSchedulerDeps {
+	flush: () => void
+	isVisible: () => boolean
+	requestFrame: (callback: () => void) => number
+	cancelFrame: (handle: number) => void
+	setTimer: (callback: () => void, ms: number) => number
+	clearTimer: (handle: number) => void
+	hiddenIntervalMs: number
+}
+
+/**
  * The top-level `Transform` field a field-mask path addresses, or `undefined` for a
  * path outside the message. `pose_in_observer_frame.pose.x` and `poseInObserverFrame.pose`
  * both resolve to `poseInObserverFrame`.
