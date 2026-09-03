@@ -363,7 +363,8 @@
 			],
 			"output": [],
 			"dependencies": [
-				"proto:gen-ts"
+				"proto:gen-ts",
+				"build:workers"
 			],
 			"packageLocks": [
 				"pnpm-lock.yaml"
