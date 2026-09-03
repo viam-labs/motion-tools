@@ -3,14 +3,15 @@ import type { RobotClient } from '@viamrobotics/sdk'
 import { describe, expect, it, vi } from 'vitest'
 
 import { WorldStateStoreService } from '../../buf/service/worldstatestore/v1/world_state_store_connect'
-import { openRawTransformStream, RawTransformStreamService } from '../rawTransformStream'
+import { openRawTransformStream, RawBytes, RawTransformStreamService } from '../rawTransformStream'
 
 describe('RawTransformStreamService', () => {
-	it('parses streamTransformChanges responses as the identity on the given buffer', () => {
+	it('parses streamTransformChanges responses by wrapping the given buffer, not copying it', () => {
 		const buffer = new Uint8Array([1, 2, 3])
 		const parsed = RawTransformStreamService.methods.streamTransformChanges.O.fromBinary(buffer)
 
-		expect(parsed).toBe(buffer)
+		expect(parsed).toBeInstanceOf(RawBytes)
+		expect(parsed.bytes).toBe(buffer)
 	})
 
 	it('keeps typeName and the four other methods as the originals by reference', () => {
@@ -45,12 +46,12 @@ describe('openRawTransformStream', () => {
 		const bufferTwo = new Uint8Array([4, 5, 6])
 
 		async function* fakeIterable() {
-			yield bufferOne
-			yield bufferTwo
+			yield RawBytes.fromBinary(bufferOne)
+			yield RawBytes.fromBinary(bufferTwo)
 		}
 
 		const streamTransformChanges = vi.fn<
-			(request: { name: string }, options: { signal: AbortSignal }) => AsyncIterable<Uint8Array>
+			(request: { name: string }, options: { signal: AbortSignal }) => AsyncIterable<RawBytes>
 		>(() => fakeIterable())
 		const fakeClient = { streamTransformChanges }
 		const createServiceClient = vi.fn(() => fakeClient)
@@ -58,8 +59,12 @@ describe('openRawTransformStream', () => {
 
 		const controller = new AbortController()
 		const results: Uint8Array[] = []
-		for await (const chunk of openRawTransformStream(robotClient, 'my-name', controller.signal)) {
-			results.push(chunk)
+		for await (const { bytes } of openRawTransformStream(
+			robotClient,
+			'my-name',
+			controller.signal
+		)) {
+			results.push(bytes)
 		}
 
 		expect(createServiceClient).toHaveBeenCalledWith(RawTransformStreamService)

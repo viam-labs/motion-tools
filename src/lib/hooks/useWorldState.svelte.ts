@@ -1,4 +1,4 @@
-import type { RobotClient } from '@viamrobotics/sdk'
+import type { RobotClient, Transform } from '@viamrobotics/sdk'
 import type { Entity } from 'koota'
 
 import { useThrelte } from '@threlte/core'
@@ -14,7 +14,7 @@ import { untrack } from 'svelte'
 
 import type { BatchChange, BatchMessage } from '$lib/worldstate/workerMessages'
 
-import { Transform } from '$lib/buf/common/v1/common_pb'
+import { Transform as TransformMessage } from '$lib/buf/common/v1/common_pb'
 import { TransformChangeType } from '$lib/buf/service/worldstatestore/v1/world_state_store_pb'
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
@@ -224,8 +224,7 @@ const createWorldState = (
 		try {
 			const transform = await client.current?.getTransform(uuid)
 			if (transform && !removedUUIDs.has(uuid)) {
-				// The SDK's `TransformWithUUID` is the same generated message shape as our `Transform`.
-				spawnEntity(uuid, transform as unknown as Transform)
+				spawnEntity(uuid, transform)
 				invalidate()
 			}
 		} catch (error) {
@@ -242,7 +241,7 @@ const createWorldState = (
 	// UPDATED whose mask was empty); a set updates only the groups it names.
 	const updateEntity = (
 		uuid: string,
-		transform: Transform,
+		transform: TransformMessage,
 		fields: Set<TransformField> | undefined
 	) => {
 		const entity = entities.get(uuid)
@@ -318,7 +317,7 @@ const createWorldState = (
 			return { spawned: existed }
 		}
 
-		const transform = Transform.fromBinary(change.transform)
+		const transform = TransformMessage.fromBinary(change.transform)
 		const fields = change.fields ? new Set<TransformField>(change.fields) : undefined
 
 		switch (change.changeType) {
@@ -394,8 +393,7 @@ const createWorldState = (
 			.filter((transform) => transform !== undefined)
 
 		for (const transform of transforms) {
-			// The SDK's `TransformWithUUID` is the same generated message shape as our `Transform`.
-			spawnEntity(transform.uuidString, transform as unknown as Transform)
+			spawnEntity(transform.uuidString, transform)
 		}
 
 		invalidate()
@@ -410,7 +408,7 @@ const createWorldState = (
 	 */
 	const consumeRawChanges = async (robotClient: RobotClient, signal: AbortSignal) => {
 		try {
-			for await (const bytes of openRawTransformStream(robotClient, name, signal)) {
+			for await (const { bytes } of openRawTransformStream(robotClient, name, signal)) {
 				if (signal.aborted) break
 
 				pendingRaw.push(bytes)

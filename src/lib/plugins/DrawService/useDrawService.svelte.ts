@@ -1,3 +1,5 @@
+import type { Transform } from '@viamrobotics/sdk'
+
 import { type Client, ConnectError, createClient } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import { useThrelte } from '@threlte/core'
@@ -11,14 +13,7 @@ import { writeBufferGeometryRange } from '$lib/attribute'
 import { DrawService } from '$lib/buf/draw/v1/service_connect'
 import { EntityChangeType, EntityScope } from '$lib/buf/draw/v1/service_pb'
 import { asFloat32Array, inMeters, STRIDE } from '$lib/buffer'
-import {
-	drawDrawing,
-	drawTransform,
-	type Transform,
-	updateDrawing,
-	updateModel,
-	updateTransform,
-} from '$lib/draw'
+import { drawDrawing, drawTransform, updateDrawing, updateModel, updateTransform } from '$lib/draw'
 import { hierarchy, traits, useWorld } from '$lib/ecs'
 import { useCameraControls } from '$lib/hooks/useControls.svelte'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
