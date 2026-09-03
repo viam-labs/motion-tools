@@ -439,6 +439,72 @@ describe('scrubbing the preview', () => {
 	})
 })
 
+describe('what the scrubber walks', () => {
+	it('plays one frame per planned configuration by default', async () => {
+		const previewHarness = setup()
+
+		await planned(previewHarness)
+
+		expect(previewHarness.preview.detail).toBe('waypoints')
+		expect(previewHarness.preview.player.totalSteps).toBe(2)
+		expect(previewHarness.preview.waypointIndices).toEqual([0, 1])
+	})
+
+	it('fills in frames between the waypoints when asked to interpolate', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+
+		previewHarness.preview.detail = 'interpolated'
+
+		expect(previewHarness.preview.player.totalSteps).toBeGreaterThan(2)
+		expect(previewHarness.preview.plannedSteps).toBe(2)
+	})
+
+	it('marks which of the played frames are planned waypoints', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+
+		previewHarness.preview.detail = 'interpolated'
+
+		const marks = previewHarness.preview.waypointIndices
+		expect(marks[0]).toBe(0)
+		expect(marks.at(-1)).toBe(previewHarness.preview.player.lastStep)
+		expect(marks).toHaveLength(2)
+	})
+
+	it('keeps handing execute the plan rather than the frames it played', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+
+		previewHarness.preview.detail = 'interpolated'
+
+		expect(previewHarness.preview.trajectory).toEqual([
+			{ 'left-arm': [0, 0, 0, 0, 0, 0] },
+			{ 'left-arm': [1, 0, 0, 0, 0, 0] },
+		])
+	})
+
+	it('restarts playback, since a frame index does not carry across the two framings', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+		previewHarness.preview.player.seek(1)
+
+		previewHarness.preview.detail = 'interpolated'
+
+		expect(previewHarness.preview.player.currentStep).toBe(0)
+	})
+
+	it('leaves playback alone when the framing already in effect is reselected', async () => {
+		const previewHarness = setup()
+		await planned(previewHarness)
+		previewHarness.preview.player.seek(1)
+
+		previewHarness.preview.detail = 'waypoints'
+
+		expect(previewHarness.preview.player.currentStep).toBe(1)
+	})
+})
+
 describe('previewFrameIntervalMs', () => {
 	it.each([
 		{ frames: 2, expected: 250 },

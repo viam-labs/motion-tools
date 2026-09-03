@@ -29,6 +29,8 @@ const preview = (overrides: Partial<PreviewMove> = {}): PreviewMove => ({
 	message: undefined,
 	trajectory: [],
 	plannedSteps: 0,
+	waypointIndices: [],
+	detail: 'waypoints',
 	player: player(),
 	requestPreview: vi.fn(),
 	clear: vi.fn(),
@@ -58,33 +60,85 @@ describe('MovePreview', () => {
 		}
 	)
 
-	it('offers to re-plan once a preview is ready, and says how long the plan is', () => {
+	it('offers to re-plan once a preview is ready, and says what playback is made of', () => {
 		render(MovePreview, {
-			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
+			props: {
+				preview: preview({
+					status: 'ready',
+					plannedSteps: 12,
+					player: player({ totalSteps: 12, lastStep: 11 }),
+				}),
+				frameName: 'arm',
+			},
 		})
 
 		expect(screen.getByRole('button', { name: /re-plan preview/i })).toBeInTheDocument()
-		expect(screen.getByRole('status')).toHaveTextContent('Planned 12 waypoints.')
 		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'12 frames, one per configuration the planner returned'
+		)
 	})
 
-	it('carries the approximation caveat once a preview is ready', () => {
+	it('spells out the caveat under the approximation notice', () => {
 		render(MovePreview, {
 			props: { preview: preview({ status: 'ready', plannedSteps: 12 }), frameName: 'arm' },
 		})
 
-		expect(screen.getByText('This preview is an approximation')).toBeInTheDocument()
 		expect(
 			screen.getByText(/how it moves between them is the component's decision/i)
 		).toBeInTheDocument()
 	})
 
-	it('writes a single waypoint without a plural', () => {
+	it('counts interpolated frames against the waypoints they span', () => {
 		render(MovePreview, {
-			props: { preview: preview({ status: 'ready', plannedSteps: 1 }), frameName: 'arm' },
+			props: {
+				preview: preview({
+					status: 'ready',
+					detail: 'interpolated',
+					plannedSteps: 4,
+					player: player({ totalSteps: 96, lastStep: 95 }),
+				}),
+				frameName: 'arm',
+			},
 		})
 
-		expect(screen.getByRole('status')).toHaveTextContent('Planned 1 waypoint.')
+		expect(screen.getByRole('status')).toHaveTextContent('96 frames across 4 planned waypoints')
+	})
+
+	it('switches what a frame represents when the toggle is used', async () => {
+		const setDetail = vi.fn()
+		const state = preview({
+			status: 'ready',
+			plannedSteps: 4,
+			player: player({ totalSteps: 4, lastStep: 3 }),
+		})
+		Object.defineProperty(state, 'detail', {
+			get: () => 'waypoints',
+			set: setDetail,
+		})
+		render(MovePreview, { props: { preview: state, frameName: 'arm' } })
+
+		await userEvent.click(screen.getByRole('button', { name: 'Interpolated' }))
+
+		expect(setDetail).toHaveBeenCalledWith('interpolated')
+	})
+
+	it('shows which framing is in effect', () => {
+		render(MovePreview, {
+			props: {
+				preview: preview({ status: 'ready', detail: 'interpolated', plannedSteps: 4 }),
+				frameName: 'arm',
+			},
+		})
+
+		expect(screen.getByRole('button', { name: 'Interpolated' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		)
+		expect(screen.getByRole('button', { name: 'Waypoints' })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		)
 	})
 
 	it('plans when the panel has a goal staged', async () => {

@@ -24,6 +24,10 @@ static/test-fixtures
 # cannot round-trip them.
 src/lib/plugins/MotionPlanReplayer/__tests__/__fixtures__/
 
+# A 225-step capture, stored minified because it is 2,000 lines pretty-printed
+# and nothing reads it by eye. Its sibling fixtures are small and stay formatted.
+src/lib/motion/__tests__/__fixtures__/plan-linear-constrained.json
+
 # IDE
 .cursor
 

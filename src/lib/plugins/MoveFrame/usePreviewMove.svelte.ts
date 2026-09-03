@@ -5,11 +5,17 @@ import { untrack } from 'svelte'
 import type { FramesContext } from '$lib/hooks/useFrames.svelte'
 import type { Pose } from '$lib/math'
 import type { FrameDescriptor } from '$lib/motion/frameDescriptors'
+import type { JointMotions } from '$lib/motion/interpolateTrajectory'
 import type { TrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import { useWorld } from '$lib/ecs'
 import { buildFrameDescriptors } from '$lib/motion/frameDescriptors'
 import { frameSystemToPlanFrames } from '$lib/motion/frameSystemToPlanFrames'
+import {
+	interpolatedFrames,
+	jointMotionsOf,
+	waypointFrames,
+} from '$lib/motion/interpolateTrajectory'
 import { createTrajectoryPlayer } from '$lib/motion/trajectoryPlayer.svelte'
 
 import type { MoveOptions } from './parseMoveOptions'
@@ -29,6 +35,12 @@ import {
  * configuration written twice, the correct answer to "how do I get somewhere I already am".
  */
 export type PreviewStatus = 'idle' | 'planning' | 'ready' | 'already-at-goal' | 'error'
+
+/**
+ * What one frame of playback represents: `waypoints` gives each configuration the planner returned
+ * its own frame, `interpolated` fills in along the straight joint path RDK collision-checks.
+ */
+export type PreviewDetail = 'waypoints' | 'interpolated'
 
 /**
  * How long a preview aims to take, once it has frames enough to fill the time. A sparse plan
@@ -84,10 +96,21 @@ export interface PreviewMove {
 	 * `status` says how to present it; this says what happened.
 	 */
 	readonly message: string | undefined
-	/** The trajectory exactly as planned. Empty unless `status` is `ready`. */
+	/**
+	 * The trajectory exactly as planned, for handing back to `execute` — never `playbackFrames`, the
+	 * separate array the scrubber actually walks. Empty unless `status` is `ready`.
+	 */
 	readonly trajectory: TrajectoryStep[]
-	/** How many waypoints the planner returned. */
+	/** How many waypoints the planner actually returned, whatever is being played. */
 	readonly plannedSteps: number
+	/** Which played frames are planned waypoints, for marking them on a scrubber. */
+	readonly waypointIndices: number[]
+	/**
+	 * Setting this rebuilds the played frames for the new framing and restarts playback at frame 0,
+	 * because a frame index does not carry across the two framings. Setting the current value is a
+	 * no-op.
+	 */
+	detail: PreviewDetail
 	readonly player: TrajectoryPlayer
 	/** Plans. Resolves once the answer is in hand; never rejects. */
 	requestPreview: () => Promise<void>
@@ -111,14 +134,22 @@ export const usePreviewMove = ({
 
 	let status = $state<PreviewStatus>('idle')
 	let message = $state<string>()
-	// Raw: replaced wholesale rather than mutated, so the deep proxy would go unused.
+	// Raw: all three are replaced wholesale rather than mutated, so the deep proxy would go unused,
+	// `waypointIndices` included — the scrubber reads it element-wise but never writes into it.
 	let trajectory = $state.raw<TrajectoryStep[]>([])
+	// What the scrubber walks. Only `trajectory` may ever be handed to `execute`.
+	let playbackFrames = $state.raw<TrajectoryStep[]>([])
+	let waypointIndices = $state.raw<number[]>([])
+	let detail = $state<PreviewDetail>('waypoints')
 
 	// Outside `$state`: koota entities and Three.js matrices want no deep proxy. `const` because
 	// `spawnPreviewGhosts` fills it in place, keeping it the only handle teardown has across an await.
 	const ghosts: PreviewGhosts = createPreviewGhosts()
+	// Held alongside the twins rather than derived where it is used: `set detail` reframes the same
+	// plan without a descriptor in scope, and it needs the same answer this request built.
+	let jointMotions: JointMotions = new Map()
 
-	const frameIntervalMs = $derived(previewFrameIntervalMs(trajectory.length))
+	const frameIntervalMs = $derived(previewFrameIntervalMs(playbackFrames.length))
 
 	/**
 	 * Which request the state on screen belongs to. Bumped by every reset, so a plan that resolves
@@ -129,14 +160,24 @@ export const usePreviewMove = ({
 
 	/** Reports whether the step was drawn; see `TrajectoryPlayerOptions.onStep`. */
 	const renderStep = (step: number): boolean => {
-		const inputs = trajectory[step]
+		const inputs = playbackFrames[step]
 		if (!inputs) return false
 		applyPreviewStep(ghosts, inputs)
 		return true
 	}
 
+	/** Rebuild the played frames for the current detail. The plan itself is untouched. */
+	const applyDetail = (planned: TrajectoryStep[]) => {
+		const built =
+			detail === 'waypoints'
+				? waypointFrames(planned)
+				: interpolatedFrames(planned, { motions: jointMotions })
+		playbackFrames = built.steps
+		waypointIndices = built.waypoints
+	}
+
 	const player = createTrajectoryPlayer({
-		totalSteps: () => trajectory.length,
+		totalSteps: () => playbackFrames.length,
 		onStep: renderStep,
 		intervalMs: () => frameIntervalMs,
 	})
@@ -153,7 +194,10 @@ export const usePreviewMove = ({
 		inFlight = undefined
 
 		clearPreviewGhosts(ghosts)
+		jointMotions = new Map()
 		trajectory = []
+		playbackFrames = []
+		waypointIndices = []
 		player.reset()
 	}
 
@@ -227,6 +271,7 @@ export const usePreviewMove = ({
 			// The trajectory decides which frames earn a twin, not just where they go: RDK returns a
 			// column for every component, so the ones it holds still have to be told apart from the ones
 			// it moves.
+			jointMotions = jointMotionsOf(descriptors)
 			spawnPreviewGhosts(world, descriptors, result.trajectory, ghosts)
 
 			// Joints and geometry-less mounts make up most of a chain, so counting entities here would
@@ -237,6 +282,7 @@ export const usePreviewMove = ({
 			}
 
 			trajectory = result.trajectory
+			applyDetail(result.trajectory)
 			status = 'ready'
 		} catch (error_) {
 			// An abandoned request's failure is not the user's problem, and an aborted one reports a
@@ -275,6 +321,20 @@ export const usePreviewMove = ({
 		},
 		get plannedSteps() {
 			return trajectory.length
+		},
+		get waypointIndices() {
+			return waypointIndices
+		},
+		get detail() {
+			return detail
+		},
+		set detail(next: PreviewDetail) {
+			if (next === detail) return
+			detail = next
+			if (status !== 'ready') return
+			applyDetail(trajectory)
+			player.reset()
+			renderStep(0)
 		},
 		player,
 		requestPreview,
