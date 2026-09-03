@@ -1,10 +1,5 @@
 import { MachineConnectionEvent, type robotApi } from '@viamrobotics/sdk'
-import {
-	createRobotQuery,
-	useConnectionStatus,
-	useMachineStatus,
-	useRobotClient,
-} from '@viamrobotics/svelte-sdk'
+import { createRobotQuery, useConnectionStatus, useRobotClient } from '@viamrobotics/svelte-sdk'
 import { type ConfigurableTrait, type Entity } from 'koota'
 import { getContext, setContext, untrack } from 'svelte'
 
@@ -43,7 +38,6 @@ export const provideFrames = (partID: () => string) => {
 	const resourceByName = useResourceByName()
 	const client = useRobotClient(partID)
 	const connectionStatus = useConnectionStatus(partID)
-	const machineStatus = useMachineStatus(partID)
 	const logs = useLogs()
 
 	// In build mode the user authors the scene from the part config, so config
@@ -58,8 +52,6 @@ export const provideFrames = (partID: () => string) => {
 		// on the name alone answers `not connected yet` for every machine on load.
 		enabled: partID() !== '' && isConnected,
 	}))
-
-	const revision = $derived(machineStatus.current?.config?.revision)
 
 	$effect(() => {
 		if (query.isFetching) {
@@ -152,20 +144,6 @@ export const provideFrames = (partID: () => string) => {
 	const current = $derived([...Object.values(frames), ...Object.values(kinematicsDerivedFrames)])
 
 	const entities = new Map<string, Entity | undefined>()
-
-	$effect(() => {
-		if (revision === undefined) return
-
-		untrack(() => {
-			// `refetch` ignores `enabled`, so readiness is checked here instead. On a
-			// fast part switch the new part reports its revision before its client
-			// exists, and the call would run against an undefined client. Skipping is
-			// safe: the query's own `enabled` fetches once the client arrives.
-			if (!isConnected || client.current === undefined) return
-
-			query.refetch()
-		})
-	})
 
 	const componentSubtypeByName = $derived.by(() => {
 		const result: Record<string, string> = {}

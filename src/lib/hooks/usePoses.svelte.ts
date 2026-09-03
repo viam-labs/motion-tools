@@ -58,12 +58,11 @@ export const providePoses = (partID: () => string) => {
 	const interval = $derived(settings.current.refreshRates[RefreshRates.poses])
 	const options = $derived({
 		enabled: partID() !== '' && interval !== RefetchRates.OFF && isConnected,
+		// The chosen refresh rate is the only thing that polls a pose. Focus is not:
+		// `Manual` leaves these queries enabled with no interval, so refetching on
+		// focus would fire one request per frame in the scene.
+		refetchOnWindowFocus: false,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
-		// A pose is live data, so it goes stale immediately. This overrides the
-		// app-wide `staleTime: Infinity`, which would hold the last pose we got as
-		// good forever and, more importantly, stop a reconnect from refetching at
-		// all: Tanstack only refetches on an `enabled` edge if the data is stale.
-		staleTime: 0,
 	})
 
 	/** The scene draws one node per component, at its mount, so the query redirects there. */

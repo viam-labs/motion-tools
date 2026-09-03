@@ -49,6 +49,8 @@
 
 	const query = createResourceQuery(client, 'getPointCloud', () => ({
 		enabled,
+		// The chosen refresh rate should be the only thing that fetches.
+		refetchOnWindowFocus: false,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	}))
 

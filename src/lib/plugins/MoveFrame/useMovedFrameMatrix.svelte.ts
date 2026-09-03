@@ -47,6 +47,9 @@ export const useMovedFrameMatrix = (
 		() => [frameName(), 'world', []] as [string, string, commonApi.Transform[]],
 		() => ({
 			enabled: enabled() && partID() !== '',
+			// The chosen refresh rate is the only thing that polls this pose. Focus is
+			// not: `Manual` leaves the query enabled with no interval.
+			refetchOnWindowFocus: false,
 			refetchInterval:
 				interval === RefetchRates.OFF || interval === RefetchRates.MANUAL
 					? (false as const)
