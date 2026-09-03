@@ -47,11 +47,9 @@
 			disabledCameras[name] !== true
 	)
 
-	// The chosen refresh rate is the only thing that fetches a cloud. Focus is
-	// not: `Manual` leaves the query enabled with no interval, so refetching on
-	// focus would pull a full cloud the user did not ask for.
 	const query = createResourceQuery(client, 'getPointCloud', () => ({
 		enabled,
+		// The chosen refresh rate should be the only thing that fetches.
 		refetchOnWindowFocus: false,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
 	}))
