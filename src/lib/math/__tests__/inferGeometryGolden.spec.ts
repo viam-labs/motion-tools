@@ -10,7 +10,6 @@ interface GoldenCase {
 }
 
 const goldenCases = goldenFile.cases as GoldenCase[]
-const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, goldenCase]))
 
 describe('inferGeometryType, against the types RDK resolved in geometry_infer_golden.json', () => {
 	it('loads all 20 cases the Go generator wrote', () => {

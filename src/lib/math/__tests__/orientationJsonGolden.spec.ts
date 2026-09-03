@@ -36,6 +36,19 @@ const alignedToGolden = (actual: Quaternion, expected: GoldenQuaternion): Golden
 	return { w: actual.w * sign, x: actual.x * sign, y: actual.y * sign, z: actual.z * sign }
 }
 
+/**
+ * Compared component by component rather than through `Quaternion.angleTo`, whose `acos` loses most
+ * of its precision near zero and cannot resolve two matching rotations closer than about 1e-8.
+ */
+export const expectSameRotation = (actual: Quaternion, expected: GoldenQuaternion) => {
+	const aligned = alignedToGolden(actual, expected)
+
+	expect(aligned.w).toBeCloseTo(expected.w, QUATERNION_PLACES)
+	expect(aligned.x).toBeCloseTo(expected.x, QUATERNION_PLACES)
+	expect(aligned.y).toBeCloseTo(expected.y, QUATERNION_PLACES)
+	expect(aligned.z).toBeCloseTo(expected.z, QUATERNION_PLACES)
+}
+
 const readQuaternion = (orientation: RawOrientation) => {
 	const out = new Quaternion()
 	const found = quatFromJson(orientation, out)
@@ -76,11 +89,7 @@ describe('quatFromJson, against the rotations RDK derived in orientation_json_go
 	)('builds the rotation RDK read out of $name', ({ orientation, quaternion }) => {
 		const { out } = readQuaternion(orientation)
 
-		const aligned = alignedToGolden(out, quaternion)
-		expect(aligned.w).toBeCloseTo(quaternion.w, QUATERNION_PLACES)
-		expect(aligned.x).toBeCloseTo(quaternion.x, QUATERNION_PLACES)
-		expect(aligned.y).toBeCloseTo(quaternion.y, QUATERNION_PLACES)
-		expect(aligned.z).toBeCloseTo(quaternion.z, QUATERNION_PLACES)
+		expectSameRotation(out, quaternion)
 	})
 })
 

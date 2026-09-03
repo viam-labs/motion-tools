@@ -1,6 +1,7 @@
 import { Euler, Quaternion, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
+import { expectSameRotation } from "./orientationJsonGolden.spec"
 import { OrientationVector } from '../OrientationVector'
 import goldenFile from '../rdk-math/testdata/orientation_vector_golden.json'
 
@@ -49,31 +50,6 @@ const PLACES = 8
 const vectorOf = ({ th, x, y, z }: GoldenVector) => new OrientationVector(x, y, z, th)
 
 const componentsOf = (q: Quaternion): GoldenQuaternion => ({ w: q.w, x: q.x, y: q.y, z: q.z })
-
-/**
- * A quaternion and its negation are the same rotation, so to compare two quats we compute
- * the dot product as a measure of similarity and flip the sign, if needed.
- */
-const alignedToGolden = (actual: Quaternion, expected: GoldenQuaternion): GoldenQuaternion => {
-	const dot =
-		actual.w * expected.w + actual.x * expected.x + actual.y * expected.y + actual.z * expected.z
-	const sign = dot < 0 ? -1 : 1
-
-	return { w: actual.w * sign, x: actual.x * sign, y: actual.y * sign, z: actual.z * sign }
-}
-
-/**
- * Compared component by component rather than through `Quaternion.angleTo`, whose `acos` loses most
- * of its precision near zero and cannot resolve two matching rotations closer than about 1e-8.
- */
-const expectSameRotation = (actual: Quaternion, expected: GoldenQuaternion) => {
-	const aligned = alignedToGolden(actual, expected)
-
-	expect(aligned.w).toBeCloseTo(expected.w, PLACES)
-	expect(aligned.x).toBeCloseTo(expected.x, PLACES)
-	expect(aligned.y).toBeCloseTo(expected.y, PLACES)
-	expect(aligned.z).toBeCloseTo(expected.z, PLACES)
-}
 
 describe('OrientationVector.toQuaternion, against the quaternions RDK derived', () => {
 	it('reads all 20 vector cases the Go generator wrote', () => {
