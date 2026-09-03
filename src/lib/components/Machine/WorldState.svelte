@@ -11,6 +11,12 @@
 	} from '@viamrobotics/sdk'
 	import { createResourceClient } from '@viamrobotics/svelte-sdk'
 
+	import type {
+		PendingChange,
+		PendingTransformChanges,
+		TransformField,
+	} from '$lib/worldstate/pendingTransformChanges'
+
 	import { createChunkLoader } from '$lib/chunking'
 	import { drawTransform, updateMetadata } from '$lib/draw'
 	import { hierarchy, traits, useWorld } from '$lib/ecs'
@@ -21,6 +27,7 @@
 	import { Pose } from '$lib/math'
 	import { metadataFromStruct } from '$lib/metadata'
 	import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
+	import { mergeChange } from '$lib/worldstate/coalesceTransformChanges'
 
 	import { decodeWorldStateChunk } from './decodeWorldStateChunk'
 
@@ -131,13 +138,9 @@
 		}
 	}
 
-	// FieldMask paths are proto field names; spec-compliant backends emit
-	// snake_case (`pose_in_observer_frame`) while some emit camelCase. Normalize
-	// to camelCase so matching against the message's accessors is casing-agnostic.
-	const snakeToCamel = (path: string): string =>
-		path.replaceAll(/_([a-z])/g, (_, char: string) => char.toUpperCase())
-
-	const updateEntity = (transform: TransformWithUUID, changes: (string | number)[]) => {
+	// `fields` is `undefined` for full state (an ADDED, a respawn applied as an update, or an
+	// UPDATED whose mask was empty); a set updates only the groups it names.
+	const updateEntity = (transform: TransformWithUUID, fields: Set<TransformField> | undefined) => {
 		const entity = entities.get(transform.uuidString)
 
 		if (!entity) {
@@ -145,32 +148,22 @@
 			return
 		}
 
-		let metadataDirty = false
-
-		for (const rawPath of changes) {
-			if (typeof rawPath !== 'string') continue
-
-			const path = snakeToCamel(rawPath)
-
-			if (path.startsWith('poseInObserverFrame')) {
-				const matrix = entity.get(traits.Matrix)
-				if (matrix) {
-					new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4(matrix)
-					entity.changed(traits.Matrix)
-				} else {
-					entity.add(
-						traits.Matrix(new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4())
-					)
-				}
-				hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
-			} else if (path.startsWith('physicalObject') && transform.physicalObject) {
-				traits.updateGeometryTrait(entity, transform.physicalObject)
-			} else if (path.startsWith('metadata')) {
-				metadataDirty = true
+		if (fields === undefined || fields.has('poseInObserverFrame')) {
+			const matrix = entity.get(traits.Matrix)
+			if (matrix) {
+				new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4(matrix)
+				entity.changed(traits.Matrix)
+			} else {
+				entity.add(traits.Matrix(new Pose().copy(transform.poseInObserverFrame?.pose).toMatrix4()))
 			}
+			hierarchy.setParent(entity, transform.poseInObserverFrame?.referenceFrame)
 		}
 
-		if (metadataDirty) {
+		if ((fields === undefined || fields.has('physicalObject')) && transform.physicalObject) {
+			traits.updateGeometryTrait(entity, transform.physicalObject)
+		}
+
+		if (fields === undefined || fields.has('metadata')) {
 			const parsedMetadata = metadataFromStruct(transform.metadata?.fields)
 			updateMetadata(entity, parsedMetadata, {
 				pointCloud: isPointCloud(transform.physicalObject?.geometryType),
@@ -182,7 +175,7 @@
 	let seeded = false
 	let flushScheduled = false
 	let rafId = 0
-	let pendingEvents: TransformEvent[] = []
+	const pending: PendingTransformChanges = new Map()
 
 	/**
 	 * Draws what the store already holds, once, so the scene is populated before
@@ -233,21 +226,48 @@
 		}
 	}
 
-	const applyEvents = (events: TransformEvent[]) => {
-		for (const event of events) {
-			if (event.changeType === TransformChangeType.ADDED) {
-				removedUUIDs.delete(event.transform.uuidString)
-				spawnEntity(event.transform)
-			} else if (event.changeType === TransformChangeType.REMOVED) {
-				destroyEntity(event.transform.uuidString)
-			} else if (event.changeType === TransformChangeType.UPDATED) {
-				updateEntity(event.transform, event.updatedFields?.paths ?? [])
-			} else {
-				console.error('Unspecified change type.', event)
+	/**
+	 * A server republish of an already-spawned UUID arrives as REMOVED-then-ADDED, but the
+	 * store's stable UUID means the same reference frame reappearing is a respawn, not a new
+	 * entity: update the existing entity in place instead of paying for a destroy and a spawn.
+	 */
+	const applyChange = (uuid: string, change: PendingChange) => {
+		switch (change.changeType) {
+			case TransformChangeType.ADDED: {
+				removedUUIDs.delete(uuid)
+				const existing = entities.get(uuid)
+				if (existing && existing.get(traits.Name) === change.transform.referenceFrame) {
+					updateEntity(change.transform, undefined)
+					return
+				}
+				if (existing) destroyEntity(uuid)
+				spawnEntity(change.transform)
+				return
+			}
+			case TransformChangeType.REMOVED: {
+				destroyEntity(uuid)
+				return
+			}
+			case TransformChangeType.UPDATED: {
+				updateEntity(change.transform, change.fields)
+				return
+			}
+			default: {
+				console.error('Unspecified change type.', change)
 			}
 		}
+	}
 
-		invalidate()
+	const flush = () => {
+		const start = performance.now()
+		const applied = pending.size
+		for (const [uuid, change] of pending) {
+			applyChange(uuid, change)
+		}
+		pending.clear()
+
+		if (applied > 0) invalidate()
+		stats.recordFlush({ start, end: performance.now(), applied, backlog: 0 })
 	}
 
 	const scheduleFlush = () => {
@@ -257,19 +277,14 @@
 		rafId = requestAnimationFrame(() => {
 			rafId = 0
 			flushScheduled = false
-			const toApply = pendingEvents
-			pendingEvents = []
-			const start = performance.now()
-			applyEvents(toApply)
-			stats.recordFlush({ start, end: performance.now(), applied: toApply.length, backlog: 0 })
+			flush()
 		})
 	}
 
 	/**
-	 * Consumes the `streamTransformChanges` server stream directly.
-	 * Transform changes are write-once into the ECS world, so we drain
-	 * each event into `pendingEvents` (cleared every flush) and never
-	 * retain history. Mirrors `useDrawService`'s stream consumption.
+	 * Consumes the `streamTransformChanges` server stream directly. Each event coalesces
+	 * into `pending`, keyed by UUID, so a burst of deltas for one entity costs one apply on
+	 * the next frame. Mirrors `useDrawService`'s stream consumption.
 	 */
 	const consumeChanges = async (signal: AbortSignal) => {
 		const activeClient = client.current
@@ -280,7 +295,7 @@
 				if (signal.aborted) break
 				if (!event.transform) continue
 
-				pendingEvents.push(event as TransformEvent)
+				mergeChange(pending, event as TransformEvent)
 				stats.recordIngest(1)
 				scheduleFlush()
 			}
@@ -313,7 +328,7 @@
 	$effect(() => {
 		return () => {
 			if (rafId) cancelAnimationFrame(rafId)
-			pendingEvents = []
+			pending.clear()
 			chunkLoader.dispose()
 			for (const [, entity] of entities) {
 				if (world.has(entity)) {
