@@ -100,7 +100,7 @@
 			-->
 			<div
 				{...api.getContentProps()}
-				class="bg-gray-9 z-(--z-index-top) max-w-64 px-2 py-1.5 text-xs text-white"
+				class="bg-gray-9 z-6 max-w-64 px-2 py-1.5 text-xs text-white"
 			>
 				{@render content()}
 			</div>

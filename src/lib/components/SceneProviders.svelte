@@ -22,6 +22,7 @@
 	import ArmModels from './Machine/ArmModels.svelte'
 	import PointCloudObjects from './Machine/PointCloudObjects.svelte'
 	import PointClouds from './Machine/PointClouds.svelte'
+	import WorldStates from './Machine/WorldStates.svelte'
 
 	interface Props {
 		children: Snippet
@@ -48,7 +49,7 @@
 	providePointcloudObjects(() => partID.current)
 	provideArmClient(() => partID.current)
 	provideArmKinematics(() => partID.current)
-	provideWorldStates()
+	provideWorldStates(() => partID.current)
 	provideFramelessComponents()
 
 	provideLinkedEntities()
@@ -57,5 +58,6 @@
 <PointClouds />
 <PointCloudObjects />
 <ArmModels />
+<WorldStates />
 
 {@render children()}
