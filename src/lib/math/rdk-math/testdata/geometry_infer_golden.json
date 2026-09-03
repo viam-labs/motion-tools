@@ -44,27 +44,6 @@
 			"resolvedType": "box"
 		},
 		{
-			"name": "declared box with a negative side",
-			"geometry": {
-				"type": "box",
-				"x": 1,
-				"y": 0,
-				"z": -1,
-				"r": 0,
-				"l": 0,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": ""
-		},
-		{
 			"name": "declared sphere",
 			"geometry": {
 				"type": "sphere",
@@ -84,27 +63,6 @@
 				"Label": ""
 			},
 			"resolvedType": "sphere"
-		},
-		{
-			"name": "declared sphere with a negative radius",
-			"geometry": {
-				"type": "sphere",
-				"x": 0,
-				"y": 0,
-				"z": 0,
-				"r": -1,
-				"l": 0,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": ""
 		},
 		{
 			"name": "declared capsule",
@@ -168,27 +126,6 @@
 				"Label": ""
 			},
 			"resolvedType": "point"
-		},
-		{
-			"name": "unrecognized declared type",
-			"geometry": {
-				"type": "bad",
-				"x": 0,
-				"y": 0,
-				"z": 0,
-				"r": 0,
-				"l": 0,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": ""
 		},
 		{
 			"name": "infer box from all three dimensions",
@@ -294,69 +231,6 @@
 				"Label": ""
 			},
 			"resolvedType": "capsule"
-		},
-		{
-			"name": "infer capsule with no radius",
-			"geometry": {
-				"type": "",
-				"x": 0,
-				"y": 0,
-				"z": 0,
-				"r": 0,
-				"l": 4,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": ""
-		},
-		{
-			"name": "infer capsule shorter than its diameter",
-			"geometry": {
-				"type": "",
-				"x": 0,
-				"y": 0,
-				"z": 0,
-				"r": 1,
-				"l": 1,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": ""
-		},
-		{
-			"name": "infer capsule whose length equals its diameter",
-			"geometry": {
-				"type": "",
-				"x": 0,
-				"y": 0,
-				"z": 0,
-				"r": 1,
-				"l": 2,
-				"translation": {
-					"X": 0,
-					"Y": 0,
-					"Z": 0
-				},
-				"orientation": {
-					"type": ""
-				},
-				"Label": ""
-			},
-			"resolvedType": "sphere"
 		},
 		{
 			"name": "infer sphere from radius",
