@@ -6,17 +6,6 @@
 
 @plugin '@tailwindcss/forms';
 
-@theme {
-	/*
-	 * Top of the visualizer's own overlay stack — above every panel and control
-	 * it draws (those top out at z-5), and nothing more. The visualizer is
-	 * embedded inside host apps, so anything that floats above its panels still
-	 * has to lose to the host's own chrome. Prime's `z-max` (1000) does not, and
-	 * is why its tooltips punch through an embedder's UI.
-	 */
-	--z-index-top: 6;
-}
-
 body {
 	height: 100dvh;
 	font-family: system-ui;

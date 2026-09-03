@@ -40,7 +40,7 @@
 	-->
 	<div
 		{...api.getContentProps()}
-		class="border-medium z-(--z-index-top) max-h-[var(--available-height,100vh)] overflow-y-auto overscroll-contain border bg-white shadow-sm"
+		class="border-medium z-6 max-h-[var(--available-height,100vh)] overflow-y-auto overscroll-contain border bg-white shadow-sm"
 	>
 		<!--
 			zag keeps the content element mounted and toggles `hidden`. Gate the subtree
