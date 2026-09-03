@@ -12,8 +12,9 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { untrack } from 'svelte'
 
-import type { Transform } from '$lib/buf/common/v1/common_pb'
+import type { BatchChange, BatchMessage } from '$lib/worldstate/workerMessages'
 
+import { Transform } from '$lib/buf/common/v1/common_pb'
 import { TransformChangeType } from '$lib/buf/service/worldstatestore/v1/world_state_store_pb'
 import { asFloat32Array, inMeters } from '$lib/buffer'
 import { createChunkLoader, type EntityChunk } from '$lib/chunking'
@@ -24,20 +25,16 @@ import { Pose } from '$lib/math'
 import { metadataFromStruct } from '$lib/metadata'
 import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
 import { drainWithBudget } from '$lib/worldstate/budgetedFlush'
-import { mergeChange } from '$lib/worldstate/coalesceTransformChanges'
-import { decodeRawChanges } from '$lib/worldstate/decodeRawChanges'
 import { createFlushScheduler } from '$lib/worldstate/flushScheduler'
 import {
 	type ApplyOutcome,
 	FLUSH_BUDGET_MS,
 	FLUSH_MAX_SPAWNS,
 	HIDDEN_FLUSH_INTERVAL_MS,
-	type IncomingChange,
-	type PendingChange,
-	type PendingTransformChanges,
 	type TransformField,
 } from '$lib/worldstate/pendingTransformChanges'
 import { openRawTransformStream } from '$lib/worldstate/rawTransformStream'
+import { createTransformDecodeWorker } from '$lib/worldstate/transformDecodeWorker'
 
 import { createStreamStats } from './createStreamStats'
 import { usePartID } from './usePartID.svelte'
@@ -280,8 +277,22 @@ const createWorldState = (
 	}
 
 	let initialized = false
-	const pending: PendingTransformChanges = new Map()
+	const pending = new Map<string, BatchChange>()
 	const pendingRaw: Uint8Array[] = []
+	let isAwaitingBatch = false
+	let hasUnrequestedIngest = false
+
+	// The pending map is always empty when a batch lands: a batch is only requested
+	// once main has drained everything it had (see `flush`'s request condition below).
+	const onBatch = (batch: BatchMessage) => {
+		for (const change of batch.changes) {
+			pending.set(change.uuid, change)
+		}
+		isAwaitingBatch = false
+		if (pending.size > 0) scheduler.request()
+	}
+
+	const decodeWorker = createTransformDecodeWorker(onBatch)
 
 	const listUUIDs = createResourceQuery(client, 'listUUIDs')
 	const getTransformQueries = $derived(
@@ -300,30 +311,30 @@ const createWorldState = (
 	 * store's stable UUID means the same reference frame reappearing is a respawn, not a new
 	 * entity: update the existing entity in place instead of paying for a destroy and a spawn.
 	 */
-	const applyChange = (uuid: string, change: PendingChange): ApplyOutcome => {
+	const applyChange = (uuid: string, change: BatchChange): ApplyOutcome => {
+		if (change.changeType === TransformChangeType.REMOVED) {
+			const existed = entities.has(uuid)
+			destroyEntity(uuid)
+			return { spawned: existed }
+		}
+
+		const transform = Transform.fromBinary(change.transform)
+		const fields = change.fields ? new Set<TransformField>(change.fields) : undefined
+
 		switch (change.changeType) {
 			case TransformChangeType.ADDED: {
 				removedUUIDs.delete(uuid)
 				const existing = entities.get(uuid)
-				if (existing && existing.get(traits.Name) === change.transform.referenceFrame) {
-					updateEntity(uuid, change.transform, undefined)
+				if (existing && existing.get(traits.Name) === transform.referenceFrame) {
+					updateEntity(uuid, transform, undefined)
 					return { spawned: false }
 				}
 				if (existing) destroyEntity(uuid)
-				spawnEntity(uuid, change.transform)
+				spawnEntity(uuid, transform)
 				return { spawned: true }
 			}
-			case TransformChangeType.REMOVED: {
-				const existed = entities.has(uuid)
-				destroyEntity(uuid)
-				return { spawned: existed }
-			}
 			case TransformChangeType.UPDATED: {
-				updateEntity(uuid, change.transform, change.fields)
-				return { spawned: false }
-			}
-			default: {
-				console.error('Unspecified change type.', change)
+				updateEntity(uuid, transform, fields)
 				return { spawned: false }
 			}
 		}
@@ -331,15 +342,24 @@ const createWorldState = (
 
 	const flush = () => {
 		const start = performance.now()
+		const now = () => performance.now()
 
-		decodeRawChanges(pendingRaw, pending, {
-			now: () => performance.now(),
-			budgetMs: FLUSH_BUDGET_MS,
-		})
+		if (pendingRaw.length > 0) {
+			decodeWorker.ingest(pendingRaw.splice(0))
+			hasUnrequestedIngest = true
+		}
+
+		// Only ask the worker for a batch once main has nothing left to apply, so the
+		// worker's decode work overlaps with main's drain instead of racing ahead of it.
+		if (hasUnrequestedIngest && !isAwaitingBatch && pending.size === 0) {
+			decodeWorker.requestBatch()
+			isAwaitingBatch = true
+			hasUnrequestedIngest = false
+		}
 
 		const result = drainWithBudget(pending, applyChange, {
-			now: () => performance.now(),
-			budgetMs: Math.max(0, FLUSH_BUDGET_MS - (performance.now() - start)),
+			now,
+			budgetMs: FLUSH_BUDGET_MS,
 			maxSpawns: FLUSH_MAX_SPAWNS,
 		})
 		const end = performance.now()
@@ -351,7 +371,7 @@ const createWorldState = (
 			applied: result.applied,
 			backlog: result.remaining + pendingRaw.length,
 		})
-		if (pendingRaw.length > 0 || result.remaining > 0) scheduler.request()
+		if (result.remaining > 0 || pendingRaw.length > 0) scheduler.request()
 	}
 
 	const scheduler = createFlushScheduler({
@@ -407,49 +427,13 @@ const createWorldState = (
 		}
 	}
 
-	/**
-	 * Consumes the `streamTransformChanges` server stream through the parsed SDK client.
-	 * Transform changes are write-once into the ECS world, so each event coalesces into
-	 * `pending`, keyed by UUID, and a budgeted flush drains it on the next scheduled frame.
-	 */
-	const consumeSdkChanges = async (activeClient: WorldStateStoreClient, signal: AbortSignal) => {
-		try {
-			for await (const event of activeClient.streamTransformChanges(undefined, { signal })) {
-				if (signal.aborted) break
-				if (!event.transform) continue
-
-				const change: IncomingChange = {
-					uuid: event.transform.uuidString,
-					changeType: event.changeType as unknown as TransformChangeType,
-					transform: event.transform as unknown as Transform,
-					updatedFields: event.updatedFields,
-				}
-				mergeChange(pending, change)
-				stats.recordIngest(1)
-				scheduler.request()
-			}
-		} catch (error) {
-			if (!signal.aborted) {
-				logs.add('World state store: transform stream failed', 'error', {
-					folder: 'world-state-store',
-				})
-				console.error('World state transform stream error:', error)
-			}
-		}
-	}
-
-	// The raw path decodes inside the budgeted flush instead of the receive loop; the SDK
-	// fallback is slated for removal once every backend serves the raw stream (phase 4).
+	// The svelte-sdk's `createResourceClient` yields `undefined` whenever `useRobotClient`
+	// does, so the resource client never exists without the robot client: the raw path is
+	// the only path.
 	const consumeChanges = async (signal: AbortSignal) => {
 		const robotClient = getRobotClient()
-		if (robotClient) {
-			await consumeRawChanges(robotClient, signal)
-			return
-		}
-
-		const activeClient = client.current
-		if (!activeClient) return
-		await consumeSdkChanges(activeClient, signal)
+		if (!robotClient) return
+		await consumeRawChanges(robotClient, signal)
 	}
 
 	$effect(() => {
@@ -469,6 +453,7 @@ const createWorldState = (
 
 	return () => {
 		scheduler.cancel()
+		decodeWorker.terminate()
 		pending.clear()
 		pendingRaw.length = 0
 		chunkLoader.dispose()

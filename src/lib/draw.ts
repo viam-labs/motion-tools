@@ -3,7 +3,6 @@ import type { ConfigurableTrait, Entity, Trait, World } from 'koota'
 
 import { Matrix4, Vector3, Vector4 } from 'three'
 import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js'
-import { UuidTool } from 'uuid-tool'
 
 import type { Transform as TransformProto } from '$lib/buf/common/v1/common_pb'
 import type { Drawing, Model, Shape } from '$lib/buf/draw/v1/drawing_pb'
@@ -29,6 +28,7 @@ import { hierarchy, relations, setOrAddTrait, traits } from '$lib/ecs'
 import { parsePcdInWorker } from '$lib/loaders/pcd'
 import { Pose } from '$lib/math'
 import { type Metadata, metadataFromStruct } from '$lib/metadata'
+import { uuidBytesToString } from '$lib/uuidBytes'
 
 import { ColorFormat } from './buf/draw/v1/metadata_pb'
 import { isPointCloud } from './geometry'
@@ -52,17 +52,6 @@ const DEFAULT_NURBS_COLORS = new Uint8Array([0, 255, 255])
 const DEFAULT_OPACITY = 1
 
 export type Transform = TransformWithUUID | TransformProto
-
-export const uuidBytesToString = (bytes: Uint8Array | undefined): string | undefined => {
-	if (!bytes || bytes.length === 0) return undefined
-	return UuidTool.toString([...bytes])
-}
-
-export const uuidStringToBytes = (uuid: string): Uint8Array<ArrayBuffer> => {
-	const arr = new Uint8Array(16)
-	arr.set(UuidTool.toBytes(uuid))
-	return arr
-}
 
 interface DrawOptions {
 	removable?: boolean

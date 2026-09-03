@@ -2,8 +2,8 @@ import { type Entity, trait } from 'koota'
 
 import type { Relationship } from '$lib/metadata'
 
-import { uuidBytesToString } from '$lib/draw'
 import { relations, traits, useWorld } from '$lib/ecs'
+import { uuidBytesToString } from '$lib/uuidBytes'
 
 interface Link {
 	targetUuid: string

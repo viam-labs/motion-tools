@@ -1,19 +1,14 @@
-import type {
-	ApplyOutcome,
-	DrainResult,
-	FlushBudget,
-	PendingChange,
-	PendingTransformChanges,
-} from './pendingTransformChanges'
+import type { ApplyOutcome, DrainResult, FlushBudget } from './pendingTransformChanges'
 
 /**
  * Applies pending changes in insertion order until the map drains or a budget is hit.
  * Deletes each entry before applying it, so an `apply` that throws drops its entry
- * instead of wedging the queue on the next flush.
+ * instead of wedging the queue on the next flush. Generic over the entry so the same
+ * drain serves a map of decoded changes and a map of worker batch entries.
  */
-export const drainWithBudget = (
-	pending: PendingTransformChanges,
-	apply: (uuid: string, change: PendingChange) => ApplyOutcome,
+export const drainWithBudget = <TChange>(
+	pending: Map<string, TChange>,
+	apply: (uuid: string, change: TChange) => ApplyOutcome,
 	budget: FlushBudget
 ): DrainResult => {
 	const start = budget.now()

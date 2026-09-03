@@ -10,14 +10,8 @@ import type { Relationship } from './metadata'
 
 import { asFloat32Array, inMeters, isVertexColors } from './buffer'
 import { rgbToHex } from './color'
-import {
-	drawDrawing,
-	drawTransform,
-	updateDrawing,
-	updateModel,
-	updateTransform,
-	uuidBytesToString,
-} from './draw'
+import { drawDrawing, drawTransform, updateDrawing, updateModel, updateTransform } from './draw'
+import { uuidBytesToString } from './uuidBytes'
 
 export type SnapshotEntity = {
 	entity: Entity

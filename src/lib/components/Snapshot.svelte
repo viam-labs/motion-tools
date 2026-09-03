@@ -19,12 +19,12 @@ Renders a Snapshot protobuf by spawning its transforms and drawings as entities 
 
 	import type { Snapshot as SnapshotProto } from '$lib/buf/draw/v1/snapshot_pb'
 
-	import { uuidBytesToString } from '$lib/draw'
 	import { traits, useWorld } from '$lib/ecs'
 	import { useCameraControls } from '$lib/hooks/useControls.svelte'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
 	import { useSettings } from '$lib/hooks/useSettings.svelte'
 	import { applySceneMetadata, reconcileSnapshotEntities, type SnapshotEntity } from '$lib/snapshot'
+	import { uuidBytesToString } from '$lib/uuidBytes'
 
 	interface Props {
 		snapshot: SnapshotProto

@@ -12,8 +12,8 @@ import { Arrows, Drawing, Line, Shape } from '$lib/buf/draw/v1/drawing_pb'
 import { Snapshot } from '$lib/buf/draw/v1/snapshot_pb'
 import { traits } from '$lib/ecs'
 
-import { uuidStringToBytes } from '../draw'
 import { reconcileSnapshotEntities, type SnapshotEntity, spawnSnapshotEntities } from '../snapshot'
+import { uuidStringToBytes } from '../uuidBytes'
 
 const UUID_A = '11111111-1111-1111-1111-111111111111'
 const UUID_B = '22222222-2222-2222-2222-222222222222'

@@ -4,8 +4,8 @@ import { getContext, setContext } from 'svelte'
 
 import type { Relationship } from '$lib/metadata'
 
-import { uuidBytesToString } from '$lib/draw'
 import { relations, traits, useQuery } from '$lib/ecs'
+import { uuidBytesToString } from '$lib/uuidBytes'
 
 const RELATIONSHIPS_CONTEXT_KEY = Symbol('relationships')
 

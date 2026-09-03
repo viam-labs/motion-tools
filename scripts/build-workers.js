@@ -1,7 +1,7 @@
 import { build } from 'esbuild'
 import { writeFileSync } from 'node:fs'
 
-const workerPaths = ['src/lib/loaders/pcd/worker.ts']
+const workerPaths = ['src/lib/loaders/pcd/worker.ts', 'src/lib/worldstate/worker.ts']
 
 for (const workerPath of workerPaths) {
 	const result = await build({
@@ -10,6 +10,8 @@ for (const workerPath of workerPaths) {
 		format: 'iife',
 		write: false,
 		minify: true,
+		// SvelteKit's `$lib` alias, which esbuild does not know about.
+		alias: { $lib: './src/lib' },
 	})
 
 	const code = result.outputFiles[0].text

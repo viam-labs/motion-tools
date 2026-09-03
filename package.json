@@ -114,10 +114,15 @@
 			"command": "node scripts/build-workers.js",
 			"files": [
 				"scripts/build-workers.js",
-				"src/lib/loaders/pcd/worker.ts"
+				"src/lib/loaders/pcd/worker.ts",
+				"src/lib/worldstate/*.ts",
+				"!src/lib/worldstate/*.inline.ts",
+				"src/lib/uuidBytes.ts",
+				"src/lib/buf/**"
 			],
 			"output": [
-				"src/lib/loaders/pcd/worker.inline.ts"
+				"src/lib/loaders/pcd/worker.inline.ts",
+				"src/lib/worldstate/worker.inline.ts"
 			],
 			"packageLocks": [
 				"pnpm-lock.yaml"
@@ -163,6 +168,7 @@
 			"files": [
 				"svelte.config.js",
 				"src/**",
+				"!src/**/*.inline.ts",
 				"tsconfig.json"
 			],
 			"output": [

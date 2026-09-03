@@ -86,16 +86,6 @@ export interface DrainResult {
 	exhausted: 'budget' | 'spawns' | undefined
 }
 
-/** The slice of the flush budget the raw-buffer decode step runs under. */
-export type DecodeBudget = Pick<FlushBudget, 'now' | 'budgetMs'>
-
-export interface DecodeResult {
-	/** Buffers decoded and merged into the pending map this call. */
-	decoded: number
-	/** Buffers still queued because the budget ran out; non-zero means the budget stopped the walk. */
-	remaining: number
-}
-
 export interface FlushScheduler {
 	/** Idempotent: a flush already scheduled is not scheduled twice. */
 	request(): void

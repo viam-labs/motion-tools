@@ -1,5 +1,5 @@
 import { StreamTransformChangesResponse } from '$lib/buf/service/worldstatestore/v1/world_state_store_pb'
-import { uuidBytesToString } from '$lib/draw'
+import { uuidBytesToString } from '$lib/uuidBytes'
 
 import type { IncomingChange } from './pendingTransformChanges'
 
