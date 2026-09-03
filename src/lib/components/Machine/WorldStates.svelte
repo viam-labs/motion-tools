@@ -8,7 +8,7 @@
 	const worldStates = useWorldStates()
 </script>
 
-{#each worldStates.stores as name (name)}
+{#each worldStates.stores as name (`${partID.current}:${name}`)}
 	<WorldState
 		partID={partID.current}
 		{name}

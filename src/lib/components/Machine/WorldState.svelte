@@ -116,7 +116,6 @@
 			}
 		} catch (error) {
 			logs.add(`World state store: could not fetch transform ${uuid}`, 'error', {
-				resource: name,
 				folder: 'world-state-store',
 			})
 			console.error('World state self-heal failed for', uuid, error)
@@ -201,16 +200,17 @@
 			)
 			if (signal.aborted) return
 
-			seeded = true
-
 			for (const transform of transforms) {
 				if (transform.status === 'fulfilled') spawnEntity(transform.value)
 			}
 
+			// Set last, so a throw above leaves the snapshot undrawn and the next
+			// connection tries again instead of skipping the seed forever.
+			seeded = true
+
 			const failed = transforms.filter((transform) => transform.status === 'rejected').length
 			if (failed > 0) {
 				logs.add(`World state store: ${failed} of ${uuids.length} transforms failed`, 'error', {
-					resource: name,
 					folder: 'world-state-store',
 				})
 			}
@@ -219,8 +219,7 @@
 		} catch (error) {
 			if (signal.aborted) return
 
-			logs.add('World state store: could not list transforms', 'error', {
-				resource: name,
+			logs.add('World state store: could not load the current transforms', 'error', {
 				folder: 'world-state-store',
 			})
 			console.error('World state seed failed:', error)
@@ -278,7 +277,6 @@
 		} catch (error) {
 			if (!signal.aborted) {
 				logs.add('World state store: transform stream failed', 'error', {
-					resource: name,
 					folder: 'world-state-store',
 				})
 				console.error('World state transform stream error:', error)
