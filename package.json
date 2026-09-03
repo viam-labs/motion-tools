@@ -549,7 +549,7 @@
 		"@typescript-eslint/parser": "8.56.1",
 		"@viamrobotics/prime-core": "0.1.23",
 		"@viamrobotics/sdk": "0.75.0",
-		"@viamrobotics/svelte-sdk": "1.5.1",
+		"@viamrobotics/svelte-sdk": "1.5.2",
 		"@viamrobotics/tailwind-config": "1.2.0",
 		"@viamrobotics/test-widgets": "0.11.3",
 		"@viamrobotics/tweakpane-config": "0.1.1",

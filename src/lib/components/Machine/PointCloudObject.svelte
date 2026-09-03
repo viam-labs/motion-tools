@@ -52,8 +52,12 @@
 			disabledVisionServices[name] !== true
 	)
 
+	// The chosen refresh rate is the only thing that fetches objects. Focus is
+	// not: `Manual` leaves the query enabled with no interval, so refetching on
+	// focus would pull a full set the user did not ask for.
 	const query = createResourceQuery(client, 'getObjectPointClouds', [''], () => ({
 		enabled,
+		refetchOnWindowFocus: false,
 		refetchInterval: (interval === RefetchRates.MANUAL ? false : interval) as number | false,
 	}))
 

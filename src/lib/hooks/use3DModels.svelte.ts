@@ -33,13 +33,6 @@ interface Context {
 	parseArm: (armName: string, meshes: ArmMeshes) => void
 }
 
-// A model is static config data, so fetch it once per arm and keep it.
-export const MODEL_QUERY_OPTIONS = {
-	staleTime: Infinity,
-	refetchOnMount: false,
-	refetchInterval: false as const,
-}
-
 /**
  * Resolves the loaded 3D model for a geometry entity's `Name`, formatted
  * `"<componentName>:<id>"`. Returns undefined when the name is malformed or no

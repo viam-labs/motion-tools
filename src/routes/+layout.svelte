@@ -66,13 +66,6 @@
 </script>
 
 <ViamProvider
-	config={{
-		defaultOptions: {
-			queries: {
-				staleTime: Infinity,
-			},
-		},
-	}}
 	options={{ resetQueriesOnDisconnect: false }}
 	{dialConfigs}
 >

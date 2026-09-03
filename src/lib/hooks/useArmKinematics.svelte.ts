@@ -6,6 +6,8 @@ import {
 } from '@viamrobotics/svelte-sdk'
 import { getContext, setContext } from 'svelte'
 
+import { STATIC_RESOURCE_QUERY_OPTIONS } from '$lib/staticResourceQuery'
+
 const key = Symbol('arm-kinematics-context')
 
 export interface JointLimit {
@@ -21,8 +23,6 @@ interface Context {
 
 export const provideArmKinematics = (partID: () => string) => {
 	const arms = useResourceStatuses(partID, 'arm')
-	// Kinematics are static config data, so fetch once and cache indefinitely
-	const options = { staleTime: Infinity, refetchOnMount: false, refetchInterval: false as const }
 
 	const names = $derived(
 		arms.current.map((arm) => arm.name?.name).filter((name): name is string => name !== undefined)
@@ -33,7 +33,10 @@ export const provideArmKinematics = (partID: () => string) => {
 	const kinematicsQueries = $derived(
 		clients.map(
 			(client) =>
-				[client.name, createResourceQuery(client, 'getKinematics', () => options)] as const
+				[
+					client.name,
+					createResourceQuery(client, 'getKinematics', () => STATIC_RESOURCE_QUERY_OPTIONS),
+				] as const
 		)
 	)
 
