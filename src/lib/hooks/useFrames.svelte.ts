@@ -154,9 +154,17 @@ export const provideFrames = (partID: () => string) => {
 	const entities = new Map<string, Entity | undefined>()
 
 	$effect(() => {
-		if (revision) {
-			untrack(() => query.refetch())
-		}
+		if (revision === undefined) return
+
+		untrack(() => {
+			// `refetch` ignores `enabled`, so readiness is checked here instead. On a
+			// fast part switch the new part reports its revision before its client
+			// exists, and the call would run against an undefined client. Skipping is
+			// safe: the query's own `enabled` fetches once the client arrives.
+			if (!isConnected || client.current === undefined) return
+
+			query.refetch()
+		})
 	})
 
 	const componentSubtypeByName = $derived.by(() => {

@@ -59,6 +59,11 @@ export const providePoses = (partID: () => string) => {
 	const options = $derived({
 		enabled: partID() !== '' && interval !== RefetchRates.OFF && isConnected,
 		refetchInterval: interval === RefetchRates.MANUAL ? (false as const) : interval,
+		// A pose is live data, so it goes stale immediately. This overrides the
+		// app-wide `staleTime: Infinity`, which would hold the last pose we got as
+		// good forever and, more importantly, stop a reconnect from refetching at
+		// all: Tanstack only refetches on an `enabled` edge if the data is stale.
+		staleTime: 0,
 	})
 
 	/** The scene draws one node per component, at its mount, so the query redirects there. */
@@ -83,19 +88,29 @@ export const providePoses = (partID: () => string) => {
 		const name = useTrait(() => entity, traits.Name)
 		const parentName = useParentName(() => entity)
 
+		/**
+		 * The name to ask for this frame's pose by, or `''` once the entity is gone.
+		 *
+		 * A destroyed entity has no `Name`, and this entry outlives it by a flush,
+		 * so the empty case is how the query learns its frame no longer exists.
+		 * `entity.isAlive()` would read better here but is not reactive, so it would
+		 * never recompute. rdk rejects a nameless pose request outright.
+		 */
+		const queryName = $derived(toQueryName(name.current) ?? '')
+
 		const query = createRobotQuery(
 			robotClient,
 			'getPose',
 			() => {
 				// Parent too: measured from a parent arm's tip, children would mount at
 				// the wrong end of the arm.
-				return [toQueryName(name.current), toQueryName(parentName.current) ?? 'world', []] as [
+				return [queryName, toQueryName(parentName.current) ?? 'world', []] as [
 					string,
 					string,
 					commonApi.Transform[],
 				]
 			},
-			() => options
+			() => ({ ...options, enabled: options.enabled && queryName !== '' })
 		)
 
 		return { entity, name, query }
@@ -145,17 +160,6 @@ export const providePoses = (partID: () => string) => {
 	$effect(() => () => {
 		for (const entry of entryByEntity.values()) entry.dispose()
 		entryByEntity.clear()
-	})
-
-	// Kick an initial fetch for every frame once connected.
-	$effect(() => {
-		if (frames.current && isConnected) {
-			// Read `entries` inside `untrack` so this fires on the connect edge,
-			// not every time a frame is added — new entries auto-fetch on creation.
-			untrack(() => {
-				for (const { query } of entries) query.refetch()
-			})
-		}
 	})
 
 	// Only the per-frame "Fetching..." notices collapse to one summary at a live
