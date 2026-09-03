@@ -110,6 +110,35 @@ describe('provideLogs', () => {
 		expect(logs.warnCount).toBe(1)
 	})
 
+	it('drops every line and row alert on clear', () => {
+		const logs = provideLogs()
+
+		logs.add('Pose request failed', 'error', { resource: 'arm', folder: 'frames' })
+		logs.add('Pose is stale', 'warn', GRIPPER)
+
+		logs.clear()
+
+		expect(logs.current).toEqual([])
+		expect(logs.errorCount).toBe(0)
+		expect(logs.warnCount).toBe(0)
+		expect(logs.statusFor(ARM)).toBeUndefined()
+		expect(logs.statusFor(FRAMES)).toBeUndefined()
+		expect(logs.statusFor(GRIPPER)).toBeUndefined()
+		expect(logs.linesFor(ARM)).toEqual([])
+	})
+
+	it('re-counts a line added after a clear rather than resuming its old count', () => {
+		const logs = provideLogs()
+
+		logs.add('Pose request failed', 'error', ARM)
+		logs.add('Pose request failed', 'error', ARM)
+		logs.clear()
+
+		logs.add('Pose request failed', 'error', ARM)
+
+		expect(logs.current).toMatchObject([{ message: 'Pose request failed', count: 1 }])
+	})
+
 	it('clears every row a line marked once it ages out', () => {
 		const logs = provideLogs()
 

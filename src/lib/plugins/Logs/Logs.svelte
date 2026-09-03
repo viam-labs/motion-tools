@@ -1,14 +1,33 @@
 <script lang="ts">
-	import { Badge } from '@viamrobotics/prime-core'
+	import { Badge, Icon } from '@viamrobotics/prime-core'
 	import { PersistedState } from 'runed'
 
 	import DashboardButton from '$lib/components/overlay/dashboard/Button.svelte'
 	import Popover from '$lib/components/overlay/Popover.svelte'
 	import WorkspacePortal from '$lib/components/overlay/Portals/WorkspacePortal.svelte'
+	import { usePartID } from '$lib/hooks/usePartID.svelte'
 
 	import { provideLogs } from './useLogs.svelte'
 
 	const logs = provideLogs()
+	const partID = usePartID()
+
+	// The sink lives as long as the app, so nothing else evicts the previous
+	// machine's lines. Seeded at setup rather than left unset so the first flush
+	// keeps what plugins mounting alongside us have already logged.
+	let loggedPartID = partID.current
+
+	$effect(() => {
+		const next = partID.current
+		const previous = loggedPartID
+		loggedPartID = next
+
+		// Leaving no machine at all is not a machine change. Lines filed before an
+		// id resolved, by the draw service or a failed connection, are still current.
+		if (previous === '' || previous === next) return
+
+		logs.clear()
+	})
 
 	let levels = new PersistedState('logs-selected-levels', {
 		info: true,
@@ -57,7 +76,9 @@
 			<div
 				class="font-public-sans flex max-h-[420px] w-80 flex-col overflow-y-auto overscroll-contain"
 			>
-				<div class="border-light sticky top-0 z-1 flex gap-1 border-b bg-white px-3 py-2">
+				<div
+					class="border-light sticky top-0 z-1 flex items-center gap-1 border-b bg-white px-3 py-2"
+				>
 					<button
 						type="button"
 						class="group cursor-pointer rounded-full"
@@ -100,6 +121,21 @@
 							label="info"
 							variant={levels.current.info ? 'neutral' : 'inactive'}
 							cx="transition group-hover:brightness-95"
+						/>
+					</button>
+
+					<button
+						type="button"
+						aria-label="Clear all logs"
+						disabled={logs.current.length === 0}
+						class="text-subtle-2 hover:text-default hover:bg-ghost-light focus-visible:outline-gray-6 disabled:text-disabled ml-auto shrink-0 cursor-pointer rounded-xs p-1 transition-colors focus-visible:outline focus-visible:-outline-offset-1 disabled:cursor-default disabled:bg-transparent"
+						onclick={() => {
+							logs.clear()
+						}}
+					>
+						<Icon
+							name="trash-can-outline"
+							size="sm"
 						/>
 					</button>
 				</div>
