@@ -24,7 +24,6 @@ const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, g
 const QUATERNION_PLACES = 8
 
 export const expectSameRotation = (actual: Quaternion, expected: GoldenQuaternion) => {
-
 	const q = new Quaternion(expected.x, expected.y, expected.z, expected.w)
 	expect(actual.angleTo(q)).toBeLessThan(QUATERNION_PLACES)
 }
