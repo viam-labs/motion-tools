@@ -15,7 +15,9 @@
 	import { drawTransform, updateMetadata } from '$lib/draw'
 	import { hierarchy, traits, useWorld } from '$lib/ecs'
 	import { isPointCloud } from '$lib/geometry'
+	import { createStreamStats } from '$lib/hooks/createStreamStats'
 	import { useRelationships } from '$lib/hooks/useRelationships.svelte'
+	import { useWorldStateStreamStats } from '$lib/hooks/worldStateStreamStats'
 	import { Pose } from '$lib/math'
 	import { metadataFromStruct } from '$lib/metadata'
 	import { useLogs } from '$lib/plugins/Logs/useLogs.svelte'
@@ -37,6 +39,11 @@
 	const world = useWorld()
 	const relationships = useRelationships()
 	const logs = useLogs()
+
+	const stats = createStreamStats()
+	const streamStats = useWorldStateStreamStats()
+
+	$effect(() => streamStats?.register(name, stats))
 
 	const client = createResourceClient(
 		WorldStateStoreClient,
@@ -252,7 +259,13 @@
 			flushScheduled = false
 			const toApply = pendingEvents
 			pendingEvents = []
+			const start = performance.now()
 			applyEvents(toApply)
+			// backlog is always 0 here: JS's single-threaded event loop guarantees no
+			// stream event can arrive during the rAF callback, so pendingEvents is empty.
+			// The field is reserved for when coalescing limits cap how many events a
+			// flush applies, at which point the remainder would carry over as backlog.
+			stats.recordFlush({ start, end: performance.now(), applied: toApply.length, backlog: 0 })
 		})
 	}
 
@@ -272,6 +285,7 @@
 				if (!event.transform) continue
 
 				pendingEvents.push(event as TransformEvent)
+				stats.recordIngest(1)
 				scheduleFlush()
 			}
 		} catch (error) {
