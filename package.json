@@ -730,7 +730,8 @@
 	"files": [
 		"dist",
 		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
+		"!dist/**/*.spec.*",
+		"!dist/**/rdk-math/**"
 	],
 	"dependencies": {
 		"@bufbuild/protobuf": "1.10.1",
