@@ -23,29 +23,10 @@ const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, g
 /** `quatCompare` in RDK's own spatialmath/quat_test.go holds two quaternions equal to 1e-8. */
 const QUATERNION_PLACES = 8
 
-/**
- * A quaternion and its negation are the same rotation, so to compare two quats we compute
- * the dot product as a measure of similarity and flip the sign, if needed.
- */
-const alignedToGolden = (actual: Quaternion, expected: GoldenQuaternion): GoldenQuaternion => {
-	const dot =
-		actual.w * expected.w + actual.x * expected.x + actual.y * expected.y + actual.z * expected.z
-	const sign = dot < 0 ? -1 : 1
-
-	return { w: actual.w * sign, x: actual.x * sign, y: actual.y * sign, z: actual.z * sign }
-}
-
-/**
- * Compared component by component rather than through `Quaternion.angleTo`, whose `acos` loses most
- * of its precision near zero and cannot resolve two matching rotations closer than about 1e-8.
- */
 export const expectSameRotation = (actual: Quaternion, expected: GoldenQuaternion) => {
-	const aligned = alignedToGolden(actual, expected)
 
-	expect(aligned.w).toBeCloseTo(expected.w, QUATERNION_PLACES)
-	expect(aligned.x).toBeCloseTo(expected.x, QUATERNION_PLACES)
-	expect(aligned.y).toBeCloseTo(expected.y, QUATERNION_PLACES)
-	expect(aligned.z).toBeCloseTo(expected.z, QUATERNION_PLACES)
+	const q = new Quaternion(expected.x, expected.y, expected.z, expected.w)
+	expect(actual.angleTo(q)).toBeLessThan(QUATERNION_PLACES)
 }
 
 const readQuaternion = (orientation: RawOrientation) => {
