@@ -23,7 +23,6 @@ const goldenByName = new Map(goldenCases.map((goldenCase) => [goldenCase.name, g
 /** `quatCompare` in RDK's own spatialmath/quat_test.go holds two quaternions equal to 1e-8. */
 const QUATERNION_PLACES = 8
 
-
 /**
  * A quaternion and its negation are the same rotation, so to compare two quats we compute
  * the dot product as a measure of similarity and flip the sign, if needed.

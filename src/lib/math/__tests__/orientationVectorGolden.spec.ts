@@ -1,9 +1,9 @@
 import { Euler, Quaternion, Vector3 } from 'three'
 import { describe, expect, it } from 'vitest'
 
-import { expectSameRotation } from "./orientationJsonGolden.spec"
 import { OrientationVector } from '../OrientationVector'
 import goldenFile from '../rdk-math/testdata/orientation_vector_golden.json'
+import { expectSameRotation } from './orientationJsonGolden.spec'
 
 interface GoldenQuaternion {
 	w: number

@@ -12,8 +12,8 @@ interface GoldenCase {
 const goldenCases = goldenFile.cases as GoldenCase[]
 
 describe('inferGeometryType, against the types RDK resolved in geometry_infer_golden.json', () => {
-	it('loads all 20 cases the Go generator wrote', () => {
-		// Note: motivation is being brittle on purpose, such that when the number of cases changes 
+	it('loads all 14 cases the Go generator wrote', () => {
+		// Note: motivation is being brittle on purpose, such that when the number of cases changes
 		// we are forced to take a look.
 		expect(goldenCases.length).toBe(14)
 	})
