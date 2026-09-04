@@ -8,6 +8,7 @@ import (
 	"time"
 
 	commonpb "go.viam.com/api/common/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -86,6 +87,7 @@ func (s *TestStore) orderedTransforms() []*commonpb.Transform {
 // startBurst cancels any previously running burst and launches the new one on
 // its own goroutine, tracked by burstDone so a caller (Close, or a later
 // startBurst) can wait for it to actually exit instead of leaving it dangling.
+// burstStarted closes once the goroutine has entered its select loop.
 func (s *TestStore) startBurst(transforms []*commonpb.Transform, count, periodMs, ticks int) {
 	s.burstMu.Lock()
 	if s.burstCancel != nil {
@@ -93,13 +95,15 @@ func (s *TestStore) startBurst(transforms []*commonpb.Transform, count, periodMs
 	}
 	burstCtx, cancel := context.WithCancel(s.streamCtx)
 	done := make(chan struct{})
+	started := make(chan struct{})
 	s.burstCancel = cancel
 	s.burstDone = done
+	s.burstStarted = started
 	s.burstMu.Unlock()
 
 	go func() {
 		defer close(done)
-		s.runBurst(burstCtx, transforms, count, periodMs, ticks)
+		s.runBurst(burstCtx, transforms, count, periodMs, ticks, started)
 	}()
 }
 
@@ -118,9 +122,11 @@ func (s *TestStore) stopBurst() {
 	<-done
 }
 
-func (s *TestStore) runBurst(ctx context.Context, transforms []*commonpb.Transform, count, periodMs, ticks int) {
+func (s *TestStore) runBurst(ctx context.Context, transforms []*commonpb.Transform, count, periodMs, ticks int, started chan struct{}) {
 	ticker := time.NewTicker(time.Duration(periodMs) * time.Millisecond)
 	defer ticker.Stop()
+
+	close(started)
 
 	numTransforms := len(transforms)
 	eventIndex := 0
@@ -147,14 +153,17 @@ func (s *TestStore) runBurst(ctx context.Context, transforms []*commonpb.Transfo
 }
 
 // nudgePose applies a small oscillating offset to a transform's pose.x, holding
-// the store lock only while mutating the pose, then emits the update outside it.
+// the store lock while mutating the pose and cloning the transform. The clone is
+// broadcast after the lock is released so subscribers never race the next mutation
+// on the live pointer.
 func (s *TestStore) nudgePose(transform *commonpb.Transform, tick, phase int) {
 	s.mu.Lock()
 	pose := transform.PoseInObserverFrame.Pose
 	pose.X += burstPoseOscillationAmplitude * math.Sin(float64(tick)*burstPoseOscillationRadiansPerTick+float64(phase))
+	snapshot := proto.Clone(transform).(*commonpb.Transform)
 	s.mu.Unlock()
 
-	s.emitUpdate(transform, []string{"poseInObserverFrame.pose"})
+	s.emitUpdate(snapshot, []string{"poseInObserverFrame.pose"})
 }
 
 // intField reads an integer command argument, applying defaultValue when absent and

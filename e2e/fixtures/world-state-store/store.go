@@ -28,7 +28,6 @@ const updatingPointCloudName = "updating-pointcloud"
 type TestStore struct {
 	resource.Named
 	resource.TriviallyReconfigurable
-	resource.TriviallyCloseable
 
 	logger logging.Logger
 
@@ -44,10 +43,12 @@ type TestStore struct {
 
 	// burstCancel stops the currently running burst loop, if any. A new burst
 	// replaces the running one rather than stacking with it. burstDone closes
-	// when that loop's goroutine actually returns.
-	burstMu     sync.Mutex
-	burstCancel context.CancelFunc
-	burstDone   chan struct{}
+	// when that loop's goroutine actually returns. burstStarted closes once the
+	// goroutine has entered its select loop (used by tests for deterministic sequencing).
+	burstMu      sync.Mutex
+	burstCancel  context.CancelFunc
+	burstDone    chan struct{}
+	burstStarted chan struct{}
 
 	// Per-entity chunked point cloud data keyed by the formatted UUID string
 	// (matching what clients send back via get_entity_chunk).

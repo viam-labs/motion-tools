@@ -138,7 +138,13 @@ func TestBurst(t *testing.T) {
 		})
 		test.That(t, err, test.ShouldBeNil)
 
-		time.Sleep(20 * time.Millisecond)
+		// Wait for the first burst goroutine to enter its select loop before
+		// starting the second, so the cancellation is deterministic.
+		select {
+		case <-s.burstStarted:
+		case <-time.After(time.Second):
+			t.Fatal("first burst goroutine did not start within timeout")
+		}
 
 		_, err = s.DoCommand(context.Background(), map[string]any{
 			"command":   "burst",
@@ -182,8 +188,14 @@ func TestBurst(t *testing.T) {
 		})
 		test.That(t, err, test.ShouldBeNil)
 
-		// Let it tick at least once, then close the store.
-		time.Sleep(30 * time.Millisecond)
+		// Wait for the burst goroutine to enter its select loop before closing,
+		// so Close exercises cancellation of an active loop rather than one that
+		// has not yet started.
+		select {
+		case <-s.burstStarted:
+		case <-time.After(time.Second):
+			t.Fatal("burst goroutine did not start within timeout")
+		}
 		test.That(t, s.Close(context.Background()), test.ShouldBeNil)
 
 		// Drain whatever arrived before Close, then confirm the channel closes

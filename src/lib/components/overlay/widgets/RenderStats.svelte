@@ -87,7 +87,7 @@
 		backlog: 0,
 		eventsPerSecond: 0,
 		flushFrameMs: 0,
-		flushMsLast: 0,
+		flushMsWorst: 0,
 		flushMsMax: 0,
 		flushesPerSecond: 0,
 		stores: 0,
@@ -191,7 +191,8 @@
 		let flushesPerSecond = 0
 		let appliedLastFlush = 0
 		let backlog = 0
-		let flushMsLast = 0
+		// Max across each store's most-recent flush duration (worst-case last flush).
+		let flushMsWorst = 0
 		let flushMsMax = 0
 		let stores = 0
 		let latestFlushStart = Number.NaN
@@ -202,7 +203,7 @@
 			flushesPerSecond += snapshot.flushesPerSecond
 			appliedLastFlush += snapshot.appliedLastFlush
 			backlog += snapshot.backlog
-			flushMsLast = Math.max(flushMsLast, snapshot.flushMsLast)
+			flushMsWorst = Math.max(flushMsWorst, snapshot.flushMsLast)
 			flushMsMax = Math.max(flushMsMax, snapshot.flushMsMax)
 			stores += 1
 
@@ -223,7 +224,7 @@
 			backlog,
 			eventsPerSecond,
 			flushFrameMs,
-			flushMsLast,
+			flushMsWorst,
 			flushMsMax,
 			flushesPerSecond,
 			stores,
@@ -418,7 +419,7 @@
 				format={formatCount}
 			/>
 			<Monitor
-				value={streamLive.flushMsLast}
+				value={streamLive.flushMsWorst}
 				label="Flush ms"
 				format={formatMs}
 			/>

@@ -261,6 +261,10 @@
 			pendingEvents = []
 			const start = performance.now()
 			applyEvents(toApply)
+			// backlog is always 0 here: JS's single-threaded event loop guarantees no
+			// stream event can arrive during the rAF callback, so pendingEvents is empty.
+			// The field is reserved for when coalescing limits cap how many events a
+			// flush applies, at which point the remainder would carry over as backlog.
 			stats.recordFlush({ start, end: performance.now(), applied: toApply.length, backlog: 0 })
 		})
 	}
